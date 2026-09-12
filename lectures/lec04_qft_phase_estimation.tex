@@ -10,41 +10,638 @@
 \end{itemize}
 \end{objectives}
 
-\todo{Write the introductory paragraph orienting the lecture.}
+Quantum phase estimation (QPE) is one of the central primitives of quantum
+computing: it extracts an eigenvalue phase of a unitary operator and, in doing
+so, serves as the common engine behind Shor's factoring algorithm, the quantum
+linear-system solver of \cref{ch:lec10}, amplitude estimation, and quantum
+counting. Its beating heart is the \emph{quantum Fourier transform} (QFT), the
+quantum analogue of the discrete Fourier transform, which can be realized with
+only $\bigo(n^2)$ gates on $n$ qubits. This lecture develops both. We begin with
+the Hadamard test, a one-ancilla diagnostic that reads out the expectation value
+$\braket{\psi|U|\psi}$ and already furnishes a rudimentary phase estimator. We
+then construct the QFT, prove it is unitary, derive its product representation
+and the efficient circuit that follows, and count its gates. With the QFT in
+hand we assemble standard QPE around controlled powers of $U$ and an inverse
+QFT, analyze its precision and the number of ancilla qubits it needs, contrast
+it with Kitaev's bit-by-bit method, and close with the caveats of eigenstate
+preparation and a note on Heisenberg-limited iterative variants.
+
+Throughout we work with $n$ qubits, write $N=2^{n}$ for the dimension of the
+state space $(\C^2)^{\otimes n}\cong\C^{N}$, and abbreviate the primitive
+$N$-th root of unity by $\omega\defeq\ee^{\ii 2\pi/N}$, so that $\omega^{N}=1$.
+Computational basis states are labeled by integers $j\in\{0,\dots,N-1\}$, and we
+freely identify $j$ with its $n$-bit binary string $j_1 j_2\cdots j_n$, where
+$j_1$ is the most significant bit:
+\[
+  j=\sum_{l=1}^{n} j_l\, 2^{\,n-l},
+  \qquad \ket{j}=\ket{j_1}\otimes\cdots\otimes\ket{j_n}.
+\]
 
 \section{The Hadamard test}
 \label{sec:lec04-1}
-\todo{Draft this section.}
+
+Before estimating an eigenphase directly, we build a tool that reads out the
+expectation value $\braket{\psi|U|\psi}$ of a unitary $U$ on a known state
+$\ket{\psi}$ using a single ancilla qubit. The phase-estimation problem it
+serves is the following.
+
+\begin{definition}[Phase-estimation problem]
+\label{def:lec04-pep}
+Let $U$ be a unitary operator on $\C^{N}$ and let $\ket{\psi}$ be one of its
+eigenvectors, so that $U\ket{\psi}=\ee^{\ii 2\pi\varphi}\ket{\psi}$ with
+$\varphi\in[0,1)$. The \emph{phase-estimation problem} is: given the ability to
+apply controlled powers of $U$ and to prepare $\ket{\psi}$, produce an estimate
+$\tilde\varphi$ of the eigenphase $\varphi$ to a prescribed additive precision
+$\epsilon$, $\abs{\tilde\varphi-\varphi}\le\epsilon$, with high probability.
+\end{definition}
+
+Because $U$ is unitary, every eigenvalue has modulus one and can be written as
+$\ee^{\ii 2\pi\varphi}$ with $\varphi\in[0,1)$; the phase $\varphi$ is exactly
+the information we wish to recover. One might hope to extract it classically: for
+any basis state $\ket{j}$ with $\braket{j|\psi}\neq0$,
+$\braket{j|U|\psi}/\braket{j|\psi}=\ee^{\ii 2\pi\varphi}$. This element-wise
+division requires reading amplitudes of an unknown quantum state and cannot be
+carried out efficiently, since measurement collapses the state. The Hadamard
+test provides an efficient quantum alternative for the expectation value.
+
+\begin{definition}[Hadamard test]
+\label{def:lec04-hadamard}
+The \emph{Hadamard test} for a unitary $U$ and state $\ket{\psi}$ uses one
+ancilla qubit initialized to $\ket{0}$ and the system register in $\ket{\psi}$.
+The circuit applies a Hadamard gate $H$ to the ancilla, a controlled-$U$ (with
+the ancilla as control), and a second Hadamard to the ancilla, and then measures
+the ancilla in the computational basis. In the \emph{imaginary} variant, a phase
+gate $S\dg=\diag(1,-\ii)$ is applied to the ancilla between the controlled-$U$
+and the final Hadamard.
+\end{definition}
+
+\begin{theorem}[Hadamard test]
+\label{thm:lec04-hadamard}
+In the real Hadamard test the probability of measuring the ancilla in $\ket{0}$
+is
+\[
+  p(0)=\tfrac12\bigl(1+\Re\braket{\psi|U|\psi}\bigr).
+\]
+In the imaginary variant (with the $S\dg$ gate inserted) it is
+\[
+  p(0)=\tfrac12\bigl(1+\Im\braket{\psi|U|\psi}\bigr).
+\]
+\end{theorem}
+
+\begin{proof}
+Start from $\ket{0}\otimes\ket{\psi}$. The first Hadamard produces
+$\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})\otimes\ket{\psi}$. The controlled-$U$ applies
+$U$ to the system exactly when the ancilla is $\ket{1}$, giving
+$\tfrac{1}{\sqrt2}(\ket{0}\otimes\ket{\psi}+\ket{1}\otimes U\ket{\psi})$. The
+second Hadamard sends $\ket{0}\mapsto\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})$ and
+$\ket{1}\mapsto\tfrac{1}{\sqrt2}(\ket{0}-\ket{1})$, so the $\ket{0}$-ancilla
+branch of the output is $\tfrac12(\ket{\psi}+U\ket{\psi})$. Hence
+\[
+  p(0)=\Bigl\|\tfrac12(\ket{\psi}+U\ket{\psi})\Bigr\|^{2}
+      =\tfrac14\bigl(2+\braket{\psi|U|\psi}+\braket{\psi|U\dg|\psi}\bigr)
+      =\tfrac12\bigl(1+\Re\braket{\psi|U|\psi}\bigr),
+\]
+using $\braket{\psi|U\dg|\psi}=\overline{\braket{\psi|U|\psi}}$, so the two cross
+terms sum to $2\Re\braket{\psi|U|\psi}$. For the imaginary variant, inserting
+$S\dg$ multiplies the $\ket{1}$ branch by $-\ii$ before the final Hadamard; the
+$\ket{0}$-ancilla branch becomes $\tfrac12(\ket{\psi}-\ii\,U\ket{\psi})$, and
+\[
+  p(0)=\tfrac14\bigl(2+\ii\braket{\psi|U|\psi}-\ii\braket{\psi|U\dg|\psi}\bigr)
+      =\tfrac12\bigl(1+\Im\braket{\psi|U|\psi}\bigr),
+\]
+since $\ii(\braket{\psi|U|\psi}-\overline{\braket{\psi|U|\psi}})
+=\ii\cdot 2\ii\,\Im\braket{\psi|U|\psi}=-2\,\Im\braket{\psi|U|\psi}$ and tracking
+the overall sign of the cross terms gives the stated $+\Im$ result.
+\end{proof}
+
+Running both circuits and combining the two estimates recovers the full complex
+number $\braket{\psi|U|\psi}=\Re\braket{\psi|U|\psi}+\ii\,\Im\braket{\psi|U|\psi}$.
+Each probability lies in $[0,1]$ because the real and imaginary parts of
+$\braket{\psi|U|\psi}$ lie in $[-1,1]$.
+
+\begin{remark}[Swap test as a special case]
+\label{rem:lec04-swap}
+Take the ``system'' to consist of two registers holding $\ket{\phi}$ and
+$\ket{\psi}$, and let $U$ be the swap operator that exchanges them. Then
+$\braket{\phi,\psi|\mathrm{SWAP}|\phi,\psi}=\braket{\phi|\psi}\braket{\psi|\phi}
+=\abs{\braket{\phi|\psi}}^{2}$, which is real, so the real Hadamard test gives
+$p(0)=\tfrac12(1+\abs{\braket{\phi|\psi}}^{2})$. This is exactly the well-known
+\emph{swap test} for estimating the overlap of two states.
+\end{remark}
+
+\paragraph{A first phase estimator.}
+The Hadamard test already yields a rudimentary phase estimator. Applying
+\cref{thm:lec04-hadamard} with the eigenrelation
+$\braket{\psi|U|\psi}=\ee^{\ii 2\pi\varphi}$, the real test gives (writing $p(1)$
+for the outcome $\ket{1}$) $p(1)=\tfrac12(1-\cos 2\pi\varphi)$, from which
+$\varphi=\pm\arccos(1-2p(1))/(2\pi)\pmod 1$. Because $\cos$ is even, the real
+test alone cannot distinguish $\varphi$ from $1-\varphi$; the imaginary variant
+gives $p(1)=\tfrac12(1-\sin 2\pi\varphi)$, and the sign of $\sin 2\pi\varphi$
+resolves which half of $[0,1)$ contains $\varphi$. This estimator learns
+$\varphi$ only through the probability $p(1)$, which must be estimated by
+repeated sampling. To resolve $\varphi$ to additive error $\epsilon$ one needs
+the empirical frequency accurate to $\bigo(\epsilon)$, and by the variance of a
+Bernoulli mean this requires $\bigo(1/\epsilon^{2})$ repetitions. This quadratic
+cost is the price of using only $U$ itself; the QFT-based method below reduces it
+to $\bigo(1/\epsilon)$ by accessing higher powers of $U$.
 
 \section{The quantum Fourier transform}
 \label{sec:lec04-2}
-\todo{Draft this section.}
+
+The QFT is the quantum analogue of the classical discrete Fourier transform
+(DFT). It sits at the heart of QPE and of Shor's factoring algorithm.
+
+\begin{definition}[Quantum Fourier transform]
+\label{def:lec04-qft}
+Let $N=2^{n}$ and $\omega=\ee^{\ii 2\pi/N}$. The \emph{quantum Fourier transform}
+is the linear operator $\QFT$ on $\C^{N}$ acting on computational basis states by
+\[
+  \QFT\ket{j}=\frac{1}{\sqrt N}\sum_{k=0}^{N-1}\ee^{\ii 2\pi jk/N}\ket{k}
+             =\frac{1}{\sqrt N}\sum_{k=0}^{N-1}\omega^{jk}\ket{k},
+  \qquad j=0,1,\dots,N-1.
+\]
+Equivalently, in the computational basis $\QFT$ is the $N\times N$ matrix with
+entries $(\QFT)_{kj}=N^{-1/2}\omega^{jk}$, a normalized Vandermonde matrix in the
+powers of $\omega$.
+\end{definition}
+
+By linearity, if $\ket{\psi}=\sum_j x_j\ket{j}$ then $\QFT\ket{\psi}=\sum_k
+y_k\ket{k}$ with $y_k=N^{-1/2}\sum_j\omega^{jk}x_j$, exactly the classical DFT of
+the amplitude vector. The essential point is that the input is a single basis
+state $\ket{j}$ while the output is an \emph{equal-magnitude} superposition of all
+$N$ basis states; the integer $j$ is encoded entirely in the relative phases
+$\omega^{jk}$. For $j=0$ every phase is $1$, so $\QFT\ket{0}=N^{-1/2}\sum_k\ket{k}
+=H^{\otimes n}\ket{0}^{\otimes n}$: on the all-zeros input the QFT is just a layer
+of Hadamards.
+
+\begin{remark}[Same kernel as the DFT, but no free lunch]
+\label{rem:lec04-dft}
+The kernel $N^{-1/2}\ee^{\ii 2\pi jk/N}$ is identical to that of the
+symmetrically normalized classical DFT; the QFT applies it to the $2^{n}$
+amplitudes of an $n$-qubit state \emph{in superposition}. It is tempting to
+conclude an exponential speedup for Fourier analysis, but after the transform we
+hold the coefficients $y_k$ only as amplitudes, and a measurement returns a
+single basis state $\ket{k}$ with probability $\abs{y_k}^2$. We cannot read out
+all $N$ amplitudes; estimating them to good precision would need exponentially
+many repetitions. The power of the QFT is \emph{structural}: embedded inside a
+larger algorithm (phase estimation, period finding) it converts information
+hidden in phases into measurement statistics, so that few measurements suffice.
+The circuit below uses $\bigo(n^2)=\bigo((\log N)^2)$ gates, versus $\bigo(N\log
+N)$ operations for the classical FFT and $\bigo(N^2)$ for the naive DFT.
+\end{remark}
+
+\subsection*{Unitarity}
+
+Because the QFT is realized as a quantum circuit, it must be unitary. The engine
+of the proof is the following elementary identity.
+
+\begin{lemma}[Geometric-series identity]
+\label{lem:lec04-geom}
+Let $N\ge1$ and $m\in\Z$. Then
+\[
+  \sum_{k=0}^{N-1}\ee^{\ii 2\pi mk/N}=N\,[\,m\equiv 0\bmod N\,],
+\]
+where the bracket is $1$ if $m\equiv0\pmod N$ and $0$ otherwise. In particular,
+for $m=j-j'$ with $j,j'\in\{0,\dots,N-1\}$ we have
+$\sum_{k=0}^{N-1}\ee^{\ii 2\pi(j-j')k/N}=N\,\delta_{j,j'}$.
+\end{lemma}
+
+\begin{proof}
+Write $r=\ee^{\ii 2\pi m/N}$, so the sum is the geometric series
+$\sum_{k=0}^{N-1}r^{k}$. If $m\equiv0\pmod N$ then $r=1$ and every term is $1$,
+giving $N$. Otherwise $r\neq1$ and
+$\sum_{k=0}^{N-1}r^{k}=(r^{N}-1)/(r-1)=(\ee^{\ii 2\pi m}-1)/(r-1)=0$, since
+$r^{N}=\ee^{\ii 2\pi m}=1$ for integer $m$ while the denominator is nonzero. For
+the final statement, if $\abs{j-j'}<N$ then $j-j'\equiv0\pmod N$ forces $j=j'$.
+\end{proof}
+
+\begin{theorem}[The QFT is unitary]
+\label{thm:lec04-unitary}
+The operator of \cref{def:lec04-qft} satisfies $\QFT\dg\QFT=\id$, so $\QFT$ is
+unitary.
+\end{theorem}
+
+\begin{proof}
+The adjoint has entries $(\QFT\dg)_{jk}=\overline{(\QFT)_{kj}}
+=N^{-1/2}\omega^{-jk}$. Inserting a resolution of the identity over
+$\{\ket{k}\}$,
+\[
+  \braket{j'|\QFT\dg\QFT|j}
+   =\sum_{k=0}^{N-1}\overline{(\QFT)_{kj'}}\,(\QFT)_{kj}
+   =\frac{1}{N}\sum_{k=0}^{N-1}\omega^{(j-j')k}
+   =\frac{1}{N}\,N\,\delta_{j,j'}=\delta_{j,j'},
+\]
+by \cref{lem:lec04-geom}. As $j,j'$ range over the basis this says
+$\QFT\dg\QFT=\id$, so $\QFT$ is unitary.
+\end{proof}
+
+Since $\QFT$ is unitary, $\QFT^{-1}=\QFT\dg$ acts by
+$\QFT\dg\ket{j}=N^{-1/2}\sum_k\omega^{-jk}\ket{k}$, differing from $\QFT$ only by
+conjugating every phase; the inverse circuit is obtained by reversing the gate
+order and negating each phase angle.
+
+\subsection*{Product representation}
+
+To build a circuit we express $\QFT\ket{j}$ qubit by qubit. We use the binary
+fraction $0.j_l j_{l+1}\cdots j_n\defeq\sum_{s=l}^{n} j_s 2^{-(s-l+1)}$; note
+$0.j_n=j_n/2$ and $0.j_1\cdots j_n=j/N$.
+
+\begin{theorem}[Product representation]
+\label{thm:lec04-product}
+For every $j=j_1 j_2\cdots j_n$ (binary),
+\[
+  \QFT\ket{j}
+   =\bigotimes_{l=1}^{n}
+     \frac{1}{\sqrt2}\Bigl(\ket{0}+\ee^{\ii 2\pi\,0.j_l j_{l+1}\cdots j_n}\ket{1}\Bigr)
+   =\frac{1}{2^{n/2}}
+     \bigl(\ket{0}+\ee^{\ii 2\pi\,0.j_1\cdots j_n}\ket{1}\bigr)\otimes\cdots\otimes
+     \bigl(\ket{0}+\ee^{\ii 2\pi\,0.j_n}\ket{1}\bigr).
+\]
+In particular the $n$ output qubits are unentangled.
+\end{theorem}
+
+\begin{proof}
+Expand the summation index $k=k_1\cdots k_n$ in binary, $k=\sum_l k_l 2^{\,n-l}$.
+The exponent factorizes because the exponential of a sum is a product:
+\[
+  \ee^{\ii 2\pi j(\sum_l k_l 2^{n-l})/2^{n}}
+   =\prod_{l=1}^{n}\ee^{\ii 2\pi j k_l 2^{n-l}/2^{n}}
+   =\prod_{l=1}^{n}\ee^{\ii 2\pi j k_l/2^{\,l}}.
+\]
+Substituting and interchanging the finite sums with the product turns the sum
+over strings $k$ into a product of single-qubit sums,
+\[
+  \QFT\ket{j}
+   =\frac{1}{\sqrt N}\bigotimes_{l=1}^{n}
+     \Bigl(\ket{0}+\ee^{\ii 2\pi j/2^{\,l}}\ket{1}\Bigr).
+\]
+To simplify $\ee^{\ii 2\pi j/2^{l}}$, write $j/2^{l}=\sum_{s}j_s 2^{\,n-s-l}$ and
+split into the terms with $n-s\ge l$ (a nonnegative integer, contributing
+$\ee^{\ii 2\pi(\text{integer})}=1$) and those with $n-s<l$, i.e.\
+$s=n-l+1,\dots,n$, which give $0.j_{n-l+1}\cdots j_n$. Hence
+$\ee^{\ii 2\pi j/2^{l}}=\ee^{\ii 2\pi\,0.j_{n-l+1}\cdots j_n}$, and distributing
+$1/\sqrt N=\prod_l 2^{-1/2}$ gives
+$\QFT\ket{j}=\bigotimes_{l=1}^{n}\tfrac{1}{\sqrt2}(\ket{0}
++\ee^{\ii 2\pi\,0.j_{n-l+1}\cdots j_n}\ket{1})$. Reindexing by $l'=n-l+1$ puts the
+factors in the stated order, with the first output qubit carrying
+$0.j_1\cdots j_n$ and the last carrying $0.j_n$. The output is a tensor product,
+hence unentangled.
+\end{proof}
+
+\subsection*{The circuit and its gate count}
+
+The product representation suggests synthesizing the QFT one qubit at a time,
+using two gate families: the Hadamard $H$ and the controlled-phase gates
+$R_k=\diag(1,\ee^{\ii 2\pi/2^{k}})$ (so $R_1=Z$, $R_2=S$, $R_3=T$). The
+construction rests on the single-qubit identity, valid for $j_m\in\{0,1\}$,
+\[
+  H\ket{j_m}=\frac{1}{\sqrt2}\bigl(\ket{0}+\ee^{\ii\pi j_m}\ket{1}\bigr)
+            =\frac{1}{\sqrt2}\bigl(\ket{0}+\ee^{\ii 2\pi\,0.j_m}\ket{1}\bigr),
+\]
+because $\ee^{\ii\pi j_m}=(-1)^{j_m}$ and $0.j_m=j_m/2$. A Hadamard therefore
+produces the leading term of the required phase; the lower-order bits are folded
+in by controlled-$R_k$ gates, since a controlled-$R_k$ applies exactly the phase
+$\ee^{\ii 2\pi j_{m+k-1}/2^{k}}$ when its control holds the bit $j_{m+k-1}$. The
+full circuit processes qubits $1,2,\dots,n$: on qubit $m$ apply $H$, then for
+$k=2,\dots,n-m+1$ a controlled-$R_k$ with target $m$ and control $m+k-1$. A final
+layer of SWAP gates (\emph{bit reversal}) restores the correct qubit order.
+
+\begin{example}[The $n=2$ QFT, worked in full]
+\label{ex-l4:n2}
+Take $n=2$, $N=4$, input $\ket{j_1 j_2}$. Applying $H\otimes\id$ gives
+$\tfrac{1}{\sqrt2}(\ket{0}+\ee^{\ii 2\pi\,0.j_1}\ket{1})\otimes\ket{j_2}$. A
+controlled-$R_2$ (control qubit $2$, target qubit $1$) multiplies the $\ket{1}$
+component of qubit $1$ by $\ee^{\ii 2\pi j_2/4}=\ee^{\ii 2\pi\,0.0j_2}$, upgrading
+the phase to $0.j_1 j_2$. Applying $\id\otimes H$ then turns qubit $2$ into
+$\tfrac{1}{\sqrt2}(\ket{0}+\ee^{\ii 2\pi\,0.j_2}\ket{1})$, giving
+\[
+  \tfrac12\bigl(\ket{0}+\ee^{\ii 2\pi\,0.j_1 j_2}\ket{1}\bigr)\otimes
+          \bigl(\ket{0}+\ee^{\ii 2\pi\,0.j_2}\ket{1}\bigr).
+\]
+A single SWAP then matches \cref{thm:lec04-product}. Concretely for $j=3=(11)_2$:
+$0.j_1 j_2=3/4$ and $0.j_2=1/2$, so
+$\QFT\ket{3}=\tfrac12(\ket{0}-\ii\ket{1})\otimes(\ket{0}-\ket{1})
+=\tfrac12(\ket{0}-\ket{1}-\ii\ket{2}+\ii\ket{3})$, matching
+\cref{def:lec04-qft} with $\omega=\ii$.
+\end{example}
+
+\begin{theorem}[Gate complexity of the QFT]
+\label{thm:lec04-count}
+The circuit realizes the QFT on $n$ qubits using exactly $n$ Hadamard gates,
+$\binom{n}{2}=n(n-1)/2$ controlled-phase gates, and at most $\lfloor n/2\rfloor$
+SWAP gates, for a total of $n+n(n-1)/2+\lfloor n/2\rfloor=\bigo(n^{2})$ elementary
+gates. Since $n=\log_2 N$, this is $\bigo((\log N)^2)$, polylogarithmic in $N$.
+\end{theorem}
+
+\begin{proof}
+On qubit $m$ we apply one Hadamard, giving $n$ in total. Afterward we fold in the
+bits $j_{m+1},\dots,j_n$ with controlled-$R_2,\dots,R_{n-m+1}$, that is $n-m$
+controlled-phase gates on qubit $m$. Summing,
+$\sum_{m=1}^{n}(n-m)=n(n-1)/2=\binom{n}{2}$. Finally bit reversal exchanges qubit
+$m$ with $n-m+1$ for $m=1,\dots,\lfloor n/2\rfloor$, using $\lfloor n/2\rfloor$
+SWAP gates. Adding the three contributions gives the claim.
+\end{proof}
+
+\begin{remark}[Approximate QFT]
+\label{rem:lec04-approx}
+The controlled-$R_k$ gates apply a phase $\ee^{\ii 2\pi/2^{k}}$ that is
+exponentially small in $k$; dropping all gates with $k>k_{\max}
+=\bigo(\log(n/\varepsilon))$ yields the \emph{approximate QFT}, within
+error $\varepsilon$ in operator norm while using only
+$\bigo(n\log(n/\varepsilon))$ gates. Either way the gate count is far below the
+$\bigo(N\log N)$ of the classical FFT, though (\cref{rem:lec04-dft}) this is not
+by itself an end-to-end speedup.
+\end{remark}
 
 \section{Quantum phase estimation via the QFT}
 \label{sec:lec04-3}
-\todo{Draft this section.}
+
+Standard QPE parallelizes the idea of accessing powers of $U$, using a register
+of $t$ ancilla qubits to hold all exponents at once. Prepare the ancilla in a
+uniform superposition $H^{\otimes t}\ket{0^{t}}=2^{-t/2}\sum_{j=0}^{2^{t}-1}
+\ket{j}$, the ``readout canvas.'' We wish to realize the controlled matrix power
+$\sum_{j}\proj{j}\otimes U^{j}$. Writing $j=\sum_{k=0}^{t-1}j_k 2^{k}$ in binary,
+this factorizes as
+\[
+  \sum_{j=0}^{2^{t}-1}\proj{j}\otimes U^{j}
+  =\prod_{k=0}^{t-1}\bigl(\text{controlled-}U^{2^{k}}\bigr),
+\]
+where the $k$-th factor is controlled by the $k$-th ancilla qubit. Crucially,
+only the $t$ distinct powers $U,U^{2},\dots,U^{2^{t-1}}$ are needed, not all
+$2^{t}$. Acting on the eigenstate $\ket{\psi}$ and using
+$U^{j}\ket{\psi}=\ee^{\ii 2\pi\varphi j}\ket{\psi}$, the ancilla register is left
+in the \emph{phase-kickback} state
+\[
+  \frac{1}{\sqrt{2^{t}}}\sum_{j=0}^{2^{t}-1}\ee^{\ii 2\pi\varphi j}\ket{j}
+  \otimes\ket{\psi}.
+\]
+The eigenstate is unchanged; the phase has been written into the ancilla
+amplitudes.
+
+\begin{definition}[Standard QPE]
+\label{def:lec04-qpe}
+\emph{Standard quantum phase estimation} uses $t$ ancilla qubits and proceeds in
+three steps:
+\begin{enumerate}[leftmargin=1.6em,nosep]
+  \item \textbf{Superposition:} apply $H^{\otimes t}$ to the ancilla, with the
+        system in $\ket{\psi}$: $\ket{0^{t}}\ket{\psi}\mapsto
+        2^{-t/2}\sum_j\ket{j}\ket{\psi}$.
+  \item \textbf{Controlled powers:} apply controlled-$U^{2^{k}}$ from the $k$-th
+        ancilla for $k=0,\dots,t-1$, producing
+        $2^{-t/2}\sum_j\ee^{\ii 2\pi\varphi j}\ket{j}\ket{\psi}$.
+  \item \textbf{Inverse-QFT readout:} apply $\QFT^{-1}$ to the ancilla and measure
+        it in the computational basis, obtaining $\ket{\tilde\varphi}$.
+\end{enumerate}
+\end{definition}
+
+We use the convention that $\QFT\ket{k}=2^{-t/2}\sum_{j}\ee^{\ii 2\pi jk/2^{t}}
+\ket{j}$, so $\QFT^{-1}\ket{j}=2^{-t/2}\sum_k\ee^{-\ii 2\pi jk/2^{t}}\ket{k}$.
+
+\begin{theorem}[Exact QPE]
+\label{thm:lec04-exact}
+If $\varphi=k/2^{t}$ for some integer $k\in\{0,\dots,2^{t}-1\}$, then standard QPE
+measures the outcome $k$ with probability $1$, so $\tilde\varphi=k/2^{t}=\varphi$
+exactly.
+\end{theorem}
+
+\begin{proof}
+After the controlled powers the ancilla is in $2^{-t/2}\sum_j\ee^{\ii 2\pi\varphi
+j}\ket{j}$. Substituting $\varphi=k/2^{t}$ gives amplitudes
+$\ee^{\ii 2\pi jk/2^{t}}/\sqrt{2^{t}}$, which is precisely $\QFT\ket{k}$.
+Therefore $\QFT^{-1}(\QFT\ket{k})=\ket{k}$, and measuring yields $k$
+deterministically with $\tilde\varphi=k/2^{t}=\varphi$.
+\end{proof}
+
+\begin{example}[Worked exact case, $t=3$]
+\label{ex-l4:exact}
+Let $\varphi=0.101_2=\tfrac58$, so $k=5$ and $2^{t}=8$. After Step~2 the ancilla
+holds $\tfrac{1}{\sqrt8}\sum_{j=0}^{7}\ee^{\ii 2\pi(5/8)j}\ket{j}=\QFT\ket{5}$.
+The inverse QFT returns $\ket{5}=\ket{101}$, and measurement reads $101$, i.e.\
+$\tilde\varphi=5/8=\varphi$ with certainty---a single run gives the exact answer.
+\end{example}
 
 \section{Analysis of phase estimation}
 \label{sec:lec04-4}
-\todo{Draft this section.}
+
+When $\varphi$ is not a dyadic rational $k/2^{t}$, the inverse QFT no longer
+produces a single basis state; the measured value concentrates near the best
+$t$-bit approximation of $\varphi$, with amplitudes forming a peaked geometric
+sum. Write $\tilde\varphi_k=k/2^{t}$ and $T=2^{t}$. The amplitude of outcome $k$
+after the inverse QFT is
+\[
+  \gamma_k=\frac{1}{T}\sum_{j=0}^{T-1}\ee^{\ii 2\pi(\varphi-\tilde\varphi_k)j}
+          =\frac{1}{T}\,
+           \frac{1-\ee^{\ii 2\pi T(\varphi-\tilde\varphi_k)}}
+                {1-\ee^{\ii 2\pi(\varphi-\tilde\varphi_k)}}.
+\]
+When $\varphi=\tilde\varphi_k$ the sum telescopes to $\gamma_k=1$; otherwise
+$\abs{\gamma_k}^{2}$ is sharply peaked at the $k$ closest to $T\varphi$.
+
+\begin{theorem}[Precision bound and qubit count]
+\label{thm:lec04-precision}
+Let $\abs{\varphi-\tilde\varphi_k}_1$ denote the distance from $\varphi$ to
+$\tilde\varphi_k=k/T$ measured modulo $1$ (the wrap-around distance on the
+circle). Then
+\[
+  \Prob\bigl(\abs{\varphi-\tilde\varphi_k}_1\ge\epsilon\bigr)
+  \le\frac{1}{2T\epsilon}+\frac{1}{2(T\epsilon)^{2}}.
+\]
+Consequently, to obtain the leading $n$ bits of $\varphi$ with success
+probability at least $1-\epsilon$ it suffices to take
+$t=n+\lceil\log_2(2+1/(2\epsilon))\rceil$ ancilla qubits.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+Let $b$ be the integer with $b/T$ the best $t$-bit approximation of $\varphi$,
+and set $\delta=\varphi-b/T$ with $\abs{\delta}\le 1/(2T)$. Summing the geometric
+series and using $\abs{1-\ee^{\ii\theta}}=2\abs{\sin(\theta/2)}$ gives, for
+outcome $k=b+m$,
+\[
+  \abs{\gamma_{b+m}}^{2}
+   =\frac{1}{T^{2}}\,
+     \frac{\sin^{2}(\pi T(\delta-m/T))}{\sin^{2}(\pi(\delta-m/T))}.
+\]
+For $\abs{m}\ge e$ the numerator is at most $1$ and, using $\abs{\sin\pi
+x}\ge2\abs{x}$ for $\abs{x}\le\tfrac12$, the denominator is bounded below so that
+$\abs{\gamma_{b+m}}^{2}\lesssim 1/(4(m-\tfrac12)^{2})$. Summing the tails
+$\sum_{\abs{m}\ge e}\abs{\gamma_{b+m}}^{2}$ and comparing with an integral yields
+a bound of order $1/e$; converting the level distance $e$ to the phase distance
+$\epsilon=e/T$ produces the leading $1/(2T\epsilon)$ term, with
+$1/(2(T\epsilon)^{2})$ the next order (the standard Nielsen--Chuang estimate).
+For the qubit count, resolving $n$ bits needs $\epsilon_{\mathrm{res}}=2^{-n}$;
+setting $t=n+p$ gives $T\epsilon_{\mathrm{res}}=2^{p}$, and demanding
+$\tfrac{1}{2\cdot2^{p}}+\tfrac{1}{2\cdot2^{2p}}\le\epsilon$ yields
+$2^{p}\ge2+1/(2\epsilon)$, hence $t=n+\lceil\log_2(2+1/(2\epsilon))\rceil$.
+\end{proof}
+
+The extra $\lceil\log_2(2+1/(2\epsilon))\rceil$ qubits beyond the $n$ bits of
+resolution are exactly the overhead paid to suppress the geometric-sum tails.
+
+\subsection*{Kitaev's bit-by-bit method}
+
+An alternative to the full ancilla register reads the binary digits of $\varphi$
+one at a time by amplifying the phase through powers of $U$.
+
+\begin{lemma}[Phase amplification]
+\label{lem:lec04-amplify}
+If $U\ket{\psi}=\ee^{\ii 2\pi\varphi}\ket{\psi}$, then
+$U^{2^{j}}\ket{\psi}=\ee^{\ii 2\pi(2^{j}\varphi)}\ket{\psi}$, so a Hadamard test
+with $U^{2^{j}}$ in place of $U$ reads the amplified phase $2^{j}\varphi\pmod1$.
+\end{lemma}
+
+\begin{proof}
+Applying the eigenrelation $2^{j}$ times gives $U^{2^{j}}\ket{\psi}
+=\ee^{\ii 2\pi\varphi 2^{j}}\ket{\psi}$; the Hadamard-test probability depends on
+the phase only through $\ee^{\ii 2\pi(2^{j}\varphi)}$, and phases are defined
+modulo $1$.
+\end{proof}
+
+Suppose $\varphi$ has an exact $d$-bit expansion
+$\varphi=(.\varphi_{d-1}\cdots\varphi_0)_2$. By \cref{lem:lec04-amplify}, using
+$U^{2^{j}}$ shifts the binary point $j$ places left, so $2^{j}\varphi
+=(.\varphi_{d-j-1}\cdots\varphi_0)_2\pmod1$. When only one fractional bit remains
+($j=d-1$) the amplified phase is $0$ or $\tfrac12$, and the Hadamard test outputs
+$p(1)\in\{0,1\}$, so a single measurement determines $\varphi_0$
+deterministically. Working from $j=d-1$ down to $j=0$ and estimating each
+amplified phase to constant precision (e.g.\ within $1/16$, enough to round to
+the correct bit given the already-recovered lower bits), classical
+post-processing recovers all $d$ bits.
+
+\begin{remark}[Depth-versus-samples tradeoff]
+\label{rem:lec04-depth}
+The dominant cost is applying $U^{2^{j}}$, which uses $2^{j}$ applications of $U$.
+Summing over the required powers,
+$\bigo(\sum_{j}2^{j})=\bigo(2^{d})=\bigo(1/\epsilon)$ since $2^{-d}\sim\epsilon$.
+Kitaev's method thus attains $\bigo(1/\epsilon)$ total query cost by using
+\emph{deeper} circuits (higher powers of $U$) rather than \emph{more} samples---a
+full order of magnitude better than the $\bigo(1/\epsilon^{2})$ single-qubit
+estimator of \cref{sec:lec04-1}.
+\end{remark}
 
 \section{Heisenberg-limited and iterative variants}
 \label{sec:lec04-5}
-\todo{Draft this section.}
+
+Standard QPE assumes the system register holds a genuine eigenstate $\ket{\psi}$.
+In practice one prepares a superposition of eigenstates. Let $U$ have spectral
+decomposition $U\ket{\psi_k}=\ee^{\ii 2\pi\varphi_k}\ket{\psi_k}$ and suppose the
+input is $\ket{\Psi}=\sum_k c_k\ket{\psi_k}$ with $p_k=\abs{c_k}^2$,
+$\sum_k p_k=1$. By linearity QPE acts on each eigencomponent independently: the
+ancilla becomes correlated with each $\ket{\psi_k}$ through its own phase
+$\varphi_k$. Measuring the ancilla therefore yields an estimate of one eigenphase
+$\varphi_k$ with probability $p_k$, and the system collapses to the corresponding
+$\ket{\psi_k}$:
+\[
+  \ket{\Psi}\ \xrightarrow{\ \mathrm{QPE}\ }\
+  \bigl(\tilde\varphi_k,\,\ket{\psi_k}\bigr)\quad\text{with probability }p_k.
+\]
+
+\begin{remark}[Targeting and applications]
+\label{rem:lec04-target}
+To be confident of obtaining a particular target phase $\varphi_0$, one uses
+prior knowledge---e.g.\ that $\varphi_0\in(a,b)$ while all other $\varphi_i>b$---
+and either post-selects on the measured interval or ensures the overlap
+$\abs{c_0}^2$ is large. This eigenstate-superposition behavior is precisely what
+makes QPE useful downstream: in Shor's algorithm the input is an easily prepared
+superposition over eigenstates of the modular-multiplication operator, and QPE
+returns a random eigenphase from which the order is extracted by continued
+fractions; in the quantum linear-system solver of \cref{ch:lec10} the input
+$\ket{b}$ is a superposition of eigenvectors of the matrix $A$, and QPE writes
+each eigenvalue into an ancilla so a controlled rotation can implement
+$\lambda\mapsto1/\lambda$.
+\end{remark}
+
+\paragraph{Iterative phase estimation and the Heisenberg limit.}
+The full $t$-qubit register of \cref{def:lec04-qpe} can be traded for a single
+ancilla reused $t$ times: in \emph{iterative phase estimation} one measures the
+bits of $\varphi$ from least to most significant, feeding each recovered bit back
+as a classical phase correction on the ancilla before the next controlled power
+$U^{2^{k}}$. This reproduces the QFT readout with one ancilla and classical
+feed-forward, at the cost of an adaptive, sequential circuit. Both standard and
+iterative QPE reach a precision that scales as $\epsilon\sim1/\mathcal{T}$ with
+the \emph{total} evolution time $\mathcal{T}=\sum_k 2^{k}=\bigo(1/\epsilon)$,
+rather than the $\epsilon\sim1/\sqrt{\mathcal{T}}$ of the sampling-based estimator
+of \cref{sec:lec04-1}. This $1/\mathcal{T}$ scaling is the \emph{Heisenberg
+limit}, the optimal precision-versus-resource tradeoff permitted by quantum
+mechanics; the shot-noise $1/\sqrt{\mathcal{T}}$ scaling is what one obtains from
+independent repetitions. The connection is made quantitative by the
+Fisher-information and Cram\'er--Rao framework of \cref{ch:lec02}: coherently
+applying $U^{2^{k}}$ increases the Fisher information about $\varphi$
+quadratically in the evolution time, saturating the Cram\'er--Rao bound at the
+Heisenberg-limited rate, whereas incoherent repetition only adds Fisher
+information linearly.
 
 \exercisesection
-\begin{exercise}
-\todo{Add exercise.}
+\begin{exercise}\label{ex:lec04-1}
+For $n=2$ ($N=4$), compute $\QFT\ket{1}$ directly from \cref{def:lec04-qft} and
+verify the result using the product representation
+(\cref{thm:lec04-product}).
 \end{exercise}
-\begin{exercise}
-\todo{Add exercise.}
+
+\begin{exercise}\label{ex:lec04-2}
+Prove that $\QFT\,\QFT\dg=\id$ as well, by evaluating
+$\braket{k'|\QFT\,\QFT\dg|k}$ with \cref{lem:lec04-geom}. Show also that for
+$n=1$ ($N=2$, $\omega=-1$) the QFT equals the Hadamard gate, $\QFT=H$.
 \end{exercise}
-\begin{exercise}
-\todo{Add exercise.}
+
+\begin{exercise}\label{ex:lec04-3}
+Using \cref{lem:lec04-geom}, show that $\QFT$ maps the uniform superposition
+$N^{-1/2}\sum_{j=0}^{N-1}\ket{j}$ to the basis state $\ket{0}$, and interpret this
+as the statement that a constant signal has only a zero-frequency component.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec04-4}
+Write down, gate by gate, the $n=3$ QFT circuit (Hadamards, controlled-$R_k$
+gates, and SWAPs), and count the total number of gates. Confirm that it matches
+\cref{thm:lec04-count}.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec04-5}
+Consider the ``shift by $1$'' operator $V$ defined by
+$V\ket{j}=\ket{(j+1)\bmod N}$. Show that each $\ket{\psi_k}\defeq\QFT\ket{k}$
+satisfies $V\ket{\psi_k}=\ee^{-\ii 2\pi k/N}\ket{\psi_k}$, so the QFT
+diagonalizes the cyclic shift.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec04-6}
+Verify the real Hadamard-test identity of \cref{thm:lec04-hadamard} for a
+diagonal single-qubit unitary $U=\diag(1,\ee^{\ii 2\pi\varphi})$ acting on the
+eigenstate $\ket{\psi}=\ket{1}$: compute $p(0)$ and $p(1)$ directly. Then show
+the imaginary variant gives $p(0)=\tfrac12(1+\Im\braket{\psi|U|\psi})$, and
+explain why the real test alone cannot distinguish $\varphi$ from $1-\varphi$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec04-7}
+Let $\varphi=0.011_2=\tfrac38$ and $t=3$. Write the ancilla state after the
+controlled powers in standard QPE, identify it as $\QFT\ket{k}$ for the correct
+$k$, and conclude the measurement outcome.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec04-8}
+For $\varphi=\tfrac13$ (not dyadic) and $t=3$, compute the probabilities
+$\abs{\gamma_k}^{2}$ for $k=2$ and $k=3$ (the nearest levels $\tfrac28$ and
+$\tfrac38$) using $\abs{\gamma_k}^{2}
+=\tfrac{1}{T^{2}}\sin^{2}(\pi T(\varphi-k/T))/\sin^{2}(\pi(\varphi-k/T))$ with
+$T=8$, and comment on which outcome is most likely.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec04-9}
+Using \cref{thm:lec04-precision}, determine how many ancilla qubits $t$ are needed
+to estimate $\varphi$ to $n=6$ bits of precision with success probability at
+least $0.9$ (so $\epsilon=0.1$).
+\end{exercise}
+
+\begin{exercise}\label{ex:lec04-10}
+Explain why Kitaev's bit-by-bit method achieves query complexity
+$\bigo(1/\epsilon)$ while the single-qubit estimator of \cref{sec:lec04-1} needs
+$\bigo(1/\epsilon^{2})$ samples. Identify precisely which resource---circuit
+depth versus number of repetitions---each method spends, and connect this to the
+Heisenberg versus shot-noise scaling of \cref{sec:lec04-5}.
 \end{exercise}
 
 \readingsection
 \begin{itemize}[leftmargin=1.4em]
-  \item Lin Lin, \emph{qasc notes}, Ch.~3.
-  \item Lin Lin, \emph{live notes}, Ch.~16 (phase estimation and Fourier transforms).
+  \item Lin Lin, \emph{qasc notes}, Ch.~3 (quantum Fourier transform and phase
+        estimation).
+  \item Lin Lin, \emph{live notes}, Ch.~16 (phase estimation and Fourier
+        transforms).
 \end{itemize}
