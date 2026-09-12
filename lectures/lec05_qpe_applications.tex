@@ -6,6 +6,9 @@
   \item Estimate ground-state energies with QPE.
   \item Set up amplitude estimation and its quadratic advantage.
   \item Formulate the eigenvalue problem and near-optimal ground-state preparation.
+  \item Cast order finding---the quantum core of Shor's factoring algorithm---as
+        phase estimation of a modular-multiplication unitary, and recover the
+        order by continued fractions.
 \end{itemize}
 \end{objectives}
 
@@ -567,6 +570,198 @@ theorem in detail when we build those algorithms in Part~III; for now it stands 
 the fundamental limit that phase estimation, amplitude estimation, and eigenstate
 preparation all press against.
 
+\section{Order finding and Shor's algorithm}
+\label{sec:lec05-5}
+
+The applications so far have been drawn from scientific computing. We close with
+the algorithm that first made phase estimation famous: \emph{Shor's factoring
+algorithm}, whose sole quantum ingredient is \emph{order finding}, and whose
+order-finding routine is nothing but QPE (\cref{ch:lec04}) applied to a
+modular-multiplication unitary. Beyond its historical weight, it is the cleanest
+illustration of the recurring pattern of this lecture---encode a number-theoretic
+quantity in the eigenphase of an efficiently implementable unitary, then read that
+phase out with QPE---and it is why a large fault-tolerant quantum computer would
+break the RSA cryptosystem.
+
+\subsection*{The number-theory wrapper: factoring reduces to order finding}
+
+Let $N=PQ$ be a product of two large primes, the modulus of an RSA public key.
+Classically the best known factoring algorithms run in time
+$\ee^{\bigo((\log N)^{1/3}(\log\log N)^{2/3})}$ (the number field sieve),
+superpolynomial in the bit length $\log N$. Shor's insight is that factoring
+reduces, in randomized polynomial classical time, to the problem of computing a
+\emph{multiplicative order}.
+
+\begin{definition}[Multiplicative order]
+\label{def:lec05-order}
+For $a$ coprime to $N$ (that is, $\gcd(a,N)=1$), the \emph{order} of $a$ modulo
+$N$ is the least positive integer $r$ with
+\[
+  a^{r}\equiv 1 \pmod N .
+\]
+\end{definition}
+
+The classical wrapper around order finding is:
+\begin{enumerate}[leftmargin=1.6em,nosep]
+  \item Pick $a\in\{2,\dots,N-1\}$ uniformly at random. Compute $g=\gcd(a,N)$ by
+        Euclid's algorithm. If $g>1$ then $g$ is already a nontrivial factor of
+        $N$---return it. Otherwise $\gcd(a,N)=1$ and we continue.
+  \item Use the quantum order-finding routine below to compute the order $r$ of
+        $a\bmod N$. \emph{This is the only quantum step.}
+  \item If $r$ is odd, or if $a^{r/2}\equiv -1\pmod N$ (equivalently
+        $a^{r/2}\bmod N=N-1$), the run is unlucky; discard it and return to
+        step~1 with a fresh $a$.
+  \item Otherwise compute $\gcd(a^{r/2}-1,\,N)$ and $\gcd(a^{r/2}+1,\,N)$. Each is
+        a nontrivial factor of $N$.
+\end{enumerate}
+
+Why does step~4 work? Since $a^{r}\equiv1$, the difference of squares gives
+\begin{equation}
+  \bigl(a^{r/2}-1\bigr)\bigl(a^{r/2}+1\bigr)=a^{r}-1\equiv 0 \pmod N,
+  \label{eq:lec05-diffsquares}
+\end{equation}
+so $N\mid(a^{r/2}-1)(a^{r/2}+1)$. Minimality of $r$ forbids
+$a^{r/2}\equiv 1$ (that would make $r/2$ a smaller order), and step~3 has excluded
+$a^{r/2}\equiv -1$; hence $N$ divides neither factor on the left of
+\eqref{eq:lec05-diffsquares} alone, so its prime factors must split between the
+two factors. Consequently $\gcd(a^{r/2}\mp1,N)$ is a nontrivial divisor of $N$. A
+standard number-theory estimate shows that a random $a$ yields an even $r$ with
+$a^{r/2}\not\equiv-1$ with probability at least $1/2$ when $N$ has at least two
+distinct odd prime factors, so $\bigo(1)$ repetitions suffice on average. Every
+step but order finding---random choice, $\gcd$, the parity test---is elementary
+classical arithmetic.
+
+\subsection*{Order finding as phase estimation}
+
+Fix $a$ with $\gcd(a,N)=1$ and work on the state space $\C^{2^n}$ with
+$n=\lceil\log_2 N\rceil$, whose computational basis labels the residues
+$\{0,1,\dots,N-1\}$ (and unused labels $\ge N$). Define the
+\emph{modular-multiplication unitary}
+\begin{equation}
+  U_a\ket{y}=\ket{ay\bmod N}\quad(0\le y<N),
+  \qquad U_a\ket{y}=\ket{y}\ (y\ge N).
+  \label{eq:lec05-Ua}
+\end{equation}
+Because multiplication by $a$ permutes the residues coprime to $N$ (its inverse is
+multiplication by $a^{-1}\bmod N$), $U_a$ is a permutation matrix, hence unitary,
+and it is implemented with $\bigo((\log N)^2)$ elementary gates by
+modular-exponentiation circuits. The point is that $U_a$ has an eigenbasis whose
+eigenphases expose the order $r$.
+
+\begin{lemma}[Eigenphases of the modular-multiplication unitary]
+\label{lem:lec05-Ua}
+Let $r$ be the order of $a\bmod N$. For each integer $s\in\{0,1,\dots,r-1\}$ the
+state
+\[
+  \ket{u_s}=\frac{1}{\sqrt r}\sum_{k=0}^{r-1}
+             \ee^{-2\pi\ii\, sk/r}\,\ket{a^{k}\bmod N}
+\]
+is an eigenstate of $U_a$ with eigenvalue $\ee^{2\pi\ii\, s/r}$:
+\[
+  U_a\ket{u_s}=\ee^{2\pi\ii\, s/r}\ket{u_s}.
+\]
+Moreover $\dfrac{1}{\sqrt r}\sum_{s=0}^{r-1}\ket{u_s}=\ket{1}$.
+\end{lemma}
+
+\begin{proof}
+Applying $U_a$ shifts $k\mapsto k+1$ in the cyclic group generated by $a$:
+\[
+  U_a\ket{u_s}=\frac{1}{\sqrt r}\sum_{k=0}^{r-1}
+    \ee^{-2\pi\ii sk/r}\ket{a^{k+1}\bmod N}
+   =\ee^{2\pi\ii s/r}\,\frac{1}{\sqrt r}\sum_{k'=0}^{r-1}
+    \ee^{-2\pi\ii sk'/r}\ket{a^{k'}\bmod N},
+\]
+where we reindexed $k'=k+1$ and used $a^{r}\equiv1$ so that the sum is periodic
+with period $r$; the reindexing multiplies each term by $\ee^{2\pi\ii s/r}$. The
+final identity follows because
+$\frac1r\sum_{s=0}^{r-1}\ee^{-2\pi\ii sk/r}=\delta_{k,0}$ picks out the $k=0$ term
+$\ket{a^0\bmod N}=\ket{1}$.
+\end{proof}
+
+\cref{lem:lec05-Ua} places us exactly in the QPE setting of \cref{ch:lec04}: the
+eigenphase of $U_a$ on $\ket{u_s}$ is $\varphi_s=s/r\in[0,1)$. Running QPE on
+$U_a$ with the $t$-qubit ancilla register of \cref{ch:lec04} therefore returns a
+$t$-bit estimate of some $s/r$. Two facts make this practical without knowing the
+eigenstates $\ket{u_s}$:
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{Cheap input state.} We cannot prepare an individual $\ket{u_s}$, but
+        the last identity of \cref{lem:lec05-Ua} says the trivially-prepared state
+        $\ket{1}$ is the uniform superposition of all the $\ket{u_s}$. By linearity
+        (as in \cref{eq:lec05-initial} for energy estimation), QPE on input
+        $\ket{1}$ returns an estimate of $s/r$ for a uniformly random
+        $s\in\{0,\dots,r-1\}$.
+  \item \emph{Controlled powers.} QPE needs controlled $U_a^{2^{j}}$, and
+        $U_a^{2^{j}}\ket{y}=\ket{a^{2^{j}}y\bmod N}$ is again a modular
+        multiplication (by the precomputable constant $a^{2^{j}}\bmod N$), so the
+        whole circuit is modular exponentiation, costing
+        $\bigo((\log N)^{2})$ gates per controlled power and $\bigo((\log N)^{3})$
+        overall.
+\end{itemize}
+
+\subsection*{Recovering \texorpdfstring{$r$}{r} by continued fractions}
+
+QPE returns a dyadic rational $\tilde\varphi=k/2^{t}\approx s/r$. With
+$t=2\log_2 N+\bigo(1)$ ancilla qubits, $\tilde\varphi$ is within $1/2N^{2}$ of the
+true $s/r$; since two distinct fractions with denominators below $N$ differ by
+more than $1/N^{2}$, the continued-fraction expansion of $\tilde\varphi$ has a
+convergent $s'/r'$ (in lowest terms) that equals $s/r$ exactly. When $\gcd(s,r)=1$
+this convergent's denominator $r'$ \emph{is} $r$; otherwise it is a divisor of
+$r$, and testing $a^{r'}\equiv1$ (or a few small multiples of $r'$) recovers $r$.
+Continued fractions thus convert the approximate phase readout into an exact
+integer order.
+
+\begin{example}[Factoring $N=15$ with $a=7$]
+\label{exa:lec05-shor15}
+Take $N=15$ and, having drawn $a=7$ with $\gcd(7,15)=1$, compute the order:
+$7^{1}=7$, $7^{2}=49\equiv4$, $7^{3}\equiv 7\cdot4=28\equiv13$,
+$7^{4}\equiv7\cdot13=91\equiv1\pmod{15}$, so $r=4$. By \cref{lem:lec05-Ua} the
+unitary $U_7$ has eigenphases $s/4\in\{0,\tfrac14,\tfrac12,\tfrac34\}$. Order
+finding uses $n=4$ qubits for the residue register (since $15=1111_2$). With even
+a modest ancilla register these phases are dyadic, so QPE on input $\ket{1}$
+returns one of the readouts
+\[
+  0.00_2=\tfrac{0}{4},\quad 0.01_2=\tfrac14,\quad
+  0.10_2=\tfrac12,\quad 0.11_2=\tfrac34,
+\]
+each with probability $\tfrac14$. A nonzero outcome, say $\tilde\varphi=0.01_2=1/4$,
+already presents $r=4$ as its denominator; the continued-fraction step is trivial
+here. (The outcome $0$ carries no information about $r$ and is simply discarded.)
+Steps~3--4 of the wrapper then finish the job: $r=4$ is even and
+$7^{r/2}=7^{2}=49\equiv 4\not\equiv-1\pmod{15}$, so
+\[
+  \gcd\bigl(7^{2}-1,\,15\bigr)=\gcd(48,15)=3,
+  \qquad
+  \gcd\bigl(7^{2}+1,\,15\bigr)=\gcd(50,15)=5,
+\]
+recovering both prime factors, $15=3\times5$. (These match Brody's worked run of
+the order-finding circuit on real hardware, where the dominant outcomes for
+$a\in\{2,7,8,13\}$ are exactly $\{00,01,10,11\}\!\cdot\!\tfrac14$, giving $r=4$.)
+\end{example}
+
+The continued-fraction machinery earns its keep only when $r$ is not a power of
+two, so that $s/r$ is a repeating binary fraction and the QPE readout is a genuine
+approximation. Factoring $N=21$ with $a=2$ (order $r=6$) is the standard such
+example and is developed in \cref{ex:lec05-7}.
+
+\subsection*{Cost and the exponential speedup}
+
+Assembling the pieces: the residue and ancilla registers use $\bigo(\log N)$
+qubits; QPE issues $\bigo(\log N)$ controlled powers of $U_a$, each a modular
+exponentiation of gate cost $\bigo((\log N)^{2})$ (or $\widetilde{\bigo}(\log N)$
+with fast multiplication), for a total quantum cost of
+$\bigo((\log N)^{3})$; and the classical wrapper---$\gcd$, continued fractions,
+and $\bigo(1)$ expected retries---adds only polynomially in $\log N$. The whole
+algorithm therefore runs in time polynomial in the bit length, an
+\emph{exponential} speedup over the superpolynomial classical number field sieve.
+Because RSA's security rests precisely on the presumed classical hardness of
+factoring $N=PQ$, a scalable fault-tolerant machine running Shor's algorithm would
+recover the private key from the public modulus---this is the sense in which phase
+estimation ``breaks the internet.'' The order-finding core is a strict
+generalization of the QPE reasoning we used for energies in \cref{sec:lec05-1} and
+for the Grover angle in amplitude estimation (\cref{sec:lec05-2}): in every case a
+quantity of interest is written as the eigenphase of an efficiently implementable
+unitary and extracted by \cref{ch:lec04}'s phase-estimation circuit.
+
 \exercisesection
 \begin{exercise}\label{ex:lec05-1}
 \emph{Energy resolution versus ancilla count.} Suppose $H$ has been rescaled so
@@ -623,6 +818,27 @@ which mechanism produces each power of $p_0$, and why amplitude amplification is
 responsible for the improvement (cf.\ \cref{rem:lec05-sqrt}).
 \end{exercise}
 
+\begin{exercise}\label{ex:lec05-7}
+\emph{Factoring $N=21$ with $a=2$ by continued fractions.} Verify that the order
+of $2\bmod 21$ is $r=6$. With a $5$-bit ancilla register, order finding on $U_2$
+(\cref{eq:lec05-Ua}) returns readouts approximating $s/6$; one such readout is
+$0.00101_2=5/32$. Compute the continued-fraction expansion of $5/32$, list its
+convergents, and identify the convergent whose denominator is the order $r=6$
+(check $2^{6}\equiv1\pmod{21}$ and that no smaller candidate denominator works).
+Then complete Shor's algorithm: confirm $r$ is even and $2^{r/2}\not\equiv-1$, and
+compute $\gcd(2^{3}-1,21)$ and $\gcd(2^{3}+1,21)$ to recover the factors of $21$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec05-8}
+\emph{Eigenphases of the modular-multiplication unitary.} For $N=15$ and $a=7$,
+list the cycle $\{7^{k}\bmod 15:k=0,1,2,3\}$ and use it to write the four
+eigenstates $\ket{u_s}$ ($s=0,1,2,3$) of $U_7$ from \cref{lem:lec05-Ua}
+explicitly. Verify directly that $U_7\ket{u_1}=\ee^{2\pi\ii/4}\ket{u_1}=\ii\ket{u_1}$,
+and confirm that $\tfrac12\sum_{s=0}^{3}\ket{u_s}=\ket{1}$, so that preparing the
+easy state $\ket{1}$ is equivalent to sampling a uniformly random eigenphase
+$s/4$.
+\end{exercise}
+
 \readingsection
 \begin{itemize}[leftmargin=1.4em]
   \item Lin Lin, \emph{qasc notes}, Ch.~4 (ground-state energy estimation,
@@ -631,4 +847,9 @@ responsible for the improvement (cf.\ \cref{rem:lec05-sqrt}).
         limit, and the Cram\'er--Rao viewpoint).
   \item Lin Lin, \emph{live notes}, Ch.~18 (eigenvalue problems, near-optimal
         ground-state preparation, and the matching lower bounds).
+  \item Jed Brody, \emph{The Joy of Quantum Computing}, Princeton University
+        Press, 2025, Ch.~10--11 (a hands-on account of order finding via phase
+        estimation and Shor's factoring algorithm, including worked
+        order-finding circuits for $a\bmod 15$ and the continued-fraction
+        recovery of $r$ when factoring $21$).
 \end{itemize}
