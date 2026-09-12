@@ -10,42 +10,621 @@
 \end{itemize}
 \end{objectives}
 
-\todo{Write the introductory paragraph orienting the lecture.}
+The block-encoding calculus of \cref{ch:lec07} let us add and multiply matrices,
+and hence realize any \emph{polynomial} of a block-encoded matrix $A$ as a short
+linear combination of unitaries---at the price of an $\ell^1$ overhead that grows
+with the degree. This lecture develops the far more economical route. The key
+observation, due to Low and Chuang, is that a single block encoding $U_A$ of a
+Hermitian $A$ is secretly a direct sum of $2\times2$ rotations, one per eigenvalue:
+each eigenvector $\ket{v_j}$ spans, together with a companion ``perpendicular''
+state, a two-dimensional invariant subspace on which $U_A$ acts as a fixed
+rotation by angle $\arccos\lambda_j$. This is \emph{qubitization}
+(\cref{sec:lec08-2}). Once the eigenvalues sit inside independent qubits, powers of
+the (reflected) block encoding compute Chebyshev polynomials
+$T_k(\lambda_j)$ exactly (\cref{sec:lec08-1}), and interleaving single-qubit
+$Z$-rotations between the block encodings realizes an essentially arbitrary bounded
+polynomial $P(A)$ with degree equal to the number of queries and subnormalization
+independent of the degree. The precise class of achievable polynomials, and the
+phase factors that select them, is the content of \emph{quantum signal processing}
+(\cref{sec:lec08-4}). We treat the Hermitian and general (non-Hermitian) block
+encodings separately (\cref{sec:lec08-2,sec:lec08-3}), because the alternation of
+$U_A$ and $U_A\dg$ forced by a non-Hermitian encoding is exactly what makes the
+even/odd parity distinction of the QSP theorem appear. We close
+(\cref{sec:lec08-5}) with a survey of how the phase factors are computed in
+practice---a problem once thought hard, now routinely solved. Throughout, $A$ is an
+$n$-qubit Hermitian matrix with $\norm{A}\le1$, block-encoded as in
+\cref{ch:lec06}; the singular-value generalization to non-Hermitian $A$ (QSVT) is
+the subject of \cref{ch:lec09}.
 
-\section{Chebyshev polynomials from a $2\times2$ block}
+\section{Chebyshev polynomials from a \texorpdfstring{$2\times2$}{2x2} block}
 \label{sec:lec08-1}
-\todo{Draft this section.}
+
+Everything in this lecture rests on one elementary fact about rotations. Recall the
+\emph{Chebyshev polynomials of the first and second kind}, defined for
+$\lambda=\cos\theta$ by
+\begin{equation}
+  T_k(\lambda)=\cos(k\theta)=\cos\!\bigl(k\arccos\lambda\bigr),\qquad
+  U_{k-1}(\lambda)=\frac{\sin(k\theta)}{\sin\theta}
+   =\frac{\sin\!\bigl(k\arccos\lambda\bigr)}{\sqrt{1-\lambda^2}}.
+  \label{eq:lec08-cheb}
+\end{equation}
+They satisfy the three-term recurrences
+\begin{equation}
+  T_0=1,\quad T_1(\lambda)=\lambda,\quad T_{k+1}(\lambda)=2\lambda T_k(\lambda)-T_{k-1}(\lambda),
+  \label{eq:lec08-chebrec}
+\end{equation}
+and the same recurrence holds for $U_k$ with $U_0=1$, $U_1=2\lambda$. In particular
+$T_k$ has parity $k\bmod2$ and $\abs{T_k(\lambda)}\le1$ on $[-1,1]$.
+
+\begin{lemma}[Chebyshev polynomials from a rotation]
+\label{lem:lec08-rot}
+Fix $-1\le\lambda\le1$, write $\lambda=\cos\theta$ with $0\le\theta\le\pi$, and set
+\begin{equation}
+  U(\lambda)=\begin{pmatrix}\lambda&\sqrt{1-\lambda^2}\\[2pt]
+    \sqrt{1-\lambda^2}&-\lambda\end{pmatrix},\qquad
+  Z=\begin{pmatrix}1&0\\0&-1\end{pmatrix},\qquad
+  O(\lambda)\defeq U(\lambda)Z.
+  \label{eq:lec08-Odef}
+\end{equation}
+Then $O(\lambda)$ is the planar rotation by $\theta$,
+\begin{equation}
+  O(\lambda)=\begin{pmatrix}\lambda&-\sqrt{1-\lambda^2}\\[2pt]
+    \sqrt{1-\lambda^2}&\lambda\end{pmatrix}
+  =\begin{pmatrix}\cos\theta&-\sin\theta\\ \sin\theta&\cos\theta\end{pmatrix},
+  \label{eq:lec08-Orot}
+\end{equation}
+and its powers carry Chebyshev polynomials in every entry:
+\begin{equation}
+  O(\lambda)^k
+  =\begin{pmatrix}\cos(k\theta)&-\sin(k\theta)\\ \sin(k\theta)&\cos(k\theta)\end{pmatrix}
+  =\begin{pmatrix}T_k(\lambda)&-\sqrt{1-\lambda^2}\,U_{k-1}(\lambda)\\[2pt]
+    \sqrt{1-\lambda^2}\,U_{k-1}(\lambda)&T_k(\lambda)\end{pmatrix}.
+  \label{eq:lec08-Ok}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+The matrix $U(\lambda)$ is a reflection ($U(\lambda)=U(\lambda)\dg$ and
+$U(\lambda)^2=\id$ since $\lambda^2+(1-\lambda^2)=1$), and right-multiplication by
+$Z$ negates the second column, giving \eqref{eq:lec08-Orot}; the identification with
+$\bigl(\begin{smallmatrix}\cos\theta&-\sin\theta\\ \sin\theta&\cos\theta
+\end{smallmatrix}\bigr)$ is immediate from $\lambda=\cos\theta$,
+$\sqrt{1-\lambda^2}=\sin\theta$ (with $\sin\theta\ge0$ on $[0,\pi]$). A rotation by
+$\theta$ raised to the $k$-th power is a rotation by $k\theta$, which is
+\eqref{eq:lec08-Ok} after substituting $\cos(k\theta)=T_k(\lambda)$ and
+$\sin(k\theta)=\sin\theta\,U_{k-1}(\lambda)=\sqrt{1-\lambda^2}\,U_{k-1}(\lambda)$
+from \eqref{eq:lec08-cheb}.
+\end{proof}
+
+The content of \cref{lem:lec08-rot} is worth restating in plain terms: the
+$(1,1)$-entry of $O(\lambda)^k$ is exactly $T_k(\lambda)$. If we could somehow
+substitute a matrix $A$ for the scalar $\lambda$---replacing the $2\times2$ block by
+a block encoding of $A$, and the reflection $Z$ by an appropriate reflection on the
+ancilla---then the analogous power would be a block encoding of $T_k(A)$, with the
+degree-$k$ Chebyshev polynomial computed at unit subnormalization and with no LCU
+whatsoever. For a Hermitian $A=\sum_j\lambda_j\proj{v_j}$ the substitution is
+literally the spectral one, $T_k(A)=\sum_j T_k(\lambda_j)\proj{v_j}$, applied
+eigenvalue by eigenvalue. Making this precise is the business of qubitization.
 
 \section{Qubitization of Hermitian matrices}
 \label{sec:lec08-2}
-\todo{Draft this section.}
+
+Let $A$ be Hermitian with $\norm{A}\le1$ and spectral decomposition
+$A=\sum_j\lambda_j\proj{v_j}$, and suppose first that we hold a \emph{Hermitian}
+block encoding $U_A\in\mathrm{HBE}_{1,m}(A)$ (\cref{def:lec06-hbe}), i.e.\
+$U_A=U_A\dg$ and $(\bra{0^m}\otimes\id)U_A(\ket{0^m}\otimes\id)=A$. Write
+$\Pi\defeq\proj{0^m}\otimes\id$ for the projector onto the flagged subspace.
+
+\begin{lemma}[Invariant two-dimensional subspaces]
+\label{lem:lec08-qubit}
+For each eigenvector $\ket{v_j}$ of $A$ there is a normalized state
+$\ket{\perp_j}$ with $\Pi\ket{\perp_j}=0$ such that
+$\mathcal H_j\defeq\mathrm{span}\{\ket{0^m}\ket{v_j},\ket{\perp_j}\}$ is invariant
+under $U_A$, and in the ordered basis $\mathcal B_j=\{\ket{0^m}\ket{v_j},
+\ket{\perp_j}\}$
+\begin{equation}
+  [U_A]_{\mathcal B_j}
+  =\begin{pmatrix}\lambda_j&\sqrt{1-\lambda_j^2}\\[2pt]
+    \sqrt{1-\lambda_j^2}&-\lambda_j\end{pmatrix},
+  \qquad
+  [\Pi]_{\mathcal B_j}=\begin{pmatrix}1&0\\0&0\end{pmatrix}.
+  \label{eq:lec08-UBj}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Applying $U_A$ to the flagged eigenstate and using
+$\Pi U_A\Pi=\proj{0^m}\otimes A$,
+\begin{equation}
+  U_A\ket{0^m}\ket{v_j}=\ket{0^m}A\ket{v_j}+\ket{e_j^\perp}
+  =\lambda_j\ket{0^m}\ket{v_j}+\ket{e_j^\perp},
+  \label{eq:lec08-apply}
+\end{equation}
+where $\ket{e_j^\perp}\defeq(\id-\Pi)U_A\ket{0^m}\ket{v_j}$ satisfies
+$\Pi\ket{e_j^\perp}=0$. Since $U_A$ is unitary the left side is a unit vector, so
+$\norm{\ket{e_j^\perp}}^2=1-\lambda_j^2$ and we may write
+$\ket{e_j^\perp}=\sqrt{1-\lambda_j^2}\,\ket{\perp_j}$ with $\ket{\perp_j}$
+normalized (if $\lambda_j^2=1$ then $\ket{e_j^\perp}=0$ and $\mathcal H_j$ is
+one-dimensional; take $\ket{\perp_j}$ to be any completing unit vector). This gives
+the first column of \eqref{eq:lec08-UBj}. For the second, use $U_A=U_A\dg$: applying
+$U_A$ to \eqref{eq:lec08-apply} and $U_A^2=\id$,
+\begin{equation}
+  \ket{0^m}\ket{v_j}=\lambda_j U_A\ket{0^m}\ket{v_j}
+   +\sqrt{1-\lambda_j^2}\,U_A\ket{\perp_j}
+  =\lambda_j^2\ket{0^m}\ket{v_j}+\lambda_j\sqrt{1-\lambda_j^2}\ket{\perp_j}
+   +\sqrt{1-\lambda_j^2}\,U_A\ket{\perp_j},
+  \label{eq:lec08-apply2}
+\end{equation}
+so solving for $U_A\ket{\perp_j}$,
+\begin{equation}
+  U_A\ket{\perp_j}=\sqrt{1-\lambda_j^2}\,\ket{0^m}\ket{v_j}-\lambda_j\ket{\perp_j},
+  \label{eq:lec08-perp}
+\end{equation}
+which is the second column of \eqref{eq:lec08-UBj}. Hence $\mathcal H_j$ is invariant
+and $U_A$ restricts to the stated reflection. The matrix of $\Pi$ is immediate since
+$\Pi\ket{0^m}\ket{v_j}=\ket{0^m}\ket{v_j}$ and $\Pi\ket{\perp_j}=0$.
+\end{proof}
+
+The name \emph{qubitization} reflects \eqref{eq:lec08-UBj}: an arbitrarily large
+block encoding $U_A$ is block-diagonalized into $N$ independent ``qubits'', one
+$2\times2$ reflection per eigenvalue, and these blocks are precisely the reflection
+$U(\lambda_j)$ of \cref{lem:lec08-rot}. Two eigenvectors with $\lambda_j^2=1$
+require no companion state; all other subspaces are genuinely two-dimensional and
+mutually orthogonal (the $\ket{\perp_j}$ are orthogonal because they live in
+distinct eigenspaces of $A$ propagated by $U_A$).
+
+To turn each reflection into the \emph{rotation} $O(\lambda_j)$ of
+\eqref{eq:lec08-Orot} we need the ancilla reflection $Z_\Pi\defeq2\Pi-\id$, which
+acts as $+1$ on the flagged subspace and $-1$ on its complement, so
+$[Z_\Pi]_{\mathcal B_j}=\mathrm{diag}(1,-1)=Z$. Then $O\defeq U_A Z_\Pi$ restricts to
+$[O]_{\mathcal B_j}=[U_A]_{\mathcal B_j}\,Z=O(\lambda_j)$, exactly the rotation of
+\cref{lem:lec08-rot}. This is the substitution promised in \cref{sec:lec08-1}.
+
+\begin{theorem}[Qubitization: Chebyshev polynomials of a Hermitian matrix]
+\label{thm:lec08-qubit}
+Let $U_A\in\mathrm{HBE}_{1,m}(A)$ with $A$ Hermitian, $\norm{A}\le1$, and let
+$Z_\Pi=2\Pi-\id$ with $\Pi=\proj{0^m}\otimes\id$. Then for every $k\ge0$,
+\begin{equation}
+  \bigl(U_A Z_\Pi\bigr)^k\in\mathrm{BE}_{1,m}\bigl(T_k(A)\bigr),
+  \qquad\text{i.e.}\qquad
+  \Pi\,\bigl(U_A Z_\Pi\bigr)^k\,\Pi=\proj{0^m}\otimes T_k(A).
+  \label{eq:lec08-chebBE}
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+Each $\mathcal H_j$ is invariant under both $U_A$ (\cref{lem:lec08-qubit}) and
+$Z_\Pi$ (which is diagonal in $\mathcal B_j$), hence under $O=U_A Z_\Pi$, and
+$[O]_{\mathcal B_j}=O(\lambda_j)$. By \cref{lem:lec08-rot},
+$[O^k]_{\mathcal B_j}=O(\lambda_j)^k$ has $(1,1)$-entry $T_k(\lambda_j)$, i.e.\
+\begin{equation}
+  \bra{0^m}\bra{v_j}\,O^k\,\ket{0^m}\ket{v_j}=T_k(\lambda_j).
+  \label{eq:lec08-diag}
+\end{equation}
+For $j\ne j'$ the subspaces $\mathcal H_j,\mathcal H_{j'}$ are orthogonal, so
+$\bra{0^m}\bra{v_{j'}}O^k\ket{0^m}\ket{v_j}=0$. The states
+$\{\ket{0^m}\ket{v_j}\}_j$ form an orthonormal basis of the range of $\Pi$, so
+\eqref{eq:lec08-diag} says $\Pi O^k\Pi=\proj{0^m}\otimes\sum_j
+T_k(\lambda_j)\proj{v_j}=\proj{0^m}\otimes T_k(A)$, which is
+\eqref{eq:lec08-chebBE}.
+\end{proof}
+
+The reflection $Z_\Pi$ is cheap: for $m=1$ it is a single Pauli $Z$, and in general
+it is a multiply-controlled phase implementable with one clean ancilla and an
+$m$-fold Toffoli. One step of qubitization is therefore ``$U_A$ then $Z_\Pi$'', and
+$k$ steps give $T_k(A)$ with a \emph{single} query per Chebyshev degree and unit
+subnormalization---compare the growing $\ell^1$ cost of building $T_k(A)$ as an LCU
+of monomials in \cref{ch:lec07}. Because $\{T_k\}_{k\ge0}$ is a basis of the
+polynomials, one could now form any polynomial of $A$ by an LCU of the qubitized
+Chebyshev blocks (\cref{prop:lec07-sum}); QSP will do the same job below with a
+single ancilla and no LCU.
+
+\begin{example}[A degree-$2$ Chebyshev block]
+\label{exa:lec08-T2}
+Take $A=\tfrac12\Xgate$ on one qubit, with the Hermitian block encoding
+$U_A\in\mathrm{HBE}_{1,1}(A)$ of \cref{thm:lec06-hbe}, so $m=1$ and
+$Z_\Pi=\Zgate$ on the flag qubit. The two eigenvalues are $\lambda_\pm=\pm\tfrac12$
+(eigenvectors $\ket\pm$), and \cref{thm:lec08-qubit} gives
+$(U_A\Zgate)^2\in\mathrm{BE}_{1,1}(T_2(A))$ with
+$T_2(A)=2A^2-\id=2\cdot\tfrac14\id-\id=-\tfrac12\id$. One checks directly that
+$T_2(\lambda_\pm)=2\cdot\tfrac14-1=-\tfrac12$, consistent with the spectral formula
+$T_2(A)=\sum_\pm T_2(\lambda_\pm)\proj{\pm}=-\tfrac12\id$. Two queries to $U_A$ thus
+block-encode $-\tfrac12\id$ exactly.
+\end{example}
 
 \section{Qubitization of general matrices}
 \label{sec:lec08-3}
-\todo{Draft this section.}
+
+Hermitian block encodings of Hermitian matrices exist (\cref{thm:lec06-hbe}) but may
+demand extra structure and oracles. In general the block encoding $U_A$ of a
+Hermitian $A$ is \emph{not} itself Hermitian, and the single relation
+\eqref{eq:lec08-apply} no longer closes on a two-dimensional invariant subspace,
+because we cannot re-apply $U_A$ and use $U_A^2=\id$. The remedy is to alternate
+$U_A$ and $U_A\dg$. The result is that $U_A$ maps one two-dimensional subspace to a
+\emph{second} one, and $U_A\dg$ maps it back.
+
+\begin{lemma}[Qubitization with a general block encoding]
+\label{lem:lec08-general}
+Let $U_A\in\mathrm{BE}_{1,m}(A)$ with $A$ Hermitian, $\norm{A}\le1$, and
+$\Pi=\proj{0^m}\otimes\id$. For each eigenvector $\ket{v_j}$ there are normalized
+states $\ket{\perp_j},\ket{\perp_j'}$ (both annihilated by $\Pi$) such that, with
+$\mathcal B_j=\{\ket{0^m}\ket{v_j},\ket{\perp_j}\}$ and
+$\mathcal B_j'=\{\ket{0^m}\ket{v_j},\ket{\perp_j'}\}$,
+\begin{equation}
+  [U_A]^{\mathcal B_j'}_{\mathcal B_j}
+  =\begin{pmatrix}\lambda_j&\sqrt{1-\lambda_j^2}\\[2pt]
+    \sqrt{1-\lambda_j^2}&-\lambda_j\end{pmatrix}
+  =[U_A\dg]^{\mathcal B_j}_{\mathcal B_j'}.
+  \label{eq:lec08-genU}
+\end{equation}
+Consequently $\mathcal H_j=\mathrm{span}\,\mathcal B_j$ is invariant under
+$\widetilde O\defeq U_A\dg Z_\Pi U_A Z_\Pi$, with
+\begin{equation}
+  [\widetilde O]_{\mathcal B_j}
+  =\begin{pmatrix}\lambda_j&-\sqrt{1-\lambda_j^2}\\[2pt]
+    \sqrt{1-\lambda_j^2}&\lambda_j\end{pmatrix}^{\!2}
+  =O(\lambda_j)^2 .
+  \label{eq:lec08-genO2}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+As in \eqref{eq:lec08-apply}, $U_A\ket{0^m}\ket{v_j}=\lambda_j\ket{0^m}\ket{v_j}
++\sqrt{1-\lambda_j^2}\,\ket{\perp_j'}$ defines the normalized $\ket{\perp_j'}$; this
+is the first column of \eqref{eq:lec08-genU}. Because $A$ is Hermitian, $U_A\dg$ is
+also a block encoding of $A$ ($\Pi U_A\dg\Pi=(\Pi U_A\Pi)\dg=\proj{0^m}\otimes A$),
+so likewise $U_A\dg\ket{0^m}\ket{v_j}=\lambda_j\ket{0^m}\ket{v_j}
++\sqrt{1-\lambda_j^2}\,\ket{\perp_j}$ defines $\ket{\perp_j}$. Applying $U_A$ to this
+and using $U_A U_A\dg=\id$ gives, exactly as in \eqref{eq:lec08-apply2}--
+\eqref{eq:lec08-perp}, $U_A\ket{\perp_j}=\sqrt{1-\lambda_j^2}\,\ket{0^m}\ket{v_j}
+-\lambda_j\ket{\perp_j'}$, the second column of \eqref{eq:lec08-genU}; the identity
+$[U_A\dg]^{\mathcal B_j}_{\mathcal B_j'}=([U_A]^{\mathcal B_j'}_{\mathcal B_j})\dg$
+equals the same real symmetric matrix. Thus $U_A$ carries
+$\mathcal H_j\to\mathcal H_j'$ and $U_A\dg$ carries $\mathcal H_j'\to\mathcal H_j$;
+each of $Z_\Pi$ fixes the shared vector $\ket{0^m}\ket{v_j}$ and flips the
+perpendicular one. Composing the four factors of $\widetilde O=U_A\dg Z_\Pi U_A Z_\Pi$ maps
+$\mathcal H_j\to\mathcal H_j$: the inner $Z_\Pi U_A Z_\Pi$ carries $\mathcal H_j$ to
+$\mathcal H_j'$ acting as $Z\,[U_A]^{\mathcal B_j'}_{\mathcal B_j}Z$ up to the shared
+vector, and the outer $U_A\dg$ returns to $\mathcal H_j$. In the basis $\mathcal B_j$
+the composite matrix is $\bigl([U_A]^{\mathcal B_j'}_{\mathcal B_j}Z\bigr)^2
+=\bigl(U(\lambda_j)Z\bigr)^2=O(\lambda_j)^2$, which is
+\eqref{eq:lec08-genO2}.
+\end{proof}
+
+\begin{theorem}[Chebyshev polynomials from a general block encoding]
+\label{thm:lec08-general}
+With the notation of \cref{lem:lec08-general}, for every $k\ge1$,
+\begin{equation}
+  \bigl(U_A\dg Z_\Pi U_A Z_\Pi\bigr)^k\in\mathrm{BE}_{1,m}\bigl(T_{2k}(A)\bigr),
+  \qquad
+  U_A Z_\Pi\bigl(U_A\dg Z_\Pi U_A Z_\Pi\bigr)^k\in\mathrm{BE}_{1,m}\bigl(T_{2k+1}(A)\bigr).
+  \label{eq:lec08-genBE}
+\end{equation}
+Hence the even Chebyshev polynomial $T_{2k}(A)$ is obtained by $k$ alternating pairs
+$U_A\dg Z_\Pi,\,U_A Z_\Pi$, and the odd one $T_{2k+1}(A)$ by one extra $U_A Z_\Pi$.
+\end{theorem}
+
+\begin{proof}
+By \eqref{eq:lec08-genO2}, $[\widetilde O^k]_{\mathcal B_j}=O(\lambda_j)^{2k}$, whose
+$(1,1)$-entry is $T_{2k}(\lambda_j)$ (\cref{lem:lec08-rot}); orthogonality of the
+$\mathcal H_j$ and completeness of $\{\ket{0^m}\ket{v_j}\}$ then give
+$\Pi\widetilde O^k\Pi=\proj{0^m}\otimes T_{2k}(A)$ as in \cref{thm:lec08-qubit}. For
+the odd case, one more $U_A Z_\Pi$ sends $\mathcal H_j\to\mathcal H_j'$; since the two
+bases share the vector $\ket{0^m}\ket{v_j}$, the surviving flagged block is the
+$(1,1)$-entry of $O(\lambda_j)^{2k+1}$, namely $T_{2k+1}(\lambda_j)$, giving the
+second encoding in \eqref{eq:lec08-genBE}.
+\end{proof}
+
+The lesson is that a non-Hermitian block encoding produces Chebyshev polynomials of
+$A$ just as before, but the fundamental building block is a $U_A,U_A\dg$
+\emph{pair}, and even/odd degrees must be assembled separately. This alternation is
+not an artifact: it is the same structural feature that forces the parity condition
+in the QSP theorem, to which we now turn. (When $U_A$ happens to be Hermitian,
+$U_A\dg=U_A$ and \cref{thm:lec08-general} collapses to \cref{thm:lec08-qubit}.)
 
 \section{Quantum signal processing}
 \label{sec:lec08-4}
-\todo{Draft this section.}
+
+Chebyshev polynomials are only the phase-free special case. Interleaving
+single-qubit $Z$-rotations $\ee^{\ii\phi_j Z}$ between the qubitization steps
+produces a far richer family. Because every operation preserves the
+two-dimensional subspaces $\mathcal H_j$, the entire question reduces, by
+qubitization, to a statement about $\mathrm{SU}(2)$: what $2\times2$ matrix
+polynomials arise from a product of the fixed rotation $O(\lambda)$ of
+\eqref{eq:lec08-Orot} and free $Z$-rotations? This is \emph{quantum signal
+processing}.
+
+\begin{definition}[QSP sequence]
+\label{def:lec08-qsp}
+For phase factors $\Phi=(\phi_0,\phi_1,\dots,\phi_d)\in\R^{d+1}$ and
+$\lambda\in[-1,1]$, define the \emph{QSP unitary}
+\begin{equation}
+  U_\Phi(\lambda)\defeq\ee^{\ii\phi_0 Z}\prod_{j=1}^{d}
+     \Bigl[O(\lambda)\,\ee^{\ii\phi_j Z}\Bigr],
+  \qquad O(\lambda)=\begin{pmatrix}\lambda&-\sqrt{1-\lambda^2}\\[2pt]
+    \sqrt{1-\lambda^2}&\lambda\end{pmatrix}.
+  \label{eq:lec08-Uphi}
+\end{equation}
+\end{definition}
+
+The number of signal operators $O(\lambda)$ is $d$, the ``query depth''. The
+following theorem characterizes exactly the polynomials that appear in the top-left
+entry.
+
+\begin{theorem}[Quantum signal processing]
+\label{thm:lec08-qsp}
+There exist phase factors $\Phi\in\R^{d+1}$ with
+\begin{equation}
+  U_\Phi(\lambda)
+  =\begin{pmatrix}P(\lambda)&-Q(\lambda)\sqrt{1-\lambda^2}\\[3pt]
+    Q^*(\lambda)\sqrt{1-\lambda^2}&P^*(\lambda)\end{pmatrix}
+  \label{eq:lec08-qspform}
+\end{equation}
+if and only if $P,Q\in\C[\lambda]$ satisfy
+\begin{enumerate}[leftmargin=2em,nosep]
+  \item[\textup{(1)}] $\deg P\le d$ and $\deg Q\le d-1$;
+  \item[\textup{(2)}] $P$ has parity $d\bmod2$ and $Q$ has parity $(d-1)\bmod2$;
+  \item[\textup{(3)}] $\abs{P(\lambda)}^2+(1-\lambda^2)\abs{Q(\lambda)}^2=1$ for all
+        $\lambda\in[-1,1]$.
+\end{enumerate}
+Here $\deg Q=-1$ means $Q\equiv0$, and $P^*,Q^*$ denote coefficientwise complex
+conjugation.
+\end{theorem}
+
+\begin{proof}[Proof of the forward direction ($\Rightarrow$)]
+We prove by induction on $d$ that $U_\Phi(\lambda)$ has the form
+\eqref{eq:lec08-qspform} with $P,Q$ satisfying (1)--(2); condition (3) then follows
+for free, since $U_\Phi(\lambda)$ is a product of unitaries, hence unitary, and
+comparing $\abs{\cdot}^2$ of its first column gives
+$\abs{P}^2+(1-\lambda^2)\abs{Q}^2=1$.
+
+\emph{Base case $d=0$.} Here $U_\Phi(\lambda)=\ee^{\ii\phi_0 Z}
+=\mathrm{diag}(\ee^{\ii\phi_0},\ee^{-\ii\phi_0})$, so $P(\lambda)=\ee^{\ii\phi_0}$
+(degree $0$, even) and $Q\equiv0$, satisfying (1)--(2).
+
+\emph{Inductive step.} Suppose the length-$(d-1)$ product
+$U_{(\phi_0,\dots,\phi_{d-1})}(\lambda)$ equals \eqref{eq:lec08-qspform} with
+$P,Q$ of degrees $\le d-1,\le d-2$ and parities $(d-1)\bmod2,(d-2)\bmod2$. Appending
+one more block multiplies on the right by $O(\lambda)\,\ee^{\ii\phi_d Z}$:
+\begin{align}
+  \begin{pmatrix}P&-Q\sqrt{1-\lambda^2}\\ Q^*\sqrt{1-\lambda^2}&P^*\end{pmatrix}
+  \begin{pmatrix}\lambda&-\sqrt{1-\lambda^2}\\ \sqrt{1-\lambda^2}&\lambda\end{pmatrix}
+  \begin{pmatrix}\ee^{\ii\phi_d}&0\\0&\ee^{-\ii\phi_d}\end{pmatrix}.
+  \label{eq:lec08-indstep}
+\end{align}
+Carrying out the first product, the new top-left entry (before the phase) is
+$\lambda P-(1-\lambda^2)Q$ and the new top-right entry is
+$-\sqrt{1-\lambda^2}\,(P+\lambda Q)$; after the diagonal phase the matrix is
+\begin{equation}
+  \begin{pmatrix}
+    \ee^{\ii\phi_d}\bigl(\lambda P-(1-\lambda^2)Q\bigr) &
+    -\ee^{-\ii\phi_d}\sqrt{1-\lambda^2}\,(P+\lambda Q)\\[4pt]
+    \ee^{\ii\phi_d}\sqrt{1-\lambda^2}\,(P^*+\lambda Q^*)&
+    \ee^{-\ii\phi_d}\bigl(\lambda P^*-(1-\lambda^2)Q^*\bigr)
+  \end{pmatrix}.
+  \label{eq:lec08-indresult}
+\end{equation}
+This has the form \eqref{eq:lec08-qspform} with
+\begin{equation}
+  \widetilde P=\ee^{\ii\phi_d}\bigl(\lambda P-(1-\lambda^2)Q\bigr),\qquad
+  \widetilde Q=\ee^{-\ii\phi_d}(P+\lambda Q).
+  \label{eq:lec08-newPQ}
+\end{equation}
+Degrees: $\deg\widetilde P\le\max(1+\deg P,2+\deg Q)\le d$ and
+$\deg\widetilde Q\le\max(\deg P,1+\deg Q)\le d-1$, giving (1). Parities: multiplying
+by $\lambda$ or $(1-\lambda^2)\cdot(\text{something of parity }d-2)$ flips or
+preserves parity so that $\widetilde P$ has parity $d\bmod2$ and $\widetilde Q$ has
+parity $(d-1)\bmod2$, giving (2). This completes the induction, and (3) follows from
+unitarity as noted.
+\end{proof}
+
+The converse---that \emph{every} $P,Q$ satisfying (1)--(3) is realized by some
+$\Phi$---is proved by the reverse induction: given $P,Q$ of degree $\ell$, condition
+(3) forces the two leading coefficients to have equal modulus, and a single phase
+$\ee^{2\ii\phi_d}=(\text{ratio of leading coefficients})$ peels off one degree,
+reducing to a shorter QSP problem; iterating recovers all $\phi_j$. We refer to the
+reading for the details (it is essentially the Gily\'en--Su--Low--Wiebe argument),
+and record the practically important consequences.
+
+\begin{corollary}[QSP for real target polynomials]
+\label{cor:lec08-real}
+Let $p\in\R[\lambda]$ have $\deg p=d$, parity $d\bmod2$, and $\abs{p(\lambda)}\le1$
+on $[-1,1]$. Then there exist $P,Q$ satisfying \textup{(1)--(3)} of
+\cref{thm:lec08-qsp} with $\operatorname{Re}P=p$, and correspondingly phase factors
+$\Phi$ with $\operatorname{Re}\!\bigl[U_\Phi(\lambda)_{11}\bigr]=p(\lambda)$.
+\end{corollary}
+
+The corollary is what one uses in practice: almost every application (matrix
+inversion, Hamiltonian simulation, eigenvalue filtering) starts from a real target
+polynomial $p$, scales it so that $\abs{p}\le1$, and then produces $P$ with
+$\operatorname{Re}P=p$. The real part is extracted by one extra Hadamard-sandwiched
+ancilla, exactly the ``$P_{\mathrm{Re}}$'' construction of qubitization: running
+$U_\Phi$ and $U_{-\Phi}$ (which block-encodes $P^*$) in an LCU with equal weights
+gives $\tfrac12(P+P^*)=\operatorname{Re}P=p$. Lifting from the scalar $\lambda$ to a
+Hermitian $A$ is now automatic: replace $O(\lambda)$ by $O=U_A Z_\Pi$ (Hermitian
+encoding) or by the alternating $U_A,U_A\dg$ pattern (general encoding), and each
+$\ee^{\ii\phi_j Z}$ by the controlled rotation $\ee^{\ii\phi_j Z_\Pi}$ on the flag;
+since every factor preserves the subspaces $\mathcal H_j$, the flagged block is
+$P(A)=\sum_j P(\lambda_j)\proj{v_j}$. Thus $d$ queries to $U_A$ block-encode $P(A)$
+with unit subnormalization. This is the \emph{quantum eigenvalue transformation};
+its singular-value extension to non-Hermitian $A$ is QSVT (\cref{ch:lec09}).
+
+\begin{example}[QSP realizations of low-degree polynomials]
+\label{exa:lec08-qsp}
+\emph{(a) $T_d$ via all-zero phases.} Setting $\Phi=(0,\dots,0)$ in
+\eqref{eq:lec08-Uphi} gives $U_\Phi(\lambda)=O(\lambda)^d$, whose $(1,1)$-entry is
+$T_d(\lambda)$ by \cref{lem:lec08-rot}. Thus $P=T_d$, $Q=U_{d-1}$: the Chebyshev
+polynomials are the phase-free QSP polynomials, consistent with
+\cref{thm:lec08-qubit}.
+
+\emph{(b) Degree $1$.} For $d=1$,
+$U_\Phi(\lambda)=\ee^{\ii\phi_0 Z}O(\lambda)\ee^{\ii\phi_1 Z}$ has top-left entry
+\[
+  P(\lambda)=\ee^{\ii(\phi_0+\phi_1)}\lambda,
+\]
+so $\Phi=(0,0)$ realizes $P(\lambda)=\lambda=T_1(\lambda)$ (real, odd), while
+$\Phi=(\tfrac\pi4,\tfrac\pi4)$ realizes $P(\lambda)=\ii\lambda$; in every case
+$\abs{P(\lambda)}=\abs\lambda\le1$ and $\deg P=1$, matching (1)--(3) with
+$Q=\ee^{\ii(\phi_1-\phi_0)}$ a constant.
+
+\emph{(c) Degree $2$, target $T_2$, symmetric phases.} A more symmetric choice
+realizing $T_2(\lambda)=2\lambda^2-1$ uses the eigenvalue-transform convention
+$U_A\ee^{\ii e_j Z}$ (with $U_A$ the reflection, not $O$): the phases
+$e=(\tfrac\pi4,\tfrac\pi2,\tfrac\pi4)$ yield $(-\ii)^2 U_{e,11}=2\lambda^2-1=T_2$.
+Direct multiplication of $\ee^{\ii\frac\pi4 Z}U_A\ee^{\ii\frac\pi2 Z}U_A
+\ee^{\ii\frac\pi4 Z}$ confirms the top-left entry equals $\ii\,(2\lambda^2-1)$, whose
+$(-\ii)^2=-1$ times the leading sign returns $T_2$; equivalently in the
+$O$-convention $\Phi=(0,0,0)$ gives $O(\lambda)^2$ with $(1,1)$-entry
+$2\lambda^2-1$. These small cases are the ones we verify by hand (and, in the
+companion notebook, numerically: the QSP unitary equals the claimed polynomial to
+machine precision).
+\end{example}
 
 \section{Finding phase factors}
 \label{sec:lec08-5}
-\todo{Draft this section.}
+
+QSP is only useful if the phase factors $\Phi$ realizing a desired $p$ can actually
+be computed. When QSP was introduced this was considered a serious obstacle; it is
+now, for all practical purposes, solved. We survey the three main families of
+methods; all take as input a real target $p$ of degree $d$, parity $d\bmod2$, with
+$\norm{p}_\infty<1$ on $[-1,1]$, and return $\Phi\in\R^{d+1}$ (of which only
+$\lceil(d+1)/2\rceil$ are free, by parity).
+
+\paragraph{Direct (root-finding) methods.} The converse proof of
+\cref{thm:lec08-qsp} is constructive: given $P,Q$ one strips one degree at a time,
+each step reading off a phase from the ratio of leading coefficients. The missing
+ingredient is $Q$, obtained from the \emph{completion} step---given $P$ with
+$\abs{P}\le1$, find $Q$ with $\abs{P}^2+(1-\lambda^2)\abs{Q}^2=1$ by factoring the
+degree-$2d$ polynomial $1-\abs{P(\lambda)}^2$ over its roots and grouping them into a
+Fej\'er--Riesz square. This is the Remez-exchange / root-finding approach: exact in
+principle, but the root-finding is numerically delicate in high precision because
+the roots of $1-P^2$ cluster and the extraction is ill-conditioned, requiring
+high-precision arithmetic for large $d$.
+
+\paragraph{Optimization-based methods.} Rather than solve for $\Phi$ exactly, one
+minimizes the least-squares mismatch between the QSP output and the target on a
+Chebyshev grid. Fixing the parity, only $\widetilde d=\lceil(d+1)/2\rceil$ phases are
+free, and $p$ is determined by its values at $\widetilde d$ points, which one takes
+to be the positive Chebyshev nodes $\lambda_k=\cos\!\bigl(\tfrac{(2k-1)\pi}
+{4\widetilde d}\bigr)$. Minimizing
+\begin{equation}
+  F(\Phi)=\frac{1}{\widetilde d}\sum_{k=1}^{\widetilde d}
+     \Bigl(\operatorname{Re}\bigl[U_\Phi(\lambda_k)_{11}\bigr]-p(\lambda_k)\Bigr)^2
+  \label{eq:lec08-optobj}
+\end{equation}
+over $\Phi$ drives $F$ to $0$ at a valid phase set. The remarkable empirical (and
+now proven) fact is that starting from the symmetric ansatz
+$\Phi_0=(\tfrac\pi4,0,\dots,0,\tfrac\pi4)$ this nonconvex problem behaves almost
+convexly near the solution, so quasi-Newton descent converges rapidly and stably
+even in double precision for degrees in the thousands.
+
+\paragraph{Symmetric QSP and fixed-point iteration.} Restricting to
+\emph{symmetric} phase sequences ($\phi_j=\phi_{d-j}$) makes $U_\Phi(\lambda)_{11}$
+automatically real with the correct parity, halving the unknowns and turning the
+completion problem into a well-conditioned fixed-point / Newton iteration on the
+phases directly (no explicit $Q$ needed). Related developments recast phase-factor
+finding as a nonlinear Fourier transform, for which fast and provably stable
+algorithms exist. In practice one calls a mature routine (e.g.\ the
+\texttt{QSPPACK} optimization solver or a symmetric-QSP Newton solver) as a black
+box: supply the coefficients of $p$, receive $\Phi$, and the QSP circuit of
+\cref{sec:lec08-4} then block-encodes $p(A)$ with $d$ queries.
+
+The upshot for the rest of Part~II is that we may treat ``block-encode $p(A)$ for a
+bounded degree-$d$ polynomial $p$'' as a primitive costing $\bigo(d)$ queries to
+$U_A$, one extra ancilla, and $d$ classically-precomputed single-qubit rotations,
+with phase factors supplied by one of the solvers above. This primitive, and its
+singular-value form, is the engine of quantum linear algebra: matrix inversion,
+Hamiltonian simulation, and eigenvalue filtering are all instances of choosing the
+right $p$, as \cref{ch:lec09,ch:lec10} will show.
 
 \exercisesection
-\begin{exercise}
-\todo{Add exercise.}
+
+\begin{exercise}\label{ex:lec08-1}
+\emph{Chebyshev from a rotation.} Verify \eqref{eq:lec08-Orot}, i.e.\ that
+$O(\lambda)=U(\lambda)Z$ equals the planar rotation by $\theta=\arccos\lambda$. Using
+$O(\lambda)^k=\bigl(\begin{smallmatrix}\cos k\theta&-\sin k\theta\\ \sin k\theta&
+\cos k\theta\end{smallmatrix}\bigr)$ and the addition formulas, prove the recurrence
+$T_{k+1}(\lambda)=2\lambda T_k(\lambda)-T_{k-1}(\lambda)$ directly from
+\eqref{eq:lec08-cheb}. Compute $O(\lambda)^3$ and read off $T_3(\lambda)$ and
+$U_2(\lambda)$ explicitly.
 \end{exercise}
-\begin{exercise}
-\todo{Add exercise.}
+
+\begin{exercise}\label{ex:lec08-2}
+\emph{The qubitized block, by hand.} Let $A=\tfrac12\Xgate$ with the Hermitian block
+encoding $U_A\in\mathrm{HBE}_{1,1}(A)$ of \cref{thm:lec06-hbe}. Diagonalize $A$,
+write down $\mathcal B_\pm=\{\ket0\ket\pm,\ket{\perp_\pm}\}$ and the $2\times2$
+matrices $[U_A]_{\mathcal B_\pm}$, and verify \eqref{eq:lec08-chebBE} for $k=1,2$ by
+checking that $\Pi(U_A\Zgate)^k\Pi=\proj0\otimes T_k(A)$ with $T_1(A)=A$ and
+$T_2(A)=-\tfrac12\id$ (cf.\ \cref{exa:lec08-T2}).
 \end{exercise}
-\begin{exercise}
-\todo{Add exercise.}
+
+\begin{exercise}\label{ex:lec08-3}
+\emph{Why $Z_\Pi$ turns a reflection into a rotation.} Show that
+$[U_A]_{\mathcal B_j}$ in \eqref{eq:lec08-UBj} is a reflection ($([U_A]_{\mathcal B_j})^2
+=\id$, determinant $-1$) while $[U_A Z_\Pi]_{\mathcal B_j}$ is a rotation
+(determinant $+1$). Explain why one \emph{cannot} obtain $T_k(A)$ from powers of
+$U_A$ alone, and why exactly one reflection $Z_\Pi$ per query is the minimal fix.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec08-4}
+\emph{General block encoding: even vs.\ odd.} Suppose $U_A\in\mathrm{BE}_{1,m}(A)$ is
+\emph{not} Hermitian, $A$ Hermitian. Using \cref{lem:lec08-general}, write out the
+sequence of $U_A,U_A\dg,Z_\Pi$ operators that block-encodes $T_4(A)$ and the one that
+block-encodes $T_3(A)$, and count the number of queries to $U_A$ (and to $U_A\dg$) in
+each. Confirm that the query count equals the Chebyshev degree.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec08-5}
+\emph{QSP degree-$1$ polynomials.} For $d=1$ compute $U_\Phi(\lambda)=
+\ee^{\ii\phi_0 Z}O(\lambda)\ee^{\ii\phi_1 Z}$ in closed form and confirm
+$P(\lambda)=\ee^{\ii(\phi_0+\phi_1)}\lambda$, $Q(\lambda)=\ee^{\ii(\phi_1-\phi_0)}$.
+Check conditions (1)--(3) of \cref{thm:lec08-qsp}. Which $\Phi$ gives
+$P(\lambda)=\lambda$? Which gives $P(\lambda)=\ii\lambda$? Can any degree-$1$ QSP
+sequence produce $P(\lambda)=\tfrac12\lambda$ (a \emph{subnormalized} target), and if
+not, why does that not contradict \cref{cor:lec08-real}?
+\end{exercise}
+
+\begin{exercise}\label{ex:lec08-6}
+\emph{The QSP induction.} Carry out the inductive step of \cref{thm:lec08-qsp} in
+detail: starting from \eqref{eq:lec08-qspform} of degree $d-1$, multiply by
+$O(\lambda)\ee^{\ii\phi_d Z}$ and derive the update \eqref{eq:lec08-newPQ}
+$\widetilde P=\ee^{\ii\phi_d}(\lambda P-(1-\lambda^2)Q)$,
+$\widetilde Q=\ee^{-\ii\phi_d}(P+\lambda Q)$. Verify the degree and parity claims,
+and check directly that $\abs{\widetilde P}^2+(1-\lambda^2)\abs{\widetilde Q}^2=
+\abs{P}^2+(1-\lambda^2)\abs{Q}^2$, so unitarity (condition (3)) is preserved.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec08-7}
+\emph{Phase factors for $T_2$.} Verify by direct $2\times2$ multiplication that, in
+the $O$-convention, $\Phi=(0,0,0)$ gives $U_\Phi(\lambda)=O(\lambda)^2$ with
+$(1,1)$-entry $T_2(\lambda)=2\lambda^2-1$. Then, using the relation
+$\ee^{\ii\frac\pi2 Z}=\ii Z$ and $O(\lambda)=U_A(\lambda)Z$, translate to the
+eigenvalue-transform convention $e=(\tfrac\pi4,\tfrac\pi2,\tfrac\pi4)$ acting on the
+reflection $U_A(\lambda)$, and confirm that the top-left entry equals
+$(-\ii)^2 T_2(\lambda)$ up to the overall phase $(-\ii)^d$ (cf.\
+\cref{exa:lec08-qsp}(c)).
 \end{exercise}
 
 \readingsection
 \begin{itemize}[leftmargin=1.4em]
-  \item Lin Lin, \emph{qasc notes}, Ch.~7.
-  \item Lin Lin, \emph{live notes}, Ch.~10 (qubitization) and Ch.~12 (QSP).
-  \item Dong An, \emph{Quantum Numerical Linear Algebra} talk (qubitization, QSP).
+  \item Lin Lin, \emph{qasc notes}, Ch.~7 (Sec.~7.1 qubitization with Hermitian block
+        encoding, Sec.~7.4 qubitization with general block encoding, Sec.~7.5
+        quantum eigenvalue transformation, Sec.~7.6 quantum signal processing and
+        the QSP theorem for real polynomials).
+  \item Lin Lin, \emph{live notes}, Ch.~10 (qubitization, Chebyshev eigenvalue and
+        singular-value transformations, cosine--sine decomposition) and Ch.~12
+        (quantum signal processing, symmetric QSP, and phase-factor finding).
+  \item Dong An, \emph{Quantum Numerical Linear Algebra} tutorial talk (the
+        $2\times2$ Chebyshev construction $O=U(\lambda)Z$, the qubitization
+        invariant subspaces and reflection $Z_\Pi=2\Pi-\id$, the QSP theorem, and a
+        survey of phase-factor algorithms).
+  \item G.~H.~Low and I.~L.~Chuang, \emph{Hamiltonian simulation by qubitization},
+        Quantum \textbf{3}, 163 (2019); A.~Gily\'en, Y.~Su, G.~H.~Low, and
+        N.~Wiebe, \emph{Quantum singular value transformation and beyond},
+        Proc.\ STOC 2019, 193--204, for the original QSP/QSVT theorems.
+  \item J.~Wang, Y.~Dong, and L.~Lin, \emph{On the energy landscape of symmetric
+        quantum signal processing}, Quantum \textbf{6}, 850 (2022), and R.~Chao,
+        D.~Ding, A.~Gily\'en, C.~Huang, and M.~Szegedy, \emph{Finding angles for
+        quantum signal processing with machine precision}, arXiv:2003.02831, for
+        phase-factor finding.
 \end{itemize}
