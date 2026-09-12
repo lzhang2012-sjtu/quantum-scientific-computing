@@ -9,41 +9,544 @@
 \end{itemize}
 \end{objectives}
 
-\todo{Write the introductory paragraph orienting the lecture.}
+Hamiltonian simulation---preparing $\ket{\psi(t)}=\ee^{-\ii Ht}\ket{\psi_0}$ from an
+initial state $\ket{\psi_0}$ and a Hamiltonian $H$---is the task that first motivated
+quantum computers (Feynman, 1982) and remains the cleanest example of a provable
+exponential speedup. Equivalently, we are solving the linear Schr\"odinger ODE
+$\partial_t\psi=-\ii H\psi$, $\psi(0)=\psi_0$, on a Hilbert space of dimension $N=2^n$
+where classical vectors do not fit in memory. This chapter develops the oldest and most
+widely deployed family of simulation algorithms, the \emph{product formulas} (or Trotter
+methods). Their idea is disarmingly simple: if $H=\sum_\gamma H_\gamma$ is a sum of terms
+each of which can be exponentiated exactly and cheaply, approximate the joint evolution
+$\ee^{-\ii Ht}$ by an ordered product of the individual evolutions
+$\ee^{-\ii H_\gamma\Delta t}$ over short time steps. The subtlety---and the entire
+technical content of the chapter---is that the $H_\gamma$ do not commute, so the product
+is only approximate, and one must control the error as a function of the time $t$, the
+tolerance $\epsilon$, and the (non)commutativity of the terms. We build the first- and
+second-order formulas from the Lie--Trotter product (\cref{sec:lec11-1,sec:lec11-2}),
+generate arbitrary even order by the Suzuki recursion (\cref{sec:lec11-3}), and then
+prove the commutator-type error bounds (\cref{sec:lec11-4}) that explain why product
+formulas, despite their pessimistic worst-case operator-norm scaling, are so effective in
+practice for the geometrically local Hamiltonians of physics. We close
+(\cref{sec:lec11-5}) with randomized and structure-exploiting variants---qDRIFT, random
+permutations, and the real-space/Fourier splitting for kinetic-plus-potential
+Hamiltonians---and place product formulas in the landscape of methods whose optimal
+$\bigo(t+\log(1/\epsilon))$ scaling is the subject of \cref{ch:lec12}. Throughout,
+$\norm\cdot$ is the spectral (operator) norm and $\Delta t=t/L$ is the Trotter step for
+$L$ steps.
 
 \section{Trotter splitting}
 \label{sec:lec11-1}
-\todo{Draft this section.}
+
+\paragraph{The splitting hypothesis.}
+Write the Hamiltonian as a sum of $\Gamma$ Hermitian terms,
+\begin{equation}
+  H=\sum_{\gamma=1}^{\Gamma}H_\gamma,
+  \label{eq:lec11-split}
+\end{equation}
+where each $\ee^{-\ii H_\gamma s}$ can be implemented exactly by a short circuit for any
+$s$. This is the case for essentially every Hamiltonian that arises in practice: a
+\emph{$k$-local} spin Hamiltonian is a sum of Pauli strings, each a tensor product of at
+most $k$ single-qubit Paulis, and $\ee^{-\ii\theta P}$ for a Pauli string $P$ is a single
+rotation conjugated by Clifford gates; an electronic-structure Hamiltonian in second
+quantization is a sum of $\bigo(n^4)$ fermionic terms, each mapped to a Pauli string by
+Jordan--Wigner or Bravyi--Kitaev; and a differential operator such as
+$H=-\Delta+V$ splits into a kinetic part diagonal in the Fourier basis and a potential
+part diagonal in real space (\cref{exa:lec11-schrodinger}). If the $H_\gamma$
+\emph{commuted} we would be done, since $\ee^{-\ii Ht}=\prod_\gamma\ee^{-\ii H_\gamma t}$
+exactly; the whole difficulty is that in general $[H_\gamma,H_{\gamma'}]\neq0$.
+
+\paragraph{The Lie--Trotter product formula.}
+For two terms $H=H_1+H_2$ (the general case is analogous), the classical Lie product
+formula asserts that the error of a single ordered product vanishes in the limit of
+infinitely many steps:
+\begin{equation}
+  \ee^{-\ii H t}=\lim_{L\to\infty}\Bigl(\ee^{-\ii\frac{t}{L}H_1}\,\ee^{-\ii\frac{t}{L}H_2}\Bigr)^{L}.
+  \label{eq:lec11-lie}
+\end{equation}
+The identity holds for any bounded operators $H_1,H_2$ (and, with care, for many
+unbounded ones), and is proved by expanding both sides to first order in $1/L$: the
+$\bigo(1/L)$ terms match, and the mismatch first appears at $\bigo(1/L^2)$, of which there
+are $L$ copies, so the accumulated error is $\bigo(1/L)\to0$. Taking $L$ \emph{finite} and
+writing $\Delta t=t/L$ turns \eqref{eq:lec11-lie} into an algorithm: the
+\emph{first-order Trotter formula}
+\begin{equation}
+  S_1(\Delta t)\defeq\ee^{-\ii\Delta t\,H_1}\,\ee^{-\ii\Delta t\,H_2}
+  \label{eq:lec11-S1}
+\end{equation}
+is applied $L$ times to approximate $\ee^{-\ii Ht}=S_1(\Delta t)^L+\text{error}$. Each
+application is a circuit of $\bigo(\Gamma)$ elementary evolutions, so the total gate count
+is $\bigo(L\Gamma)$ and the entire cost analysis reduces to bounding how large $L$ must be.
+
+\paragraph{Local and global error.}
+Expanding \eqref{eq:lec11-S1} and $\ee^{-\ii\Delta t\,H}$ to second order in $\Delta t$,
+the zeroth- and first-order terms agree and the leading discrepancy is the commutator:
+\begin{equation}
+  \ee^{-\ii\Delta t\,H}-S_1(\Delta t)
+  =\tfrac12(\Delta t)^2[H_1,H_2]+\bigo(\Delta t^3),
+  \qquad
+  \norm{\ee^{-\ii\Delta t\,H}-S_1(\Delta t)}=\bigo(\Delta t^2).
+  \label{eq:lec11-S1-local}
+\end{equation}
+This is the \emph{local} (one-step) error. Errors compose sub-additively for products of
+near-unitaries: if $\norm{U_j-V_j}\le\delta$ for unitaries $U_j,V_j$, then
+$\norm{\prod_{j=1}^{L}U_j-\prod_{j=1}^{L}V_j}\le L\delta$ (a telescoping estimate we prove
+in \cref{lem:lec11-telescope}). Hence the \emph{global} error after $L$ steps is
+\begin{equation}
+  \norm{\ee^{-\ii Ht}-S_1(\Delta t)^L}
+  =\bigo(L\,\Delta t^2)=\bigo\!\Bigl(\frac{t^2}{L}\Bigr),
+  \label{eq:lec11-S1-global}
+\end{equation}
+so reaching spectral-norm accuracy $\epsilon$ requires
+\begin{equation}
+  L=\bigo\!\Bigl(\frac{t^2}{\epsilon}\Bigr)
+  \label{eq:lec11-S1-L}
+\end{equation}
+steps. The quadratic dependence on $t$ and inverse-linear dependence on $\epsilon$ are the
+signatures of the first-order method; both are improved below.
+
+\begin{lemma}[Telescoping of product errors]
+\label{lem:lec11-telescope}
+Let $U_1,\dots,U_L$ and $V_1,\dots,V_L$ be unitaries with
+$\norm{U_j-V_j}\le\delta_j$. Then
+$\bigl\|\prod_{j=1}^{L}U_j-\prod_{j=1}^{L}V_j\bigr\|\le\sum_{j=1}^{L}\delta_j$.
+\end{lemma}
+
+\begin{proof}
+Insert a telescoping sum
+$\prod_j U_j-\prod_j V_j
+=\sum_{k=1}^{L}\bigl(\prod_{j<k}U_j\bigr)(U_k-V_k)\bigl(\prod_{j>k}V_j\bigr)$,
+take norms, and use unitary invariance $\norm{WMW'}=\norm M$ for unitary $W,W'$ together
+with the triangle inequality. Each summand contributes $\norm{U_k-V_k}\le\delta_k$.
+\end{proof}
 
 \section{First- and second-order formulas}
 \label{sec:lec11-2}
-\todo{Draft this section.}
+
+\paragraph{Why symmetrize.}
+The first-order formula \eqref{eq:lec11-S1} is not time-symmetric:
+$S_1(\Delta t)\,S_1(-\Delta t)\neq\id$. Time-reversal symmetry is the structural feature
+that kills even-order error terms. Define the \emph{second-order} (Strang, or symmetric
+Trotter) formula by conjugating a full step of $H_1$ with two half-steps of $H_2$,
+\begin{equation}
+  S_2(\Delta t)\defeq\ee^{-\ii\frac{\Delta t}{2}H_2}\,\ee^{-\ii\Delta t\,H_1}\,
+    \ee^{-\ii\frac{\Delta t}{2}H_2}.
+  \label{eq:lec11-S2}
+\end{equation}
+By construction $S_2(\Delta t)=S_2(-\Delta t)^{-1}$ (read the product backward and negate
+$\Delta t$), i.e.\ $S_2$ is \emph{self-inverse under time reversal}. This forces its error
+expansion to contain only odd powers of $\Delta t$, so the leading error jumps from
+$\bigo(\Delta t^2)$ to $\bigo(\Delta t^3)$:
+\begin{equation}
+  \norm{\ee^{-\ii\Delta t\,H}-S_2(\Delta t)}=\bigo(\Delta t^3).
+  \label{eq:lec11-S2-local}
+\end{equation}
+
+\begin{proposition}[Symmetric formulas have odd error expansions]
+\label{prop:lec11-symmetry}
+Let $S(\Delta t)$ be a product formula satisfying $S(\Delta t)S(-\Delta t)=\id$ and
+$S(\Delta t)=\ee^{-\ii\Delta t\,H}+\bigo(\Delta t^2)$. Then its error
+$E(\Delta t)\defeq S(\Delta t)-\ee^{-\ii\Delta t\,H}$ satisfies
+$E(\Delta t)=-\,\ee^{-2\ii\Delta t\,H}E(-\Delta t)+\bigo(\Delta t^{?})$ so that the
+leading term is odd; consequently the first nonvanishing error of $S_2$ is
+$\bigo(\Delta t^3)$.
+\end{proposition}
+
+\begin{proof}[Proof idea]
+Write $S(\Delta t)=\exp(-\ii\Delta t\,H+\sum_{k\ge2}(\Delta t)^k E_k)$ for operators
+$E_k$ (a valid single-exponential form by Baker--Campbell--Hausdorff, since $S$ is a
+product of exponentials). The condition $S(\Delta t)S(-\Delta t)=\id$ means the exponents
+of $S(\Delta t)$ and $S(-\Delta t)$ are negatives; substituting the series and matching
+powers forces $E_k=0$ for every \emph{even} $k$. Hence the leading surviving correction
+is $E_3(\Delta t)^3$, giving \eqref{eq:lec11-S2-local}. The same argument shows that any
+symmetric formula has error $\bigo(\Delta t^{2\ell+1})$ for some integer $\ell\ge1$,
+which is what the Suzuki recursion exploits.
+\end{proof}
+
+\paragraph{Global cost of the second-order formula.}
+By \cref{lem:lec11-telescope} the global error is
+$\bigo(L\,\Delta t^3)=\bigo(t^3/L^2)$, so accuracy $\epsilon$ needs
+\begin{equation}
+  L=\bigo\!\Bigl(\frac{t^{3/2}}{\epsilon^{1/2}}\Bigr).
+  \label{eq:lec11-S2-L}
+\end{equation}
+Compared with \eqref{eq:lec11-S1-L} this improves both the time scaling ($t^{3/2}$ vs
+$t^2$) and the precision scaling ($\epsilon^{-1/2}$ vs $\epsilon^{-1}$) at the cost of one
+extra half-step of $H_2$ per step---and, crucially, when the steps are chained the
+adjacent half-steps merge, $\ee^{-\ii\frac{\Delta t}{2}H_2}\ee^{-\ii\frac{\Delta t}{2}H_2}
+=\ee^{-\ii\Delta t\,H_2}$, so a run of $L$ symmetric steps costs only one extra
+$H_2$-evolution overall, essentially the same per-step cost as $S_1$. For this reason
+$S_2$ is the default low-order product formula. The generalization to $\Gamma$ terms is
+the obvious palindromic order,
+\begin{equation}
+  S_2(\Delta t)=\Bigl(\prod_{\gamma=1}^{\Gamma}\ee^{-\ii\frac{\Delta t}{2}H_\gamma}\Bigr)
+  \Bigl(\prod_{\gamma=\Gamma}^{1}\ee^{-\ii\frac{\Delta t}{2}H_\gamma}\Bigr),
+  \label{eq:lec11-S2-multi}
+\end{equation}
+which is again manifestly symmetric.
+
+\begin{example}[Transverse-field Ising model]
+\label{exa:lec11-tfim}
+The one-dimensional transverse-field Ising model with open boundary is
+\begin{equation}
+  H=\underbrace{-\sum_{i=1}^{n-1}Z_iZ_{i+1}}_{H_1}
+    \underbrace{-\,g\sum_{i=1}^{n}X_i}_{H_2},\qquad
+  Z=\begin{psmallmatrix}1&0\\0&-1\end{psmallmatrix}.
+\end{equation}
+Both halves are sums of \emph{mutually commuting} Paulis, so each exponentiates as a
+product of two-qubit and one-qubit rotations,
+\begin{equation}
+  \ee^{-\ii\Delta t\,H_1}=\prod_{i=1}^{n-1}\ee^{\ii\Delta t\,Z_iZ_{i+1}},\qquad
+  \ee^{-\ii\Delta t\,H_2}=\prod_{i=1}^{n}\ee^{\ii\Delta t\,g X_i},
+\end{equation}
+each gate acting on at most two neighboring qubits. A single $S_2$ step is therefore a
+constant-depth circuit of $\bigo(n)$ nearest-neighbor gates. We return to this model in
+\cref{exa:lec11-commutator} to see that its \emph{commutator} structure makes the true
+cost far better than the naive operator-norm bound suggests.
+\end{example}
+
+\begin{example}[Real-space Schr\"odinger operator]
+\label{exa:lec11-schrodinger}
+Let $H=-\Delta_r+V(r)=H_1+H_2$ on $\Omega=[0,1]^d$ with periodic boundary conditions,
+discretized on a uniform grid. The kinetic term $H_1=-\Delta_r$ is diagonal in the
+Fourier basis, so $\ee^{-\ii\Delta t\,H_1}=\mathrm{QFT}\dg\,D_{\mathrm{kin}}\,\mathrm{QFT}$
+with $D_{\mathrm{kin}}$ a diagonal phase encoding the momenta $\sum_j p_j^2$; the
+potential $H_2=V(r)$ is diagonal in real space, so $\ee^{-\ii\Delta t\,H_2}=D_{V}$ is a
+single diagonal unitary. A Trotter step is thus ``QFT---multiply by kinetic phases---inverse
+QFT---multiply by potential phases,'' the quantum split-step (pseudospectral) method, at a
+per-step cost of $\bigo(dn^2)$ gates dominated by the QFTs. This is the workhorse for
+simulating quantum dynamics in first quantization and reappears in the PDE algorithms of
+\cref{ch:lec13}.
+\end{example}
 
 \section{Higher-order Suzuki recursion}
 \label{sec:lec11-3}
-\todo{Draft this section.}
+
+\paragraph{Fractal (Suzuki--Trotter) construction.}
+Higher order is obtained by a beautiful recursion of Suzuki: build the order-$(2k+2)$
+symmetric formula out of five copies of the order-$2k$ one, with cleverly chosen
+substep lengths that cancel the next error term. Starting from the second-order $S_2$ of
+\eqref{eq:lec11-S2}, define recursively
+\begin{equation}
+  S_{2k+2}(\Delta t)=S_{2k}(p_k\Delta t)^2\,S_{2k}\bigl((1-4p_k)\Delta t\bigr)\,
+    S_{2k}(p_k\Delta t)^2,\qquad
+  p_k=\frac{1}{4-4^{1/(2k+1)}}.
+  \label{eq:lec11-suzuki}
+\end{equation}
+The magic number $p_k$ is exactly the value that makes the five substeps sum correctly,
+$4p_k+(1-4p_k)=1$, while forcing the leading $\bigo(\Delta t^{2k+1})$ error of $S_{2k}$ to
+cancel between the forward substeps (length $p_k\Delta t>0$) and the single backward-ish
+substep (length $(1-4p_k)\Delta t<0$, since $p_k>1/4$). Because each $S_{2k}$ factor is
+symmetric, so is $S_{2k+2}$; by \cref{prop:lec11-symmetry} its error is again odd, and the
+construction guarantees
+\begin{equation}
+  \norm{\ee^{-\ii\Delta t\,H}-S_{2k}(\Delta t)}=\bigo(\Delta t^{2k+1}).
+  \label{eq:lec11-suzuki-local}
+\end{equation}
+
+\paragraph{Cost of the $2k$-th order formula.}
+Unrolling the recursion, $S_{2k}$ is a product of $2\cdot5^{k-1}$ copies of $S_2$
+(equivalently $\Upsilon_k=2\cdot5^{k-1}\Gamma$ elementary exponentials for $\Gamma$
+terms), so its per-step gate cost grows exponentially in the order $k$. Against this, the
+global error of $L$ steps is $\bigo(L\,\Delta t^{2k+1})=\bigo(t^{2k+1}/L^{2k})$, so
+\begin{equation}
+  L=\bigo\!\Bigl(t^{\frac{2k+1}{2k}}\epsilon^{-\frac{1}{2k}}\Bigr)
+   =\bigo\!\bigl(t^{1+\frac{1}{2k}}\,\epsilon^{-\frac{1}{2k}}\bigr).
+  \label{eq:lec11-suzuki-L}
+\end{equation}
+As $k\to\infty$ the time scaling approaches the optimal linear-in-$t$ and the precision
+scaling approaches $\epsilon^{-0}$, but the prefactor $5^{k-1}$ makes very high order
+counterproductive. Balancing the $5^{k}$ prefactor against the $\epsilon^{-1/(2k)}$ tail
+by choosing $k=\Theta(\sqrt{\log(1/\epsilon)})$ yields the best product-formula scaling
+\begin{equation}
+  \text{gates}=\bigo\!\bigl(\Gamma\, t\cdot(t/\epsilon)^{o(1)}\bigr)
+  =\Gamma\,t\,\ee^{\bigo(\sqrt{\log(t/\epsilon)})},
+  \label{eq:lec11-suzuki-opt}
+\end{equation}
+nearly linear in $t$ but \emph{super}-polynomial (though sub-polynomial in $1/\epsilon$)
+in the precision---strictly worse than the $\bigo(t+\log(1/\epsilon))$ achieved by the
+qubitization and LCU methods of \cref{ch:lec12}. The practical sweet spot for near-term
+work is fourth order ($k=2$), i.e.\ $S_4$, which offers a good balance of accuracy and
+circuit depth.
+
+\begin{remark}[Real vs.\ complex coefficients]
+\label{rem:lec11-negative}
+The Suzuki recursion necessarily uses a \emph{negative} substep coefficient
+$1-4p_k<0$; there is a no-go theorem (Sheng; Suzuki) that no product formula of order
+$\ge3$ can have all-positive coefficients. Negative times are fine for a Hamiltonian
+(run the evolution backward), but forbid the same trick for imaginary-time evolution
+$\ee^{-\beta H}$ or for Lindbladians, where ``negative time'' is unphysical---one reason
+imaginary-time and open-system simulation (\cref{ch:lec14}) need different tools.
+\end{remark}
 
 \section{Commutator error bounds}
 \label{sec:lec11-4}
-\todo{Draft this section.}
+
+\paragraph{The Duhamel argument.}
+The estimates \eqref{eq:lec11-S1-local} and \eqref{eq:lec11-S2-local} were stated as
+$\bigo(\Delta t^p)$; we now make the constants explicit and, more importantly, show they
+are controlled by the \emph{commutators} of the terms rather than by their norms. This
+distinction is what makes product formulas competitive for physical systems. Consider the
+first-order formula $\tilde u(t)=\ee^{-\ii H_1 t}\ee^{-\ii H_2 t}$ (one step, so $t=\Delta
+t$). Differentiating,
+\begin{align}
+  \ii\partial_t\tilde u(t)
+  &=H_1\,\ee^{-\ii H_1 t}\ee^{-\ii H_2 t}+\ee^{-\ii H_1 t}H_2\,\ee^{-\ii H_2 t}\notag\\
+  &=(H_1+H_2)\tilde u(t)+\bigl[\ee^{-\ii H_1 t},\,H_2\bigr]\ee^{-\ii H_2 t},
+  \label{eq:lec11-duhamel-ode}
+\end{align}
+with $\tilde u(0)=\id$. Writing $u(t)=\ee^{-\ii Ht}$ and applying Duhamel's principle (the
+variation-of-constants formula for the inhomogeneous term),
+\begin{equation}
+  \tilde u(t)=u(t)-\ii\int_0^t\ee^{-\ii H(t-s)}\bigl[\ee^{-\ii H_1 s},H_2\bigr]
+    \ee^{-\ii H_2 s}\,\dd s,
+  \label{eq:lec11-duhamel}
+\end{equation}
+so, using unitarity to drop the outer factors,
+\begin{equation}
+  \norm{\tilde u(t)-u(t)}\le\int_0^t\bigl\|[\ee^{-\ii H_1 s},H_2]\bigr\|\,\dd s.
+  \label{eq:lec11-duhamel-bound}
+\end{equation}
+
+\paragraph{Bounding the inner commutator.}
+Set $G(s)=[\ee^{-\ii H_1 s},H_2]\ee^{\ii H_1 s}=\ee^{-\ii H_1 s}H_2\ee^{\ii H_1 s}-H_2$,
+so $G(0)=0$ and $\ii\partial_s G(s)=\ee^{-\ii H_1 s}[H_1,H_2]\ee^{\ii H_1 s}$. Integrating
+and taking norms gives $\norm{[\ee^{-\ii H_1 s},H_2]}=\norm{G(s)}\le s\,\norm{[H_1,H_2]}$.
+Substituting into \eqref{eq:lec11-duhamel-bound},
+\begin{equation}
+  \norm{\ee^{-\ii\Delta t\,H_1}\ee^{-\ii\Delta t\,H_2}-\ee^{-\ii\Delta t\,H}}
+  \le\int_0^{\Delta t}\!\!s\,\norm{[H_1,H_2]}\,\dd s
+  =\frac{(\Delta t)^2}{2}\,\norm{[H_1,H_2]}.
+  \label{eq:lec11-commutator-bound}
+\end{equation}
+This is the \emph{commutator-norm} error estimate. Bounding
+$\norm{[H_1,H_2]}\le2\norm{H_1}\norm{H_2}\le2\nu^2$ with $\nu=\max_\gamma\norm{H_\gamma}$
+recovers the coarser \emph{operator-norm} estimate $\tfrac12\Delta t^2\cdot2\nu^2=\Delta
+t^2\nu^2$. The difference is decisive for local Hamiltonians: many pairs of terms commute,
+so $\norm{[H_1,H_2]}$ can be far smaller than $\nu^2$.
+
+\begin{theorem}[Product-formula error, commutator form]
+\label{thm:lec11-commutator}
+Let $H=\sum_{\gamma=1}^{\Gamma}H_\gamma$ and let $S_p(\Delta t)$ be the order-$p$ product
+formula ($p=1,2,\dots$). Then the one-step error obeys
+\begin{equation}
+  \norm{S_p(\Delta t)-\ee^{-\ii\Delta t\,H}}
+  \le C_p\,(\Delta t)^{p+1}
+  \!\!\sum_{\gamma_1,\dots,\gamma_{p+1}}\!\!
+  \bigl\|[H_{\gamma_{p+1}},[\cdots[H_{\gamma_2},H_{\gamma_1}]\cdots]]\bigr\|,
+  \label{eq:lec11-thm}
+\end{equation}
+for a constant $C_p$ depending only on $p$, where the sum runs over the terms of $H$ and
+the summand is a nested commutator of order $p$. Consequently the $L$-step error is
+$\bigo\!\bigl(L\,\Delta t^{p+1}\,\alpha_{\mathrm{comm}}\bigr)$ with
+$\alpha_{\mathrm{comm}}=\sum\norm{[\cdots]}$ the sum of nested-commutator norms, and the
+gate complexity to simulate to time $t$ within $\epsilon$ is
+\begin{equation}
+  \bigo\!\Bigl(\Gamma\,\frac{(\alpha_{\mathrm{comm}}\,t^{p+1})^{1/p}}{\epsilon^{1/p}}\Bigr).
+  \label{eq:lec11-thm-cost}
+\end{equation}
+\end{theorem}
+
+\begin{proof}[Proof idea]
+Iterate the Duhamel identity \eqref{eq:lec11-duhamel} $p$ times: each pass differentiates
+one more exponential and produces one more commutator, so after $p$ iterations the
+remainder integrand is a sum of $p$-fold nested commutators of the $H_\gamma$, integrated
+over a $p$-simplex of volume $(\Delta t)^{p+1}/(p+1)!$. The symmetry of $S_p$ (for even
+$p$) kills the lower-order terms exactly as in \cref{prop:lec11-symmetry}, leaving the
+stated leading term; the constant $C_p$ collects the simplex volume and the number of
+orderings. Summing over $L=t/\Delta t$ steps and solving
+$L\,\Delta t^{p+1}\alpha_{\mathrm{comm}}=\epsilon$ for $L$ gives \eqref{eq:lec11-thm-cost}.
+This is the Childs--Su--Tran--Wiebe--Zhu ``theory of Trotter error'' bound; its power is
+that $\alpha_{\mathrm{comm}}$, not $\nu$, sets the cost.
+\end{proof}
+
+\begin{example}[TFIM: commutator vs.\ operator norm]
+\label{exa:lec11-commutator}
+For the TFIM of \cref{exa:lec11-tfim}, $\norm{H_1},\norm{H_2}=\bigo(n)$, so the
+operator-norm bound uses $\nu^2=\bigo(n^2)$ and predicts $L=\bigo(n^2t^2/\epsilon)$ (first
+order). But $[Z_iZ_{i+1},X_k]\neq0$ only when $k\in\{i,i+1\}$, so in
+$[H_1,H_2]=\sum_{i,k}[Z_iZ_{i+1},-gX_k]$ only $\bigo(n)$ of the $\bigo(n^2)$ pairs survive,
+each of norm $\bigo(1)$; hence $\norm{[H_1,H_2]}=\bigo(n)$. The commutator bound therefore
+gives $L=\bigo(n\,t^2/\epsilon)$ (first order), a factor-$n$ improvement, and the same
+locality gain compounds at higher order. This is the general lesson: for a
+\emph{geometrically local} Hamiltonian on $n$ qubits the number of noncommuting term-pairs
+is $\bigo(n)$ rather than $\bigo(n^2)$, so Trotter cost scales like $n$ (extensive), and
+product formulas can even be \emph{asymptotically optimal} for such systems.
+\end{example}
+
+\begin{example}[Schr\"odinger operator: commutator gain]
+\label{exa:lec11-comm-pde}
+For $H=-\Delta+V$ in $d=1$ on an $N$-point grid, $\norm{H_1}=\bigo(N^2)$ (the discrete
+Laplacian has eigenvalues up to $\bigo(N^2)$) while $\norm V=\bigo(1)$, so
+$\nu^2=\bigo(N^4)$ and the operator-norm bound gives $L=\bigo(N^2t^2/\epsilon)$. But the
+commutator acts as a lower-order differential operator: for smooth $\psi$,
+\begin{equation}
+  [H_1,H_2]\psi=\Bigl[-\tfrac{\dd^2}{\dd r^2},V\Bigr]\psi=-V''\psi-2V'\psi',
+\end{equation}
+so $\norm{[H_1,H_2]}\le\norm{V''}+2\norm{V'}\,\norm{\partial_r}=\bigo(N)$ (only the
+first-derivative term carries a factor $N$). Thus the commutator bound gives
+$L=\bigo(\sqrt N\,t/\sqrt\epsilon)$ at first order after the $\Delta t^2$ improvement is
+propagated---an order-of-magnitude reduction that reflects the physical smoothness of the
+potential.
+\end{example}
 
 \section{Randomized and sparse variants}
 \label{sec:lec11-5}
-\todo{Draft this section.}
+
+\paragraph{Random orderings.}
+The deterministic product formula fixes one ordering of the $\Gamma$ terms; the
+\emph{ordering} itself is a free choice that can be randomized to cancel error in
+expectation. In the simplest scheme one applies the $\Gamma$ term-evolutions in a
+uniformly random permutation each step. Because the leading first-order error is a sum of
+commutators whose \emph{sign} depends on the ordering, averaging over the permutation and
+its reverse cancels the $\bigo(\Delta t^2)$ term \emph{on average}, so the random formula
+behaves like a second-order deterministic one at first-order cost. Formally one bounds the
+error in the diamond norm of the mixed (channel-averaged) evolution and gains a
+$\sqrt\Gamma$ or $\Gamma$ factor over the worst-case deterministic bound; this is the
+Childs--Ostrander--Su randomized-Trotter analysis.
+
+\paragraph{qDRIFT.}
+A more radical randomization abandons the fixed step structure entirely. Write
+$H=\sum_\gamma h_\gamma H_\gamma$ with $\norm{H_\gamma}=1$, $h_\gamma>0$, and set
+$\lambda=\sum_\gamma h_\gamma$. \emph{qDRIFT} (Campbell) implements a random product of
+$N_{\mathrm{q}}$ elementary rotations, at each of which a single term $H_\gamma$ is drawn
+with probability $h_\gamma/\lambda$ and evolved for the \emph{fixed} small angle
+$\tau=\lambda t/N_{\mathrm{q}}$:
+\begin{equation}
+  \mathcal E(t)=\Bigl(\E_{\gamma\sim h_\gamma/\lambda}
+     \ee^{-\ii\tau H_\gamma}\Bigr)^{N_{\mathrm q}},\qquad
+  N_{\mathrm q}=\bigo\!\Bigl(\frac{\lambda^2 t^2}{\epsilon}\Bigr).
+  \label{eq:lec11-qdrift}
+\end{equation}
+The channel $\mathcal E$ approximates $\ee^{-\ii Ht}(\cdot)\ee^{\ii Ht}$ in diamond norm.
+Its striking feature is that the gate count \eqref{eq:lec11-qdrift} depends only on the
+$1$-norm $\lambda=\sum_\gamma h_\gamma$ and \emph{not} on the number of terms $\Gamma$ nor
+on any commutator structure. This makes qDRIFT the method of choice for Hamiltonians with
+very many small terms and no exploitable locality---most notably electronic-structure
+Hamiltonians with $\bigo(n^4)$ terms of widely varying weight, where a handful of large
+$h_\gamma$ dominate $\lambda$. The tradeoff is the $t^2/\epsilon$ scaling of a
+first-order method: qDRIFT wins on term count, not on time or precision.
+
+\paragraph{Sparse and structured splittings.}
+When $H$ is $d$-sparse (each row has at most $d$ nonzeros, accessed by the sparse-access
+oracle of \cref{ch:lec06}), one can color the graph of $H$ into $\bigo(d^2)$ classes of
+mutually commuting $1$-sparse Hermitian matrices, each of which is a permutation-times-phase
+that exponentiates exactly; product formulas over the color classes then simulate $H$ with
+$\bigo(d^2\norm H_{\max}t)$-type cost, the original Aharonov--Ta-Shma / Berry--Ahokas--Cleve--Sanders
+route to sparse Hamiltonian simulation. For the kinetic-plus-potential splitting of
+\cref{exa:lec11-schrodinger} the two ``color classes'' are simply the Fourier-diagonal and
+real-diagonal parts, and the QFT sandwich is the exact exponentiation---no coloring needed.
+
+\paragraph{Where product formulas sit.}
+Product formulas are simple, ancilla-free (no block encoding, no LCU), and---by
+\cref{thm:lec11-commutator}---often \emph{optimal} for geometrically local lattice models,
+where the commutator sum is extensive and the naive operator-norm pessimism does not apply.
+Their weakness is the precision scaling: even the best Suzuki order gives
+\eqref{eq:lec11-suzuki-opt}, sub-polynomial but super-logarithmic in $1/\epsilon$. When
+$\epsilon$ must be very small, or when $H$ is dense with no locality to exploit, the
+block-encoding methods of \cref{ch:lec12}---qubitization, LCU/Taylor-series, and the
+quantum-signal-processing simulation---achieve the optimal $\bigo(\norm H t+\log(1/\epsilon))$
+query complexity, matching the no-fast-forwarding lower bound (\cref{sec:lec12-5}). The two
+families are complementary, and modern simulations often combine them.
 
 \exercisesection
-\begin{exercise}
-\todo{Add exercise.}
+
+\begin{exercise}\label{ex:lec11-1}
+\emph{Local error of the first-order formula.} By expanding both $\ee^{-\ii\Delta t\,H}$
+and $S_1(\Delta t)=\ee^{-\ii\Delta t\,H_1}\ee^{-\ii\Delta t\,H_2}$ to third order in
+$\Delta t$, verify \eqref{eq:lec11-S1-local}:
+$\ee^{-\ii\Delta t\,H}-S_1(\Delta t)=\tfrac12(\Delta t)^2[H_1,H_2]+\bigo(\Delta t^3)$.
+Then use \cref{lem:lec11-telescope} to obtain the global bound
+$\norm{\ee^{-\ii Ht}-S_1(\Delta t)^L}=\bigo(t^2/L)$ and hence $L=\bigo(t^2/\epsilon)$.
 \end{exercise}
-\begin{exercise}
-\todo{Add exercise.}
+
+\begin{exercise}\label{ex:lec11-2}
+\emph{Symmetry kills even orders.} Show that the second-order formula
+$S_2(\Delta t)=\ee^{-\ii\frac{\Delta t}{2}H_2}\ee^{-\ii\Delta t\,H_1}
+\ee^{-\ii\frac{\Delta t}{2}H_2}$ satisfies $S_2(\Delta t)S_2(-\Delta t)=\id$. Assuming the
+single-exponential form $S_2(\Delta t)=\exp(-\ii\Delta t\,H+\sum_{k\ge2}(\Delta t)^kE_k)$,
+deduce that $E_k=0$ for all even $k$, and conclude the local error is $\bigo(\Delta t^3)$.
 \end{exercise}
-\begin{exercise}
-\todo{Add exercise.}
+
+\begin{exercise}\label{ex:lec11-3}
+\emph{Merging half-steps.} Show that for a chain of $L$ symmetric steps the interior
+half-steps merge, $S_2(\Delta t)^L=\ee^{-\ii\frac{\Delta t}{2}H_2}
+\bigl(\ee^{-\ii\Delta t\,H_1}\ee^{-\ii\Delta t\,H_2}\bigr)^{L-1}
+\ee^{-\ii\Delta t\,H_1}\ee^{-\ii\frac{\Delta t}{2}H_2}$, so that a length-$L$ symmetric
+simulation costs only one more $H_2$-exponential than the corresponding first-order run.
+Count the elementary exponentials of both and compare.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec11-4}
+\emph{The Suzuki coefficient.} Verify that the substep lengths in
+\eqref{eq:lec11-suzuki} sum correctly, $4p_k+(1-4p_k)=1$, and that $p_k=1/(4-4^{1/(2k+1)})
+>1/4$, so the middle substep runs backward in time. Using
+\eqref{eq:lec11-suzuki-local}, show the number of steps needed for accuracy $\epsilon$ is
+$L=\bigo(t^{1+1/(2k)}\epsilon^{-1/(2k)})$, and that the per-step gate count is
+$2\cdot5^{k-1}$ times that of $S_2$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec11-5}
+\emph{Commutator error bound via Duhamel.} Fill in the Duhamel argument of
+\cref{sec:lec11-4}: derive \eqref{eq:lec11-duhamel-ode}, integrate to
+\eqref{eq:lec11-duhamel}, and using $G(s)=\ee^{-\ii H_1 s}H_2\ee^{\ii H_1 s}-H_2$ show
+$\norm{[\ee^{-\ii H_1 s},H_2]}\le s\norm{[H_1,H_2]}$. Conclude
+$\norm{\ee^{-\ii\Delta t\,H_1}\ee^{-\ii\Delta t\,H_2}-\ee^{-\ii\Delta t\,H}}\le
+\tfrac12(\Delta t)^2\norm{[H_1,H_2]}$, and recover the operator-norm bound $\le\Delta
+t^2\nu^2$ with $\nu=\max\{\norm{H_1},\norm{H_2}\}$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec11-6}
+\emph{Commutator scaling for local models.} For the TFIM
+$H=-\sum_iZ_iZ_{i+1}-g\sum_iX_i$ on $n$ qubits, show $\norm{H_1},\norm{H_2}=\bigo(n)$ so
+the operator-norm bound gives $L=\bigo(n^2t^2/\epsilon)$, but $\norm{[H_1,H_2]}=\bigo(n)$
+because only $\bigo(n)$ term-pairs fail to commute, giving the commutator bound
+$L=\bigo(nt^2/\epsilon)$. Explain why this factor-$n$ gain is generic for geometrically
+local Hamiltonians.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec11-7}
+\emph{qDRIFT is term-count independent.} For $H=\sum_\gamma h_\gamma H_\gamma$ with
+$\norm{H_\gamma}=1$ and $\lambda=\sum_\gamma h_\gamma$, explain why the qDRIFT gate count
+$N_{\mathrm q}=\bigo(\lambda^2t^2/\epsilon)$ of \eqref{eq:lec11-qdrift} is independent of
+the number of terms $\Gamma$ and of the commutators, and contrast this with the
+deterministic first-order bound $L=\bigo(\Gamma(\alpha_{\mathrm{comm}}t^2/\epsilon))$. For
+which Hamiltonians (locality vs.\ term count vs.\ weight distribution) does each method
+win?
+\end{exercise}
+
+\begin{exercise}\label{ex:lec11-8}
+\emph{Fourth-order versus second-order in practice.} Suppose you must simulate to time
+$t=100$ with $\epsilon=10^{-6}$. Using \eqref{eq:lec11-S2-L} and
+\eqref{eq:lec11-suzuki-L}, estimate the step counts $L$ for $S_2$ ($k=1$) and $S_4$
+($k=2$), and include the per-step factors ($1$ vs.\ $2\cdot5^{1}=10$). Which formula uses
+fewer total elementary exponentials here, and how does the crossover shift as
+$\epsilon\to0$?
 \end{exercise}
 
 \readingsection
 \begin{itemize}[leftmargin=1.4em]
-  \item Lin Lin, \emph{qasc notes}, Ch.~5.
-  \item Lin Lin, \emph{live notes}, Ch.~15 (operator splitting).
+  \item Lin Lin, \emph{qasc notes}, Ch.~5 (Hamiltonian simulation by product formulas:
+        Lie--Trotter and Strang splittings, Suzuki higher-order recursion, and the
+        commutator-type error analysis).
+  \item Lin Lin, \emph{live notes}, Ch.~15 (operator splitting: first- and second-order
+        Trotter, the Duhamel/commutator error bound, and the transverse-field Ising and
+        real-space Schr\"odinger examples).
+  \item A.~M.~Childs, Y.~Su, M.~C.~Tran, N.~Wiebe, and S.~Zhu, \emph{Theory of Trotter
+        error with commutator scaling}, Phys.\ Rev.\ X \textbf{11}, 011020 (2021)
+        (arXiv:1912.08854), for the tight nested-commutator bound
+        \eqref{eq:lec11-thm} and its optimality for local Hamiltonians.
+  \item M.~Suzuki, \emph{Fractal decomposition of exponential operators with applications
+        to many-body theories and Monte Carlo simulations}, Phys.\ Lett.\ A \textbf{146},
+        319--323 (1990), for the recursion \eqref{eq:lec11-suzuki}; and
+        E.~Campbell, \emph{Random compiler for fast Hamiltonian simulation}, Phys.\ Rev.\
+        Lett.\ \textbf{123}, 070503 (2019) (arXiv:1811.08017), for qDRIFT
+        \eqref{eq:lec11-qdrift}; with A.~M.~Childs, A.~Ostrander, and Y.~Su,
+        \emph{Faster quantum simulation by randomization}, Quantum \textbf{3}, 182
+        (2019) (arXiv:1805.08385), for random orderings.
+  \item D.~Brody, \emph{The Joy of Quantum Computing}, Princeton Univ.\ Press, 2025,
+        Ch.~9 (simulating quantum dynamics: why the Schr\"odinger evolution
+        $\ee^{-\ii Ht}$ is the native task of a quantum computer, and the intuition behind
+        splitting a Hamiltonian into simulable pieces) ---
+        \texttt{material/Brody\_The\ Joy\ of\ Quantum\ Computing\_Princeton\_2025.pdf}.
 \end{itemize}
