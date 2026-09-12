@@ -19,4 +19,14 @@ res.probabilities    # {bitstring: prob}
 res.counts           # sampled counts (pass shots=...)
 qc.draw(); qc.to_qasm()
 ```
+
+Note on qubit ordering: qubit 0 is the least-significant bit, so a 3-qubit
+statevector reshapes as `[q2, q1, q0]` and probability keys read `q_{n-1}…q_0`.
+
+UnitaryLab has no Bloch-sphere plotter and qiskit is unavailable here, so the
+Lecture 1 notebook defines its own matplotlib helpers: `bloch_vector(state)`
+returns $(\langle X\rangle,\langle Y\rangle,\langle Z\rangle)$ for a single-qubit
+statevector, and `plot_bloch(vec, title)` renders a translucent unit sphere with
+the state as an arrow (headless via `matplotlib.use("Agg")`).
+
 One notebook per lecture: `lecNN_slug.ipynb`. Lecture 1 is executed; L2–L5 are outlines.
