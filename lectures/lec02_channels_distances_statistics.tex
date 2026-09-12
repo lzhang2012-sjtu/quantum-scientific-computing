@@ -10,41 +10,708 @@
 \end{itemize}
 \end{objectives}
 
-\todo{Write the introductory paragraph orienting the lecture.}
+The previous lecture treated states as pure vectors and evolutions as unitaries.
+Real devices are noisier and richer than that: a qubit couples to its
+environment, a measurement discards information, and every number we read off a
+quantum computer arrives as a \emph{sample} from a probability distribution.
+This lecture builds the three tools that let us reason quantitatively about these
+facts. First, the language of \emph{quantum channels}---completely positive
+trace-preserving (CPTP) maps---which is the most general physically admissible
+evolution of a density operator and subsumes unitaries, noise, and measurement.
+Second, the \emph{distance measures} (trace distance, fidelity, diamond norm)
+that tell us how well one state or channel approximates another, and how those
+errors accumulate. Third, the \emph{statistical machinery}---concentration
+inequalities, amplification, and the Cram\'er--Rao bound---that converts a target
+accuracy $\varepsilon$ and confidence $1-\delta$ into a concrete number of
+measurement repetitions (a ``shot budget''). Together these underlie the error
+analysis of every algorithm in the rest of the course.
 
 \section{Quantum channels (CPTP maps)}
 \label{sec:lec02-1}
-\todo{Draft this section.}
+
+A quantum channel generalizes both the unitary evolution of an isolated system
+and the stochastic evolution of a classical probability distribution. It is the
+right object whenever a system interacts with an environment, undergoes noise, or
+is measured. We work with density operators (\cref{sec:lec01-5}); recall that a
+density operator on $\C^{N}$ is a positive semidefinite operator with unit trace.
+Write $L(\C^{N})$ for the space of linear operators on $\C^{N}$ and $\mathcal{D}(\C^{N})$
+for the set of density operators.
+
+\begin{definition}[Superoperator]\label{def:lec02-super}
+A \emph{superoperator} is a linear map $\mathcal{Q}:L(\C^{N})\to L(\C^{M})$, i.e.
+a linear map that sends operators to operators. We write its action on an
+operator $A$ as $\mathcal{Q}[A]$. The \emph{identity channel}
+$\mathcal{I}:L(\C^{N})\to L(\C^{N})$ is $\mathcal{I}[A]=A$.
+\end{definition}
+
+To be a legal evolution of density operators, a superoperator must preserve the
+trace and positivity---but positivity alone is not enough, because the system may
+be entangled with an untouched ancilla.
+
+\begin{definition}[Positive, trace preserving, completely positive]\label{def:lec02-cp}
+A linear map $\mathcal{Q}:L(\C^{N})\to L(\C^{M})$ is
+\begin{enumerate}[label=(\roman*)]
+  \item \emph{trace preserving} (TP) if $\Tr(\mathcal{Q}[A])=\Tr(A)$ for all $A$;
+  \item \emph{positive} if $\mathcal{Q}[A]\succeq0$ whenever $A\succeq0$;
+  \item \emph{completely positive} (CP) if for every integer $K\ge1$ the extended
+        map $\mathcal{I}_K\otimes\mathcal{Q}$ on $L(\C^{K}\otimes\C^{N})$ is
+        positive, where $\mathcal{I}_K$ is the identity channel on $L(\C^{K})$.
+\end{enumerate}
+\end{definition}
+
+Complete positivity is strictly stronger than positivity, and it is exactly the
+condition that makes local action on one half of an entangled state produce a
+valid state. The canonical witness is the transpose.
+
+\begin{example}[A positive map that is not CP]\label{exa:lec02-transpose}
+Let $T:L(\C^{2})\to L(\C^{2})$ be the transpose in the computational basis,
+$T[A]=A^{\top}$. Since $A$ and $A^{\top}$ have the same spectrum, $T$ is positive.
+But apply $\mathcal{I}\otimes T$ (the partial transpose on the second qubit) to the
+Bell state $\proj{\Phi^{+}}$ with $\ket{\Phi^{+}}=\tfrac{1}{\sqrt2}(\ket{00}+\ket{11})$:
+in the basis $\ket{00},\ket{01},\ket{10},\ket{11}$,
+\[
+  (\mathcal{I}\otimes T)\bigl[\proj{\Phi^{+}}\bigr]
+   =\tfrac12\begin{pmatrix}1&0&0&0\\0&0&1&0\\0&1&0&0\\0&0&0&1\end{pmatrix},
+\]
+whose eigenvalues are $\{\tfrac12,\tfrac12,\tfrac12,-\tfrac12\}$. A negative
+eigenvalue means the output is not a density operator, so $T$ is \emph{not}
+completely positive. This is why complete positivity, not mere positivity, is the
+correct requirement.
+\end{example}
+
+\begin{definition}[Quantum channel]\label{def:lec02-channel}
+A \emph{quantum channel} is a linear map $\mathcal{Q}:L(\C^{N})\to L(\C^{M})$ that
+is completely positive and trace preserving (CPTP). Such a map sends every density
+operator to a density operator, even when acting on part of a larger entangled
+system.
+\end{definition}
+
+\subsection{The Kraus representation}
+
+The most useful concrete description of a channel is the operator-sum, or Kraus,
+form.
+
+\begin{theorem}[Kraus representation]\label{thm:lec02-kraus}
+A linear map $\mathcal{Q}:L(\C^{N})\to L(\C^{M})$ is a quantum channel if and only
+if there exist operators $\{K_j\}_{j=1}^{R}\subset\C^{M\times N}$ (with $R\le NM$)
+satisfying the \emph{completeness relation} $\sum_{j}K_j\dg K_j=\id_N$ such that
+\begin{equation}\label{eq:lec02-kraus}
+  \mathcal{Q}[\rho]\;=\;\sum_{j=1}^{R}K_j\,\rho\,K_j\dg .
+\end{equation}
+The $K_j$ are called \emph{Kraus operators}.
+\end{theorem}
+
+\begin{proof}[Proof of the ``if'' direction]
+Suppose $\mathcal{Q}$ has the form \eqref{eq:lec02-kraus} with
+$\sum_j K_j\dg K_j=\id_N$. For complete positivity, take any $K\ge1$ and any
+$X\succeq0$ on $\C^{K}\otimes\C^{N}$. Then
+\[
+  (\mathcal{I}_K\otimes\mathcal{Q})[X]
+   =\sum_j (\id_K\otimes K_j)\,X\,(\id_K\otimes K_j)\dg,
+\]
+and each summand has the form $AXA\dg\succeq0$ because $X\succeq0$; a sum of
+positive operators is positive, so $\mathcal{I}_K\otimes\mathcal{Q}$ is positive
+for every $K$. For trace preservation, the cyclic property of the trace gives
+\[
+  \Tr\bigl(\mathcal{Q}[\rho]\bigr)
+   =\sum_j\Tr\bigl(K_j\rho K_j\dg\bigr)
+   =\Tr\Bigl(\rho\sum_j K_j\dg K_j\Bigr)
+   =\Tr(\rho\,\id_N)=\Tr(\rho). \qedhere
+\]
+\end{proof}
+
+The converse---every channel admits a Kraus form---is the Choi--Kraus theorem; it
+follows from the Choi--Jamio\l kowski isomorphism, which associates to
+$\mathcal{Q}$ the positive \emph{Choi operator}
+$\sigma=(\mathcal{I}_N\otimes\mathcal{Q})[\ket{\gamma}\!\bra{\gamma}]$ built from the
+unnormalized maximally entangled vector $\ket{\gamma}=\sum_i\ket{i}\ket{i}$; the
+eigenvectors of $\sigma$, suitably reshaped, are the Kraus operators. We use the
+forward direction constantly and cite the converse. A useful corollary is Choi's
+criterion: $\mathcal{Q}$ is CP if and only if its Choi operator is positive
+semidefinite, so complete positivity need only be checked for an ancilla of the
+input dimension.
+
+\subsection{Examples of channels}
+
+\begin{example}[Unitary channel]\label{exa:lec02-unitary}
+For a unitary $U\in\C^{N\times N}$, the map $\mathcal{U}[\rho]=U\rho U\dg$ is a
+channel with the single Kraus operator $K_0=U$; the completeness relation is
+$U\dg U=\id_N$. This recovers the pure-state rule $\ket{\psi}\mapsto U\ket{\psi}$
+of \cref{sec:lec01-3}. The identity channel is the special case $U=\id$.
+\end{example}
+
+\begin{example}[Bit-flip and phase-flip (dephasing) channels]\label{exa:lec02-flip}
+The \emph{bit-flip channel} applies $X$ with probability $1-p$ and does nothing
+with probability $p$:
+\[
+  \mathcal{Q}_{\mathrm{bf}}[\rho]=p\,\rho+(1-p)\,X\rho X,\qquad 0\le p\le1,
+\]
+with Kraus operators $K_0=\sqrt{p}\,\id$ and $K_1=\sqrt{1-p}\,X$ (indeed
+$K_0\dg K_0+K_1\dg K_1=p\,\id+(1-p)\id=\id$). The \emph{phase-flip} or
+\emph{dephasing channel} replaces $X$ by $Z$,
+\[
+  \mathcal{Q}_{\mathrm{pf}}[\rho]=p\,\rho+(1-p)\,Z\rho Z,
+\]
+and suppresses off-diagonal coherences while leaving the diagonal populations
+untouched.
+\end{example}
+
+\begin{example}[Depolarizing channel]\label{exa:lec02-depol}
+The \emph{depolarizing channel} on $\C^{N}$ leaves $\rho$ intact with probability
+$p$ and replaces it by the maximally mixed state with probability $1-p$:
+\[
+  \mathcal{Q}_{\mathrm{dp}}[\rho]=p\,\rho+(1-p)\,\frac{\id}{N},\qquad 0\le p\le1.
+\]
+It is the standard isotropic noise model; a Kraus form for one qubit uses the
+Paulis $\{\id,X,Y,Z\}$ with appropriate weights.
+\end{example}
+
+\begin{example}[Amplitude-damping channel]\label{exa:lec02-ad}
+Energy dissipation, in which the excited state $\ket{1}$ decays to $\ket{0}$ with
+probability $\gamma$, is modeled by the Kraus operators
+\[
+  K_0=\begin{pmatrix}1&0\\0&\sqrt{1-\gamma}\end{pmatrix},\qquad
+  K_1=\begin{pmatrix}0&\sqrt{\gamma}\\0&0\end{pmatrix},\qquad 0\le\gamma\le1.
+\]
+One checks $K_0\dg K_0+K_1\dg K_1=\id$. Unlike dephasing, amplitude damping is not
+unital ($\mathcal{Q}[\id]\ne\id$): it drives every state toward $\ket{0}$.
+\end{example}
+
+\begin{example}[Measurement channel]\label{exa:lec02-meas}
+A projective measurement in an orthonormal basis $\{\ket{m}\}$, when the outcome is
+recorded but then forgotten, is the channel
+\[
+  \mathcal{Q}_{\mathrm{meas}}[\rho]=\sum_m \proj{m}\,\rho\,\proj{m}
+   =\sum_m \braket{m|\rho|m}\,\proj{m},
+\]
+with Kraus operators $K_m=\proj{m}$; completeness is the resolution of the
+identity $\sum_m\proj{m}=\id$ (\cref{thm:lec01-completeness}). Its output is
+diagonal in the measurement basis---a \emph{classical state} encoding the outcome
+distribution. This shows that classical stochastic processes are a special case of
+quantum channels.
+\end{example}
+
+\subsection{Stinespring dilation}
+
+The examples above are irreversible, yet each can be seen as a unitary on a larger
+system followed by discarding an ancilla. This is the content of the Stinespring
+dilation theorem, the structural counterpart of the Kraus form.
+
+\begin{theorem}[Stinespring dilation]\label{thm:lec02-stinespring}
+For any quantum channel $\mathcal{Q}:L(\C^{N})\to L(\C^{M})$ there exist an
+ancilla space $\C^{R}$ (with $R\le NM$) and an isometry $V:\C^{N}\to\C^{M}\otimes\C^{R}$
+(so $V\dg V=\id_N$) with
+\begin{equation}\label{eq:lec02-stine}
+  \mathcal{Q}[\rho]=\Tr_R\!\bigl(V\rho V\dg\bigr).
+\end{equation}
+Equivalently, there is a unitary $U$ on a joint system and a fixed ancilla state
+$\ket{0}$ with $\mathcal{Q}[\rho]=\Tr_R\!\bigl(U(\rho\otimes\proj{0})U\dg\bigr)$.
+\end{theorem}
+
+\begin{proof}
+Take a Kraus form $\mathcal{Q}[\rho]=\sum_{j=1}^{R}K_j\rho K_j\dg$
+(\cref{thm:lec02-kraus}) and fix an orthonormal basis $\{\ket{j}\}$ of the ancilla
+$\C^{R}$. Define $V=\sum_j K_j\otimes\ket{j}$, i.e.
+$V\ket{\psi}=\sum_j (K_j\ket{\psi})\otimes\ket{j}$. Then
+\[
+  \braket{\psi|V\dg V|\psi}
+   =\sum_j\norm{K_j\ket{\psi}}^{2}
+   =\sum_j\braket{\psi|K_j\dg K_j|\psi}
+   =\braket{\psi|\psi},
+\]
+using completeness, so $V\dg V=\id_N$ and $V$ is an isometry. Moreover
+\[
+  V\rho V\dg=\Bigl(\sum_i K_i\otimes\ket{i}\Bigr)\rho\Bigl(\sum_j K_j\dg\otimes\bra{j}\Bigr)
+   =\sum_{i,j}(K_i\rho K_j\dg)\otimes\ket{i}\!\bra{j}.
+\]
+Tracing out the ancilla, $\Tr(\ket{i}\!\bra{j})=\braket{j|i}=\delta_{ij}$, leaves
+$\sum_j K_j\rho K_j\dg=\mathcal{Q}[\rho]$, which is \eqref{eq:lec02-stine}. To
+obtain the unitary form, extend the isometry $V$ (defined on the subspace
+$\ket{\psi}\otimes\ket{0}$) to a full unitary $U$ on the joint space; then
+$U(\rho\otimes\proj{0})U\dg=V\rho V\dg$ and tracing out the ancilla again gives
+$\mathcal{Q}[\rho]$.
+\end{proof}
+
+Stinespring's theorem says that \emph{every} quantum channel, however noisy, is a
+unitary interaction with an environment followed by discarding the environment.
+All quantum evolution is unitary once the system is taken large enough.
 
 \section{Distances between states and channels}
 \label{sec:lec02-2}
-\todo{Draft this section.}
+
+To say that an algorithm ``approximately'' prepares a state or implements a
+unitary, we need metrics. We first fix the operator norms and then define the two
+central state distances---trace distance and fidelity---and the channel distance,
+the diamond norm.
+
+\begin{definition}[Schatten norms]\label{def:lec02-schatten}
+For $A\in\C^{M\times N}$ with singular values $\sigma_i(A)$, the \emph{trace norm}
+is $\norm{A}_1=\sum_i\sigma_i(A)=\Tr\abs{A}$ with $\abs{A}=\sqrt{A\dg A}$, the
+\emph{Hilbert--Schmidt norm} is $\norm{A}_2=(\sum_i\sigma_i(A)^{2})^{1/2}$, and the
+\emph{operator norm} is $\norm{A}_\infty=\max_i\sigma_i(A)$. If $A\succeq0$ then
+$\norm{A}_1=\Tr(A)$.
+\end{definition}
+
+These obey the triangle inequality and H\"older's inequality
+$\norm{AB}_1\le\norm{A}_\infty\norm{B}_1$; we use the latter freely.
+
+\subsection{Trace distance}
+
+\begin{definition}[Trace distance]\label{def:lec02-tracedist}
+The \emph{trace distance} between $\rho,\sigma\in\mathcal{D}(\C^{N})$ is
+\begin{equation}\label{eq:lec02-tracedist}
+  D(\rho,\sigma)=\tfrac12\norm{\rho-\sigma}_1 .
+\end{equation}
+The factor $\tfrac12$ puts $D\in[0,1]$, since
+$\norm{\rho-\sigma}_1\le\norm{\rho}_1+\norm{\sigma}_1=2$.
+\end{definition}
+
+Trace distance is the quantum generalization of the classical total variation
+distance $\tfrac12\sum_i\abs{p_i-q_i}$: for diagonal (classical) states the two
+coincide. Its importance is operational.
+
+\begin{theorem}[Operational meaning of trace distance]\label{thm:lec02-op}
+For any $\rho,\sigma\in\mathcal{D}(\C^{N})$,
+\begin{equation}\label{eq:lec02-op}
+  D(\rho,\sigma)=\max_{0\preceq M\preceq\id}\Tr\!\bigl[M(\rho-\sigma)\bigr],
+\end{equation}
+the maximum ranging over all measurement operators $0\preceq M\preceq\id$ and
+achieved by the projector onto the positive part of $\rho-\sigma$. Hence
+$D(\rho,\sigma)$ is the largest gap between the probabilities of any single
+measurement outcome on $\rho$ versus $\sigma$: it is the best chance of correctly
+distinguishing the two states with one measurement.
+\end{theorem}
+
+\begin{proof}
+Write $\Delta=\rho-\sigma$; it is Hermitian with $\Tr\Delta=0$. Decompose
+$\Delta=\Delta_+-\Delta_-$ into its positive and negative parts (orthogonal
+support, both $\succeq0$). Since $\Tr\Delta=0$ we have
+$\Tr\Delta_+=\Tr\Delta_-$, so $\norm{\Delta}_1=\Tr\Delta_++\Tr\Delta_-=2\Tr\Delta_+$
+and $D(\rho,\sigma)=\Tr\Delta_+$. For any $0\preceq M\preceq\id$,
+\[
+  \Tr[M\Delta]=\Tr[M\Delta_+]-\Tr[M\Delta_-]\le\Tr[M\Delta_+]\le\Tr[\Delta_+],
+\]
+using $\Tr[M\Delta_-]\ge0$ (product of positive operators) and $M\preceq\id$.
+Equality holds for $M=P$, the projector onto the support of $\Delta_+$: then
+$\Tr[P\Delta]=\Tr\Delta_+=D(\rho,\sigma)$.
+\end{proof}
+
+A fundamental consequence: channels can only make states \emph{less}
+distinguishable.
+
+\begin{proposition}[Contractivity under channels]\label{prop:lec02-contract}
+For any quantum channel $\mathcal{Q}$ and any $\rho,\sigma$,
+$D(\mathcal{Q}[\rho],\mathcal{Q}[\sigma])\le D(\rho,\sigma)$.
+\end{proposition}
+
+\begin{proof}
+Let $P$ be the projector attaining $D(\mathcal{Q}[\rho],\mathcal{Q}[\sigma])$ in
+\eqref{eq:lec02-op}, and decompose $\rho-\sigma=\Delta_+-\Delta_-$ as above with
+$\Tr\Delta_+=D(\rho,\sigma)$. Since $\mathcal{Q}$ is positive,
+$\mathcal{Q}[\Delta_-]\succeq0$, so $\Tr[P\,\mathcal{Q}[\Delta_-]]\ge0$ and
+\[
+  D(\mathcal{Q}[\rho],\mathcal{Q}[\sigma])
+   =\Tr[P\,\mathcal{Q}[\Delta_+]]-\Tr[P\,\mathcal{Q}[\Delta_-]]
+   \le\Tr[P\,\mathcal{Q}[\Delta_+]]\le\Tr[\mathcal{Q}[\Delta_+]]=\Tr[\Delta_+],
+\]
+where the last equality is trace preservation. Thus
+$D(\mathcal{Q}[\rho],\mathcal{Q}[\sigma])\le\Tr\Delta_+=D(\rho,\sigma)$.
+\end{proof}
+
+\subsection{Fidelity}
+
+\begin{definition}[Fidelity]\label{def:lec02-fidelity}
+The \emph{fidelity} between $\rho,\sigma\in\mathcal{D}(\C^{N})$ is
+\begin{equation}\label{eq:lec02-fidelity}
+  F(\rho,\sigma)=\Tr\sqrt{\rho^{1/2}\sigma\rho^{1/2}}
+              =\norm{\rho^{1/2}\sigma^{1/2}}_1 .
+\end{equation}
+It is symmetric, satisfies $0\le F\le1$, and $F(\rho,\sigma)=1$ iff $\rho=\sigma$.
+\end{definition}
+
+Fidelity measures overlap rather than distinguishability. For pure states it
+reduces to the modulus of the inner product.
+
+\begin{example}[Fidelity of pure states]\label{exa:lec02-purefid}
+If $\rho=\proj{\psi}$ and $\sigma=\proj{\varphi}$ then
+$\rho^{1/2}\sigma\rho^{1/2}=\abs{\braket{\psi|\varphi}}^{2}\proj{\psi}$ is
+rank one, so $F(\rho,\sigma)=\abs{\braket{\psi|\varphi}}$. If only $\rho=\proj{\psi}$
+is pure, $F(\proj{\psi},\sigma)=\sqrt{\braket{\psi|\sigma|\psi}}$.
+\end{example}
+
+Fidelity is not itself a metric (it fails the triangle inequality and equals $1$,
+not $0$, for identical states), but $\arccos F$---the Bures angle---is a metric,
+and fidelity is monotone \emph{up} under channels:
+$F(\mathcal{Q}[\rho],\mathcal{Q}[\sigma])\ge F(\rho,\sigma)$. Trace distance and
+fidelity are two views of the same closeness, quantitatively tied by the
+Fuchs--van de Graaf inequalities.
+
+\begin{theorem}[Fuchs--van de Graaf]\label{thm:lec02-fvdg}
+For any $\rho,\sigma\in\mathcal{D}(\C^{N})$,
+\begin{equation}\label{eq:lec02-fvdg}
+  1-F(\rho,\sigma)\;\le\;D(\rho,\sigma)\;\le\;\sqrt{1-F(\rho,\sigma)^{2}} .
+\end{equation}
+\end{theorem}
+
+\begin{proof}[Proof for pure states]
+The general bounds follow from Uhlmann's theorem; we prove the sharp pure-state
+case, which also shows the upper bound is attained. Let $\rho=\proj{\psi}$,
+$\sigma=\proj{\varphi}$ and set $F=\abs{\braket{\psi|\varphi}}=\cos\theta$ with
+$\theta\in[0,\tfrac\pi2]$. Choose a basis with $\ket{\psi}=\ket{0}$ and
+$\ket{\varphi}=\cos\theta\,\ket{0}+\sin\theta\,\ket{1}$. In the
+$\{\ket{0},\ket{1}\}$ block,
+\[
+  \rho-\sigma=\begin{pmatrix}1-\cos^{2}\theta&-\cos\theta\sin\theta\\
+  -\cos\theta\sin\theta&-\sin^{2}\theta\end{pmatrix}
+  =\begin{pmatrix}\sin^{2}\theta&-\cos\theta\sin\theta\\
+  -\cos\theta\sin\theta&-\sin^{2}\theta\end{pmatrix},
+\]
+whose eigenvalues are $\pm\sin\theta$. Hence
+$\norm{\rho-\sigma}_1=2\sin\theta$ and $D(\rho,\sigma)=\sin\theta=\sqrt{1-F^{2}}$,
+attaining the upper bound. Since $\sin\theta\ge1-\cos\theta=1-F$ for
+$\theta\in[0,\tfrac\pi2]$, the lower bound holds too.
+\end{proof}
+
+\begin{remark}[Why both bounds matter]\label{rem:lec02-both}
+When states are close, write $F=\cos\theta$ with $\theta$ small; then
+\eqref{eq:lec02-fvdg} reads $\tfrac12\theta^{2}\lesssim D\lesssim\theta$, a
+quadratic gap. Trace distance directly bounds measurement statistics
+($\abs{\Tr[M\rho]-\Tr[M\sigma]}\le D(\rho,\sigma)$ for every $M$), while fidelity
+is often the easier quantity to estimate experimentally (e.g.\ via the swap test).
+An infidelity $1-F=\varepsilon$ guarantees only $D\le\sqrt{2\varepsilon}$ in
+general, which is the conversion one uses when propagating error bounds.
+\end{remark}
+
+\subsection{The diamond norm}
+
+For channels, the naive induced trace norm
+$\norm{\mathcal{Q}}_{1\to1}=\sup_{\norm{X}_1\le1}\norm{\mathcal{Q}[X]}_1$ is not
+stable under tensoring with an untouched ancilla, exactly as positivity was not
+stable in \cref{exa:lec02-transpose}. The correct channel distance stabilizes it.
+
+\begin{definition}[Diamond norm]\label{def:lec02-diamond}
+The \emph{diamond norm} of a linear map $\mathcal{Q}:L(\C^{N})\to L(\C^{M})$ is
+\begin{equation}\label{eq:lec02-diamond}
+  \norm{\mathcal{Q}}_\diamond
+   =\sup_{k\ge1}\norm{\mathcal{Q}\otimes\mathcal{I}_k}_{1\to1}
+   =\sup_{k\ge1}\;\sup_{\norm{X}_1\le1}\norm{(\mathcal{Q}\otimes\mathcal{I}_k)[X]}_1 ,
+\end{equation}
+where $\mathcal{I}_k$ is the identity on $L(\C^{k})$. The supremum is achieved
+already at $k=N$. The \emph{diamond distance} between channels
+$\mathcal{Q},\mathcal{Q}'$ is $\norm{\mathcal{Q}-\mathcal{Q}'}_\diamond$.
+\end{definition}
+
+For a quantum channel $\norm{\mathcal{Q}}_\diamond=1$; the interesting quantity is
+the distance between two channels, which upper-bounds the largest difference in
+\emph{any} measurement statistic even when the channels act on part of an
+entangled input. Two facts make it usable in practice: it is submultiplicative and
+subadditive, so errors of composed channels add linearly. The following worked
+example is the workhorse bound for gate error.
+
+\begin{example}[Diamond distance of unitary channels]\label{exa:lec02-unidiamond}
+Let $\mathcal{U}[\rho]=U\rho U\dg$ and $\mathcal{V}[\rho]=V\rho V\dg$. Using the
+identity $A\rho A\dg-B\rho B\dg=A\rho(A\dg-B\dg)+(A-B)\rho B\dg$ and H\"older's
+inequality $\norm{Y_1 X Y_2}_1\le\norm{Y_1}_\infty\norm{X}_1\norm{Y_2}_\infty$
+(with $\norm{U}_\infty=\norm{V}_\infty=1$) gives, after stabilizing,
+\begin{equation}\label{eq:lec02-unidiamond}
+  \norm{\mathcal{U}-\mathcal{V}}_\diamond\;\le\;2\norm{U-V}_\infty .
+\end{equation}
+Thus if each of the $m$ gates of a circuit is implemented to operator-norm error
+$\norm{U_i-V_i}_\infty\le\eta$, subadditivity of the diamond norm yields a total
+error $\le 2m\eta$: circuit error grows only \emph{linearly} in depth. This is the
+bound that justifies gate-synthesis accuracy targets.
+\end{example}
 
 \section{Elementary concentration inequalities}
 \label{sec:lec02-3}
-\todo{Draft this section.}
+
+We now turn to the statistics of reading out a quantum computer. A measurement
+produces a sample; estimating a quantity means averaging many samples. Three
+classical inequalities control how fast an empirical average concentrates around
+its mean.
+
+\begin{theorem}[Markov's inequality]\label{thm:lec02-markov}
+If $X\ge0$ is a random variable and $t>0$, then $\Prob(X\ge t)\le\E[X]/t$.
+\end{theorem}
+
+\begin{proof}
+Since $X\ge0$, we have $X\ge t\,\mathbf{1}_{X\ge t}$ pointwise, where
+$\mathbf{1}_{X\ge t}$ is the indicator of $\{X\ge t\}$. Taking expectations,
+$\E[X]\ge t\,\E[\mathbf{1}_{X\ge t}]=t\,\Prob(X\ge t)$; divide by $t$.
+\end{proof}
+
+\begin{theorem}[Chebyshev's inequality]\label{thm:lec02-cheb}
+If $X$ has finite mean $\E[X]$ and variance $\Var(X)$, then for $t>0$,
+$\Prob(\abs{X-\E[X]}\ge t)\le\Var(X)/t^{2}$.
+\end{theorem}
+
+\begin{proof}
+The event $\abs{X-\E[X]}\ge t$ equals $(X-\E[X])^{2}\ge t^{2}$. Apply Markov's
+inequality (\cref{thm:lec02-markov}) to the nonnegative variable $(X-\E[X])^{2}$:
+$\Prob((X-\E[X])^{2}\ge t^{2})\le\E[(X-\E[X])^{2}]/t^{2}=\Var(X)/t^{2}$.
+\end{proof}
+
+Chebyshev converts a variance into a probabilistic error bar, but its tail decays
+only polynomially. Hoeffding's inequality gives exponential tails for bounded
+variables.
+
+\begin{theorem}[Hoeffding's inequality]\label{thm:lec02-hoeffding}
+Let $X_1,\dots,X_n$ be independent with $a_i\le X_i\le b_i$, and let
+$\bar X=\tfrac1n\sum_i X_i$. Then for any $t>0$,
+\begin{equation}\label{eq:lec02-hoeffding}
+  \Prob\!\bigl(\bar X-\E[\bar X]\ge t\bigr)\le
+  \exp\!\Bigl(-\frac{2n^{2}t^{2}}{\sum_{i}(b_i-a_i)^{2}}\Bigr),
+\end{equation}
+and the same bound holds for $\Prob(\bar X-\E[\bar X]\le-t)$.
+\end{theorem}
+
+\begin{proof}
+Set $Y_i=X_i-\E[X_i]$, so $Y_i\in[a_i-\E X_i,\,b_i-\E X_i]$ is centered, and let
+$S=\sum_i Y_i$, so $\bar X-\E[\bar X]=S/n$. For $\lambda>0$, the exponential
+Markov inequality gives
+$\Prob(S\ge nt)=\Prob(\ee^{\lambda S}\ge\ee^{\lambda nt})\le\ee^{-\lambda nt}\E[\ee^{\lambda S}]$,
+and independence factorizes $\E[\ee^{\lambda S}]=\prod_i\E[\ee^{\lambda Y_i}]$.
+Hoeffding's lemma bounds each factor: for a zero-mean $Y\in[a,b]$,
+$\E[\ee^{\lambda Y}]\le\exp(\lambda^{2}(b-a)^{2}/8)$. Hence
+\[
+  \Prob(S\ge nt)\le\exp\!\Bigl(-\lambda nt+\tfrac{\lambda^{2}}{8}\sum_i(b_i-a_i)^{2}\Bigr).
+\]
+Minimizing over $\lambda$ (optimal $\lambda=4nt/\sum_i(b_i-a_i)^{2}$) yields
+\eqref{eq:lec02-hoeffding}; the lower tail is symmetric.
+\end{proof}
+
+\begin{example}[Bernoulli / Chernoff form]\label{exa:lec02-bernoulli}
+If each $X_i\in\{0,1\}$ is Bernoulli with mean $p$ (a single-shot measurement
+outcome), then $b_i-a_i=1$ and \eqref{eq:lec02-hoeffding} gives, for the sample
+mean $\bar X_n$,
+\begin{equation}\label{eq:lec02-chernoff}
+  \Prob\!\bigl(\abs{\bar X_n-p}\ge\varepsilon\bigr)\le 2\exp(-2n\varepsilon^{2}).
+\end{equation}
+This is the bound we use to size shot counts below. A variance-aware refinement,
+Bernstein's inequality, replaces the exponent by
+$-n\varepsilon^{2}/(2p(1-p)+2\varepsilon/3)$ and is sharper when $p$ is near $0$ or $1$.
+\end{example}
 
 \section{Statistical amplification and shot budgets}
 \label{sec:lec02-4}
-\todo{Draft this section.}
+
+Two distinct tasks recur: (i) \emph{boosting} the success probability of a
+correct/incorrect decision, and (ii) \emph{estimating} a continuous quantity to
+additive accuracy $\varepsilon$. Both reduce to the concentration bounds above.
+
+\subsection{Majority vote and median amplification}
+
+Suppose one run of an algorithm returns the correct bit with probability
+$p>\tfrac12$. Run it $n$ times (say $n$ even, ties counted as failures) and take
+the majority; the answer is wrong only if the count $S=\sum_i X_i$ of correct runs
+satisfies $S\le n/2$. Since $\E[S]=np$, the Hoeffding bound
+\eqref{eq:lec02-chernoff} gives
+\begin{equation}\label{eq:lec02-majority}
+  \Prob(S\le n/2)=\Prob\!\bigl(S-np\le-(p-\tfrac12)n\bigr)
+   \le\exp\!\bigl(-2(p-\tfrac12)^{2}n\bigr).
+\end{equation}
+To push the failure probability below $\delta$ it therefore suffices to take
+\begin{equation}\label{eq:lec02-majoritybudget}
+  n\;\ge\;\frac{\log(1/\delta)}{2(p-\tfrac12)^{2}}
+     \;=\;\bigo\!\Bigl(\frac{\log(1/\delta)}{(p-\tfrac12)^{2}}\Bigr):
+\end{equation}
+the number of repetitions grows only \emph{logarithmically} in the inverse failure
+probability. The same idea, applied to a real-valued estimator via the
+\emph{median} of $n$ independent runs, exponentially suppresses the chance that the
+estimate leaves a target interval: if each run lands outside an interval $I$ with
+probability $\epsilon<\tfrac12$, the median lands outside $I$ with probability at
+most $\tfrac12\bigl(2\sqrt{\epsilon(1-\epsilon)}\bigr)^{n}$, which decays
+exponentially in $n$. This ``median-of-means'' trick is the standard way to convert
+a constant-confidence estimator into a high-confidence one.
+
+\subsection{Shot count for additive error}
+
+Now suppose we want to estimate a probability $p$ (for instance
+$p=\bra{\psi}M\ket{\psi}$ obtained by measuring the observable $M$) to additive
+accuracy $\varepsilon$ with confidence $1-\delta$. Setting the right-hand side of
+\eqref{eq:lec02-chernoff} equal to $\delta$ and solving for $n$ gives the shot
+budget
+\begin{equation}\label{eq:lec02-shots}
+  n\;\ge\;\frac{\log(2/\delta)}{2\varepsilon^{2}}
+     \;=\;\bigo\!\Bigl(\frac{\log(1/\delta)}{\varepsilon^{2}}\Bigr).
+\end{equation}
+The characteristic $n=\Theta(\varepsilon^{-2})$ scaling is the \emph{standard
+quantum limit} (or shot-noise limit): halving the error quadruples the cost. It is
+ubiquitous---every expectation-value estimate on near-term hardware pays it.
+
+\begin{example}[Chebyshev refinement near the extremes]\label{exa:lec02-cheb-shots}
+The Hoeffding budget \eqref{eq:lec02-shots} is independent of $p$, which is
+pessimistic when $p\approx0$ or $1$. Since a Bernoulli variable has variance
+$p(1-p)$, the sample mean has variance $p(1-p)/n$, and Chebyshev's inequality
+(\cref{thm:lec02-cheb}) gives the alternative budget
+\[
+  n\;\ge\;\frac{p(1-p)}{\varepsilon^{2}\delta}.
+\]
+This vanishes as $p\to0$ or $p\to1$---matching the intuition that a near-certain
+outcome is cheap to estimate---at the cost of a worse $1/\delta$ (rather than
+$\log(1/\delta)$) dependence on the confidence. Bernstein's inequality interpolates,
+combining the variance factor $p(1-p)$ with the logarithmic confidence dependence.
+\end{example}
+
+The lesson for shot budgeting: use Hoeffding \eqref{eq:lec02-shots} for a
+worst-case, confidence-robust estimate; use the variance (Chebyshev/Bernstein) when
+$p$ is known to be near an extreme; and use majority/median amplification
+\eqref{eq:lec02-majoritybudget} whenever the task is a decision rather than a
+continuous estimate.
 
 \section{Parameter estimation and the Cram\'er--Rao bound}
 \label{sec:lec02-5}
-\todo{Draft this section.}
+
+The shot bounds above are upper bounds on cost. The Cram\'er--Rao bound is a
+matching \emph{lower} bound: no unbiased estimator can do better than the inverse
+Fisher information. This is what tells us when an estimator is optimal, and it sets
+up the quantum metrology of \cref{ch:lec04}.
+
+\begin{definition}[Score and Fisher information]\label{def:lec02-fisher}
+Let $\{P(\nu\mid\theta):\nu\in\Sigma\}$ be a statistical model, smooth in the scalar
+parameter $\theta$ with $P(\nu\mid\theta)>0$. The \emph{score} is
+$S(\theta\mid\nu)=\partial_\theta\log P(\nu\mid\theta)$, and the
+\emph{Fisher information} of one sample is its variance,
+\begin{equation}\label{eq:lec02-FI}
+  I_F(\theta)=\E_\nu\!\bigl[S(\theta\mid\nu)^{2}\bigr]
+   =\sum_{\nu\in\Sigma}P(\nu\mid\theta)\Bigl(\frac{\partial_\theta P(\nu\mid\theta)}{P(\nu\mid\theta)}\Bigr)^{2}.
+\end{equation}
+For $N$ independent samples the Fisher information is additive,
+$I_F^{(N)}(\theta)=N\,I_F(\theta)$.
+\end{definition}
+
+The score has mean zero: $\E_\nu[S]=\sum_\nu\partial_\theta P(\nu\mid\theta)
+=\partial_\theta\sum_\nu P(\nu\mid\theta)=\partial_\theta 1=0$. This is the key
+identity behind the bound.
+
+\begin{theorem}[Cram\'er--Rao bound]\label{thm:lec02-crb}
+Any unbiased estimator $\hat\theta$ of $\theta$ built from $N$ independent samples
+satisfies
+\begin{equation}\label{eq:lec02-crb}
+  \Var(\hat\theta)\;\ge\;\frac{1}{I_F^{(N)}(\theta)}\;=\;\frac{1}{N\,I_F(\theta)}.
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+Let $S=S(\theta\mid D)$ be the score of the joint data $D$, with $\E[S]=0$ and
+$\Var(S)=I_F^{(N)}(\theta)$. Unbiasedness means $\E_D[\hat\theta]=\theta$, so
+\[
+  \Cov(\hat\theta,S)=\E_D[\hat\theta\,S]
+   =\sum_D\hat\theta(D)\,\partial_\theta P(D\mid\theta)
+   =\partial_\theta\!\sum_D\hat\theta(D)P(D\mid\theta)
+   =\partial_\theta\,\theta=1,
+\]
+using $S=\partial_\theta P/P$ and $\E[\hat\theta S]=\Cov(\hat\theta,S)$ (as
+$\E[S]=0$). The Cauchy--Schwarz inequality for covariance,
+$\Cov(\hat\theta,S)^{2}\le\Var(\hat\theta)\Var(S)$, then gives
+$1\le\Var(\hat\theta)\,I_F^{(N)}(\theta)$, which rearranges to
+\eqref{eq:lec02-crb}.
+\end{proof}
+
+An estimator meeting \eqref{eq:lec02-crb} with equality is called \emph{efficient}.
+
+\begin{example}[Fisher information of a biased coin / single-qubit measurement]\label{exa:lec02-coin}
+Estimating the success probability $p$ of a Bernoulli outcome (a qubit measured in
+the computational basis, $P(1\mid p)=p$, $P(0\mid p)=1-p$) has scores
+$\partial_p\log P(1\mid p)=1/p$ and $\partial_p\log P(0\mid p)=-1/(1-p)$, so
+\[
+  I_F(p)=p\cdot\frac{1}{p^{2}}+(1-p)\cdot\frac{1}{(1-p)^{2}}
+        =\frac1p+\frac1{1-p}=\frac{1}{p(1-p)}.
+\]
+The Cram\'er--Rao bound then reads $\Var(\hat p)\ge p(1-p)/N$, and the sample mean
+(the observed frequency of $1$s) is unbiased with exactly this variance---so it is
+efficient. This recovers, and shows the optimality of, the Chebyshev shot budget of
+\cref{exa:lec02-cheb-shots}.
+\end{example}
+
+\subsection{The quantum Cram\'er--Rao bound and metrological scaling}
+
+When the data come from measuring a parameterized state $\rho(\theta)$, the
+\emph{measurement itself} is a design choice. Optimizing the classical Fisher
+information over all POVMs $\{E_\nu\}$ defines the \emph{quantum Fisher information}
+$F_Q(\theta)=\sup_{\{E_\nu\}}I_F(\theta;\{E_\nu\})$, and the quantum Cram\'er--Rao
+bound states that for $N$ copies of $\rho(\theta)$,
+\begin{equation}\label{eq:lec02-qcrb}
+  \Var(\hat\theta)\;\ge\;\frac{1}{N\,F_Q(\theta)} .
+\end{equation}
+For a pure family $\rho(\theta)=\proj{\psi(\theta)}$ one has the closed form
+$F_Q(\theta)=4\bigl(\braket{\partial_\theta\psi|\partial_\theta\psi}
+-\abs{\braket{\psi|\partial_\theta\psi}}^{2}\bigr)$.
+
+\begin{example}[Single-qubit phase, and the two scaling regimes]\label{exa:lec02-phase}
+For $\ket{\psi(\theta)}=\tfrac{1}{\sqrt2}(\ket{0}+\ee^{\ii\theta}\ket{1})$ we have
+$\ket{\partial_\theta\psi}=\tfrac{\ii}{\sqrt2}\ee^{\ii\theta}\ket{1}$, giving
+$\braket{\partial_\theta\psi|\partial_\theta\psi}=\tfrac12$ and
+$\braket{\psi|\partial_\theta\psi}=\tfrac{\ii}{2}$, hence
+$F_Q(\theta)=4(\tfrac12-\tfrac14)=1$. So \eqref{eq:lec02-qcrb} gives
+$\Var(\hat\theta)\ge1/N$, and an $X$-basis measurement (whose outcome probabilities
+are $\tfrac12(1\pm\cos\theta)$) achieves classical Fisher information $1$, saturating
+the bound. Using $N$ \emph{independent} probes each acquiring phase $\theta$ yields
+$\Var(\hat\theta)=\bigo(1/N)$---standard-quantum-limit scaling, the metrological
+face of the $\varepsilon^{-2}$ shot count. By instead letting a single probe
+accumulate phase for a time proportional to $N$ (equivalently, using an
+$N$-fold-entangled probe), the effective generator scales up and one reaches
+$\Var(\hat\theta)=\bigo(1/N^{2})$, the \emph{Heisenberg limit}. Quantum phase
+estimation, developed in \cref{ch:lec04}, is precisely the algorithm that realizes
+this quadratic improvement.
+\end{example}
 
 \exercisesection
-\begin{exercise}
-\todo{Add exercise.}
+\begin{exercise}\label{ex:lec02-1}
+Show that the bit-flip channel $\mathcal{Q}_{\mathrm{bf}}[\rho]=p\,\rho+(1-p)X\rho X$
+(with $0\le p\le1$) is CPTP by exhibiting Kraus operators and verifying the
+completeness relation $\sum_j K_j\dg K_j=\id$. Then compute
+$\mathcal{Q}_{\mathrm{bf}}[\proj{0}]$ and interpret the result.
 \end{exercise}
-\begin{exercise}
-\todo{Add exercise.}
+
+\begin{exercise}\label{ex:lec02-2}
+Consider the amplitude-damping channel of \cref{exa:lec02-ad} with Kraus operators
+$K_0=\diag(1,\sqrt{1-\gamma})$ and
+$K_1=\sqrt{\gamma}\,\ket{0}\!\bra{1}$. Verify that it is trace preserving, and show
+that it is \emph{not} unital by computing $\mathcal{Q}[\id]$.
 \end{exercise}
-\begin{exercise}
-\todo{Add exercise.}
+
+\begin{exercise}\label{ex:lec02-3}
+Compute the trace distance $D(\rho,\sigma)$ between the single-qubit states
+$\rho=\proj{0}$ and $\sigma=\proj{+}$ with $\ket{+}=\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})$.
+Then compute the fidelity $F(\rho,\sigma)$ and verify that the pair satisfies the
+Fuchs--van de Graaf inequalities \eqref{eq:lec02-fvdg}.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec02-4}
+You wish to estimate a measurement probability $p$ to additive accuracy
+$\varepsilon=10^{-2}$ with confidence $1-\delta=0.99$. Using the Hoeffding bound
+\eqref{eq:lec02-shots}, give a sufficient number of shots $n$. Then, assuming you
+know $p\le0.05$, use the Chebyshev budget of \cref{exa:lec02-cheb-shots} to give an
+alternative $n$ and compare.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec02-5}
+A decision algorithm returns the correct bit with probability $p=0.6$ on each run.
+Using \eqref{eq:lec02-majoritybudget}, how many independent runs $n$ suffice so that
+a majority vote is correct with probability at least $1-\delta$ for $\delta=10^{-3}$?
+Explain why the dependence on $\delta$ is logarithmic rather than polynomial.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec02-6}
+Consider a Hadamard-test-style estimator in which a qubit is measured in the
+$X$-basis and yields outcome $+$ with probability $P(+\mid\theta)=\tfrac12(1+\cos\theta)$
+and $-$ with probability $\tfrac12(1-\cos\theta)$. Compute the classical Fisher
+information $I_F(\theta)$ for the parameter $\theta$, and state the Cram\'er--Rao
+lower bound on $\Var(\hat\theta)$ for $N$ independent measurements. For which $\theta$
+is the information largest, and for which is it zero?
 \end{exercise}
 
 \readingsection
 \begin{itemize}[leftmargin=1.4em]
-  \item Lin Lin, \emph{live notes}, Ch.~3 (probability, channels, distances).
-  \item Lin Lin, \emph{live notes}, Ch.~8 (statistical estimates).
+  \item Lin Lin, \emph{live notes}, Ch.~3 (probability, quantum channels and CPTP
+        maps, Kraus and Stinespring representations, trace distance, fidelity,
+        diamond norm) --- \texttt{live\_notes\_0429.pdf}.
+  \item Lin Lin, \emph{live notes}, Ch.~8 (concentration inequalities, statistical
+        amplification, parameter estimation, classical and quantum Cram\'er--Rao
+        bounds) --- \texttt{live\_notes\_0429.pdf}.
+  \item M.~A.~Nielsen and I.~L.~Chuang, \emph{Quantum Computation and Quantum
+        Information}, Ch.~8--9 (quantum operations, trace distance and fidelity).
+  \item J.~Watrous, \emph{The Theory of Quantum Information}, Ch.~2--3 (channels,
+        Choi representation, diamond norm), for a rigorous treatment.
 \end{itemize}

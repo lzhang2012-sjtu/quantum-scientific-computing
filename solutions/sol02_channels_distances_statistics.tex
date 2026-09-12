@@ -1,0 +1,142 @@
+\chapter{Quantum Channels, Distances, and Statistical Estimates}
+% Solutions to the exercises of \cref{ch:lec02}.
+
+\begin{solution}[Exercise~\ref{ex:lec02-1}]
+Take the Kraus operators $K_0=\sqrt{p}\,\id$ and $K_1=\sqrt{1-p}\,X$. Then
+\[
+  K_0\dg K_0+K_1\dg K_1=p\,\id\dg\id+(1-p)X\dg X=p\,\id+(1-p)\id=\id,
+\]
+since $X\dg X=X^{2}=\id$. By \cref{thm:lec02-kraus} any map with Kraus operators
+satisfying the completeness relation is CPTP, and
+$\mathcal{Q}_{\mathrm{bf}}[\rho]=K_0\rho K_0\dg+K_1\rho K_1\dg=p\,\rho+(1-p)X\rho X$,
+so the bit-flip channel is CPTP. For the action on $\proj{0}$, use
+$X\proj{0}X=\proj{1}$:
+\[
+  \mathcal{Q}_{\mathrm{bf}}[\proj{0}]=p\,\proj{0}+(1-p)\proj{1}
+   =\begin{pmatrix}p&0\\0&1-p\end{pmatrix}.
+\]
+The pure input $\proj{0}$ becomes a classical mixture: with probability $1-p$ the
+bit flips to $\ket{1}$. The output is diagonal, so all coherence is destroyed and
+the state is $\ket{0}$ with probability $p$ and $\ket{1}$ with probability $1-p$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec02-2}]
+Trace preservation follows from the completeness relation. Compute
+\[
+  K_0\dg K_0=\begin{pmatrix}1&0\\0&\sqrt{1-\gamma}\end{pmatrix}
+             \begin{pmatrix}1&0\\0&\sqrt{1-\gamma}\end{pmatrix}
+            =\begin{pmatrix}1&0\\0&1-\gamma\end{pmatrix},
+\]
+and with $K_1=\sqrt{\gamma}\,\ket{0}\!\bra{1}=\begin{psmallmatrix}0&\sqrt{\gamma}\\0&0\end{psmallmatrix}$,
+\[
+  K_1\dg K_1=\begin{pmatrix}0&0\\\sqrt{\gamma}&0\end{pmatrix}
+             \begin{pmatrix}0&\sqrt{\gamma}\\0&0\end{pmatrix}
+            =\begin{pmatrix}0&0\\0&\gamma\end{pmatrix}.
+\]
+Hence $K_0\dg K_0+K_1\dg K_1=\diag(1,\,1-\gamma+\gamma)=\id$, so
+$\Tr(\mathcal{Q}[\rho])=\Tr(\rho\sum_j K_j\dg K_j)=\Tr(\rho)$ and the channel is
+trace preserving. For unitality we evaluate on $\id$:
+\[
+  \mathcal{Q}[\id]=K_0\id K_0\dg+K_1\id K_1\dg
+   =\begin{pmatrix}1&0\\0&1-\gamma\end{pmatrix}
+   +\begin{pmatrix}\gamma&0\\0&0\end{pmatrix}
+   =\begin{pmatrix}1+\gamma&0\\0&1-\gamma\end{pmatrix}\ne\id
+\]
+for $\gamma>0$. Since $\mathcal{Q}[\id]\ne\id$, the channel is not unital: it does
+not fix the maximally mixed state but biases it toward $\ket{0}$, reflecting the
+energy relaxation $\ket{1}\to\ket{0}$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec02-3}]
+Both states are pure, so we can use \cref{exa:lec02-purefid}:
+$F(\rho,\sigma)=\abs{\braket{0|+}}=\abs{\tfrac{1}{\sqrt2}}=\tfrac{1}{\sqrt2}$. For
+the trace distance, form
+\[
+  \rho-\sigma=\proj{0}-\proj{+}
+   =\begin{pmatrix}1&0\\0&0\end{pmatrix}-\tfrac12\begin{pmatrix}1&1\\1&1\end{pmatrix}
+   =\tfrac12\begin{pmatrix}1&-1\\-1&-1\end{pmatrix}.
+\]
+This Hermitian matrix has trace $0$ and determinant
+$\tfrac14(-1-1)=-\tfrac12$, so its eigenvalues are $\pm\lambda$ with
+$\lambda^{2}=\tfrac12$, i.e.\ $\lambda=\tfrac{1}{\sqrt2}$. Thus
+$\norm{\rho-\sigma}_1=\abs{\lambda}+\abs{-\lambda}=\sqrt2$ and
+\[
+  D(\rho,\sigma)=\tfrac12\norm{\rho-\sigma}_1=\tfrac{1}{\sqrt2}.
+\]
+Check the Fuchs--van de Graaf inequalities \eqref{eq:lec02-fvdg} with
+$F=\tfrac{1}{\sqrt2}$: the lower bound is $1-F=1-\tfrac{1}{\sqrt2}\approx0.293$ and
+the upper bound is $\sqrt{1-F^{2}}=\sqrt{1-\tfrac12}=\tfrac{1}{\sqrt2}\approx0.707$.
+Indeed $0.293\le D=0.707\le0.707$, and the upper bound is saturated, as expected for
+pure states (\cref{thm:lec02-fvdg}).
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec02-4}]
+Hoeffding budget \eqref{eq:lec02-shots} with $\varepsilon=10^{-2}$ and
+$\delta=10^{-2}$:
+\[
+  n\ge\frac{\log(2/\delta)}{2\varepsilon^{2}}
+    =\frac{\log(200)}{2\cdot10^{-4}}
+    =\frac{5.298}{2\cdot10^{-4}}\approx2.65\times10^{4},
+\]
+so about $n=26\,500$ shots suffice regardless of $p$. If instead $p\le0.05$, use the
+Chebyshev budget of \cref{exa:lec02-cheb-shots}, which is largest at the boundary
+$p=0.05$ (since $p(1-p)$ increases toward $p=\tfrac12$):
+\[
+  n\ge\frac{p(1-p)}{\varepsilon^{2}\delta}
+    =\frac{0.05\cdot0.95}{10^{-4}\cdot10^{-2}}
+    =\frac{0.0475}{10^{-6}}=4.75\times10^{4}.
+\]
+Here the Hoeffding bound is actually cheaper ($2.65\times10^{4}$ vs.
+$4.75\times10^{4}$), because Chebyshev pays a $1/\delta$ (not $\log(1/\delta)$)
+confidence factor. The Chebyshev estimate becomes advantageous only for much smaller
+$p$ (e.g.\ $p\le10^{-3}$, where $p(1-p)/(\varepsilon^{2}\delta)\approx10^{3}$),
+where the variance factor $p(1-p)$ shrinks faster than the confidence penalty grows.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec02-5}]
+With $p=0.6$ we have $p-\tfrac12=0.1$, so \eqref{eq:lec02-majoritybudget} gives
+\[
+  n\ge\frac{\log(1/\delta)}{2(p-\tfrac12)^{2}}
+    =\frac{\log(10^{3})}{2\cdot(0.1)^{2}}
+    =\frac{6.908}{0.02}\approx345.4,
+\]
+so $n=346$ runs suffice (rounding up; taking $n$ even, $n=346$) for the majority
+vote to be correct with probability at least $1-10^{-3}$. The dependence on $\delta$
+is logarithmic because each additional block of runs multiplies the failure
+probability by a constant factor $<1$: the Hoeffding tail
+$\exp(-2(p-\tfrac12)^{2}n)$ decays \emph{exponentially} in $n$, so driving it below
+$\delta$ costs only $n=\bigo(\log(1/\delta))$. A polynomial dependence would arise
+only from a polynomially decaying tail (as in the Chebyshev/variance bound), which
+majority amplification avoids by exploiting boundedness of the per-run outcome.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec02-6}]
+The model has two outcomes with $P(+\mid\theta)=\tfrac12(1+\cos\theta)$ and
+$P(-\mid\theta)=\tfrac12(1-\cos\theta)$, and $\partial_\theta P(\pm\mid\theta)=
+\mp\tfrac12\sin\theta$. Using the outcome-sum form of the Fisher information
+\eqref{eq:lec02-FI},
+\[
+  I_F(\theta)=\sum_{\nu\in\{+,-\}}\frac{(\partial_\theta P(\nu\mid\theta))^{2}}{P(\nu\mid\theta)}
+   =\frac{\tfrac14\sin^{2}\theta}{\tfrac12(1+\cos\theta)}
+    +\frac{\tfrac14\sin^{2}\theta}{\tfrac12(1-\cos\theta)}
+   =\tfrac12\sin^{2}\theta\Bigl(\frac{1}{1+\cos\theta}+\frac{1}{1-\cos\theta}\Bigr).
+\]
+Combining the fractions,
+$\frac{1}{1+\cos\theta}+\frac{1}{1-\cos\theta}=\frac{2}{1-\cos^{2}\theta}
+=\frac{2}{\sin^{2}\theta}$, so
+\[
+  I_F(\theta)=\tfrac12\sin^{2}\theta\cdot\frac{2}{\sin^{2}\theta}=1.
+\]
+The Fisher information equals $1$ for every $\theta$ at which the expression is
+defined. By the Cram\'er--Rao bound \eqref{eq:lec02-crb}, for $N$ independent
+measurements
+\[
+  \Var(\hat\theta)\ge\frac{1}{N\,I_F(\theta)}=\frac1N.
+\]
+The information is $1$ (its maximum here) away from the endpoints, and it degenerates
+at $\theta\in\{0,\pi\}$: there $\sin\theta=0$, one outcome has probability $1$ and
+$\partial_\theta P=0$, so a single measurement is (to first order) insensitive to
+$\theta$ and the Fisher information effectively vanishes. This matches
+\cref{exa:lec02-phase}: the $X$-basis measurement is Fisher-optimal for the phase
+$\theta$, saturating the quantum Cram\'er--Rao bound $F_Q(\theta)=1$.
+\end{solution}
