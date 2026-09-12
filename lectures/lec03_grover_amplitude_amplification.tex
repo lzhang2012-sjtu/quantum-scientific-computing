@@ -5,6 +5,7 @@
 \begin{itemize}[leftmargin=1.4em,nosep]
   \item Trace the historical arc from Deutsch's algorithm to unstructured search.
   \item Derive the Grover iteration geometrically.
+  \item Construct the phase oracle and diffusion operator as explicit circuits.
   \item Generalize to amplitude amplification and state its quadratic speedup.
   \item Sketch the query lower bound for unstructured search.
 \end{itemize}
@@ -494,6 +495,76 @@ One iteration first marks the solution (via $R_{x_0}$) and then reflects about t
 mean (via $R_{\psi_0}$).
 \end{definition}
 
+\subsection{Building the two reflections as circuits}
+\label{sec:lec03-circuits}
+
+So far $R_{x_0}$ and $R_{\psi_0}$ are abstract operators. Before analyzing them it
+is instructive to see that both are ordinary circuits built from standard gates.
+
+\paragraph{The marking reflection as a phase oracle.}
+Recall from \cref{sec:lec03-1} that the bit-flip oracle $\Uf$ becomes the phase
+oracle $\ket{x}\mapsto(-1)^{f(x)}\ket{x}$ once the target qubit is held in
+$\ket{-}$: by phase kickback (\cref{lem:lec03-kickback}) the eigenvalue
+$(-1)^{f(x)}$ is written onto the input register, leaving the ancilla in $\ket{-}$
+to be reused on the next query. For the single-solution predicate of
+\cref{def:lec03-search} this is exactly $R_{x_0}=\id-2\proj{x_0}$, the operator
+that flips the sign of $\ket{x_0}$ alone. It has a transparent gate-level
+implementation. Start from the multiply-controlled $\Zgate$ gate on $n$ qubits,
+which multiplies $\ket{1^n}$ by $-1$ and fixes every other basis state, since
+$\Zgate\ket{1}=-\ket{1}$ fires only when all $n$ qubits are $1$. This is precisely
+the phase oracle for the marked string $1^n$. To mark an \emph{arbitrary}
+$x_0\in\{0,1\}^n$ instead, conjugate the multiply-controlled $\Zgate$ by
+$\Xgate$ (NOT) gates placed on exactly those qubits where $x_0$ has a $0$:
+\[
+  R_{x_0}=\Bigl(\textstyle\bigotimes_{i:\,(x_0)_i=0}\Xgate_i\Bigr)\,
+          \bigl(\text{mult.\ ctrl-}\Zgate\bigr)\,
+          \Bigl(\textstyle\bigotimes_{i:\,(x_0)_i=0}\Xgate_i\Bigr).
+\]
+The leading NOTs turn $\ket{x_0}$ into $\ket{1^n}$; the controlled-$\Zgate$
+attaches the $-1$; the trailing NOTs restore $\ket{x_0}$. Every other basis state
+either fails to become $\ket{1^n}$ (so it is untouched) or has its two NOT layers
+cancel, so it emerges unchanged. For $n=3$ and $x_0=\ket{011}$, for instance, one
+places an $\Xgate$ on the single $0$-qubit before and after a doubly controlled
+$\Zgate$.
+
+\paragraph{Realizing the controlled-$\Zgate$ by kickback.}
+The doubly (or multiply) controlled $\Zgate$ is itself typically compiled from a
+controlled-$\Xgate$ (Toffoli, for $n=3$) sandwiched between two Hadamards on the
+target, using the identity $\Zgate=H\Xgate H$: with the target prepared by the
+first $H$ in $\ket{-}$, the multi-controlled NOT kicks back a factor $-1$ exactly
+when all controls are $1$, and the second $H$ returns the target to its
+computational value. This is the same phase-kickback mechanism of
+\cref{lem:lec03-kickback}, now used to synthesize the diagonal phase gate rather
+than to query an external oracle.
+
+\paragraph{The diffusion operator as a circuit.}
+The diffusion reflection admits the factorization already recorded in
+\cref{def:lec03-reflections},
+\[
+  R_{\psi_0}=H^{\otimes n}\bigl(2\proj{0^{n}}-\id\bigr)H^{\otimes n}.
+\]
+The inner operator $2\proj{0^n}-\id$ is a reflection about $\ket{0^n}$: it fixes
+$\ket{0^n}$ and negates everything else, which (up to a global $-1$) is the same
+multiply-controlled phase gate as above, now conditioned on the all-$0$ string and
+so obtained by wrapping the controlled-$\Zgate$ in NOTs on \emph{every} qubit. The
+flanking Hadamard layers map $\ket{\psi_0}\leftrightarrow\ket{0^n}$, so conjugation
+converts ``reflect about $\ket{0^n}$'' into ``reflect about $\ket{\psi_0}$''---the
+inversion about the mean. Thus a full Grover iterate $G=R_{\psi_0}R_{x_0}$ is: one
+phase-oracle call, then a layer of $H$, a reflection about $\ket{0^n}$, and a final
+layer of $H$.
+
+\paragraph{The catch, and why the algorithm is still useful.}
+Building $R_{x_0}$ as above appears to require knowing $x_0$, which is the very
+thing we are searching for. In genuine applications one does \emph{not} hardcode
+$x_0$: the oracle is a reversible circuit for a \emph{predicate}
+$f(x)=[\,x\text{ is a solution}\,]$---``does this candidate satisfy the
+constraints?''---that can be evaluated without knowing which inputs pass. The
+phase oracle then marks whatever inputs happen to satisfy $f$, and Grover's
+iteration amplifies them. Counting oracle calls (\cref{def:lec03-oracle}) rather
+than elementary gates is what makes this separation of concerns clean: the cost of
+compiling $f$ into a circuit is charged separately, exactly as in
+\cref{rem:lec03-significance}.
+
 \subsection{The invariant plane and the rotation picture}
 
 The power of the algorithm comes from the fact that $G$ never leaves a fixed
@@ -606,6 +677,78 @@ claimed. Measuring in the computational basis yields $x_0$ with probability equa
 to the squared $\ket{x_0}$-amplitude, namely
 $p_k=\sin^{2}\bigl((2k+1)\theta/2\bigr)$.
 \end{proof}
+
+\begin{example}[A fully worked run: $N=8$, marked item $x_0=3$]
+\label{exa:lec03-n8}
+It is worth watching every amplitude move once, on a case small enough to write
+out yet large enough that a single iteration does not suffice. Take three qubits,
+$N=8$, and mark the basis state $\ket{x_0}=\ket{3}=\ket{011}$. From
+\eqref{eq:lec03-theta}, $\sin(\theta/2)=1/\sqrt8$, so $\theta=2\arcsin(1/\sqrt8)
+\approx41.4^{\circ}$ and $(\pi/2\theta)-\tfrac12\approx1.67$; rounding gives
+$k^{\ast}=2$ iterations. Because the amplitudes stay uniform across the seven
+unmarked states throughout, it suffices to track two numbers per step: the common
+amplitude $a$ on the unmarked states and the amplitude $g$ on $\ket{x_0}$. Recall
+that the oracle $R_{x_0}$ flips the sign of $g$ and that the diffusion
+$R_{\psi_0}$ sends every amplitude $a_x\mapsto 2\bar a-a_x$, reflecting it about
+the mean $\bar a$ (Exercise~\ref{ex:lec03-1}).
+
+\emph{Start.} $\ket{\psi_0}=H^{\otimes3}\ket{000}$ gives every amplitude equal to
+$1/\sqrt8$, so measuring now returns $\ket{x_0}$ with probability $1/8$.
+
+\emph{Iteration~1.} The oracle sends $g\colon\ 1/\sqrt8\mapsto-1/\sqrt8$ while the
+seven unmarked amplitudes are unchanged. The mean is then
+$\bar a=\bigl(7\cdot\tfrac{1}{\sqrt8}-\tfrac{1}{\sqrt8}\bigr)/8=\tfrac{3}{4\sqrt8}$.
+Inversion about the mean gives, for an unmarked amplitude,
+$2\bar a-\tfrac1{\sqrt8}=\tfrac{3}{2\sqrt8}-\tfrac{1}{\sqrt8}=\tfrac{1}{2\sqrt8}$,
+and for the marked one
+$2\bar a-\bigl(-\tfrac1{\sqrt8}\bigr)=\tfrac{3}{2\sqrt8}+\tfrac{1}{\sqrt8}
+=\tfrac{5}{2\sqrt8}$. Thus
+\[
+  G\ket{\psi_0}
+  =\frac{1}{2\sqrt8}\!\!\sum_{x\neq 3}\ket{x}+\frac{5}{2\sqrt8}\ket{3},
+  \qquad
+  p_1=\Bigl(\tfrac{5}{2\sqrt8}\Bigr)^{2}=\frac{25}{32}\approx0.781.
+\]
+
+\emph{Iteration~2.} The oracle flips the marked amplitude to $-\tfrac{5}{2\sqrt8}$;
+the new mean is $\bar a=\bigl(7\cdot\tfrac1{2\sqrt8}-\tfrac5{2\sqrt8}\bigr)/8
+=\tfrac{1}{8\sqrt8}$. Inversion about the mean now yields, for an unmarked
+amplitude, $2\bar a-\tfrac1{2\sqrt8}=-\tfrac{1}{4\sqrt8}$, and for the marked one
+$2\bar a+\tfrac5{2\sqrt8}=\tfrac{11}{4\sqrt8}$, so
+\[
+  G^{2}\ket{\psi_0}
+  =-\frac{1}{4\sqrt8}\!\!\sum_{x\neq3}\ket{x}+\frac{11}{4\sqrt8}\ket{3},
+  \qquad
+  p_2=\Bigl(\tfrac{11}{4\sqrt8}\Bigr)^{2}=\frac{121}{128}\approx0.945.
+\]
+The amplitudes are collected in \cref{tab:lec03-n8}. The value $p_2=121/128$ agrees
+with the closed form $\sin^{2}\bigl(5\theta/2\bigr)$ of \cref{thm:lec03-afterk}.
+The negative sign on the unmarked amplitudes after the second iteration signals
+that the state has rotated just \emph{past} $\ket{x_0}$: a third iteration would
+begin to undo the gain, exactly the over-rotation warned of in
+\cref{rem:lec03-overrotate}.
+\end{example}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{lccc}
+\toprule
+Stage & unmarked amplitude & marked amplitude ($\ket{3}$) & $p=\abs{g}^2$\\
+\midrule
+$\ket{\psi_0}$ (start)      & $1/\sqrt8$        & $1/\sqrt8$        & $1/8$\\
+after $R_{x_0}$ (query 1)   & $1/\sqrt8$        & $-1/\sqrt8$       & ---\\
+after $R_{\psi_0}$ (iter.\ 1)& $1/(2\sqrt8)$     & $5/(2\sqrt8)$     & $25/32$\\
+after $R_{x_0}$ (query 2)   & $1/(2\sqrt8)$     & $-5/(2\sqrt8)$    & ---\\
+after $R_{\psi_0}$ (iter.\ 2)& $-1/(4\sqrt8)$    & $11/(4\sqrt8)$    & $121/128$\\
+\bottomrule
+\end{tabular}
+\caption{Amplitudes through two Grover iterations for $N=8$, $x_0=3$
+(\cref{exa:lec03-n8}). All seven unmarked states share a common amplitude at
+every stage; the mean used by the diffusion step is
+$\bar a=\tfrac{3}{4\sqrt8}$ before iteration~1 and $\tfrac{1}{8\sqrt8}$ before
+iteration~2.}
+\label{tab:lec03-n8}
+\end{table}
 
 \section{Amplitude amplification}
 \label{sec:lec03-4}
@@ -863,6 +1006,19 @@ reflection about a line $\ell_2$ (with $\ell_2$ at angle $\alpha$ from $\ell_1$)
 a rotation by $2\alpha$.
 \end{exercise}
 
+\begin{exercise}\label{ex:lec03-8}
+Building the phase oracle. On three qubits, let $x_0=\ket{101}$ be the marked
+state. Following \cref{sec:lec03-circuits}, write the marking reflection
+$R_{x_0}=\id-2\proj{x_0}$ as a doubly controlled $\Zgate$ conjugated by $\Xgate$
+gates, specifying which qubits carry the $\Xgate$ gates. Verify by hand that your
+circuit multiplies $\ket{101}$ by $-1$ and leaves the other seven basis states
+fixed (it suffices to check $\ket{101}$, one basis state that becomes $\ket{111}$
+under the leading NOTs, and one that does not). Then run one Grover iterate on the
+uniform state $\ket{\psi_0}=H^{\otimes3}\ket{000}$ with this $x_0$ and report the
+resulting amplitude on $\ket{x_0}$ and the success probability $p_1$; confirm it
+matches \cref{exa:lec03-n8}.
+\end{exercise}
+
 \readingsection
 \begin{itemize}[leftmargin=1.4em]
   \item Lin Lin, \emph{qasc notes}, Ch.~2 (query model, Deutsch--Jozsa and
@@ -874,4 +1030,10 @@ a rotation by $2\alpha$.
         $\Omega(\sqrt N)$ lower bound) --- \texttt{material/}.
   \item M.~A.~Nielsen and I.~L.~Chuang, \emph{Quantum Computation and Quantum
         Information}, Ch.~6 (quantum search algorithms and the search lower bound).
+  \item D.~Brody, \emph{The Joy of Quantum Computing}, Princeton Univ.\ Press,
+        2025, Ch.~2 (Deutsch's algorithm and the phase oracle) and Ch.~8
+        (a concrete walkthrough of Grover's search: oracle construction from a
+        multiply-controlled $\Zgate$, the inversion-about-the-mean geometry, and
+        the worked $N=8$ example) ---
+        \texttt{material/Brody\_The\ Joy\ of\ Quantum\ Computing\_Princeton\_2025.pdf}.
 \end{itemize}

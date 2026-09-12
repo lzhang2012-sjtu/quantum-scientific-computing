@@ -151,3 +151,35 @@ gives a rotation by twice the angle between the mirror lines. In
 \cref{thm:lec03-rotation} the two mirror axes are $\ket{\psi_0^{\perp}}$ and
 $\ket{\psi_0}$, separated by $\theta/2$, giving rotation by $\theta$.
 \end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec03-8}]
+\emph{The circuit.} With $x_0=\ket{101}$, the qubits carrying a $0$ form the single
+position in the middle (reading the string left to right as qubits $2,1,0$). So we
+place an $\Xgate$ on that one qubit before and after a doubly controlled $\Zgate$:
+\[
+  R_{x_0}=(\id\otimes\Xgate\otimes\id)\,(\text{ctrl-ctrl-}\Zgate)\,
+          (\id\otimes\Xgate\otimes\id).
+\]
+The leading $\Xgate$ maps $\ket{101}\mapsto\ket{111}$; the doubly controlled
+$\Zgate$ multiplies $\ket{111}$ by $-1$ (all three qubits are $1$); the trailing
+$\Xgate$ maps $\ket{111}\mapsto\ket{101}$. Net effect: $\ket{101}\mapsto-\ket{101}$.
+
+\emph{Checking the other basis states.} Take $\ket{111}$: the leading $\Xgate$
+sends it to $\ket{101}$, which is not $\ket{111}$, so the controlled $\Zgate$ does
+nothing, and the trailing $\Xgate$ returns $\ket{111}$ unchanged---no phase. Take
+$\ket{000}$: the leading $\Xgate$ sends it to $\ket{010}$, again not $\ket{111}$,
+so no phase is applied and the two $\Xgate$ gates cancel, leaving $\ket{000}$. Only
+$\ket{101}$ is the one string mapped to $\ket{111}$ by the leading NOT, so only it
+picks up the $-1$; all seven others are fixed, confirming
+$R_{x_0}=\id-2\proj{101}$.
+
+\emph{One Grover iterate.} Starting from $\ket{\psi_0}$ (every amplitude
+$1/\sqrt8$), the oracle sends the amplitude on $\ket{101}$ to $-1/\sqrt8$ and fixes
+the rest. The mean is $\bar a=\bigl(7\cdot\tfrac1{\sqrt8}-\tfrac1{\sqrt8}\bigr)/8
+=\tfrac{3}{4\sqrt8}$, and inversion about the mean gives an unmarked amplitude
+$2\bar a-\tfrac1{\sqrt8}=\tfrac{1}{2\sqrt8}$ and marked amplitude
+$2\bar a+\tfrac1{\sqrt8}=\tfrac{5}{2\sqrt8}$. Hence the amplitude on $\ket{x_0}$ is
+$5/(2\sqrt8)$ and $p_1=(5/(2\sqrt8))^2=25/32\approx0.781$, identical to the first
+iteration of \cref{exa:lec03-n8}: the numbers depend only on $N$ and the number of
+marked items, not on \emph{which} item is marked.
+\end{solution}
