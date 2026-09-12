@@ -1,0 +1,180 @@
+\chapter{Hamiltonian Simulation II: Block-Encoding Methods}
+% Solutions to the exercises of \cref{ch:lec12}.
+
+\begin{solution}[Exercise~\ref{ex:lec12-1}]
+Define $g(s)=\ee^{-\ii H(t-s)}\ee^{-\ii\tilde Hs}$, so that $g(0)=\ee^{-\ii Ht}$ and
+$g(t)=\ee^{-\ii\tilde Ht}$. Differentiating,
+\[
+  g'(s)=\ii H\,\ee^{-\ii H(t-s)}\ee^{-\ii\tilde Hs}
+       +\ee^{-\ii H(t-s)}(-\ii\tilde H)\ee^{-\ii\tilde Hs}
+       =-\ii\,\ee^{-\ii H(t-s)}(\tilde H-H)\ee^{-\ii\tilde Hs}.
+\]
+Integrating from $0$ to $t$ gives the Duhamel identity
+\[
+  \ee^{-\ii\tilde Ht}-\ee^{-\ii Ht}=g(t)-g(0)
+  =-\ii\int_0^t\ee^{-\ii H(t-s)}(\tilde H-H)\,\ee^{-\ii\tilde Hs}\,\dd s,
+\]
+which is \eqref{eq:lec12-duhamel-pert}. Taking norms and using that $\ee^{-\ii H(t-s)}$ and
+$\ee^{-\ii\tilde Hs}$ are unitary (norm $1$),
+\[
+  \norm{\ee^{-\ii\tilde Ht}-\ee^{-\ii Ht}}
+  \le\int_0^t\norm{\tilde H-H}\,\dd s\le\epsilon' t.
+\]
+Setting $\epsilon'=\epsilon/(2t)$ yields
+$\norm{\ee^{-\ii\tilde Ht}-\ee^{-\ii Ht}}\le\epsilon/2$, so the block-encoding error and the
+polynomial-approximation error each contribute at most $\epsilon/2$, for a total of
+$\epsilon$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec12-2}]
+Both functions are real for real $t,x$. Since $\cos$ is even and $\sin$ is odd,
+$\cos(t(-x))=\cos(tx)$ (even in $x$) and $\sin(t(-x))=-\sin(tx)$ (odd in $x$). Real-QSVT
+(\cref{ch:lec09}) implements $p(A)$ for a \emph{real} polynomial $p$ of \emph{definite
+parity} with $|p|\le1$ on $[-1,1]$: the phase factors encode a Chebyshev expansion of a
+single parity class, and the achievable target is real. Thus $\cos(tH)$ is realized by an
+even-degree QSVT circuit and $\sin(tH)$ by an odd-degree one, each a legitimate real,
+fixed-parity polynomial after rescaling by $\beta=1+\epsilon$. The propagator
+$\ee^{-\ii Ht}=\cos(Ht)-\ii\sin(Ht)$ is \emph{complex}, hence not directly a real
+fixed-parity polynomial of $H$; the two pieces have opposite parity and differ by the
+scalar $-\ii$. One therefore builds the two real blocks separately and adds them with a
+single LCU ancilla that supplies the relative $-\ii$ phase, rather than attempting one QSVT
+circuit for the complex function.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec12-3}]
+The degree-$2K$ truncation of \eqref{eq:lec12-jacobi-anger} drops the terms with Bessel
+index $\ge2K+1$. Since $|T_m(x)|\le1$ on $[-1,1]$, the truncation error is bounded by the
+coefficient tail
+\[
+  2\sum_{k=2K+1}^{\infty}|J_k(t)|
+  \le2\sum_{k=2K+1}^{\infty}\frac1{k!}\Bigl(\frac t2\Bigr)^k,
+\]
+using \eqref{eq:lec12-bessel-tail}. The leading term $k=2K+1$ dominates once $2K+1>t$
+(where the ratio of consecutive terms $(t/2)/(k+1)<1$), and $k!\ge(k/\ee)^k$ gives
+\[
+  \frac1{k!}\Bigl(\frac t2\Bigr)^k\le\Bigl(\frac{\ee t}{2k}\Bigr)^k,
+\]
+so the whole tail is a geometric-type sum bounded by
+$\bigo\bigl((\ee t/(2K{+}1))^{2K+1}\bigr)$; carrying the $\ee^{t/2}=\sum(t/2)^k/k!$
+normalization gives the stated $\bigo\bigl((\ee t/(2K{+}1))^{2K+1}\ee^{t/2}\bigr)$.
+\emph{Degree scaling.} The factorial $k!$ only overtakes the growing numerator $(t/2)^k$
+once $k\gtrsim t$; that is the threshold index. For $K$ a constant multiple of $t$ beyond it,
+the base $\ee t/(2K+1)$ is a constant $<1$, so the error decays like $c^{K}$ with $c<1$:
+each extra unit of degree multiplies the error by a constant $<1$, i.e.\ buys a fixed number
+of bits of accuracy. Hence to reach $\epsilon$ one needs $K=\bigo(t)$ to pass the threshold
+plus $\bigo(\log(1/\epsilon))$ more to drive the geometric tail down, giving
+$K=\bigo(t+\log(1/\epsilon))$ as in \eqref{eq:lec12-ja-K}.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec12-4}]
+\emph{One-norm.} With $\Delta t=\ln2$ and $c_k=(\Delta t)^k/k!\ge0$,
+\[
+  \norm c_1=\sum_{k=0}^{K-1}\frac{(\ln2)^k}{k!}
+  \le\sum_{k=0}^{\infty}\frac{(\ln2)^k}{k!}=\ee^{\ln2}=2,
+\]
+so the LCU subnormalization is at most $2$ for any finite $K$. \emph{Tail bound.} The
+truncation error is
+\[
+  \Bigl\|\sum_{k=K}^{\infty}\frac{(-\ii H\Delta t)^k}{k!}\Bigr\|
+  \le\sum_{k=K}^{\infty}\frac{(\norm H\Delta t)^k}{k!}
+  \le\frac{(\norm H\Delta t)^K}{K!}\sum_{j=0}^{\infty}\frac{(\norm H\Delta t)^j}{j!}
+  =\frac{(\norm H\Delta t)^K}{K!}\,\ee^{\norm H\Delta t},
+\]
+which is \eqref{eq:lec12-taylor-tail}; using $K!\ge(K/\ee)^K$,
+$(\norm H\Delta t)^K/K!\le(\ee\norm H\Delta t/K)^K$. \emph{Order.} With $\norm H\le1$ and
+$\Delta t=\ln2$, the base $a\defeq\ee\norm H\Delta t=\bigo(1)$, so requiring
+$(a/K)^K\le\epsilon'\ee^{-\norm H\Delta t}$ is a model inequality $(a'/K)^K\le\epsilon''$
+with $a'=\bigo(1)$; its Lambert-$W$ solution (\cref{lem:lec12-ja-degree}) is
+\[
+  K=\bigo\!\Bigl(\frac{\log(1/\epsilon')}{\log\log(1/\epsilon')}\Bigr).
+\]
+\emph{Numerics.} For $\epsilon'=10^{-8}$, $\log(1/\epsilon')=\ln10^{8}\approx18.4$ and
+$\log\log(1/\epsilon')=\ln(18.4)\approx2.91$, so $K\approx18.4/2.91\approx6.3$: a truncation
+order $K\approx7$ already gives eight digits per segment, essentially flat in $\epsilon'$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec12-5}]
+\emph{Collapse to Taylor.} For $A(t)\equiv A$ the integrand $A(s_n)\cdots A(s_1)=A^n$ is
+constant, so the $n$-th Dyson term is
+\[
+  A^n\int_0^t\!\!\int_0^{s_n}\!\!\cdots\int_0^{s_2}\dd s_1\cdots\dd s_n
+  =A^n\cdot\mathrm{vol}\{0\le s_1\le\cdots\le s_n\le t\}=A^n\frac{t^n}{n!},
+\]
+the ordered simplex having volume $t^n/n!$ (it is one of the $n!$ congruent pieces of the
+cube $[0,t]^n$). Summing, $U(t)=\sum_{n\ge0}A^nt^n/n!=\ee^{At}$, so the Dyson series is
+exactly the operator Taylor series in the time-independent case. \emph{Remainder.} With
+$M=\sup_{s\in[0,t]}\norm{A(s)}$ and $\norm{U(s)}\le\ee^{Mt}$,
+\[
+  \norm{R_{p+1}(t)}
+  \le\ee^{Mt}M^{p+1}\int_0^t\!\!\int_0^{s_{p+1}}\!\!\cdots\int_0^{s_2}
+     \dd s_1\cdots\dd s_{p+1}
+  =\ee^{Mt}M^{p+1}\frac{t^{p+1}}{(p+1)!}=\ee^{Mt}\frac{(Mt)^{p+1}}{(p+1)!},
+\]
+using submultiplicativity $\norm{A(s_{p+1})\cdots A(s_1)U(s_1)}\le M^{p+1}\ee^{Mt}$ and the
+simplex volume $t^{p+1}/(p+1)!$. Since $(p+1)!$ grows faster than $(Mt)^{p+1}$, this tends
+to $0$ as $p\to\infty$, establishing convergence.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec12-6}]
+\emph{Evolution equation.} With $\ket{\psi(t)}_I=\ee^{\ii\beta Bt}\ket{\psi(t)}$ and
+$\partial_t\ket\psi=-\ii(\alpha A+\beta B)\ket\psi$, the product rule gives
+\begin{align*}
+  \partial_t\ket{\psi}_I
+  &=\ii\beta B\,\ee^{\ii\beta Bt}\ket\psi
+    +\ee^{\ii\beta Bt}\bigl(-\ii(\alpha A+\beta B)\bigr)\ket\psi\\
+  &=\ii\beta B\,\ee^{\ii\beta Bt}\ket\psi
+    -\ii\alpha\,\ee^{\ii\beta Bt}A\ket\psi
+    -\ii\beta\,\ee^{\ii\beta Bt}B\ket\psi.
+\end{align*}
+Because $B$ commutes with $\ee^{\ii\beta Bt}$, the first and third terms cancel, leaving
+\[
+  \partial_t\ket{\psi}_I=-\ii\alpha\,\ee^{\ii\beta Bt}A\ket\psi
+  =-\ii\alpha\,\ee^{\ii\beta Bt}A\,\ee^{-\ii\beta Bt}\ket{\psi}_I
+  =-\ii H_I(t)\ket{\psi}_I,
+\]
+with $H_I(t)=\alpha\,\ee^{\ii\beta Bt}A\,\ee^{-\ii\beta Bt}$. \emph{Norm.} Conjugation by the
+unitary $\ee^{\ii\beta Bt}$ preserves the spectral norm, so
+$\norm{H_I(t)}=\alpha\norm A\le\alpha$. \emph{Derivative.} Differentiating and using
+$\partial_t\ee^{\ii\beta Bt}=\ii\beta B\ee^{\ii\beta Bt}$,
+\[
+  H_I'(t)=\alpha\,\ee^{\ii\beta Bt}\bigl(\ii\beta B\,A-A\,\ii\beta B\bigr)\ee^{-\ii\beta Bt}
+  =\ii\alpha\beta\,\ee^{\ii\beta Bt}[B,A]\,\ee^{-\ii\beta Bt},
+\]
+so $\norm{H_I'(t)}\le2\alpha\beta$: the interaction Hamiltonian oscillates on the fast scale
+set by $\beta$. By the discretization estimate \eqref{eq:lec12-nt} the number of clock
+qubits is $n_t=\bigo(\log(\max_s\norm{H_I'(s)}T^2/\epsilon_T))=\bigo(\log\beta+\cdots)$,
+i.e.\ only $\bigo(\log\beta)$: the rapid variation costs merely logarithmically, while the
+\emph{query} count is governed by $\norm{H_I}\le\alpha$, not $\beta$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec12-7}]
+\emph{Conjugation series.} By the Hadamard lemma,
+\[
+  \ee^{-\ii J_x\pi}J_z\ee^{\ii J_x\pi}
+  =J_z-\ii\pi[J_x,J_z]+\frac{(-\ii\pi)^2}{2!}[J_x,[J_x,J_z]]+\cdots.
+\]
+Using $[J_x,J_z]=-\ii J_y$ and $[J_x,J_y]=\ii J_z$ we get $[J_x,[J_x,J_z]]=[J_x,-\ii J_y]
+=-\ii(\ii J_z)=J_z$, and $[J_x,[J_x,[J_x,J_z]]]=[J_x,J_z]=-\ii J_y$, so the series
+regroups into the two families
+\[
+  \ee^{-\ii J_x\pi}J_z\ee^{\ii J_x\pi}
+  =J_z\Bigl(1-\frac{\pi^2}{2!}+\frac{\pi^4}{4!}-\cdots\Bigr)
+   -J_y\Bigl(\pi-\frac{\pi^3}{3!}+\cdots\Bigr)
+  =\cos(\pi)J_z-\sin(\pi)J_y=-J_z.
+\]
+Thus $\ee^{-\ii J_x\pi}$ conjugates $J_z\mapsto-J_z$; since $J_z$ is diagonal with the
+extreme eigenvector $\ket0$ (lowest weight) mapped to $\ket n$ (highest weight), this forces
+$\ee^{-\ii J_x\pi}\ket0=\ket n$: a time-$\pi$ evolution walks the bottom of the ladder to the
+top. \emph{Parity.} The dual-rail operator $G_x$ has the same banded matrix elements as
+$J_x$ but simultaneously flips a parity qubit by $s_j$ at rung $j$; on the permuted basis it
+equals $J_x\otimes\id$, so evolving $\ket0\ket0$ for time $\pi$ gives
+$\ket n\,|\bigoplus_j s_j\rangle=\ket n\,|\sum_j s_j\bmod2\rangle$, depositing the parity of
+$s$ as in \eqref{eq:lec12-parity}. \emph{Lower bound.} $G_x$ is $2$-sparse and banded with
+largest entry $\tfrac12\sqrt{(n-j)(j+1)}$, maximized near $j=n/2$, so
+$\alpha=\norm{G_x}=\Theta(n)$ and $\alpha t=\alpha\pi=\Theta(n)$; the block encoding uses
+$\bigo(1)$ queries to $U_s$ per call. If some simulator reached trace distance $\le1/4$ in
+$o(\alpha t)=o(n)$ block-encoding queries, composing it with the reduction would compute
+parity in $o(n)$ queries to $U_s$, contradicting the $\Omega(n)$ parity lower bound of
+\cref{ch:lec03}. Hence $\Omega(\alpha t)$ queries are necessary and $G_x$ cannot be
+fast-forwarded.
+\end{solution}
