@@ -1,0 +1,104 @@
+\chapter{Applications of Phase Estimation}
+% Solutions to the exercises of \cref{ch:lec05}.
+
+\begin{solution}[Exercise~\ref{ex:lec05-1}]
+On an exact eigenstate with $t$ ancilla qubits, QPE returns the best $t$-bit
+dyadic approximation of the eigenphase, so the eigenphase---and via
+$U=\ee^{\ii 2\pi H}$ the (rescaled) energy $\lambda$, which equals the
+eigenphase---is resolved to additive error $2^{-t}$. To reach $10^{-3}$ we need
+$2^{-t}\le10^{-3}$, i.e.\ $t\ge\log_2 10^3=3\log_2 10\approx9.97$, so $t=10$
+ancilla qubits. If the physical spectrum spans a width $W=E_{\max}-E_{\min}$, the
+affine rescaling that maps it into the phase window contracts energies by $1/W$
+(up to the safety factor keeping phases in $[0,1)$); a rescaled resolution
+$2^{-t}$ therefore corresponds to a physical resolution $W\cdot 2^{-t}$, so
+resolving to physical accuracy $\eta$ needs $t\ge\log_2(W/\eta)$ qubits.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec05-2}]
+By \cref{thm:lec05-aecost}, when $P(1-P)=\Theta(1)$ one takes
+$\epsilon'=\bigo(\epsilon)$ and phase estimation of $G$ uses
+$\bigo(1/\epsilon')=\bigo(1/\epsilon)$ applications of the Grover iterate. For
+$\epsilon=10^{-3}$ this is $\Theta(10^{3})$ applications of $G$ (each of which
+makes one query to the reflections built from $U_\phi$). A classical Monte Carlo
+estimator of the Bernoulli mean $P$ has variance $P(1-P)/N=\Theta(1/N)$ after $N$
+samples, so reaching additive error $\epsilon$ needs $N=\bigo(1/\epsilon^2)
+=\Theta(10^{6})$ samples. The ratio of classical to quantum cost is
+\[
+  \frac{\bigo(\epsilon^{-2})}{\bigo(\epsilon^{-1})}=\bigo(\epsilon^{-1})
+  =\Theta(10^{3}),
+\]
+the hallmark quadratic (here thousand-fold) speedup.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec05-3}]
+A single run fails to return $\lambda_0$ with probability $1-p_0$, and the runs are
+independent, so the probability that all $M$ runs miss $\lambda_0$ is
+$(1-p_0)^M$. We want the complementary event to have probability $\ge\tfrac12$:
+\[
+  1-(1-p_0)^M\ge\tfrac12
+  \iff (1-p_0)^M\le\tfrac12
+  \iff M\log(1-p_0)\le-\log2
+  \iff M\ge\frac{\log 2}{-\log(1-p_0)}
+        =\frac{\log 2}{\log\bigl((1-p_0)^{-1}\bigr)}.
+\]
+For small $p_0$, $-\log(1-p_0)=p_0+\tfrac12 p_0^2+\cdots\approx p_0$, so
+$M\gtrsim\log 2/p_0$. Hence $M=\lceil\log 2/p_0\rceil=\bigo(p_0^{-1})$ runs
+suffice; more generally to fail with probability at most $\delta$ one takes
+$M=\lceil\log(\delta^{-1})/p_0\rceil$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec05-4}]
+Let $R_\theta=\left(\begin{smallmatrix}\cos\theta&\sin\theta\\-\sin\theta&
+\cos\theta\end{smallmatrix}\right)$. Its characteristic polynomial is
+$(\cos\theta-\mu)^2+\sin^2\theta=0$, giving
+$\mu=\cos\theta\pm\ii\sin\theta=\ee^{\pm\ii\theta}$. For $\mu=\ee^{\ii\theta}$ the
+equation $(\cos\theta-\ee^{\ii\theta})v_1+\sin\theta\,v_2=0$ reads
+$-\ii\sin\theta\,v_1+\sin\theta\,v_2=0$, i.e.\ $v_2=\ii v_1$, so an eigenvector is
+$\tfrac{1}{\sqrt2}(1,\ii)^{\mathsf T}$; likewise $\ee^{-\ii\theta}$ has eigenvector
+$\tfrac{1}{\sqrt2}(1,-\ii)^{\mathsf T}$. In ket form
+$\ket{\phi_\pm}=\tfrac1{\sqrt2}(\ket{\phi_{\mathrm{good}}}\pm\ii
+\ket{\phi_{\mathrm{bad}}})$. With
+$\ket{\phi_0}=\sin\tfrac{\theta}{2}\ket{\phi_{\mathrm{good}}}
++\cos\tfrac{\theta}{2}\ket{\phi_{\mathrm{bad}}}$,
+\[
+  \braket{\phi_\pm|\phi_0}
+   =\tfrac{1}{\sqrt2}\bigl(\sin\tfrac{\theta}{2}\mp\ii\cos\tfrac{\theta}{2}\bigr),
+  \qquad
+  \abs{\braket{\phi_\pm|\phi_0}}^2
+   =\tfrac12\bigl(\sin^2\tfrac{\theta}{2}+\cos^2\tfrac{\theta}{2}\bigr)=\tfrac12,
+\]
+confirming the equal overlaps.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec05-5}]
+A degree-$D$ polynomial $F$ with $\abs{F}\le1$ on $[-1,1]$ has a bounded
+derivative there: by the Markov brothers' inequality $\abs{F'(x)}\le D^2$ on
+$[-1,1]$, and more relevantly the ``transition region'' over which such a
+polynomial can drop from $\approx1$ to $\approx0$ has width $\Omega(1/D)$ (the
+Chebyshev polynomial $T_D$ oscillates on a scale $\sim1/D^2$ near the endpoints but
+$\sim1/D$ in the bulk, and any sharper transition would force values outside
+$[-1,1]$). To realize the filter we need the transition to fit inside the forbidden
+window of width $\Delta$, so $1/D=\bigo(\Delta)$, i.e.\ $D=\Omega(1/\Delta)$; the
+$\log(1/\epsilon')$ factor comes from pushing the approximation error down. Since
+QSVT uses $\bigo(D)$ block-encoding queries, the query depth of
+\cref{thm:lec05-gsp} scales as $\bigo(\Delta^{-1}\log(1/\epsilon'))$ and diverges
+as $\Delta\to0$. This matches the gap lower bound $\Omega(1/\Delta)$ of
+\cref{thm:lec05-lbgap}: no filter-based (or any) method can prepare the ground
+state with sublinear dependence on the inverse gap.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec05-6}]
+\emph{Plain QPE, $\bigo(p_0^{-2})$ (\cref{thm:lec05-gsee}, \cref{rem:lec05-overlap}):}
+the $p_0^{-1}$ from the number of repetitions $M$ needed to see the ground state
+at least once (each run hits $\ket{\psi_0}$ only with probability $p_0$); the
+second $p_0^{-1}$ from the circuit depth $T=\bigo(\delta'^{-1})=\bigo(p_0^{-1})$
+forced on us to suppress the Fej\'er-tail underestimates once $M=\bigo(p_0^{-1})$.
+Their product is $TM=\bigo(p_0^{-2})$.
+\emph{QSVT preparation, $\bigo(p_0^{-1/2})$ (\cref{thm:lec05-gsp}):} the sharp
+filter marks the $\ket{\psi_0}$ component cleanly, so instead of \emph{sampling}
+until the flag succeeds (which would cost $\bigo(p_0^{-1})$), one \emph{amplitude
+amplifies} the success amplitude $\sqrt{p_0}$, needing only $\bigo(p_0^{-1/2})$
+rounds (\cref{rem:lec05-sqrt}). The improvement is precisely the Grover/amplitude
+amplification quadratic gain of \cref{sec:lec05-2} applied to the marked ``good''
+component.
+\end{solution}
