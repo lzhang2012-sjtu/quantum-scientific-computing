@@ -319,10 +319,64 @@ $\tfrac{1}{\sqrt2}(\ket{0}+\ee^{\ii 2\pi\,0.j_2}\ket{1})$, giving
           \bigl(\ket{0}+\ee^{\ii 2\pi\,0.j_2}\ket{1}\bigr).
 \]
 A single SWAP then matches \cref{thm:lec04-product}. Concretely for $j=3=(11)_2$:
-$0.j_1 j_2=3/4$ and $0.j_2=1/2$, so
-$\QFT\ket{3}=\tfrac12(\ket{0}-\ii\ket{1})\otimes(\ket{0}-\ket{1})
-=\tfrac12(\ket{0}-\ket{1}-\ii\ket{2}+\ii\ket{3})$, matching
-\cref{def:lec04-qft} with $\omega=\ii$.
+$0.j_1 j_2=3/4$ and $0.j_2=1/2$, so the \emph{product} of the two single-qubit
+factors is
+$\tfrac12(\ket{0}-\ii\ket{1})\otimes(\ket{0}-\ket{1})
+=\tfrac12(\ket{0}-\ket{1}-\ii\ket{2}+\ii\ket{3})$, whereas the \emph{definition}
+gives $\QFT\ket{3}=\tfrac12(\ket{0}-\ii\ket{1}-\ket{2}+\ii\ket{3})$ (with
+$\omega=\ii$). The two agree only after the SWAP: reading the product's tensor
+factors in reverse order sends the amplitudes of $\ket{1}=\ket{01}$ and
+$\ket{2}=\ket{10}$ into each other, reconciling the two expressions. This
+bit-reversal bookkeeping is worked out in full for $n=3$ next.
+\end{example}
+
+\begin{example}[The $n=3$ QFT and the bit-reversal step, in full]
+\label{exa:lec04-n3}
+Take $n=3$, $N=8$, $\omega=\ee^{\ii 2\pi/8}=\ee^{\ii\pi/4}$, and compute
+$\QFT\ket{5}$ two ways. Here $j=5=(101)_2$, so $j_1=1$, $j_2=0$, $j_3=1$.
+
+\emph{From the definition.} \Cref{def:lec04-qft} gives the eight amplitudes
+$N^{-1/2}\omega^{5k}$ directly. Since $\omega^{5}=\ee^{\ii 5\pi/4}
+=(-1-\ii)/\sqrt2$, the successive powers $\omega^{5k}$ for $k=0,\dots,7$ are
+$1,\;\omega^{5},\;\omega^{10}=\omega^{2}=\ii,\;\omega^{15}=\omega^{7},\;
+\omega^{20}=\omega^{4}=-1,\;\omega^{25}=\omega,\;\omega^{30}=\omega^{6}=-\ii,\;
+\omega^{35}=\omega^{3}$, so
+\begin{equation}
+\label{eq:lec04-n3def}
+  \QFT\ket{5}=\frac{1}{2\sqrt2}\Bigl(
+    \ket{0}-\tfrac{1+\ii}{\sqrt2}\ket{1}+\ii\ket{2}+\tfrac{1-\ii}{\sqrt2}\ket{3}
+    -\ket{4}+\tfrac{1+\ii}{\sqrt2}\ket{5}-\ii\ket{6}
+    -\tfrac{1-\ii}{\sqrt2}\ket{7}\Bigr).
+\end{equation}
+
+\emph{From the product representation.} \Cref{thm:lec04-product} assigns to the
+three output qubits the phases $0.j_1 j_2 j_3=0.101_2=\tfrac58$,
+$0.j_2 j_3=0.01_2=\tfrac14$, and $0.j_3=0.1_2=\tfrac12$, hence
+\begin{equation}
+\label{eq:lec04-n3prod}
+  \QFT\ket{5}=\frac{1}{\sqrt2}\bigl(\ket{0}+\ee^{\ii 2\pi\cdot 5/8}\ket{1}\bigr)
+  \otimes\frac{1}{\sqrt2}\bigl(\ket{0}+\ii\ket{1}\bigr)
+  \otimes\frac{1}{\sqrt2}\bigl(\ket{0}-\ket{1}\bigr),
+\end{equation}
+where $\ee^{\ii 2\pi\cdot 5/8}=\ee^{\ii 5\pi/4}=-(1+\ii)/\sqrt2$. The circuit
+realizes \cref{eq:lec04-n3prod} qubit by qubit: an $H$ on qubit $1$ writes the
+leading phase $0.j_1$, a controlled-$R_2$ from qubit $2$ and a controlled-$R_3$
+from qubit $3$ fold in the bits $j_2,j_3$ to complete $0.j_1 j_2 j_3$; an $H$ on
+qubit $2$ and a controlled-$R_2$ from qubit $3$ build $0.j_2 j_3$; and an $H$ on
+qubit $3$ builds $0.j_3$.
+
+\emph{The bit-reversal reconciliation.} Expanding \cref{eq:lec04-n3prod} as a
+sum over basis states $\ket{k_1 k_2 k_3}$---keeping the tensor factors in their
+written order---gives amplitudes indexed by $k_1 k_2 k_3$ that do \emph{not}
+match \cref{eq:lec04-n3def} term by term; for instance the product assigns the
+factor $-(1+\ii)/\sqrt2$ to $\ket{100}=\ket{4}$, whereas the definition assigns
+it to $\ket{001}=\ket{1}$. The two agree precisely after \emph{bit reversal}
+$k_1 k_2 k_3\mapsto k_3 k_2 k_1$, implemented by the final SWAP of qubits $1$ and
+$3$: this exchanges $\ket{1}\leftrightarrow\ket{4}$ and
+$\ket{3}\leftrightarrow\ket{6}$ (the strings that are not palindromes),
+carrying \cref{eq:lec04-n3prod} exactly onto \cref{eq:lec04-n3def}. In short,
+the product representation outputs the amplitudes in bit-reversed order, and the
+SWAP layer is exactly the permutation that undoes it.
 \end{example}
 
 \begin{theorem}[Gate complexity of the QFT]
@@ -419,6 +473,60 @@ holds $\tfrac{1}{\sqrt8}\sum_{j=0}^{7}\ee^{\ii 2\pi(5/8)j}\ket{j}=\QFT\ket{5}$.
 The inverse QFT returns $\ket{5}=\ket{101}$, and measurement reads $101$, i.e.\
 $\tilde\varphi=5/8=\varphi$ with certainty---a single run gives the exact answer.
 \end{example}
+
+\begin{example}[QPE on a phase gate, traced end to end]
+\label{exa:lec04-pgate}
+We run standard QPE on a concrete single-qubit unitary whose eigenphase is
+exactly dyadic, tracing every register. Let $U=\diag(1,\ee^{\ii\pi/4})$ be the
+phase gate (Brody's $P(\pi/4)$), take the eigenstate $\ket{\psi}=\ket{1}$, and
+use $t=3$ ancillas. From $U\ket{1}=\ee^{\ii\pi/4}\ket{1}=\ee^{\ii 2\pi\varphi}
+\ket{1}$ we read off $\varphi=\tfrac18=0.001_2$, so we expect the exact outcome
+$k=1$.
+
+\emph{Step 1 (superposition).} With the system in $\ket{1}$, the Hadamards make
+$
+  \tfrac{1}{\sqrt8}\sum_{j=0}^{7}\ket{j}\otimes\ket{1}.
+$
+
+\emph{Step 2 (controlled powers).} The three controlled operations are
+controlled-$U$, controlled-$U^{2}$, and controlled-$U^{4}$. Since
+$U^{2^{m}}\ket{1}=\ee^{\ii\pi 2^{m}/4}\ket{1}$, they may be replaced by the
+simpler gates $U=P(\pi/4)$, $U^{2}=P(\pi/2)$, $U^{4}=P(\pi)$ on the eigenstate.
+Each controlled power kicks its phase back onto its ancilla, and because
+$\ee^{\ii 2\pi\varphi j}=\ee^{\ii\pi j/4}$ the ancilla register becomes
+\[
+  \frac{1}{\sqrt8}\sum_{j=0}^{7}\ee^{\ii 2\pi(1/8)j}\ket{j}\otimes\ket{1}
+  =\QFT\ket{1}\otimes\ket{1},
+\]
+using \cref{def:lec04-qft} with $N=8$. Written out over the ancilla, the eight
+amplitudes are $\tfrac{1}{\sqrt8}\ee^{\ii\pi j/4}$ for $j=0,\dots,7$, i.e.\ the
+phases $1,\omega,\ii,\omega^{3},-1,\omega^{5},-\ii,\omega^{7}$ with
+$\omega=\ee^{\ii\pi/4}$.
+
+\emph{Step 3 (inverse-QFT readout).} Because the ancilla is exactly
+$\QFT\ket{1}$, applying $\QFT^{-1}$ returns $\ket{1}=\ket{001}$ deterministically.
+Measuring reads $001$, so $\tilde\varphi=0.001_2=\tfrac18$ and the recovered
+eigenvalue is $\ee^{\ii 2\pi\tilde\varphi}=\ee^{\ii\pi/4}$---exactly the phase of
+$U$ on $\ket{1}$. This is the noiseless idealization of Brody's hardware run,
+whose histogram is dominated by the outcome $001$. The companion cases
+$U=Z=\diag(1,-1)$ with $\ket{\psi}=\ket{1}$ (giving $\varphi=\tfrac12$, outcome
+$100$) and $\ket{\psi}=\ket{0}$ (giving $\varphi=0$, outcome $000$) are read off
+the same way, since $Z^{2^{m}}$ acts trivially for $m\ge1$.
+\end{example}
+
+\begin{remark}[When the eigenphase is not dyadic]
+\label{rem:lec04-nondyadic}
+If instead we pick a unitary with $\varphi=\tfrac13$ (not of the form $k/8$),
+Step~2 still leaves the ancilla in
+$\tfrac{1}{\sqrt8}\sum_j\ee^{\ii 2\pi(1/3)j}\ket{j}$, but this is no longer any
+$\QFT\ket{k}$. The inverse QFT then spreads the measurement over the levels
+$k/8$, peaking at the nearest one; the exact probabilities computed from the
+geometric-sum amplitude of \cref{sec:lec04-4} place weight $\approx0.688$ on
+$k=3$ ($\tfrac38$, the closest three-bit approximation to $0.333\ldots$),
+$\approx0.175$ on $k=2$, and the remainder on the other six outcomes. A single
+run therefore returns the best three-bit estimate with high---but no longer
+unit---probability, exactly the peaked distribution analyzed next.
+\end{remark}
 
 \section{Analysis of phase estimation}
 \label{sec:lec04-4}
@@ -530,10 +638,11 @@ ancilla becomes correlated with each $\ket{\psi_k}$ through its own phase
 $\varphi_k$. Measuring the ancilla therefore yields an estimate of one eigenphase
 $\varphi_k$ with probability $p_k$, and the system collapses to the corresponding
 $\ket{\psi_k}$:
-\[
+\begin{equation}
+\label{eq:lec04-collapse}
   \ket{\Psi}\ \xrightarrow{\ \mathrm{QPE}\ }\
   \bigl(\tilde\varphi_k,\,\ket{\psi_k}\bigr)\quad\text{with probability }p_k.
-\]
+\end{equation}
 
 \begin{remark}[Targeting and applications]
 \label{rem:lec04-target}
@@ -549,6 +658,32 @@ $\ket{b}$ is a superposition of eigenvectors of the matrix $A$, and QPE writes
 each eigenvalue into an ancilla so a controlled rotation can implement
 $\lambda\mapsto1/\lambda$.
 \end{remark}
+
+\begin{example}[Order finding: an easily prepared eigenstate superposition]
+\label{exa:lec04-order}
+The eigenstate-superposition mechanism is what powers the order-finding heart of
+Shor's algorithm. Take the modular-multiplication unitary
+$U\ket{J}=\ket{4J\bmod 15}$ on four qubits, so $U\ket{1}=\ket{4}$ and
+$U\ket{4}=\ket{16\bmod 15}=\ket{1}$; on the two-dimensional invariant subspace
+$\mathrm{span}\{\ket{1},\ket{4}\}$ the operator $U$ swaps the two basis vectors.
+Its eigenvectors are $\ket{u_s}=\tfrac{1}{\sqrt2}(\ket{1}+(-1)^{s}\ket{4})$ for
+$s\in\{0,1\}$, with $U\ket{u_s}=(-1)^{s}\ket{u_s}=\ee^{\ii 2\pi(s/2)}\ket{u_s}$,
+so the eigenphases are $\varphi_s=s/2\in\{0,\tfrac12\}$; here the order is
+$r=2$. Preparing a true eigenstate would require knowing $r$ in advance, but the
+trivially prepared computational state $\ket{1}$ already decomposes as an equal
+superposition,
+\[
+  \ket{1}=\tfrac{1}{\sqrt2}\ket{u_0}+\tfrac{1}{\sqrt2}\ket{u_1},
+  \qquad p_0=p_1=\tfrac12.
+\]
+Running QPE with $\ket{1}$ in the system register therefore returns
+$\tilde\varphi_0=0$ (outcome $000$) or $\tilde\varphi_1=\tfrac12$ (outcome $100$
+for $t=3$), each with probability $\tfrac12$. Both are of the form $s/r$ with
+$r=2$, so a couple of runs plus the continued-fractions step of
+\cref{rem:lec04-target} recover the order $r=2$, from which the factors of $15$
+follow. No eigenstate preparation is needed---the phase-kickback and collapse of
+\cref{eq:lec04-collapse} do the work.
+\end{example}
 
 \paragraph{Iterative phase estimation and the Heisenberg limit.}
 The full $t$-qubit register of \cref{def:lec04-qpe} can be traded for a single
@@ -638,10 +773,31 @@ depth versus number of repetitions---each method spends, and connect this to the
 Heisenberg versus shot-noise scaling of \cref{sec:lec04-5}.
 \end{exercise}
 
+\begin{exercise}\label{ex:lec04-11}
+Compute $\QFT\ket{5}$ for $n=3$ from \cref{def:lec04-qft}, and separately from
+the product representation \cref{thm:lec04-product}. Expand the product over
+basis states $\ket{k_1 k_2 k_3}$ and exhibit the explicit bit-reversal
+permutation (the final SWAP of qubits $1$ and $3$) that maps it onto the
+definition, identifying which basis states are exchanged and which are fixed.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec04-12}
+Run standard QPE with $t=3$ ancillas on the phase gate $U=\diag(1,\ee^{\ii\pi/4})$
+and eigenstate $\ket{\psi}=\ket{1}$. Identify $\varphi$, write the ancilla state
+after the controlled powers as $\QFT\ket{k}$, and give the measurement outcome.
+Then repeat for $U=Z$ with $\ket{\psi}=\ket{1}$ and with $\ket{\psi}=\ket{0}$,
+explaining in each case why the controlled powers $U^{2^{m}}$ with $m\ge1$ may be
+omitted.
+\end{exercise}
+
 \readingsection
 \begin{itemize}[leftmargin=1.4em]
   \item Lin Lin, \emph{qasc notes}, Ch.~3 (quantum Fourier transform and phase
         estimation).
   \item Lin Lin, \emph{live notes}, Ch.~16 (phase estimation and Fourier
         transforms).
+  \item J.~Brody, \emph{The Joy of Quantum Computing}, Princeton University
+        Press, 2025, Ch.~9 (QFT and inverse QFT) and Ch.~10 (quantum phase
+        estimation), for concrete small-qubit walkthroughs and the order-finding
+        application.
 \end{itemize}

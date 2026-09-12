@@ -135,3 +135,48 @@ evolution time $\mathcal{T}=\bigo(1/\epsilon)$ gives precision
 $\epsilon\sim1/\mathcal{T}$ (Heisenberg limit), whereas independent repetitions
 give only $\epsilon\sim1/\sqrt{\mathcal{T}}$ (shot noise).
 \end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec04-11}]
+With $N=8$ and $\omega=\ee^{\ii\pi/4}$, the definition gives
+$\QFT\ket{5}=\tfrac{1}{2\sqrt2}\sum_{k=0}^{7}\omega^{5k}\ket{k}$. Reducing
+$\omega^{5k}$ modulo $\omega^{8}=1$ yields the amplitudes
+$\tfrac{1}{2\sqrt2}\bigl(1,\omega^{5},\ii,\omega^{7},-1,\omega,-\ii,
+\omega^{3}\bigr)$ for $\ket{0},\dots,\ket{7}$, i.e.\
+\[
+  \QFT\ket{5}=\tfrac{1}{2\sqrt2}\Bigl(\ket{0}-\tfrac{1+\ii}{\sqrt2}\ket{1}
+  +\ii\ket{2}+\tfrac{1-\ii}{\sqrt2}\ket{3}-\ket{4}+\tfrac{1+\ii}{\sqrt2}\ket{5}
+  -\ii\ket{6}-\tfrac{1-\ii}{\sqrt2}\ket{7}\Bigr),
+\]
+since $\omega^{5}=\ee^{\ii 5\pi/4}=-(1+\ii)/\sqrt2$,
+$\omega^{7}=(1-\ii)/\sqrt2$, $\omega=(1+\ii)/\sqrt2$,
+$\omega^{3}=(-1+\ii)/\sqrt2$. From the product form, $j=5=(101)_2$ gives phases
+$0.j_1 j_2 j_3=\tfrac58$, $0.j_2 j_3=\tfrac14$, $0.j_3=\tfrac12$, so
+\[
+  \QFT\ket{5}=\tfrac{1}{\sqrt2}(\ket{0}+\ee^{\ii 5\pi/4}\ket{1})\otimes
+  \tfrac{1}{\sqrt2}(\ket{0}+\ii\ket{1})\otimes
+  \tfrac{1}{\sqrt2}(\ket{0}-\ket{1}).
+\]
+Expanding over $\ket{k_1 k_2 k_3}$ gives amplitudes $\tfrac{1}{2\sqrt2}$ times,
+in order $000,\dots,111$: $1,-1,\ii,-\ii,\omega^{5},-\omega^{5},\ii\omega^{5},
+-\ii\omega^{5}$, i.e.\ attached to $\ket{0},\ket{4},\ket{2},\ket{6},\ket{1},
+\ket{5},\ket{3},\ket{7}$ after bit reversal $k_1 k_2 k_3\mapsto k_3 k_2 k_1$.
+The SWAP of qubits $1$ and $3$ exchanges $\ket{1}=\ket{001}\leftrightarrow
+\ket{4}=\ket{100}$ and $\ket{3}=\ket{011}\leftrightarrow\ket{6}=\ket{110}$,
+while fixing the palindromes $\ket{0},\ket{2},\ket{5},\ket{7}$; applying it to
+the expanded product reproduces the definition amplitudes above exactly.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec04-12}]
+For $U=\diag(1,\ee^{\ii\pi/4})$ we have $U\ket{1}=\ee^{\ii\pi/4}\ket{1}
+=\ee^{\ii 2\pi\varphi}\ket{1}$ with $\varphi=\tfrac18=0.001_2$. After the
+controlled powers the ancilla is
+$\tfrac{1}{\sqrt8}\sum_{j=0}^{7}\ee^{\ii 2\pi(1/8)j}\ket{j}=\QFT\ket{1}$, so by
+\cref{thm:lec04-exact} the inverse QFT returns $\ket{1}=\ket{001}$ and the
+measurement reads $001$ (recovering $\ee^{\ii 2\pi/8}=\ee^{\ii\pi/4}$). The
+powers reduce to $U=P(\pi/4)$, $U^{2}=P(\pi/2)$, $U^{4}=P(\pi)$. For $U=Z$,
+$Z\ket{1}=-\ket{1}=\ee^{\ii 2\pi(1/2)}\ket{1}$ gives $\varphi=\tfrac12=0.100_2$,
+ancilla $\QFT\ket{4}$, outcome $100$; and $Z\ket{0}=\ket{0}$ gives $\varphi=0$,
+outcome $000$. In both $Z$ cases $Z^{2^{m}}=(Z^{2})^{2^{m-1}}=\id$ for $m\ge1$
+because $Z^{2}=\id$, so the controlled-$U^{2}$ and controlled-$U^{4}$ act
+trivially and may be dropped.
+\end{solution}
