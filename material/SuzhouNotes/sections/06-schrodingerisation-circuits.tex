@@ -1,0 +1,304 @@
+\chapter{Quantum Circuits of Schr\"odingerisation}\label{ch:sec06}
+
+\section{Representation of finite-difference operators}\label{sec:sec06-fd}
+
+Let $\Omega := [0, L]$, $N_x = 2^{n_x}$, and $h = \tfrac{L}{N_x}$. A discrete
+function $u_i$ is defined on $x_i = ih$, $i = 0, 1, \dots, N_x - 1$, and encoded as
+\begin{equation}
+  \ket{u} := \sum_{j=0}^{2^{n_x}-1} u_j\ket{j}.
+\end{equation}
+
+Define the shift operators
+\begin{align}
+  S^- &:= \sum_{j=1}^{2^{n_x}-1} \ket{j-1}\bra{j} = \sum_{\bar{j}=1}^{n_x} I^{\otimes(n_x - \bar{j})} \otimes \sigma_{01} \otimes \sigma_{10}^{\otimes(\bar{j}-1)} \triangleq \sum_{\bar{j}=1}^{n_x} S^-_{\bar{j}}, \\
+  S^+ &:= (S^-)\dg = \sum_{j=1}^{2^{n_x}-1} \ket{j}\bra{j-1} = \sum_{\bar{j}=1}^{n_x} I^{\otimes(n_x - \bar{j})} \otimes \sigma_{10} \otimes \sigma_{01}^{\otimes(\bar{j}-1)} \triangleq \sum_{\bar{j}=1}^{n_x} S^+_{\bar{j}},
+\end{align}
+which act as $S^+\ket{j} = \ket{j+1}$ ($j = 0, \dots, 2^{n_x}-2$) and
+$S^-\ket{j} = \ket{j-1}$ ($j = 1, \dots, 2^{n_x}-1$), where
+$\sigma_{01} := \ket{0}\bra{1}$, $\sigma_{10} := \ket{1}\bra{0}$,
+$\sigma_{00} := \ket{0}\bra{0}$, and $\sigma_{11} := \ket{1}\bra{1}$. For example,
+for $n_x = 1$, $S^- = \ket{0}\bra{1} = \sigma_{01} = \begin{psmallmatrix} 0 & 1 \\ 0 & 0 \end{psmallmatrix}$;
+for $n_x = 2$,
+\begin{equation}
+  S^- = \ket{0}\bra{1} + \ket{1}\bra{2} + \ket{2}\bra{3}
+  = I \otimes \sigma_{01} + \sigma_{10} \otimes \sigma_{01} \ \text{(in matrix form)};
+\end{equation}
+and for $n_x = 3$,
+\begin{equation}
+  S^- = \sum_{j=1}^{7}\ket{j-1}\bra{j} = I^{\otimes 2} \otimes \sigma_{01} + I \otimes \sigma_{10} \otimes \sigma_{01} + \sigma_{10} \otimes \sigma_{01}^{\otimes 2}.
+\end{equation}
+
+The forward and backward finite-difference (FD) operators are
+\begin{equation}
+  (D^+ u)_j = \frac{u_{j+1} - u_j}{h}, \qquad (D^- u)_j = \frac{u_j - u_{j-1}}{h}, \qquad j = 0, 1, \dots, N_x - 1.
+\end{equation}
+With periodic boundary conditions,
+\begin{equation}
+  D_p^+ = \frac{S^- - I^{\otimes n_x} + \sigma_{10}^{\otimes n_x}}{h}, \qquad
+  D_p^- = \frac{I^{\otimes n_x} - S^+ - \sigma_{01}^{\otimes n_x}}{h},
+\end{equation}
+\begin{equation}
+  D_p^{\pm} = \frac{S^- - S^+ - \sigma_{01}^{\otimes n_x} + \sigma_{10}^{\otimes n_x}}{2h}, \qquad
+  D_p^{\Delta} = \frac{S^- + S^+ - 2I^{\otimes n_x} + \sigma_{01}^{\otimes n_x} + \sigma_{10}^{\otimes n_x}}{h^2}.
+\end{equation}
+Similarly, for Dirichlet boundary conditions,
+\begin{equation}
+  D_D^+ = \frac{S^- - I^{\otimes n_x}}{h}\ \text{(right side)}, \qquad
+  D_D^- = \frac{I^{\otimes n_x} - S^+}{h}\ \text{(left side)},
+\end{equation}
+and
+\begin{equation}
+  D_D^{\Delta}\ket{u} = \frac{1}{h}(S^- - I^{\otimes n_x})\sum_{j=0}^{2^{n_x}-1} u_j\ket{j}
+  = \sum_{j=0}^{2^{n_x}-1} \frac{u_{j+1} - u_j}{h}\ket{j}, \qquad u_{2^n} = 0.
+\end{equation}
+
+\begin{lemma}\label{lem:sec06-decomp}
+Given an operator of the form $S = \ket{a}\bra{b} + \ket{b}\bra{a}$ with
+$\ket{a}, \ket{b} \in \C^{2^n}$ and $\braket{a|b} = 0$, it can be decomposed as
+\begin{equation}
+  S = \frac{\ket{a}+\ket{b}}{\sqrt{2}}\frac{\bra{a}+\bra{b}}{\sqrt{2}} - \frac{\ket{a}-\ket{b}}{\sqrt{2}}\frac{\bra{a}-\bra{b}}{\sqrt{2}}
+  \triangleq \ket{a'}\bra{a'} - \ket{b'}\bra{b'},
+\end{equation}
+where $\braket{a'|b'} = 0$. There exists a unitary matrix $B$ such that
+$B\ket{0}\ket{1}^{\otimes(n-1)} = \ket{a'}$ and $B\ket{1}^{\otimes n} = \ket{b'}$,
+and $S$ can be written as
+\begin{equation}
+  S = B\bigl(Z \otimes \ket{1}\bra{1}^{\otimes(n-1)}\bigr)B\dg.
+\end{equation}
+\end{lemma}
+
+\begin{remark}
+For $S = \ee^{\ii\lambda}\ket{a}\bra{b} + \ee^{-\ii\lambda}\ket{b}\bra{a}$
+(with $a \to a$, $\ee^{-\ii\lambda}b \to b$), the Bell basis is
+\begin{equation}
+  \ket{a'} = \frac{\ket{a} + \ee^{-\ii\lambda}\ket{b}}{\sqrt{2}}, \qquad
+  \ket{b'} = \frac{\ket{a} - \ee^{-\ii\lambda}\ket{b}}{\sqrt{2}},
+\end{equation}
+and $B = \ket{a'}\bra{0} + \ket{b'}\bra{1}$. Moreover,
+\begin{equation}
+  U_j(\lambda) := \Bigl(\prod_{m=1}^{j-1} \mathrm{CNOT}_m^j\Bigr) P_j(\lambda) H_j, \qquad
+  P_j(\lambda) = \begin{psmallmatrix} 1 & 0 \\ 0 & \ee^{\ii\lambda} \end{psmallmatrix},
+\end{equation}
+where $\mathrm{CNOT}_m^j$ is the CNOT gate acting on the $m$-th qubit controlled by
+the $j$-th qubit.
+\end{remark}
+
+\section{The heat equation}\label{sec:sec06-heat}
+
+Consider the heat equation with Dirichlet boundary conditions,
+\begin{equation}
+  \begin{cases}
+    \partial_t u(t, x) = a\Delta u(t, x), & (a > 0),\ x \in \Omega \subset \R^d, \\
+    u(0, x) = f(x). &
+  \end{cases}
+\end{equation}
+The $d$-dimensional heat equation can be solved by the central-difference method,
+\begin{equation}
+  \frac{\dd}{\dd t} u(t) = a D_D^{\Delta} u(t), \qquad u(0) = u_0,
+  \qquad u := [u_{j_1 \cdots j_d}]_{1 \le j_i \le N_x - 1}.
+\end{equation}
+
+\paragraph{Schr\"odingerisation.}
+Applying the warped phase transformation $v(t, x, p) = \ee^{-p} u(t, x)$ for
+$p > 0$,
+\begin{equation}
+  \partial_t v(t, x, p) = a\Delta v(t, x, p) = -a\partial_p \Delta v(t, x, p),
+\end{equation}
+and extending to $p < 0$ with initial data $v(0, x, p) = \ee^{-p} u(0, x)$.
+Applying $\mathcal{F}_p$, the Fourier transform over $p$, one obtains
+\begin{equation}
+  \partial_t \hat{v}(t, x, \eta) = \ii\eta\, a\Delta\hat{v}(t, x, \eta),
+  \qquad \hat{v}(t, x, \eta) = \mathcal{F}_p v(t, x, p).
+  \label{eq:sec06-star}
+\end{equation}
+Since $\eta a\Delta$ is self-adjoint under Dirichlet boundary conditions,
+\eqref{eq:sec06-star} is a Schr\"odinger equation.
+
+For the discretization, e.g.\ in one dimension, $v$ and $\hat{v}$ are discretized
+as $v(t) := [v_{j,k}(t)]_{j,k}$ and $\hat{v}(t) := [\hat{v}_{j,k}(t)]_{j,k}$, with
+$v_{j,k}(t) := v(t, x_j, p_k)$ and $\hat{v}_{j,k}(t) := \hat{v}(t, x_j, \eta_k)$,
+and initial condition $v(0) := u(0) \otimes \vec{P}$,
+$\hat{v}(0) := \mathcal{F}_p v(0) = u(0) \otimes \vec{\eta}$, where
+\begin{equation}
+  \vec{P} := [\ee^{-\abs{P_0}}, \ee^{-\abs{P_1}}, \dots, \ee^{-\abs{P_{N_p - 1}}}], \qquad
+  \vec{\eta} := \Bigl[\tfrac{2}{\eta_0^2 + 1}, \tfrac{2}{\eta_1^2 + 1}, \dots, \tfrac{2}{\eta_{N_p-1}^2 + 1}\Bigr],
+\end{equation}
+with $-\pi R = P_0 < \cdots < P_{N_p} = \pi R$, $\Delta p = \tfrac{2\pi R}{N_p}$,
+$N_p = 2^{n_p}$, and Fourier variable $\eta_k = (k - \tfrac{N_p}{2})/R$,
+$k = 0, 1, \dots, N_p - 1$.
+
+The Hamiltonian is discretized using the central-difference method as follows:
+\begin{align}
+  H_{\mathrm{heat}} &= a D_D^{\Delta} \otimes D_\eta
+    = \frac{a}{h^2}\bigl(S^- + S^+ - 2I^{\otimes n_x}\bigr) \otimes \diag(\eta_0, \dots, \eta_{N_p - 1}) \notag\\
+  &= \sum_{k=0}^{N_p - 1} \frac{a\eta_k}{h^2}\Bigl[\sum_{j=1}^{n_x}(S_j^- + S_j^+) - 2I^{\otimes n_x}\Bigr] \otimes \ket{k}\bra{k}
+    = \sum_{k=0}^{N_p - 1}\Bigl(k - \frac{N_p}{2}\Bigr) H_0 \otimes \ket{k}\bra{k},
+\end{align}
+with $H_0 := \gamma_0\bigl[\sum_{j=1}^{n_x}(S_j^- + S_j^+) - 2I^{\otimes n_x}\bigr]$
+and $\gamma_0 = \tfrac{a}{h^2 R}$. In the $d$-dimensional case,
+\begin{equation}
+  H_{\mathrm{heat}} = a\sum_{\alpha=1}^d (D_D^{\Delta})_\alpha \otimes D_\eta
+  = \sum_{k=0}^{N_p-1}\Bigl(k - \frac{N_p}{2}\Bigr)\sum_{\alpha=1}^d (H_0)_\alpha \otimes \ket{k}\bra{k},
+\end{equation}
+where $(\cdot)_\alpha = I^{\otimes(d-\alpha)n_x} \otimes\, \cdot\, \otimes I^{\otimes(\alpha-1)n_x}$.
+
+\section{Quantum circuit construction}\label{sec:sec06-circuit}
+
+We construct the explicit quantum circuit for the Hamiltonian evolution operator
+$U_{\mathrm{heat}}(\tau) := \exp(\ii H_{\mathrm{heat}}\tau)$:
+\begin{align}
+  U_{\mathrm{heat}}(\tau)
+  &= \exp\Bigl(\ii\tau\sum_{k=0}^{N_p - 1}\Bigl(k - \tfrac{N_p}{2}\Bigr)\sum_{\alpha=1}^d (H_0)_\alpha \otimes \ket{k}\bra{k}\Bigr) \notag\\
+  &= \sum_{k=0}^{N_p - 1}\Bigl(\exp\Bigl(\ii\tau\sum_{\alpha=1}^d (H_0)_\alpha\Bigr)\Bigr)^{k - \frac{N_p}{2}} \otimes \ket{k}\bra{k}
+   = \sum_{k=0}^{N_p - 1}\Bigl(\prod_{\alpha=1}^d (U_0(\tau))_\alpha\Bigr)^{k - \frac{N_p}{2}} \otimes \ket{k}\bra{k},
+\end{align}
+where $U_0(\tau) := \exp(\ii H_0\tau)$ and
+$\exp(\sum_k A_k \otimes \ket{k}\bra{k}) = \sum_k \exp(A_k) \otimes \ket{k}\bra{k}$,
+so that $\exp(\sum_\alpha (A)_\alpha) = \prod_\alpha \exp(A_\alpha)$.
+
+To simulate $H_0 := \gamma_0[\sum_{j=1}^{n_x}(S_j^- + S_j^+) - 2I^{\otimes n_x}]$,
+consider the quantum circuit for
+$\nu\sum_{j=1}^{n_x}(\ee^{\ii\lambda}S_j^- + \ee^{-\ii\lambda}S_j^+)$ with
+$\lambda, \nu \in \R$. A direct calculation yields
+\begin{equation}
+  \ee^{\ii\lambda}S_j^- + \ee^{-\ii\lambda}S_j^+
+  = I^{\otimes(n_x - j)} \otimes \bigl(\ee^{\ii\lambda}\ket{a_j}\bra{b_j} + \ee^{-\ii\lambda}\ket{b_j}\bra{a_j}\bigr),
+\end{equation}
+with $\ket{a_j} := \ket{0}\ket{1}^{\otimes(j-1)}$ and
+$\ket{b_j} := \ket{1}\ket{0}^{\otimes(j-1)}$. Recalling \cref{lem:sec06-decomp},
+one can define $B_j(\lambda)$ such that
+\begin{equation}
+  B_j(\lambda)\ket{0}\ket{1}^{\otimes(j-1)} = \frac{\ket{a} + \ee^{-\ii\lambda}\ket{b}}{\sqrt{2}}, \qquad
+  B_j(\lambda)\ket{1}\ket{1}^{\otimes(j-1)} = \frac{\ket{a} - \ee^{-\ii\lambda}\ket{b}}{\sqrt{2}},
+\end{equation}
+with (Bell basis) $B_j(\lambda) := \bigl(\prod_{m=1}^{j-1}\mathrm{CNOT}_m^j\bigr)P_j(-\lambda)H_j$.
+Therefore
+\begin{equation}
+  \ee^{\ii\lambda}S_j^- + \ee^{-\ii\lambda}S_j^+
+  = I^{\otimes(n_x - j)} \otimes B_j(\lambda)\bigl(Z \otimes \ket{1}\bra{1}^{\otimes(j-1)}\bigr)B_j(\lambda)\dg.
+\end{equation}
+The time-evolution operator is formulated as
+\begin{align}
+  \exp\bigl(\ii\nu\tau(\ee^{\ii\lambda}S_j^- + \ee^{-\ii\lambda}S_j^+)\bigr)
+  &= I^{\otimes(n_x - j)} \otimes B_j(\lambda)\, \mathrm{CRZ}_j^{1,\dots,j-1}(-2\nu\tau)\, B_j(\lambda)\dg \notag\\
+  &\triangleq I^{\otimes(n_x - j)} \otimes W_j(\nu\tau, \lambda),
+\end{align}
+where
+\begin{equation}
+  \mathrm{CRZ}_j^{1,\dots,j-1}(\theta) := \exp(-\ii\theta Z_j/2) \otimes \ket{1}\bra{1}^{\otimes(j-1)} + I \otimes \bigl(I^{\otimes(j-1)} - \ket{1}\bra{1}^{\otimes(j-1)}\bigr)
+\end{equation}
+is the multi-controlled $R_Z$ gate acting on the $j$-th qubit controlled by the
+$1, \dots, j-1$-th qubits (\cref{fig:sec06-wj}). Using the first-order
+Lie--Trotter scheme,
+\begin{equation}
+  \exp\Bigl(\ii\nu\tau\sum_{j=1}^{n_x}(\ee^{\ii\lambda}S_j^- + \ee^{-\ii\lambda}S_j^+)\Bigr)
+  = \prod_{j=1}^{n_x}\exp\bigl(\ii\nu\tau(\ee^{\ii\lambda}S_j^- + \ee^{-\ii\lambda}S_j^+)\bigr) + \bigo(\tau^2)
+  = \prod_{j=1}^{n_x} I^{\otimes(n_x - j)} \otimes W_j(\nu\tau, \lambda).
+\end{equation}
+
+\begin{figure}[ht]
+  \centering
+  \begin{quantikz}
+    \lstick{$q_1$}     & \qw               & \qw      & \ctrl{3}              & \qw      & \qw                & \\
+    \lstick{$q_2$}     & \qw               & \qw      & \ctrl{2}              & \qw      & \qw                & \\
+    \lstick{$q_{j-1}$} & \qw               & \qw      & \ctrl{1}              & \qw      & \qw                & \\
+    \lstick{$q_j$}     & \gate{P(\lambda)} & \gate{H} & \gate{R_Z(-2\gamma\tau)} & \gate{H} & \gate{P(-\lambda)} &
+  \end{quantikz}
+  \caption{Quantum circuit for $W_j(\gamma\tau, \lambda)$.}
+  \label{fig:sec06-wj}
+\end{figure}
+
+Setting $\gamma = \gamma_0$ and $\lambda = 0$ to simulate $H$, we have
+$B_j(0) = \bigl(\prod_{m=1}^{j-1}\mathrm{CNOT}_m^j\bigr)H_j$. Then
+$U_0(\tau) = \exp(\ii H_0\tau)$ is approximated by
+\begin{align}
+  U_0(\tau) &= \exp\Bigl(\ii\gamma_0\tau\sum_{j=1}^{n_x}(S_j^- + S_j^+) - 2\ii\gamma_0\tau I^{\otimes n_x}\Bigr) \notag\\
+  &= \exp(-2\ii\gamma_0\tau)\exp\Bigl(\ii\gamma_0\tau\sum_{j=1}^{n_x}(S_j^- + S_j^+)\Bigr) \notag\\
+  &\simeq \mathrm{Ph}(-2\gamma_0\tau)\prod_{j=1}^{n_x} I^{\otimes(n_x - j)} \otimes W_j(\gamma_0\tau, 0)
+   \triangleq V_0(\tau),
+\end{align}
+where $\mathrm{Ph}(\theta) := \ee^{\ii\theta} I^{\otimes n_x}$ is the global phase
+gate (\cref{fig:sec06-v0}).
+
+\begin{figure}[ht]
+  \centering
+  \begin{quantikz}
+    \lstick{$q_1$}     & \gate[1]{W_1(\gamma_0\tau,0)} & \qw & \ \ldots\ & \qw & \gate[4]{\mathrm{Ph}(-2\gamma_0\tau)} & \\
+    \lstick{$q_2$}     & \qw & \gate[2]{W_2(\gamma_0\tau,0)} & \ \ldots\ & \qw & & \\
+    \lstick{$\vdots$}  &     &     &           &     & & \\
+    \lstick{$q_{n_x}$} & \qw & \qw & \ \ldots\ & \gate[4]{W_{n_x}(\gamma_0\tau,0)} & &
+  \end{quantikz}
+  \caption{Quantum circuit for $V_0(\tau)$.}
+  \label{fig:sec06-v0}
+\end{figure}
+
+Ultimately, the time-evolution operator is
+\begin{equation}
+  U_{\mathrm{heat}}(\tau) \simeq V_{\mathrm{heat}}(\tau) := \sum_{k=0}^{N_p - 1}\Bigl(\prod_{\alpha=1}^d (V_0(\tau))_\alpha\Bigr)^{k - \frac{N_p}{2}} \otimes \ket{k}\bra{k}.
+\end{equation}
+Denoting $\tilde{V}_0(\tau) := \prod_{\alpha=1}^d (V_0(\tau))_\alpha$
+(\cref{fig:sec06-vtilde}),
+\begin{align}
+  \sum_{k=0}^{N_p - 1}\tilde{V}_0^{\,k - \frac{N_p}{2}}(\tau) \otimes \ket{k}\bra{k}
+  &= \tilde{V}_0^{-\frac{N_p}{2}} \otimes I^{\otimes n_p}\sum_{k=0}^{N_p-1}\tilde{V}_0^{\,(k)}(\tau) \otimes \ket{k}\bra{k}.
+\end{align}
+Let $k = (k_{n_p - 1}, \dots, k_0)$, so that
+$\tilde{V}_0^k(\tau) = \prod_{m=0}^{n_p - 1}\tilde{V}_0^{\,k_m 2^m}(\tau)$. Then
+\begin{align}
+  \sum_{k=0}^{N_p - 1}\tilde{V}_0^k(\tau) \otimes \ket{k}\bra{k}
+  &= \prod_{m=0}^{n_p - 1}\Bigl(\tilde{V}_0^{\,2^m}(\tau) \otimes \ket{1}\bra{1} + I^{\otimes n_x} \otimes \ket{0}\bra{0}\Bigr),
+\end{align}
+which is a regular matrix product in the $n_x$ registers and a tensor product in
+the $n_p$ registers (\cref{fig:sec06-vheat}). The full Schr\"odingerisation
+circuit is shown in \cref{fig:sec06-full}, where the measurement requires only a
+projection onto $\ket{k}$, $p_k > 0$, and $\mathcal{QFT}$ ($\mathcal{IQFT}$)
+denotes the (inverse) quantum Fourier transform.
+
+\begin{figure}[ht]
+  \centering
+  \begin{quantikz}
+    \lstick{$q^1$} & \qwbundle{n_x} & \gate{V_0(\tau)} & \qw & \ \ldots\ & \qw & \\
+    \lstick{$q^2$} & \qwbundle{n_x} & \qw & \gate{V_0(\tau)} & \ \ldots\ & \qw & \\
+    \lstick{$q^d$} & \qwbundle{n_x} & \qw & \qw & \ \ldots\ & \gate{V_0(\tau)} &
+  \end{quantikz}
+  \caption{Quantum circuit for $\tilde{V}_0(\tau)$.}
+  \label{fig:sec06-vtilde}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \begin{quantikz}
+    \lstick{$q$}         & \qwbundle{n_x d} & \gate{\tilde{V}_0(\tau)} & \gate{\tilde{V}_0^{2}(\tau)} & \ \ldots\ & \gate{\tilde{V}_0^{2^{n_p-1}}(\tau)} & \\
+    \lstick{$k_0$}       & \ctrl{-1}        & \qw                      & & & \\
+    \lstick{$k_1$}       & \qw              & \ctrl{-1}                & & & \\
+    \lstick{$k_{n_p-1}$} & \qw              & \qw                      & & \ctrl{-1} &
+  \end{quantikz}
+  \caption{Quantum circuit for $V_{\mathrm{heat}}(\tau)$.}
+  \label{fig:sec06-vheat}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \begin{quantikz}
+    \lstick{$\ket{u(0)}$} & \qwbundle{n_x d} & \qw              & \gate[2]{V^r(\tau)} & \qw               & \qw      & \rstick{$\ket{u(r\tau)}$} \\
+    \lstick{$\ket{p}$}    & \qwbundle{n_p}   & \gate{\mathcal{QFT}} &                 & \gate{\mathcal{IQFT}} & \meter{} & \rstick{$\ket{k}$}
+  \end{quantikz}
+  \caption{Quantum circuit for the Schr\"odingerisation method. The measurement
+    requires only a projection onto $\ket{k}$ with $p_k > 0$, and $\mathcal{QFT}$
+    ($\mathcal{IQFT}$) denotes the (inverse) quantum Fourier transform.}
+  \label{fig:sec06-full}
+\end{figure}
+
+Given $T = r\tau$, the operator $V_{\mathrm{heat}}(\tau)$ is applied $r$ times to
+give the state $\ket{\hat{v}_D(T)} := V_{\mathrm{heat}}^r(\tau)\ket{\hat{v}(0)}$.
+One can perform an inverse quantum Fourier transform on it to retrieve
+$\ket{v_D(T)}$. Then a measurement (the projection
+$M_k := I^{\otimes n_x d} \otimes \ket{k}\bra{k}$, $p_k > 0$) is taken to select
+only the $\ket{k}$ part of the state $\ket{v_D(T)}$. Since
+$v(t, x, p) = \ee^{-p} u(t, x)$ for $p > 0$, one can see
+\begin{equation}
+  M_k\ket{v_D(T)} \approx \frac{1}{\norm{v_D(T)}}\ee^{-p_k}\mathbf{u}(T)\ket{k}
+  = \frac{\ee^{-p_k}\norm{\mathbf{u}(T)}}{\norm{v(0)}}\ket{u(T)}\ket{k}.
+\end{equation}
+After the measurement, the output is close to $\ket{u(T)}\ket{k}$ with probability
+$\ee^{-2p_k}\norm{\mathbf{u}(T)}^2 / \norm{v(0)}^2$.

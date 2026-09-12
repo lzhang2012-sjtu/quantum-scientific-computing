@@ -1,0 +1,620 @@
+\chapter{Quantum Gates, Circuits, and the No-Cloning Theorem}
+
+This chapter develops the operational layer of quantum computing. We treat gates
+as unitary operators, catalogue the standard single- and multi-qubit gates and
+the algebraic identities relating them, learn to read circuit diagrams, discuss
+universal gate sets and compilation to hardware, and finally state and prove the
+no-cloning theorem together with its consequences.
+
+\section{Unitary Operators as Gates}
+
+The postulates of quantum mechanics say that the state of an isolated system
+evolves in time by a linear, inner-product-preserving map. On a finite
+dimensional Hilbert space such a map is exactly a unitary operator, and in
+quantum computing we call it a gate.
+
+\begin{definition}[Unitary operator / quantum gate]
+Let $\mathcal{H}\cong\C^{d}$ be a finite-dimensional Hilbert space. A linear
+operator $U:\mathcal{H}\to\mathcal{H}$ is \emph{unitary} if
+\[
+  U^{\dagger}U = U U^{\dagger} = \id,
+\]
+where $U^{\dagger}$ is the conjugate transpose (adjoint) of $U$. A
+\emph{quantum gate} on $n$ qubits is a unitary operator on
+$\mathcal{H}=(\C^{2})^{\otimes n}\cong\C^{2^{n}}$.
+\end{definition}
+
+Equivalently, $U$ is unitary iff its columns (or rows) form an orthonormal basis
+of $\C^{d}$, iff $U^{-1}=U^{\dagger}$. In particular every gate is invertible, so
+quantum computation is reversible.
+
+\begin{theorem}[Gates preserve inner products and norm]
+\label{l2:thm:unitary-preserves}
+Let $U$ be a linear operator on $\mathcal{H}$. The following are equivalent.
+\begin{enumerate}[label=\textup{(\roman*)}]
+  \item $U$ is unitary, i.e. $U^{\dagger}U=\id$.
+  \item $U$ preserves inner products: $\braket{U\psi|U\phi}=\braket{\psi|\phi}$
+        for all $\ket{\psi},\ket{\phi}\in\mathcal{H}$.
+  \item $U$ preserves norm: $\norm{U\psi}=\norm{\psi}$ for all
+        $\ket{\psi}\in\mathcal{H}$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+$(\mathrm{i})\Rightarrow(\mathrm{ii})$. Using
+$\braket{U\psi|U\phi}=\bra{\psi}U^{\dagger}U\ket{\phi}$ and $U^{\dagger}U=\id$,
+we get $\braket{U\psi|U\phi}=\bra{\psi}\id\ket{\phi}=\braket{\psi|\phi}$.
+
+$(\mathrm{ii})\Rightarrow(\mathrm{iii})$. Take $\ket{\phi}=\ket{\psi}$: then
+$\norm{U\psi}^{2}=\braket{U\psi|U\psi}=\braket{\psi|\psi}=\norm{\psi}^{2}$, and
+taking nonnegative square roots gives $\norm{U\psi}=\norm{\psi}$.
+
+$(\mathrm{iii})\Rightarrow(\mathrm{i})$. Norm preservation gives
+$\bra{\psi}U^{\dagger}U\ket{\psi}=\bra{\psi}\id\ket{\psi}$ for all $\ket{\psi}$,
+so the self-adjoint operator $M\defeq U^{\dagger}U-\id$ satisfies
+$\bra{\psi}M\ket{\psi}=0$ for every $\ket{\psi}$. For a self-adjoint operator the
+quadratic form determines the operator (via the polarization identity, or by
+choosing $\ket{\psi}$ to be its eigenvectors), hence $M=0$, i.e.
+$U^{\dagger}U=\id$. On a finite-dimensional space a left inverse is a two-sided
+inverse, so also $UU^{\dagger}=\id$ and $U$ is unitary.
+\end{proof}
+
+Physically, Theorem~\ref{l2:thm:unitary-preserves} says gates map normalized states
+to normalized states and never change the ``angle'' between two states; this
+inner-product rigidity is exactly what will forbid cloning in
+Section~\ref{l2:sec:nocloning}.
+
+\section{Single-Qubit Gates}
+
+\begin{definition}[Pauli, Hadamard, and phase gates]
+The \emph{Pauli gates} and identity on $\C^{2}$ are
+\[
+  I=\begin{pmatrix}1&0\\0&1\end{pmatrix},\quad
+  X=\begin{pmatrix}0&1\\1&0\end{pmatrix},\quad
+  Y=\begin{pmatrix}0&-i\\i&0\end{pmatrix},\quad
+  Z=\begin{pmatrix}1&0\\0&-1\end{pmatrix}.
+\]
+The \emph{Hadamard gate} and the \emph{phase gates} $S$ and $T$ are
+\[
+  H=\frac{1}{\sqrt{2}}\begin{pmatrix}1&1\\1&-1\end{pmatrix},\qquad
+  S=\begin{pmatrix}1&0\\0&i\end{pmatrix},\qquad
+  T=\begin{pmatrix}1&0\\0&e^{i\pi/4}\end{pmatrix}.
+\]
+\end{definition}
+
+Each of these is unitary: one checks directly that $X^{\dagger}X=Y^{\dagger}Y
+=Z^{\dagger}Z=I$, that $H^{\dagger}H=I$, and that $S,T$ are diagonal with
+unit-modulus entries. In the computational basis,
+\[
+  X\ket{0}=\ket{1},\quad X\ket{1}=\ket{0},\qquad
+  Z\ket{0}=\ket{0},\quad Z\ket{1}=-\ket{1},
+\]
+so $X$ is a \emph{bit flip} (the quantum \textsc{not} gate) and $Z$ is a
+\emph{phase flip}: it fixes $\ket{0}$ and multiplies $\ket{1}$ by $-1$. The
+Hadamard gate creates superpositions,
+\[
+  H\ket{0}=\ket{+}=\tfrac{1}{\sqrt{2}}(\ket{0}+\ket{1}),\qquad
+  H\ket{1}=\ket{-}=\tfrac{1}{\sqrt{2}}(\ket{0}-\ket{1}),
+\]
+and is self-inverse, $H^{2}=I$, since
+$\tfrac12\left(\begin{smallmatrix}1&1\\1&-1\end{smallmatrix}\right)
+\left(\begin{smallmatrix}1&1\\1&-1\end{smallmatrix}\right)
+=\left(\begin{smallmatrix}1&0\\0&1\end{smallmatrix}\right)$. The phase gates
+leave $\ket{0}$ alone and rotate the phase of $\ket{1}$: $S$ multiplies it by
+$i$ and $T$ by $e^{i\pi/4}$.
+
+The four operators $\{I,X,Y,Z\}$ form a basis of the (complex) vector space of
+$2\times2$ matrices, so every single-qubit gate can be written as a complex
+linear combination of Pauli matrices. Geometrically, a single-qubit pure state
+corresponds to a point on the \emph{Bloch sphere}; the Pauli gates act as
+rotations by $\pi$ about the $x$, $y$, $z$ axes (up to a global phase), $X$ being
+a bit flip about the $x$-axis and $Z$ a phase flip about the $z$-axis.
+
+\subsection{Algebraic identities}
+
+The Pauli, Hadamard, and phase gates satisfy several identities used constantly
+in practice. We prove the two conjugation identities that exchange bit and phase
+flips.
+
+\begin{lemma}[Hadamard conjugation]
+\label{l2:lem:conj}
+$H X H = Z$ and $H Z H = X$.
+\end{lemma}
+
+\begin{proof}
+Recall $H=H^{\dagger}$ and $H^{2}=I$. Compute $HXH$ by matrix multiplication.
+First
+\[
+  XH=\begin{pmatrix}0&1\\1&0\end{pmatrix}
+     \frac{1}{\sqrt2}\begin{pmatrix}1&1\\1&-1\end{pmatrix}
+    =\frac{1}{\sqrt2}\begin{pmatrix}1&-1\\1&1\end{pmatrix},
+\]
+and then
+\[
+  HXH=\frac{1}{\sqrt2}\begin{pmatrix}1&1\\1&-1\end{pmatrix}\cdot
+      \frac{1}{\sqrt2}\begin{pmatrix}1&-1\\1&1\end{pmatrix}
+     =\frac{1}{2}\begin{pmatrix}2&0\\0&-2\end{pmatrix}
+     =\begin{pmatrix}1&0\\0&-1\end{pmatrix}=Z.
+\]
+For the second identity, conjugate the first by $H$ on both sides and use
+$H^{2}=I$: from $HXH=Z$ we get $H(HXH)H=HZH$, i.e. $(H^{2})X(H^{2})=HZH$, so
+$X=HZH$. Alternatively compute directly:
+\[
+  ZH=\frac{1}{\sqrt2}\begin{pmatrix}1&1\\-1&1\end{pmatrix},\qquad
+  HZH=\frac{1}{2}\begin{pmatrix}1&1\\1&-1\end{pmatrix}
+      \begin{pmatrix}1&1\\-1&1\end{pmatrix}
+     =\begin{pmatrix}0&1\\1&0\end{pmatrix}=X. \qedhere
+\]
+\end{proof}
+
+Lemma~\ref{l2:lem:conj} is the precise statement that $H$ is a ``bridge'' between
+the bit-flip and phase-flip pictures: a phase flip in the computational basis
+looks like a bit flip in the Hadamard ($\ket{+},\ket{-}$) basis, and vice versa.
+Two further identities are recorded for reference.
+
+\begin{proposition}
+\label{l2:prop:yxz}
+$Y=iXZ$ and $S=T^{2}$.
+\end{proposition}
+
+\begin{proof}
+Direct computation:
+\[
+  XZ=\begin{pmatrix}0&1\\1&0\end{pmatrix}
+     \begin{pmatrix}1&0\\0&-1\end{pmatrix}
+    =\begin{pmatrix}0&-1\\1&0\end{pmatrix},\qquad
+  iXZ=\begin{pmatrix}0&-i\\i&0\end{pmatrix}=Y.
+\]
+For the phase gates, $T$ is diagonal so
+$T^{2}=\operatorname{diag}(1,e^{i\pi/4})^{2}=\operatorname{diag}(1,e^{i\pi/2})
+=\operatorname{diag}(1,i)=S$.
+\end{proof}
+
+\begin{remark}[$T$ is non-Clifford]
+The \emph{Clifford group} is generated by $\{H,S,\CNOT\}$ (equivalently, the
+unitaries that map the Pauli group to itself under conjugation). The identities
+above show $X,Y,Z$ and $S=T^{2}$ lie in this group. The $T$ gate does
+\emph{not}: conjugating a Pauli by $T$ produces a superposition of Paulis rather
+than another Pauli, so $T$ is a non-Clifford gate. This matters because the
+Gottesman--Knill theorem says Clifford circuits are efficiently classically
+simulable; the $T$ gate is precisely the ingredient that lifts a gate set to
+universality for quantum computation.
+\end{remark}
+
+\section{Multi-Qubit Gates}
+
+To act on more than one qubit we take tensor products. A gate $A$ on qubit~$0$
+and $B$ on qubit~$1$ acts on the joint state as $A\otimes B$, with
+$(A\otimes B)(\ket{u}\otimes\ket{v})=A\ket{u}\otimes B\ket{v}$. The most
+important genuinely two-qubit gate is the controlled-\textsc{not}.
+
+\begin{definition}[$\CNOT$ and Toffoli]
+The \emph{controlled-\textsc{not}} gate $\CNOT$ acts on two qubits (control
+$a$, target $b$) by
+\[
+  \CNOT\ket{a,b}=\ket{a,\,a\oplus b},\qquad a,b\in\{0,1\},
+\]
+where $\oplus$ is addition modulo $2$. In the ordered computational basis
+$\ket{00},\ket{01},\ket{10},\ket{11}$ its matrix is the $4\times4$ permutation
+unitary
+\[
+  \CNOT=\begin{pmatrix}
+    1&0&0&0\\ 0&1&0&0\\ 0&0&0&1\\ 0&0&1&0
+  \end{pmatrix}.
+\]
+The \emph{Toffoli} (or \textsc{ccnot}) gate acts on three qubits by
+\[
+  \mathrm{CCNOT}\ket{a,b,c}=\ket{a,\,b,\,(a\wedge b)\oplus c},
+\]
+flipping the target $c$ exactly when both controls $a,b$ equal $1$.
+\end{definition}
+
+Since $\CNOT$ permutes the four basis vectors it is a permutation matrix, hence
+unitary; the same holds for the Toffoli gate, which permutes the eight
+three-qubit basis vectors by swapping $\ket{110}\leftrightarrow\ket{111}$. Both
+are their own inverse. The Toffoli gate is universal for classical reversible
+computation: with ancillas it can implement \textsc{and}, \textsc{not}, and
+fan-out, so any Boolean circuit can be made reversible.
+
+\begin{remark}[Why XOR keeps oracles reversible]
+A classical oracle for $f:\{0,1\}^{n}\to\{0,1\}$ is realized quantumly as
+$\Uf\ket{x}\ket{b}=\ket{x}\ket{b\oplus f(x)}$. Writing the answer with $\oplus$
+rather than overwriting $b$ with $f(x)$ is what makes $\Uf$ a permutation of
+basis states, hence unitary and reversible: applying $\Uf$ twice returns
+$\ket{b\oplus f(x)\oplus f(x)}=\ket{b}$, so $\Uf^{2}=\id$. A plain overwrite
+$b\mapsto f(x)$ is generally not injective and cannot be unitary. The $\CNOT$
+rule $b\mapsto a\oplus b$ is the single-bit instance of this construction.
+\end{remark}
+
+\section{Reading Quantum Circuits}
+
+A \emph{quantum circuit} is a diagram in which each horizontal wire is a qubit
+and gates are drawn on the wires. Three conventions govern how to read one.
+
+\begin{enumerate}[label=(\arabic*)]
+  \item \textbf{Time flows left to right.} The input state sits at the far left;
+        a gate drawn further left is applied earlier.
+  \item \textbf{Controls.} On a controlled gate, a filled dot $\bullet$ marks a
+        control that activates when the qubit is $\ket{1}$; an open dot
+        $\circ$ marks a $0$-control, which activates when the qubit is $\ket{0}$.
+  \item \textbf{Matrix order is reversed.} If the circuit applies $U_{1}$ first,
+        then $U_{2}$, the overall unitary is the \emph{reverse-order} product
+        \[
+          U = U_{2}\,U_{1},
+        \]
+        because operators act on the ket to their right. For a length-$m$
+        sequence, $U=U_{m}U_{m-1}\cdots U_{1}$.
+\end{enumerate}
+
+A controlled-$U$ gate with control $a$ can be written compactly as
+$c\text{-}U\,\ket{a}\ket{b}=\ket{a}\,U^{a}\ket{b}$, so $U$ is applied to the
+target raised to the power $a\in\{0,1\}$ (nothing happens when $a=0$). The
+\textsc{swap} gate exchanges two qubits, $\mathrm{SWAP}\ket{a,b}=\ket{b,a}$; it
+can be built from three $\CNOT$s.
+
+\begin{definition}[Circuit depth]
+Group the gates of a circuit into \emph{layers}, where a layer is a maximal set
+of gates acting on disjoint qubits that can be executed simultaneously. The
+\emph{depth} of the circuit is the number of layers, equivalently the largest
+number of gates on any single input-to-output path through the diagram.
+\end{definition}
+
+Gates acting on disjoint sets of qubits commute as tensor factors and run in
+parallel, so depth (not total gate count) measures wall-clock runtime, and
+keeping depth low is central to running on noisy hardware.
+
+\begin{example}[A small circuit's unitary as a reverse-order product]
+Consider one qubit with, from left to right, an $H$ gate, then an $S$ gate, then
+another $H$ gate. The overall unitary is the reverse-order product
+\[
+  U = H\,S\,H
+    = \frac{1}{2}\begin{pmatrix}1&1\\1&-1\end{pmatrix}
+      \begin{pmatrix}1&0\\0&i\end{pmatrix}
+      \begin{pmatrix}1&1\\1&-1\end{pmatrix}
+    = \frac{1}{2}\begin{pmatrix}1+i&1-i\\1-i&1+i\end{pmatrix}.
+\]
+One checks $U^{\dagger}U=I$, confirming the composite is again a gate. Reading
+the diagram in the wrong (left-to-right) matrix order would instead compute
+$HSH$ with the factors reversed, which here gives the same matrix only because
+the outer gates coincide; in general the two orders differ.
+\end{example}
+
+\section{Building a Bell State}
+
+We now assemble single- and two-qubit gates into a circuit that creates
+entanglement. Prepare two qubits in $\ket{00}$, apply $H$ to qubit~$0$, then
+apply $\CNOT$ with qubit~$0$ as control and qubit~$1$ as target.
+
+\begin{theorem}[Bell-state preparation]
+\label{l2:thm:bell}
+With qubit~$0$ the control and qubit~$1$ the target,
+\[
+  \CNOT\,(H\otimes I)\,\ket{00}
+    = \frac{1}{\sqrt2}\big(\ket{00}+\ket{11}\big)
+    =: \ket{\Phi^{+}}.
+\]
+\end{theorem}
+
+\begin{proof}
+First apply $H\otimes I$. Since $H\ket{0}=\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})$
+and $I\ket{0}=\ket{0}$,
+\[
+  (H\otimes I)\ket{00}
+    = \big(H\ket{0}\big)\otimes\big(I\ket{0}\big)
+    = \frac{1}{\sqrt2}(\ket{0}+\ket{1})\otimes\ket{0}
+    = \frac{1}{\sqrt2}\big(\ket{00}+\ket{10}\big).
+\]
+Now apply $\CNOT$ term by term using $\CNOT\ket{a,b}=\ket{a,a\oplus b}$. On
+$\ket{00}$ the control is $0$, so the state is unchanged. On $\ket{10}$ the
+control is $1$, so the target flips: $\ket{10}\mapsto\ket{11}$. Hence
+\[
+  \CNOT\,\frac{1}{\sqrt2}\big(\ket{00}+\ket{10}\big)
+    = \frac{1}{\sqrt2}\big(\ket{00}+\ket{11}\big)=\ket{\Phi^{+}}. \qedhere
+\]
+\end{proof}
+
+The state $\ket{\Phi^{+}}$ is entangled: it cannot be written as a product
+$\ket{u}\otimes\ket{v}$. Indeed, a product state has amplitudes $u_{a}v_{b}$ that
+factor, so the $2\times2$ amplitude matrix
+$\left(\begin{smallmatrix}u_{0}v_{0}&u_{0}v_{1}\\u_{1}v_{0}&u_{1}v_{1}\end{smallmatrix}\right)$
+has determinant $0$; but $\ket{\Phi^{+}}$ has amplitude matrix
+$\tfrac{1}{\sqrt2}\left(\begin{smallmatrix}1&0\\0&1\end{smallmatrix}\right)$ with
+determinant $\tfrac12\neq0$, a contradiction.
+
+\begin{example}[$\CNOT$ on $\ket{+}\ket{0}$]
+Since $\ket{+}=H\ket{0}$, the input $\ket{+}\ket{0}=(H\otimes I)\ket{00}$ is
+exactly the intermediate state of Theorem~\ref{l2:thm:bell}. Therefore
+$\CNOT\ket{+}\ket{0}=\tfrac{1}{\sqrt2}(\ket{00}+\ket{11})=\ket{\Phi^{+}}$: the
+$\CNOT$ turns a product of a superposition and $\ket{0}$ into a maximally
+entangled Bell pair. This is the same computation viewed with the $H$ absorbed
+into the first factor.
+\end{example}
+
+\section{Universal Gate Sets and Compilation}
+
+\begin{definition}[Universal gate set]
+A finite set $\mathcal{G}$ of gates is \emph{universal} if the unitaries
+generated by applying gates from $\mathcal{G}$ to arbitrary subsets of qubits are
+dense in the group of all $n$-qubit unitaries (up to global phase): for every
+target unitary $U$ and every $\varepsilon>0$ there is a finite circuit $V$ over
+$\mathcal{G}$ with $\norm{U-V}\le\varepsilon$.
+\end{definition}
+
+Two facts underlie this definition. First, any $n$-qubit unitary can be written
+\emph{exactly} as a product of single-qubit and two-qubit gates,
+$U=U_{m}U_{m-1}\cdots U_{1}$, though $m$ may be exponential in $n$. Second, a
+fixed \emph{finite} set already suffices to approximate every gate: the set
+\[
+  \mathcal{G}=\{H,\,T,\,\CNOT\}
+\]
+is universal. We settle for approximation because a discrete set cannot hit a
+continuum of unitaries exactly, but it can come within any $\varepsilon$.
+
+\begin{remark}[Solovay--Kitaev cost]
+The Solovay--Kitaev theorem quantifies the price of this discretization: any
+single-qubit gate can be approximated to error $\varepsilon$ by a circuit of
+$O\!\big(\mathrm{polylog}(1/\varepsilon)\big)$ gates from a universal set, and an
+$m$-gate circuit can be recompiled into the finite set using only
+\[
+  O\!\big(m\,\mathrm{polylog}(m/\varepsilon)\big)
+\]
+gates, found by an efficient classical algorithm. The overhead is thus only
+polylogarithmic in the inverse precision, which is why compiling ideal circuits
+to a fixed hardware gate set is practical.
+\end{remark}
+
+Running an abstract circuit on a real device requires \emph{compilation}:
+(i) rewriting logical gates such as $H$, $T$, $\CNOT$ into the machine's
+native gate set; and (ii) inserting \textsc{swap} gates to route qubits, because
+hardware qubits are not all pairwise connected. Throughout one minimizes gate
+count and depth to suppress noise and maximize fidelity.
+
+\section{The No-Cloning Theorem}
+\label{l2:sec:nocloning}
+
+Classically, copying a bit is trivial. Quantum mechanically it is impossible to
+copy an \emph{unknown} state, a fact discovered by Wootters, Zurek, and Dieks in
+1982. A copier would be a gate $U$ that, given the state to copy and a fixed
+blank register $\ket{s}$, outputs two copies.
+
+\begin{theorem}[No-Cloning Theorem]
+\label{l2:thm:nocloning}
+There is no unitary $U$ on $\mathcal{H}\otimes\mathcal{H}$ and blank state
+$\ket{s}\in\mathcal{H}$ such that
+\[
+  U\big(\ket{\psi}\otimes\ket{s}\big)=\ket{\psi}\otimes\ket{\psi}
+  \qquad\text{for every normalized } \ket{\psi}\in\mathcal{H},
+\]
+unless $\dim\mathcal{H}=1$. More precisely, any such $U$ can clone two states
+$\ket{x_{1}},\ket{x_{2}}$ simultaneously only if they are equal or orthogonal.
+\end{theorem}
+
+\begin{proof}
+Suppose such $U$ and $\ket{s}$ exist. Apply the cloning equation to two
+normalized states $\ket{x_{1}}$ and $\ket{x_{2}}$:
+\[
+  U\ket{x_{1}}\ket{s}=\ket{x_{1}}\ket{x_{1}},\qquad
+  U\ket{x_{2}}\ket{s}=\ket{x_{2}}\ket{x_{2}}.
+\]
+Take the inner product of these two equations. On the left, because $U$ is
+unitary it preserves inner products (Theorem~\ref{l2:thm:unitary-preserves}), and
+$\braket{s|s}=1$, so
+\[
+  \big(\bra{x_{1}}\bra{s}\big)U^{\dagger}U\big(\ket{x_{2}}\ket{s}\big)
+   = \braket{x_{1}|x_{2}}\,\braket{s|s}
+   = \braket{x_{1}|x_{2}}.
+\]
+On the right, the inner product of $\ket{x_{1}}\ket{x_{1}}$ with
+$\ket{x_{2}}\ket{x_{2}}$ factors across the tensor product,
+\[
+  \big(\bra{x_{1}}\bra{x_{1}}\big)\big(\ket{x_{2}}\ket{x_{2}}\big)
+   = \braket{x_{1}|x_{2}}\,\braket{x_{1}|x_{2}}
+   = \braket{x_{1}|x_{2}}^{2}.
+\]
+Equating the two sides,
+\[
+  \braket{x_{1}|x_{2}} = \braket{x_{1}|x_{2}}^{2}.
+\]
+Writing $z=\braket{x_{1}|x_{2}}$, this reads $z=z^{2}$, i.e. $z(z-1)=0$, so
+$z\in\{0,1\}$. Thus $\ket{x_{1}}$ and $\ket{x_{2}}$ are either identical
+($z=1$) or orthogonal ($z=0$). A universal cloner would need this for
+\emph{all} pairs, but a space of dimension $\geq 2$ contains states with inner
+product strictly between $0$ and $1$ (e.g. $\ket{0}$ and $\ket{+}$, with
+$\braket{0|+}=\tfrac{1}{\sqrt2}$). This contradiction proves no universal cloner
+exists; only mutually orthogonal states can be cloned.
+\end{proof}
+
+The essence of the proof is that cloning
+$\ket{\psi}\mapsto\ket{\psi}\otimes\ket{\psi}$ is a nonlinear map of $\ket{\psi}$
+(it is quadratic in the amplitudes), whereas every quantum gate is linear;
+linearity forces the inner-product constraint $z=z^{2}$, which no continuum of
+states can satisfy.
+
+\begin{remark}[Consequences]\leavevmode
+\begin{itemize}[nosep]
+  \item \emph{No broadcasting.} Since an unknown state cannot even be duplicated,
+        it cannot be broadcast to several parties.
+  \item \emph{$\CNOT$ does not clone superpositions.} For
+        $\ket{x}=a\ket{0}+b\ket{1}$,
+        \[
+          \CNOT\ket{x}\ket{0}=a\ket{00}+b\ket{11}\neq\ket{x}\ket{x}
+          =\ket{x}\otimes(a\ket{0}+b\ket{1}),
+        \]
+        because the right side contains cross terms $ab\,\ket{01},\,ab\,\ket{10}$
+        absent on the left. $\CNOT$ copies only computational-basis
+        (classical) information, consistent with Theorem~\ref{l2:thm:nocloning}.
+  \item \emph{Measurement destroys unknown states.} A projective measurement
+        sends $\ket{\psi}\mapsto P_{m}\ket{\psi}/\sqrt{p_{m}}$ with
+        $p_{m}=\bra{\psi}P_{m}\ket{\psi}$; the outcome is random and the
+        pre-measurement superposition is irreversibly lost.
+  \item \emph{BB84 security.} Because an eavesdropper can neither copy the
+        transmitted qubits nor measure them without disturbing non-orthogonal
+        states, interception in the BB84 protocol necessarily introduces
+        detectable errors, giving quantum key distribution its security.
+\end{itemize}
+\end{remark}
+
+\begin{theorem}[No-Deleting Theorem]
+\label{l2:thm:nodeleting}
+There is no unitary $U$ that deletes an unknown state against a copy, i.e. no
+$U$ and fixed target $\ket{\Sigma}$ with
+\[
+  U\big(\ket{\psi}\otimes\ket{\psi}\big)=\ket{\psi}\otimes\ket{\Sigma}
+  \qquad\text{for all normalized } \ket{\psi},
+\]
+on a Hilbert space of dimension $\geq 2$.
+\end{theorem}
+
+\begin{proof}
+Assume such $U$ exists and apply it to two states $\ket{x_{1}},\ket{x_{2}}$:
+\[
+  U\ket{x_{1}}\ket{x_{1}}=\ket{x_{1}}\ket{\Sigma},\qquad
+  U\ket{x_{2}}\ket{x_{2}}=\ket{x_{2}}\ket{\Sigma}.
+\]
+Taking inner products and using unitarity on the left and factoring on the right,
+\[
+  \braket{x_{1}|x_{2}}^{2}=\braket{x_{1}|x_{2}}\,\braket{\Sigma|\Sigma}
+                          =\braket{x_{1}|x_{2}},
+\]
+since $\braket{\Sigma|\Sigma}=1$. Again $z=\braket{x_{1}|x_{2}}$ satisfies
+$z^{2}=z$, so $z\in\{0,1\}$. As in Theorem~\ref{l2:thm:nocloning}, this fails for
+non-orthogonal states, so no universal deleting operation exists.
+\end{proof}
+
+\section{Problems}
+
+\begin{exercise}\label{l2:ex:hth}
+Verify by matrix multiplication that $H$ is unitary and self-inverse
+($H^{\dagger}=H$ and $H^{2}=I$). Then, using Lemma~\ref{l2:lem:conj}, compute
+$HYH$.
+\end{exercise}
+
+\begin{exercise}\label{l2:ex:st}
+Show that $S=T^{2}$ and $Z=S^{2}$, and conclude $Z=T^{4}$. What single-qubit
+rotation angle about the $z$-axis does $T$ implement?
+\end{exercise}
+
+\begin{exercise}\label{l2:ex:cnot-conj}
+Prove that $(I\otimes H)\,\CNOT\,(I\otimes H)$ acts as a controlled-$Z$ gate,
+i.e. it applies a phase $-1$ exactly to $\ket{11}$ and fixes the other basis
+states. (Here $H$ acts on the target qubit and the control is qubit~$0$.)
+\end{exercise}
+
+\begin{exercise}\label{l2:ex:reverse}
+A single-qubit circuit applies, in order, $T$ then $H$ then $T$. Write its
+overall unitary $U$ as a matrix product in the correct order and evaluate it.
+\end{exercise}
+
+\begin{exercise}\label{l2:ex:cnot-plus}
+Compute $\CNOT\ket{+}\ket{+}$ and decide whether the result is entangled.
+\end{exercise}
+
+\begin{exercise}\label{l2:ex:noclone-orth}
+Show explicitly that the orthogonal states $\ket{0},\ket{1}$ \emph{can} be cloned
+by a single gate: exhibit a unitary $U$ and blank $\ket{s}$ with
+$U\ket{0}\ket{s}=\ket{0}\ket{0}$ and $U\ket{1}\ket{s}=\ket{1}\ket{1}$. Why does
+this not contradict Theorem~\ref{l2:thm:nocloning}?
+\end{exercise}
+
+\begin{exercise}\label{l2:ex:swap}
+Show that three alternating $\CNOT$s implement \textsc{swap}. Concretely, with
+$C_{01}$ the $\CNOT$ with control $0$/target $1$ and $C_{10}$ the reverse, verify
+$C_{01}C_{10}C_{01}\ket{a,b}=\ket{b,a}$ for all $a,b\in\{0,1\}$.
+\end{exercise}
+
+\subsection*{Solutions}
+
+\begin{solution}
+\textbf{(Exercise~\ref{l2:ex:hth}.)} $H$ has real symmetric entries, so
+$H^{\dagger}=H^{\top}=H$. Then
+$H^{2}=\tfrac12\left(\begin{smallmatrix}1&1\\1&-1\end{smallmatrix}\right)
+\left(\begin{smallmatrix}1&1\\1&-1\end{smallmatrix}\right)
+=\tfrac12\left(\begin{smallmatrix}2&0\\0&2\end{smallmatrix}\right)=I$, which shows
+$H^{\dagger}H=H^{2}=I$, so $H$ is unitary and self-inverse. For $HYH$, use
+$Y=iXZ$ (Proposition~\ref{l2:prop:yxz}) and $H^{2}=I$:
+\[
+  HYH=iH X Z H = i(HXH)(HZH)=i\,Z\,X
+     = i\begin{pmatrix}1&0\\0&-1\end{pmatrix}
+       \begin{pmatrix}0&1\\1&0\end{pmatrix}
+     = i\begin{pmatrix}0&1\\-1&0\end{pmatrix}
+     = \begin{pmatrix}0&i\\-i&0\end{pmatrix}=-Y.
+\]
+So $HYH=-Y$.
+\end{solution}
+
+\begin{solution}
+\textbf{(Exercise~\ref{l2:ex:st}.)} All are diagonal. $T^{2}
+=\operatorname{diag}(1,e^{i\pi/4})^{2}=\operatorname{diag}(1,e^{i\pi/2})
+=\operatorname{diag}(1,i)=S$. Next $S^{2}=\operatorname{diag}(1,i)^{2}
+=\operatorname{diag}(1,-1)=Z$. Combining, $Z=S^{2}=(T^{2})^{2}=T^{4}$. Since
+$T=\operatorname{diag}(1,e^{i\pi/4})$ multiplies the $\ket{1}$ amplitude by
+$e^{i\pi/4}$, it implements a $z$-axis rotation by angle $\pi/4$ in the relative
+phase (a $\pi/8$ rotation of the Bloch vector about the $z$-axis, whence the
+common name ``$\pi/8$ gate'').
+\end{solution}
+
+\begin{solution}
+\textbf{(Exercise~\ref{l2:ex:cnot-conj}.)} Let $V=(I\otimes H)\,\CNOT\,(I\otimes H)$.
+Act on a basis state $\ket{a}\ket{b}$. On the target, the first $H$ gives
+$\ket{a}\,H\ket{b}$; $\CNOT$ maps this to $\ket{a}\,X^{a}H\ket{b}$; the final $H$
+gives $\ket{a}\,H X^{a} H\ket{b}$. By Lemma~\ref{l2:lem:conj}, $HX H=Z$ and for
+$a=0$ we get $H^{2}=I$. Thus $HX^{a}H=Z^{a}$, so
+$V\ket{a}\ket{b}=\ket{a}\,Z^{a}\ket{b}$. This applies $Z$ to the target exactly
+when $a=1$; and $Z\ket{1}=-\ket{1}$, so the only state acquiring the phase $-1$
+is $\ket{11}$, with $\ket{00},\ket{01},\ket{10}$ fixed. Hence $V$ is the
+controlled-$Z$ gate, which is symmetric in the two qubits.
+\end{solution}
+
+\begin{solution}
+\textbf{(Exercise~\ref{l2:ex:reverse}.)} The circuit applies $T$, then $H$, then
+$T$; by the reverse-order rule the unitary is $U=T\,H\,T$. Compute
+$HT=\tfrac{1}{\sqrt2}\left(\begin{smallmatrix}1&1\\1&-1\end{smallmatrix}\right)
+\left(\begin{smallmatrix}1&0\\0&e^{i\pi/4}\end{smallmatrix}\right)
+=\tfrac{1}{\sqrt2}\left(\begin{smallmatrix}1&e^{i\pi/4}\\1&-e^{i\pi/4}\end{smallmatrix}\right)$,
+then
+\[
+  U=T(HT)=\begin{pmatrix}1&0\\0&e^{i\pi/4}\end{pmatrix}
+     \frac{1}{\sqrt2}\begin{pmatrix}1&e^{i\pi/4}\\1&-e^{i\pi/4}\end{pmatrix}
+   =\frac{1}{\sqrt2}\begin{pmatrix}1&e^{i\pi/4}\\ e^{i\pi/4}&-e^{i\pi/2}\end{pmatrix}
+   =\frac{1}{\sqrt2}\begin{pmatrix}1&e^{i\pi/4}\\ e^{i\pi/4}&-i\end{pmatrix}.
+\]
+One verifies $U^{\dagger}U=I$, as it must for a product of gates.
+\end{solution}
+
+\begin{solution}
+\textbf{(Exercise~\ref{l2:ex:cnot-plus}.)} Write
+$\ket{+}\ket{+}=\tfrac12(\ket{00}+\ket{01}+\ket{10}+\ket{11})$. Apply
+$\CNOT$ (control $0$) term by term: $\ket{00}\to\ket{00}$,
+$\ket{01}\to\ket{01}$, $\ket{10}\to\ket{11}$, $\ket{11}\to\ket{10}$. The sum is
+invariant, so
+$\CNOT\ket{+}\ket{+}=\tfrac12(\ket{00}+\ket{01}+\ket{11}+\ket{10})=\ket{+}\ket{+}$.
+The result is a product state, hence \emph{not} entangled: $\ket{+}\ket{+}$ is a
+$+1$ eigenstate of this $\CNOT$.
+\end{solution}
+
+\begin{solution}
+\textbf{(Exercise~\ref{l2:ex:noclone-orth}.)} Take $\ket{s}=\ket{0}$ and let
+$U=\CNOT$ with control $0$, target $1$. Then $\CNOT\ket{0}\ket{0}=\ket{0}\ket{0}$
+and $\CNOT\ket{1}\ket{0}=\ket{1}\ket{1}$, so both orthogonal basis states are
+copied. This does not contradict Theorem~\ref{l2:thm:nocloning}: the theorem only
+forbids a \emph{single} gate that copies \emph{every} state. This $\CNOT$
+copies $\ket{0},\ket{1}$ but, as shown in the No-Cloning remark, fails to copy a
+superposition $a\ket{0}+b\ket{1}$, instead producing the entangled
+$a\ket{00}+b\ket{11}$. Cloning a fixed orthonormal set is exactly the ``classical
+copy'' the theorem permits.
+\end{solution}
+
+\begin{solution}
+\textbf{(Exercise~\ref{l2:ex:swap}.)} Track the pair $(a,b)$ under the three gates,
+recalling $C_{01}:(a,b)\mapsto(a,a\oplus b)$ and $C_{10}:(a,b)\mapsto
+(a\oplus b,b)$. Starting from $(a,b)$:
+\[
+  (a,b)\ \xrightarrow{C_{01}}\ (a,\,a\oplus b)
+       \ \xrightarrow{C_{10}}\ (a\oplus(a\oplus b),\,a\oplus b)=(b,\,a\oplus b)
+       \ \xrightarrow{C_{01}}\ (b,\,b\oplus(a\oplus b))=(b,a).
+\]
+Since $a\oplus a=0$ and $b\oplus b=0$, the net effect is $(a,b)\mapsto(b,a)$ for
+all $a,b$, which is exactly \textsc{swap}. As each $\CNOT$ is a permutation of
+basis states, so is the composite, confirming
+$\mathrm{SWAP}\ket{a,b}=\ket{b,a}$.
+\end{solution}

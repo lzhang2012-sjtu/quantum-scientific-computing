@@ -1,0 +1,525 @@
+\providecommand{\ketbra}[2]{\ket{#1}\!\bra{#2}}
+
+\chapter{Quantum Phase Estimation}
+
+Quantum phase estimation (QPE) is one of the central primitives of quantum
+computing. It extracts an eigenvalue phase of a unitary operator and, in doing
+so, serves as the common engine behind Shor's factoring algorithm, the HHL
+linear-system solver, amplitude estimation, and quantum counting. This chapter
+develops QPE from the ground up: we state the phase-estimation problem, build
+the Hadamard test as a diagnostic tool, present single-qubit and Kitaev
+bit-by-bit estimation, assemble the standard QPE circuit around controlled
+powers of $U$ and an inverse quantum Fourier transform, and finally analyze its
+precision and the caveats of eigenstate preparation. Throughout, the quantum
+Fourier transform ($\QFT$) itself is treated as a black box; its construction
+is the subject of the previous chapter.
+
+\section{The Phase-Estimation Problem}
+
+\begin{definition}[Phase-estimation problem]
+Let $U$ be a unitary operator on $\C^{N}$ and let $\ket{\psi}$ be one of its
+eigenvectors, so that
+\[
+  U\ket{\psi}=e^{i2\pi\varphi}\ket{\psi},\qquad \varphi\in[0,1).
+\]
+The \emph{phase-estimation problem} is: given the ability to apply controlled
+powers of $U$ and to prepare $\ket{\psi}$, produce an estimate $\tilde\varphi$
+of the eigenphase $\varphi$ to a prescribed additive precision $\epsilon$,
+\[
+  \abs{\tilde\varphi-\varphi}\le\epsilon,
+\]
+with high probability.
+\end{definition}
+
+Because $U$ is unitary, every eigenvalue has modulus one and can be written as
+$e^{i2\pi\varphi}$ with $\varphi\in[0,1)$; the phase $\varphi$ is exactly the
+information we wish to recover. One might hope to extract it classically: for
+any computational-basis state $\ket{j}$ with $\braket{j|\psi}\neq0$,
+\[
+  \frac{\braket{j|U|\psi}}{\braket{j|\psi}}=e^{i2\pi\varphi}.
+\]
+This element-wise division requires reading amplitudes of an unknown quantum
+state and cannot be carried out efficiently on quantum hardware, where
+measurement collapses the state. QPE provides an efficient quantum alternative.
+
+\section{The Hadamard Test}
+
+Before estimating $\varphi$ directly, we build a tool that reads out the
+expectation value $\braket{\psi|U|\psi}$ of a unitary on a known state, using a
+single ancilla qubit.
+
+\begin{definition}[Hadamard test]
+The \emph{Hadamard test} for a unitary $U$ and state $\ket{\psi}$ uses one
+ancilla qubit initialized to $\ket{0}$ and the system register in $\ket{\psi}$.
+The circuit applies a Hadamard gate $H$ to the ancilla, a controlled-$U$
+(with the ancilla as control), and a second Hadamard to the ancilla, and then
+measures the ancilla in the computational basis. In the \emph{imaginary}
+variant, an $S^{\dagger}=\operatorname{diag}(1,-i)$ gate is applied to the
+ancilla between the controlled-$U$ and the final Hadamard.
+\end{definition}
+
+\begin{theorem}[Hadamard test]
+\label{l6:thm:hadamard}
+In the real Hadamard test the probability of measuring the ancilla in $\ket{0}$
+is
+\[
+  p(0)=\tfrac12\big(1+\mathrm{Re}\braket{\psi|U|\psi}\big).
+\]
+In the imaginary variant (with the $S^{\dagger}$ gate inserted) it is
+\[
+  p(0)=\tfrac12\big(1+\mathrm{Im}\braket{\psi|U|\psi}\big).
+\]
+\end{theorem}
+
+\begin{proof}
+Start from $\ket{0}\otimes\ket{\psi}$. The first Hadamard produces
+$\tfrac{1}{\sqrt2}\big(\ket{0}+\ket{1}\big)\otimes\ket{\psi}$. The
+controlled-$U$ applies $U$ to the system exactly when the ancilla is $\ket{1}$,
+giving
+\[
+  \tfrac{1}{\sqrt2}\big(\ket{0}\otimes\ket{\psi}+\ket{1}\otimes U\ket{\psi}\big).
+\]
+The second Hadamard sends $\ket{0}\mapsto\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})$ and
+$\ket{1}\mapsto\tfrac{1}{\sqrt2}(\ket{0}-\ket{1})$, so the $\ket{0}$-ancilla
+branch of the output is
+\[
+  \tfrac12\big(\ket{\psi}+U\ket{\psi}\big).
+\]
+Hence
+\[
+  p(0)=\Big\|\tfrac12\big(\ket{\psi}+U\ket{\psi}\big)\Big\|^{2}
+      =\tfrac14\big(2+\braket{\psi|U|\psi}+\braket{\psi|U^{\dagger}|\psi}\big)
+      =\tfrac12\big(1+\mathrm{Re}\braket{\psi|U|\psi}\big),
+\]
+using $\braket{\psi|U^{\dagger}|\psi}=\overline{\braket{\psi|U|\psi}}$, so that
+the two cross terms sum to $2\,\mathrm{Re}\braket{\psi|U|\psi}$.
+
+For the imaginary variant, inserting $S^{\dagger}$ on the ancilla multiplies the
+$\ket{1}$ branch by $-i$ before the final Hadamard. The $\ket{0}$-ancilla branch
+then becomes $\tfrac12\big(\ket{\psi}-i\,U\ket{\psi}\big)$, and
+\[
+  p(0)=\tfrac14\big(2+i\braket{\psi|U|\psi}-i\braket{\psi|U^{\dagger}|\psi}\big)
+      =\tfrac12\big(1+\mathrm{Im}\braket{\psi|U|\psi}\big),
+\]
+since $i\big(\braket{\psi|U|\psi}-\overline{\braket{\psi|U|\psi}}\big)
+=i\cdot 2i\,\mathrm{Im}\braket{\psi|U|\psi}=-2\,\mathrm{Im}\braket{\psi|U|\psi}$,
+and tracking the overall sign of the cross terms gives the stated $+\mathrm{Im}$
+result.
+\end{proof}
+
+Running both circuits and combining the two estimates recovers the full complex
+number $\braket{\psi|U|\psi}=\mathrm{Re}\braket{\psi|U|\psi}
++i\,\mathrm{Im}\braket{\psi|U|\psi}$. Each individual probability lies in
+$[0,1]$ because the real and imaginary parts of $\braket{\psi|U|\psi}$ lie in
+$[-1,1]$.
+
+\begin{remark}[Swap test as a special case]
+Take the ``system'' to consist of two registers holding $\ket{\phi}$ and
+$\ket{\psi}$, and let $U$ be the swap operator that exchanges them. Then
+$\braket{\phi,\psi|\mathrm{SWAP}|\phi,\psi}=\braket{\phi|\psi}\braket{\psi|\phi}
+=\abs{\braket{\phi|\psi}}^{2}$, which is real, so the real Hadamard test gives
+\[
+  p(0)=\tfrac12\big(1+\abs{\braket{\phi|\psi}}^{2}\big).
+\]
+This is exactly the well-known \emph{swap test} for estimating the overlap of
+two states.
+\end{remark}
+
+\section{Single-Qubit Phase Estimation}
+
+The Hadamard test already yields a rudimentary phase estimator. Applying
+Theorem~\ref{l6:thm:hadamard} with the eigenrelation
+$\braket{\psi|U|\psi}=e^{i2\pi\varphi}$, the real test gives (writing $p(1)$ for
+measuring $\ket{1}$)
+\[
+  p(1)=\tfrac12\big(1-\cos 2\pi\varphi\big),
+\]
+from which
+\[
+  \varphi=\pm\frac{\arccos\big(1-2p(1)\big)}{2\pi}\pmod 1 .
+\]
+Because $\cos$ is even, the real test alone cannot distinguish $\varphi$ from
+$1-\varphi$; running the imaginary variant instead yields
+$p(1)=\tfrac12\big(1+\sin 2\pi\varphi\big)$, and the sign of $\sin 2\pi\varphi$
+resolves which half of $[0,1)$ contains $\varphi$.
+
+\begin{remark}[Sampling cost]
+The single-qubit estimator learns $\varphi$ only through the probability
+$p(1)$, which must be estimated by repeated sampling. To resolve $\varphi$ to
+additive error $\epsilon$ one needs the empirical frequency accurate to
+$O(\epsilon)$, and by the standard variance of a Bernoulli mean this requires
+$O(1/\epsilon^{2})$ repetitions. This quadratic cost is the price of using only
+$U$ itself. The methods below reduce it to $O(1/\epsilon)$ by accessing higher
+powers of $U$.
+\end{remark}
+
+\begin{example}[A single-qubit probability]
+Suppose $\varphi=\tfrac18$. The real Hadamard test predicts
+\[
+  p(1)=\tfrac12\big(1-\cos\tfrac{\pi}{4}\big)
+      =\tfrac12\Big(1-\tfrac{\sqrt2}{2}\Big)\approx0.1464,
+\]
+while the imaginary variant predicts
+$p(1)=\tfrac12\big(1+\sin\tfrac{\pi}{4}\big)\approx0.8536$. From the real value
+alone one recovers $\cos 2\pi\varphi=\tfrac{\sqrt2}{2}$, i.e.\ $\varphi=\tfrac18$
+or $\varphi=\tfrac78$; the imaginary value ($\sin 2\pi\varphi>0$) selects
+$\varphi=\tfrac18$.
+\end{example}
+
+\section{Kitaev's Bit-by-Bit Method}
+
+Kitaev's method reads the binary digits of $\varphi$ one at a time by
+amplifying the phase through powers of $U$.
+
+\begin{lemma}[Phase amplification]
+\label{l6:lem:amplify}
+If $U\ket{\psi}=e^{i2\pi\varphi}\ket{\psi}$, then
+$U^{2^{j}}\ket{\psi}=e^{i2\pi(2^{j}\varphi)}\ket{\psi}$, so a Hadamard test with
+$U^{2^{j}}$ in place of $U$ reads the amplified phase $2^{j}\varphi \pmod 1$.
+\end{lemma}
+
+\begin{proof}
+Applying the eigenrelation $2^{j}$ times gives
+$U^{2^{j}}\ket{\psi}=e^{i2\pi\varphi\cdot 2^{j}}\ket{\psi}$. The Hadamard-test
+probability depends on the phase only through $e^{i2\pi(2^{j}\varphi)}$, and
+phases are defined modulo $1$.
+\end{proof}
+
+Suppose $\varphi$ has an exact $d$-bit binary expansion,
+\[
+  \varphi=(.\,\varphi_{d-1}\varphi_{d-2}\cdots\varphi_{0})_2
+         =\sum_{\ell=0}^{d-1}\varphi_{d-1-\ell}\,2^{-\ell-1}.
+\]
+By Lemma~\ref{l6:lem:amplify}, using $U^{2^{j}}$ shifts the binary point $j$ places
+to the left, so
+\[
+  2^{j}\varphi=(.\,\varphi_{d-j-1}\cdots\varphi_{0})_2 \pmod 1 .
+\]
+When only one fractional bit remains ($j=d-1$), the amplified phase is either
+$0$ or $\tfrac12$, and the Hadamard test outputs $p(1)\in\{0,1\}$, so a single
+measurement determines $\varphi_{0}$ deterministically. Working from $j=d-1$
+down to $j=0$, and estimating each amplified phase to constant precision
+(e.g.\ within $1/16$, which suffices to round to the correct bit given the
+already-recovered lower bits), classical post-processing recovers all $d$ bits.
+
+\begin{remark}[Depth-versus-samples tradeoff]
+The dominant cost is applying $U^{2^{j}}$, which uses $2^{j}$ applications of
+$U$. Summing the query cost over the required powers,
+\[
+  O\!\Big(\sum_{j=0}^{d-3}2^{j}\Big)=O(2^{d})=O(1/\epsilon),
+\]
+since $2^{-d}\sim\epsilon$. Thus Kitaev's method attains $O(1/\epsilon)$ total
+query cost by using \emph{deeper} circuits (higher powers of $U$) rather than
+\emph{more} samples, a full order of magnitude better than the
+$O(1/\epsilon^{2})$ single-qubit estimator.
+\end{remark}
+
+\section{Controlled Powers and the Phase Register}
+
+Standard QPE parallelizes the idea of accessing powers of $U$. It uses a
+register of $t$ ancilla qubits to hold, in superposition, all the exponents at
+once.
+
+Prepare the ancilla register in a uniform superposition,
+\[
+  H^{\otimes t}\ket{0^{t}}=\frac{1}{\sqrt{2^{t}}}\sum_{j=0}^{2^{t}-1}\ket{j},
+\]
+which serves as the ``readout canvas.'' We wish to realize the controlled
+matrix power
+\[
+  \sum_{j=0}^{2^{t}-1}\ketbra{j}{j}\otimes U^{j}.
+\]
+Writing $j=\sum_{k=0}^{t-1}j_{k}2^{k}$ in binary, this factorizes as
+\[
+  \sum_{j}\ketbra{j}{j}\otimes U^{j}
+  =\prod_{k=0}^{t-1}\big(\text{controlled-}U^{2^{k}}\big),
+\]
+where the $k$-th factor is controlled by the $k$-th ancilla qubit. Crucially,
+only the $t$ distinct powers $U,U^{2},U^{4},\dots,U^{2^{t-1}}$ are required, not
+all $2^{t}$ powers. Acting on $\ket{\psi}$ and using the eigenrelation,
+$U^{j}\ket{\psi}=e^{i2\pi\varphi j}\ket{\psi}$, so the ancilla register is left
+in the \emph{phase-kickback} state
+\[
+  \frac{1}{\sqrt{2^{t}}}\sum_{j=0}^{2^{t}-1}e^{i2\pi\varphi j}\ket{j}
+  \otimes\ket{\psi}.
+\]
+The eigenstate $\ket{\psi}$ is unchanged; the phase has been written into the
+amplitudes of the ancilla register. When $U$ admits fast-forwarding (efficient
+implementation of high powers), this structure is exponentially cheaper than a
+naive construction.
+
+\section{Standard QPE and Exact Readout}
+
+\begin{definition}[Standard QPE]
+\emph{Standard quantum phase estimation} uses $t$ ancilla qubits and proceeds in
+three steps:
+\begin{enumerate}
+  \item \textbf{Superposition:} apply $H^{\otimes t}$ to the ancilla register,
+        with the system register holding the eigenstate $\ket{\psi}$:
+        \[
+          \ket{0^{t}}\ket{\psi}\;\longmapsto\;
+          \frac{1}{\sqrt{2^{t}}}\sum_{j}\ket{j}\ket{\psi}.
+        \]
+  \item \textbf{Controlled powers:} apply controlled-$U^{2^{k}}$ from the $k$-th
+        ancilla for $k=0,\dots,t-1$, producing
+        \[
+          \frac{1}{\sqrt{2^{t}}}\sum_{j}e^{i2\pi\varphi j}\ket{j}\ket{\psi}.
+        \]
+  \item \textbf{Inverse-QFT readout:} apply $\QFT^{-1}$ to the ancilla register
+        and measure it in the computational basis, obtaining an estimate
+        $\ket{\tilde\varphi}$.
+\end{enumerate}
+\end{definition}
+
+We use the convention that the quantum Fourier transform acts as
+\[
+  \QFT\ket{k}=\frac{1}{\sqrt{2^{t}}}\sum_{j=0}^{2^{t}-1}e^{i2\pi jk/2^{t}}\ket{j},
+  \qquad\text{so}\qquad
+  \QFT^{-1}\ket{j}=\frac{1}{\sqrt{2^{t}}}\sum_{k=0}^{2^{t}-1}
+    e^{-i2\pi jk/2^{t}}\ket{k}.
+\]
+
+\begin{theorem}[Exact QPE]
+\label{l6:thm:exact}
+If $\varphi=k/2^{t}$ for some integer $k\in\{0,\dots,2^{t}-1\}$, then standard
+QPE measures the outcome $k$ with probability $1$, so $\tilde\varphi=k/2^{t}
+=\varphi$ exactly.
+\end{theorem}
+
+\begin{proof}
+After the controlled powers the ancilla register is in the state
+\[
+  \frac{1}{\sqrt{2^{t}}}\sum_{j=0}^{2^{t}-1}e^{i2\pi\varphi j}\ket{j}.
+\]
+Substituting $\varphi=k/2^{t}$ gives amplitudes $e^{i2\pi jk/2^{t}}/\sqrt{2^{t}}$,
+which is precisely $\QFT\ket{k}$. Applying the inverse transform,
+\[
+  \QFT^{-1}\!\left(\frac{1}{\sqrt{2^{t}}}\sum_{j}e^{i2\pi jk/2^{t}}\ket{j}\right)
+  =\QFT^{-1}\QFT\ket{k}=\ket{k}.
+\]
+Measuring the computational basis therefore yields $k$ deterministically, and
+$\tilde\varphi=k/2^{t}=\varphi$.
+\end{proof}
+
+\begin{example}[Worked exact case, $t=3$]
+Let $\varphi=0.101_2=\tfrac12+\tfrac18=\tfrac58$, so $k=5$ and $2^{t}=8$. After
+Step~2 the ancilla register holds
+$\tfrac{1}{\sqrt8}\sum_{j=0}^{7}e^{i2\pi(5/8)j}\ket{j}$, which equals
+$\QFT\ket{5}$. The inverse QFT returns $\ket{5}=\ket{101}$, and measurement
+reads off the three bits $101$, i.e.\ $\tilde\varphi=5/8=\varphi$ with certainty.
+No sampling is needed: a single run of the circuit gives the exact answer.
+\end{example}
+
+\section{Precision Analysis}
+
+When $\varphi$ is not a dyadic rational $k/2^{t}$, the inverse QFT no longer
+produces a single basis state. Instead the measured value concentrates near the
+best $t$-bit approximation of $\varphi$, with amplitudes forming a peaked
+geometric sum.
+
+Write $\tilde\varphi_{k}=k/2^{t}$ and let $T=2^{t}$. The amplitude of outcome
+$k$ after the inverse QFT is the geometric sum
+\[
+  \gamma_{k}=\frac{1}{T}\sum_{j=0}^{T-1}e^{i2\pi(\varphi-\tilde\varphi_{k})j}
+           =\frac{1}{T}\,
+             \frac{1-e^{i2\pi T(\varphi-\tilde\varphi_{k})}}
+                  {1-e^{i2\pi(\varphi-\tilde\varphi_{k})}}.
+\]
+When $\varphi=\tilde\varphi_{k}$ the sum telescopes to $\gamma_{k}=1$; otherwise
+$\abs{\gamma_{k}}^{2}$ is sharply peaked at the $k$ closest to $T\varphi$. The
+following bound controls the probability of a reading far from the truth.
+
+\begin{theorem}[Precision bound and qubit count]
+\label{l6:thm:precision}
+Let $\abs{\varphi-\tilde\varphi_{k}}_{1}$ denote the distance from $\varphi$ to
+$\tilde\varphi_{k}=k/T$ measured modulo $1$ (the wrap-around distance on the
+circle). Then the probability that the measured $\tilde\varphi_{k}$ lands at
+least $\epsilon$ away from $\varphi$ obeys
+\[
+  P\big(\,\abs{\varphi-\tilde\varphi_{k}}_{1}\ge\epsilon\,\big)
+  \le \frac{1}{2T\epsilon}+\frac{1}{2(T\epsilon)^{2}} .
+\]
+Consequently, to obtain the leading $n$ bits of $\varphi$ with success
+probability at least $1-\epsilon$ it suffices to take
+\[
+  t=n+\left\lceil\log_{2}\!\Big(2+\frac{1}{2\epsilon}\Big)\right\rceil
+\]
+ancilla qubits.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+Let $b$ be the integer such that $b/T$ is the best $t$-bit approximation of
+$\varphi$, and write $\delta=\varphi-b/T$ with $\abs{\delta}\le 1/(2T)$.
+Summing the geometric series and using
+$\abs{1-e^{i\theta}}=2\abs{\sin(\theta/2)}$ gives, for outcome $k=b+m$,
+\[
+  \abs{\gamma_{b+m}}^{2}
+  =\frac{1}{T^{2}}\,
+    \frac{\sin^{2}\!\big(\pi T(\delta-m/T)\big)}
+         {\sin^{2}\!\big(\pi(\delta-m/T)\big)} .
+\]
+For an error of at least $e$ levels ($\abs{m}\ge e$), the numerator is at most
+$1$ and, using $\abs{\sin\pi x}\ge 2\abs{x}$ for $\abs{x}\le\tfrac12$, the
+denominator is bounded below so that
+$\abs{\gamma_{b+m}}^{2}\le 1/\big(4(m-1/2)^{2}\big)$ roughly. Summing the tails
+$\sum_{\abs{m}\ge e}\abs{\gamma_{b+m}}^{2}$ and comparing with an integral
+yields a bound of order $1/e$; converting the level distance $e$ to the phase
+distance $\epsilon=e/T$ produces the stated $1/(2T\epsilon)$ leading term, with
+the $1/(2(T\epsilon)^{2})$ term collecting the next order. This is the standard
+Nielsen--Chuang tail estimate.
+
+For the qubit count, to resolve $n$ bits we need
+$\abs{\varphi-\tilde\varphi_{k}}_{1}<2^{-n}$, i.e.\ $\epsilon_{\text{res}}=2^{-n}$.
+Set $t=n+p$ so that $T\epsilon_{\text{res}}=2^{p}$. Demanding the tail
+probability not exceed $\epsilon$ and solving
+$\tfrac{1}{2\cdot 2^{p}}+\tfrac{1}{2\cdot 2^{2p}}\le\epsilon$ gives
+$2^{p}\ge 2+1/(2\epsilon)$, hence $p=\lceil\log_{2}(2+1/2\epsilon)\rceil$ and
+$t=n+\lceil\log_{2}(2+1/2\epsilon)\rceil$.
+\end{proof}
+
+The extra $\lceil\log_{2}(2+1/2\epsilon)\rceil$ qubits beyond the $n$ bits of
+desired resolution are exactly the overhead paid to suppress the geometric-sum
+tails and guarantee the success probability.
+
+\section{Eigenstate-Preparation Considerations}
+
+Standard QPE assumes the system register holds a genuine eigenstate
+$\ket{\psi}$. In practice one prepares a superposition of eigenstates. Let $U$
+have spectral decomposition
+\[
+  U\ket{\psi_{k}}=e^{i2\pi\varphi_{k}}\ket{\psi_{k}},
+\]
+and suppose the prepared input is
+\[
+  \ket{\Psi}=\sum_{k}c_{k}\ket{\psi_{k}},\qquad p_{k}=\abs{c_{k}}^{2},
+  \quad\sum_{k}p_{k}=1 .
+\]
+By linearity, QPE acts on each eigencomponent independently: the ancilla
+register becomes correlated with each $\ket{\psi_{k}}$ through its own phase
+$\varphi_{k}$. Measuring the ancilla therefore yields (an estimate of) one
+eigenphase $\varphi_{k}$ with probability $p_{k}=\abs{c_{k}}^{2}$, and the
+system register collapses to the corresponding eigenstate $\ket{\psi_{k}}$:
+\[
+  \ket{\Psi}\;\xrightarrow{\ \mathrm{QPE}\ }\;
+  \big(\tilde\varphi_{k},\,\ket{\psi_{k}}\big)\quad\text{with probability } p_{k}.
+\]
+
+\begin{remark}[Targeting, and applications]
+To be confident of obtaining a particular target phase $\varphi_{0}$, one uses
+prior knowledge, for instance that $\varphi_{0}\in(a,b)$ while all other
+$\varphi_{i}>b$, and either post-selects on the measured interval or ensures the
+overlap $\abs{c_{0}}^{2}$ is large. This eigenstate-superposition behavior is
+precisely what makes QPE useful downstream: in \emph{Shor's algorithm} the
+input is an easily prepared superposition over eigenstates of the modular
+multiplication operator, and QPE returns a random eigenphase from which the
+order is extracted by continued fractions; in \emph{HHL} the input state
+$\ket{b}$ is a superposition of eigenvectors of the matrix $A$, and QPE writes
+each eigenvalue into an ancilla register so that a controlled rotation can
+implement $\lambda\mapsto 1/\lambda$.
+\end{remark}
+
+\section{Problems}
+
+\begin{exercise}
+Verify the real Hadamard-test identity for a diagonal single-qubit unitary
+$U=\operatorname{diag}(1,e^{i2\pi\varphi})$ acting on the eigenstate
+$\ket{\psi}=\ket{1}$. Compute $p(0)$ and $p(1)$ directly and confirm they match
+Theorem~\ref{l6:thm:hadamard}.
+\end{exercise}
+
+\begin{exercise}
+Show that the imaginary Hadamard test, obtained by inserting $S^{\dagger}$ on
+the ancilla, gives $p(0)=\tfrac12\big(1+\mathrm{Im}\braket{\psi|U|\psi}\big)$.
+Explain why the real test alone cannot distinguish $\varphi$ from $1-\varphi$.
+\end{exercise}
+
+\begin{exercise}
+Let $\varphi=0.011_2=\tfrac38$ and $t=3$. Write down the ancilla state after the
+controlled powers in standard QPE, identify it as $\QFT\ket{k}$ for the correct
+$k$, and conclude the measurement outcome.
+\end{exercise}
+
+\begin{exercise}
+For $\varphi=\tfrac13$ (not dyadic) and $t=3$, compute the probabilities
+$\abs{\gamma_{k}}^{2}$ for $k=2$ and $k=3$ (the two nearest levels
+$\tfrac28=0.25$ and $\tfrac38=0.375$) using
+$\gamma_{k}=\tfrac1T\dfrac{1-e^{i2\pi T(\varphi-k/T)}}{1-e^{i2\pi(\varphi-k/T)}}$
+with $T=8$, and comment on which outcome is most likely.
+\end{exercise}
+
+\begin{exercise}
+Using Theorem~\ref{l6:thm:precision}, determine how many ancilla qubits $t$ are
+needed to estimate $\varphi$ to $n=6$ bits of precision with success
+probability at least $0.9$ (so $\epsilon=0.1$).
+\end{exercise}
+
+\begin{exercise}
+Explain why Kitaev's bit-by-bit method achieves query complexity
+$O(1/\epsilon)$ while the single-qubit estimator needs $O(1/\epsilon^{2})$
+samples. In your answer identify precisely which resource (circuit depth versus
+number of repetitions) each method spends.
+\end{exercise}
+
+\begin{exercise}
+Suppose the input to QPE is $\ket{\Psi}=c_{0}\ket{\psi_{0}}+c_{1}\ket{\psi_{1}}$
+with $\abs{c_{0}}^{2}=0.8$ and eigenphases $\varphi_{0},\varphi_{1}$ each
+exactly representable with the chosen $t$. Describe the joint distribution of
+the measured phase and the post-measurement state of the system register.
+\end{exercise}
+
+\begin{solution}
+\textbf{Exercise 1.} With $\ket{\psi}=\ket{1}$ we have $U\ket{1}
+=e^{i2\pi\varphi}\ket{1}$, so $\braket{\psi|U|\psi}=e^{i2\pi\varphi}$ and
+$\mathrm{Re}\braket{\psi|U|\psi}=\cos2\pi\varphi$. Following the circuit,
+the $\ket{0}$-ancilla branch is $\tfrac12(\ket{1}+e^{i2\pi\varphi}\ket{1})$,
+so $p(0)=\tfrac14\abs{1+e^{i2\pi\varphi}}^{2}=\tfrac12(1+\cos2\pi\varphi)$ and
+$p(1)=\tfrac12(1-\cos2\pi\varphi)$, matching Theorem~\ref{l6:thm:hadamard}.
+
+\textbf{Exercise 2.} The $S^{\dagger}$ gate multiplies the $\ket{1}$ branch by
+$-i$, so the $\ket{0}$-ancilla branch becomes
+$\tfrac12(\ket{\psi}-i\,U\ket{\psi})$ and $p(0)=\tfrac14\big(2
++i\braket{\psi|U|\psi}-i\overline{\braket{\psi|U|\psi}}\big)
+=\tfrac12(1+\mathrm{Im}\braket{\psi|U|\psi})$. The real test returns only
+$\cos2\pi\varphi$, an even function of $\varphi$, so $\varphi$ and $1-\varphi$
+give the same $p(0)$; the imaginary test returns $\sin2\pi\varphi$, whose sign
+breaks the ambiguity.
+
+\textbf{Exercise 3.} After the controlled powers the ancilla holds
+$\tfrac{1}{\sqrt8}\sum_{j=0}^{7}e^{i2\pi(3/8)j}\ket{j}=\QFT\ket{3}$ since
+$\varphi=3/8=k/2^{t}$ with $k=3$. The inverse QFT returns $\ket{3}=\ket{011}$
+and the measurement reads $011$, i.e.\ $\tilde\varphi=3/8$ with certainty.
+
+\textbf{Exercise 4.} With $T=8$, $\varphi=\tfrac13$. Using
+$\abs{\gamma_{k}}^{2}=\tfrac{1}{T^{2}}\frac{\sin^{2}(\pi T(\varphi-k/T))}
+{\sin^{2}(\pi(\varphi-k/T))}$: for $k=3$,
+$\varphi-k/T=\tfrac13-\tfrac38=-\tfrac{1}{24}$, so
+$\abs{\gamma_3}^{2}=\tfrac{1}{64}\frac{\sin^2(\pi/3)}{\sin^2(\pi/24)}
+\approx\tfrac{1}{64}\cdot\frac{0.75}{0.01704}\approx0.687$.
+For $k=2$, $\varphi-k/T=\tfrac13-\tfrac14=\tfrac{1}{12}$, so
+$\abs{\gamma_2}^{2}=\tfrac{1}{64}\frac{\sin^2(2\pi/3)}{\sin^2(\pi/12)}
+\approx\tfrac{1}{64}\cdot\frac{0.75}{0.06699}\approx0.175$.
+The nearest level $k=3$ ($=0.375$) is most likely, as expected since it is the
+closest $t$-bit approximation to $0.333\ldots$
+
+\textbf{Exercise 5.} Take $\epsilon=0.1$, $n=6$. Then
+\[
+  t=n+\big\lceil\log_2\big(2+\tfrac{1}{2\cdot0.1}\big)\big\rceil
+   =6+\lceil\log_2(2+5)\rceil=6+\lceil\log_2 7\rceil=6+3=9
+\]
+ancilla qubits.
+
+\textbf{Exercise 6.} Kitaev's method spends \emph{circuit depth}: applying
+$U^{2^{j}}$ (which costs $2^{j}$ applications of $U$) amplifies the phase so that
+each bit is read with high confidence, and the total query cost sums to
+$O\big(\sum_j 2^j\big)=O(1/\epsilon)$. The single-qubit estimator uses only $U$
+and learns $\varphi$ through a probability that must be resolved to
+$O(\epsilon)$; by Bernoulli variance this needs $O(1/\epsilon^2)$
+\emph{repetitions}. Depth buys a quadratic saving over samples.
+
+\textbf{Exercise 7.} QPE acts on each eigencomponent independently. With
+probability $\abs{c_0}^2=0.8$ the measurement returns $\varphi_0$ exactly (it is
+$t$-bit representable) and the system collapses to $\ket{\psi_0}$; with
+probability $\abs{c_1}^2=0.2$ it returns $\varphi_1$ and the system collapses to
+$\ket{\psi_1}$. The measured phase and the surviving eigenstate are perfectly
+correlated: outcome $\varphi_k$ always accompanies $\ket{\psi_k}$.
+\end{solution}

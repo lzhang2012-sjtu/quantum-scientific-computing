@@ -1,0 +1,586 @@
+\chapter{Grover's Search Algorithm}
+
+% The braket package ships \ketbra commented out; define it if the preamble has not.
+\providecommand{\ketbra}[2]{\ket{#1}\!\bra{#2}}
+
+Grover's algorithm solves the \emph{unstructured search} problem with a
+quadratic speedup over any classical method. Given oracle access to a Boolean
+function that flags a unique marked item among $N=2^{n}$ candidates, a classical
+computer must, in the worst case, probe essentially all of them; Grover's
+algorithm finds the marked item using only $O(\sqrt N)$ oracle queries. The
+entire mechanism reduces to a strikingly simple geometric picture: the search
+takes place inside a two-dimensional plane, and each iteration is a rotation
+toward the solution. This chapter builds that picture from the ground up, proves
+the key facts, computes the optimal number of iterations, and closes with the
+generalization to amplitude amplification and the matching $\Omega(\sqrt N)$
+lower bound that shows the algorithm is optimal.
+
+\section{The Unstructured Search Problem}
+
+We begin by fixing the problem and the model of computation. The word
+\emph{unstructured} is essential: there is no order, index, or exploitable
+regularity among the items, so the trick behind binary search is unavailable.
+
+\begin{definition}[Unstructured search]
+Let $N=2^{n}$ and let $f\colon\{0,1\}^{n}\to\{0,1\}$ be a Boolean function to
+which we have only \emph{oracle} access. We are promised that there is a unique
+marked item $x_0\in\{0,1\}^{n}$ with
+\[
+  f(x)=\begin{cases}1,& x=x_0,\\ 0,& x\neq x_0.\end{cases}
+\]
+The oracle is the unitary $\Uf$ acting on $n+1$ qubits by
+\[
+  \Uf\ket{x}\ket{y}=\ket{x}\ket{y\oplus f(x)},
+  \qquad x\in\{0,1\}^{n},\ y\in\{0,1\}.
+\]
+The goal is to determine $x_0$ using as few queries to $\Uf$ as possible.
+\end{definition}
+
+Each application of $\Uf$ counts as one \emph{query}, and we measure the cost of
+an algorithm by its query complexity. Because the function has no structure, the
+oracle is the only way to learn anything about $x_0$: the string $x_0$ cannot be
+read off directly.
+
+\begin{proposition}[Classical lower bound]
+Any classical (possibly randomized) algorithm that identifies $x_0$ with constant
+success probability must make $\Omega(N)$ queries to $f$ in the worst case.
+\end{proposition}
+
+\begin{proof}[Sketch]
+A classical algorithm learns nothing about $x_0$ from a query $f(x)$ unless
+$x=x_0$. An adversary may answer $f(x)=0$ for every queried $x$ until only one
+unqueried candidate remains, which is consistent with $x_0$ being that last item.
+Thus to be certain, an algorithm must probe $N-1$ items in the worst case. A
+randomized algorithm querying a uniformly random subset of size $k$ finds $x_0$
+with probability $k/N$, so achieving constant success probability requires
+$k=\Omega(N)$ queries.
+\end{proof}
+
+This abstract task captures many concrete situations: searching an unsorted
+database, deciding satisfiability of a constraint problem (treat any satisfying
+assignment as a marked item and let the oracle test assignments), or inverting a
+function and finding collisions. In every case the common structure is the same:
+\emph{package ``is this candidate a solution?'' into an oracle}, and the classical
+exhaustive cost is $O(N)$. Grover's algorithm attacks all of them at once.
+
+\subsection{The phase oracle}
+
+It is convenient to convert the bit-flip oracle $\Uf$ into a \emph{phase} oracle.
+Prepare the answer qubit in the state
+$\ket{-}=\tfrac{1}{\sqrt2}\bigl(\ket{0}-\ket{1}\bigr)$. Then
+\[
+  \Uf\ket{x}\ket{-}
+    =\ket{x}\,\tfrac{1}{\sqrt2}\bigl(\ket{0\oplus f(x)}-\ket{1\oplus f(x)}\bigr)
+    =(-1)^{f(x)}\ket{x}\ket{-}.
+\]
+The answer qubit is unchanged and factors out; on the $n$-qubit register the
+oracle acts as $\ket{x}\mapsto(-1)^{f(x)}\ket{x}$. This phase-kickback trick lets
+us treat the oracle as an $n$-qubit operator that simply attaches a minus sign to
+the marked basis state.
+
+\section{The Two Reflections and the Grover Iterate}
+
+Two operators drive the algorithm. Both are \emph{reflections}, and their product
+is a rotation. We first define them, prove they are genuine reflections, and then
+assemble the Grover iterate.
+
+Throughout, let
+\[
+  \ket{\psi_0}=H^{\otimes n}\ket{0^{n}}=\frac{1}{\sqrt N}\sum_{x\in\{0,1\}^{n}}\ket{x}
+\]
+be the uniform superposition over all $N$ basis states. This is the algorithm's
+starting state; every candidate carries amplitude $1/\sqrt N$.
+
+\begin{definition}[Marking reflection and diffusion operator]
+The \emph{marking reflection} (phase oracle) is
+\[
+  R_{x_0}=\id-2\ketbra{x_0}{x_0},
+\]
+which flips the sign of the amplitude on $\ket{x_0}$ and leaves the orthogonal
+complement fixed. The \emph{diffusion operator} is
+\[
+  R_{\psi_0}=2\ketbra{\psi_0}{\psi_0}-\id,
+\]
+which fixes $\ket{\psi_0}$ and flips the sign of everything orthogonal to it.
+It can be written equivalently as
+\[
+  R_{\psi_0}=H^{\otimes n}\bigl(2\ketbra{0^{n}}{0^{n}}-\id\bigr)H^{\otimes n},
+\]
+which is how it is implemented as a circuit.
+\end{definition}
+
+\begin{lemma}[Both operators are reflections]
+\label{l4:lem:reflections}
+Each of $R_{x_0}$ and $R_{\psi_0}$ is Hermitian, unitary, and an involution
+($R^2=\id$); geometrically each is a reflection of the Hilbert space about a
+hyperplane.
+\end{lemma}
+
+\begin{proof}
+Let $\ket{u}$ be a unit vector and set $P=\ketbra{u}{u}$, so $P=P^{\dagger}$ and
+$P^{2}=P$ (an orthogonal projector). Consider $R=\id-2P$. Then
+\[
+  R^{\dagger}=\id-2P^{\dagger}=\id-2P=R,
+\]
+so $R$ is Hermitian. Moreover
+\[
+  R^{2}=(\id-2P)^{2}=\id-4P+4P^{2}=\id-4P+4P=\id,
+\]
+so $R$ is an involution. A Hermitian involution is unitary, since
+$R^{\dagger}R=R^{2}=\id$. Its action is $R\ket{u}=-\ket{u}$ and $R\ket{w}=\ket{w}$
+for every $\ket{w}\perp\ket{u}$, which is exactly a reflection about the hyperplane
+$\ket{u}^{\perp}$.
+
+Applying this with $\ket{u}=\ket{x_0}$ gives $R_{x_0}=\id-2\ketbra{x_0}{x_0}$
+directly. For the diffusion operator, note
+$R_{\psi_0}=2\ketbra{\psi_0}{\psi_0}-\id=-\bigl(\id-2\ketbra{\psi_0}{\psi_0}\bigr)$;
+by the computation above $\id-2\ketbra{\psi_0}{\psi_0}$ is a Hermitian unitary
+involution, and negating it preserves all three properties. Explicitly
+$R_{\psi_0}\ket{\psi_0}=\ket{\psi_0}$ and $R_{\psi_0}\ket{w}=-\ket{w}$ for
+$\ket{w}\perp\ket{\psi_0}$, so $R_{\psi_0}$ is the reflection through the axis
+$\ket{\psi_0}$.
+The identity
+$R_{\psi_0}=H^{\otimes n}(2\ketbra{0^{n}}{0^{n}}-\id)H^{\otimes n}$ follows because
+$H^{\otimes n}$ is unitary and $H^{\otimes n}\ket{0^{n}}=\ket{\psi_0}$.
+\end{proof}
+
+Intuitively $R_{\psi_0}$ implements an ``inversion about the mean'': writing a
+state as $\sum_x a_x\ket{x}$ with mean amplitude $\bar a=\tfrac1N\sum_x a_x$, one
+checks that $R_{\psi_0}\sum_x a_x\ket{x}=\sum_x(2\bar a-a_x)\ket{x}$, reflecting
+each amplitude about $\bar a$.
+
+\begin{definition}[Grover iterate]
+The \emph{Grover iterate} is the composition of the two reflections,
+\[
+  G=R_{\psi_0}R_{x_0}
+   =\bigl(2\ketbra{\psi_0}{\psi_0}-\id\bigr)\bigl(\id-2\ketbra{x_0}{x_0}\bigr).
+\]
+One iteration first marks the solution (via $R_{x_0}$) and then reflects about the
+mean (via $R_{\psi_0}$).
+\end{definition}
+
+\section{The Invariant Plane and the Rotation Picture}
+
+The power of the algorithm comes from the fact that $G$ never leaves a fixed
+two-dimensional plane, inside which it acts as an ordinary rotation.
+
+Define the normalized state orthogonal to $\ket{x_0}$ that lives in the ``bad''
+subspace:
+\[
+  \ket{\psi_0^{\perp}}
+    =\frac{1}{\sqrt{N-1}}\sum_{x\neq x_0}\ket{x}.
+\]
+Then $\braket{x_0|\psi_0^{\perp}}=0$, and the uniform state decomposes as
+\begin{equation}
+  \ket{\psi_0}
+    =\frac{1}{\sqrt N}\ket{x_0}+\frac{\sqrt{N-1}}{\sqrt N}\ket{\psi_0^{\perp}}
+    =\sin\frac{\theta}{2}\,\ket{x_0}+\cos\frac{\theta}{2}\,\ket{\psi_0^{\perp}},
+  \label{l4:eq:initdecomp}
+\end{equation}
+where the angle $\theta\in(0,\pi)$ is defined by
+\begin{equation}
+  \sin\frac{\theta}{2}=\frac{1}{\sqrt N},
+  \qquad
+  \theta=2\arcsin\frac{1}{\sqrt N}\approx\frac{2}{\sqrt N}\quad(N\gg1).
+  \label{l4:eq:theta}
+\end{equation}
+So $\ket{\psi_0}$ makes a small angle $\theta/2$ with the axis
+$\ket{\psi_0^{\perp}}$.
+
+\begin{theorem}[$G$ is a rotation in the plane $\mathcal{P}$]
+\label{l4:thm:rotation}
+Let $\mathcal{P}=\operatorname{span}\{\ket{x_0},\ket{\psi_0^{\perp}}\}$. Then $G$
+maps $\mathcal{P}$ into itself, and restricted to $\mathcal{P}$ (in the ordered
+orthonormal basis $\{\ket{\psi_0^{\perp}},\ket{x_0}\}$) it is the rotation by the
+angle $\theta$ of \eqref{l4:eq:theta}:
+\[
+  G\big|_{\mathcal{P}}
+    =\begin{pmatrix}\cos\theta & -\sin\theta\\[2pt]\sin\theta & \cos\theta\end{pmatrix}.
+\]
+\end{theorem}
+
+\begin{proof}
+First note that both reflections preserve $\mathcal{P}$. The vector $\ket{x_0}$
+lies in $\mathcal{P}$ and $\ket{\psi_0}\in\mathcal{P}$ by \eqref{l4:eq:initdecomp},
+so $\ket{\psi_0^{\perp}}\in\mathcal{P}$ as well. The operator $R_{x_0}$ negates
+$\ket{x_0}$ and fixes every vector orthogonal to $\ket{x_0}$; in particular it
+fixes $\ket{\psi_0^{\perp}}$, so it maps $\mathcal{P}$ to itself. The operator
+$R_{\psi_0}$ fixes $\ket{\psi_0}\in\mathcal P$ and negates its orthogonal
+complement; the in-plane vector orthogonal to $\ket{\psi_0}$ inside $\mathcal P$
+stays in $\mathcal P$, so $R_{\psi_0}$ also preserves $\mathcal{P}$. Hence
+$G=R_{\psi_0}R_{x_0}$ preserves $\mathcal{P}$.
+
+We now use the plane-geometry fact that \emph{the product of two reflections is a
+rotation by twice the angle between their axes}. Inside $\mathcal P$, the mirror
+line of $R_{x_0}$ is the axis $\ket{\psi_0^{\perp}}$ (the fixed direction of
+$R_{x_0}$ within $\mathcal P$), and the mirror line of $R_{\psi_0}$ is the axis
+$\ket{\psi_0}$. By \eqref{l4:eq:initdecomp} the angle between $\ket{\psi_0^{\perp}}$
+and $\ket{\psi_0}$ is $\theta/2$, so $G$ is a rotation by $2\cdot(\theta/2)=\theta$.
+
+For a self-contained verification, compute the matrix directly. Using
+$\sin\tfrac{\theta}{2}=1/\sqrt N$, $\cos\tfrac{\theta}{2}=\sqrt{(N-1)/N}$ and
+\eqref{l4:eq:initdecomp}, apply $R_{x_0}=\id-2\ketbra{x_0}{x_0}$:
+\[
+  R_{x_0}\ket{\psi_0^{\perp}}=\ket{\psi_0^{\perp}},
+  \qquad
+  R_{x_0}\ket{x_0}=-\ket{x_0}.
+\]
+Thus in the basis $\{\ket{\psi_0^{\perp}},\ket{x_0}\}$,
+$R_{x_0}=\begin{psmallmatrix}1&0\\0&-1\end{psmallmatrix}$, a reflection about the
+$\ket{\psi_0^{\perp}}$ axis. Next $R_{\psi_0}=2\ketbra{\psi_0}{\psi_0}-\id$ is the
+reflection about the axis $\ket{\psi_0}$, which sits at angle $\theta/2$ from
+$\ket{\psi_0^{\perp}}$; a reflection about a line at angle $\phi$ from the first
+basis vector has matrix
+$\begin{psmallmatrix}\cos2\phi&\sin2\phi\\\sin2\phi&-\cos2\phi\end{psmallmatrix}$,
+so with $\phi=\theta/2$,
+\[
+  R_{\psi_0}=\begin{pmatrix}\cos\theta&\sin\theta\\ \sin\theta&-\cos\theta\end{pmatrix}.
+\]
+Multiplying,
+\[
+  G=R_{\psi_0}R_{x_0}
+   =\begin{pmatrix}\cos\theta&\sin\theta\\ \sin\theta&-\cos\theta\end{pmatrix}
+    \begin{pmatrix}1&0\\0&-1\end{pmatrix}
+   =\begin{pmatrix}\cos\theta&-\sin\theta\\ \sin\theta&\cos\theta\end{pmatrix},
+\]
+which is exactly the rotation by $\theta$.
+\end{proof}
+
+\begin{theorem}[State after $k$ iterations]
+\label{l4:thm:afterk}
+With $\theta$ as in \eqref{l4:eq:theta},
+\[
+  G^{k}\ket{\psi_0}
+    =\sin\!\frac{(2k+1)\theta}{2}\,\ket{x_0}
+     +\cos\!\frac{(2k+1)\theta}{2}\,\ket{\psi_0^{\perp}}.
+\]
+Consequently the probability of measuring the marked item after $k$ iterations is
+$p_k=\sin^{2}\!\bigl((2k+1)\theta/2\bigr)$.
+\end{theorem}
+
+\begin{proof}
+By Theorem~\ref{l4:thm:rotation}, $G$ restricted to $\mathcal P$ is rotation by
+$\theta$, so $G^{k}$ is rotation by $k\theta$. The initial state
+\eqref{l4:eq:initdecomp} sits at angle $\theta/2$ measured from the
+$\ket{\psi_0^{\perp}}$ axis (its $\ket{x_0}$-component is
+$\sin(\theta/2)$). Rotating by $k\theta$ increases this angle to
+$\theta/2+k\theta=(2k+1)\theta/2$. Hence the $\ket{x_0}$-component becomes
+$\sin\bigl((2k+1)\theta/2\bigr)$ and the $\ket{\psi_0^{\perp}}$-component becomes
+$\cos\bigl((2k+1)\theta/2\bigr)$, as claimed. Measuring in the computational basis
+yields $x_0$ with probability equal to the squared $\ket{x_0}$-amplitude, namely
+$p_k=\sin^{2}\bigl((2k+1)\theta/2\bigr)$.
+\end{proof}
+
+\section{Optimal Iteration Count and Query Complexity}
+
+Theorem~\ref{l4:thm:afterk} shows the amplitude on $\ket{x_0}$ is maximized when the
+angle $(2k+1)\theta/2$ is as close as possible to $\pi/2$, i.e.\ when the state is
+(nearly) aligned with $\ket{x_0}$.
+
+\begin{theorem}[Optimal number of iterations]
+\label{l4:thm:kstar}
+Choose $k$ so that $(2k+1)\theta/2$ is closest to $\pi/2$; the optimal choice is
+\[
+  k^{\ast}=\left\lfloor\frac{\pi}{4}\sqrt N\right\rfloor
+  \qquad\bigl(\text{rounding } \tfrac{\pi}{2\theta}-\tfrac12\bigr).
+\]
+With this choice the success probability satisfies $p_{k^{\ast}}\ge 1-1/N$, so a
+single run succeeds with probability $\approx1$. The algorithm therefore uses
+$k^{\ast}=O(\sqrt N)$ oracle queries.
+\end{theorem}
+
+\begin{proof}
+We want $(2k+1)\theta/2\approx\pi/2$, i.e.\ $2k+1\approx\pi/\theta$, i.e.\
+$k\approx\pi/(2\theta)-1/2$. Using the approximation
+$\theta\approx2/\sqrt N$ from \eqref{l4:eq:theta} valid for large $N$,
+\[
+  k\approx\frac{\pi}{2\theta}-\frac12\approx\frac{\pi}{2}\cdot\frac{\sqrt N}{2}-\frac12
+     =\frac{\pi}{4}\sqrt N-\frac12,
+\]
+and rounding to the nearest nonnegative integer gives
+$k^{\ast}=\lfloor(\pi/4)\sqrt N\rfloor$. Because $k$ is an integer we cannot in
+general hit the angle $\pi/2$ exactly, but the residual angular error is at most
+$\theta/2$ (half a rotation step): choosing $k^{\ast}$ so that
+$(2k^{\ast}+1)\theta/2$ lies within $\theta/2$ of $\pi/2$ gives
+\[
+  p_{k^{\ast}}=\sin^{2}\!\frac{(2k^{\ast}+1)\theta}{2}
+    =\cos^{2}\!\Bigl(\frac{\pi}{2}-\frac{(2k^{\ast}+1)\theta}{2}\Bigr)
+    \ge\cos^{2}\!\frac{\theta}{2}=1-\sin^{2}\frac{\theta}{2}=1-\frac1N.
+\]
+Each iterate $G=R_{\psi_0}R_{x_0}$ makes exactly one oracle call (inside
+$R_{x_0}$), so the total query cost is $k^{\ast}=O(\sqrt N)$.
+\end{proof}
+
+This is the headline result: $O(\sqrt N)$ queries versus the classical $O(N)$, a
+quadratic speedup. The gain comes from operating on \emph{amplitudes} rather than
+probabilities: $G$ rotates the amplitude linearly in $k$, and probability is its
+square, so the linear growth of the angle produces the square-root scaling in $k$.
+
+\begin{remark}[Do not over-rotate]
+More iterations is \emph{not} always better. Since $p_k=\sin^{2}((2k+1)\theta/2)$
+oscillates, once $(2k+1)\theta/2$ passes $\pi/2$ the success probability decreases
+again --- the state ``rotates past'' $\ket{x_0}$. One must therefore stop at
+$k^{\ast}$; running the loop too long is counterproductive. If $N$ is unknown one
+can still succeed with $O(\sqrt N)$ expected queries by trying geometrically
+increasing guesses for the number of iterations and choosing the number at random
+within each guess.
+\end{remark}
+
+\section{Multiple Solutions and Amplitude Amplification}
+
+Suppose now that there are $M\ge1$ marked items, $S=\{x:f(x)=1\}$ with $\abs{S}=M$.
+Everything goes through with the ``good'' subspace replaced by the span of the
+marked basis states.
+
+Let
+\[
+  \ket{\mathrm{good}}=\frac{1}{\sqrt M}\sum_{x\in S}\ket{x},
+  \qquad
+  \ket{\mathrm{bad}}=\frac{1}{\sqrt{N-M}}\sum_{x\notin S}\ket{x},
+\]
+so that $\ket{\psi_0}=\sqrt{M/N}\,\ket{\mathrm{good}}+\sqrt{(N-M)/N}\,\ket{\mathrm{bad}}$.
+Define $R_S=\id-2\sum_{x\in S}\ketbra{x}{x}$ (the phase oracle now flips all marked
+items) and keep the same diffusion $R_{\psi_0}$. The identical argument shows
+$G=R_{\psi_0}R_S$ is a rotation by $\theta$ in
+$\operatorname{span}\{\ket{\mathrm{good}},\ket{\mathrm{bad}}\}$ with
+\[
+  \sin\frac{\theta}{2}=\sqrt{\frac{M}{N}},
+  \qquad\text{equivalently}\qquad
+  \sin\theta=2\sin\frac{\theta}{2}\cos\frac{\theta}{2}
+            =2\sqrt{\frac{M}{N}}\sqrt{\frac{N-M}{N}}\approx 2\sqrt{\frac{M}{N}}.
+\]
+The optimal iteration count becomes
+\[
+  k^{\ast}=\left\lfloor\frac{\pi}{4}\sqrt{\frac{N}{M}}\right\rfloor
+  =O\!\left(\sqrt{\frac{N}{M}}\right),
+\]
+so more solutions make the search faster.
+
+\begin{remark}[Amplitude amplification]
+Grover's construction generalizes far beyond search. Suppose $\mathcal A$ is any
+(quantum) procedure preparing a state
+$\mathcal A\ket{0}=\sqrt{p_0}\,\ket{\psi_{\mathrm{good}}}+\sqrt{1-p_0}\,\ket{\psi_{\mathrm{bad}}}$,
+where a projector $P$ recognizes the good part and $p_0$ is the initial success
+probability. Replacing $R_{x_0}$ by the reflection $\id-2P$ and $R_{\psi_0}$ by
+$\mathcal A(2\ketbra{0}{0}-\id)\mathcal A^{\dagger}$ yields an iterate that rotates
+by an angle $\theta$ with $\sin^{2}(\theta/2)=p_0$. After $O(1/\sqrt{p_0})$
+iterations the good state is reached with probability $\Omega(1)$ --- a quadratic
+improvement over the $O(1/p_0)$ repetitions that classical
+prepare-and-check would require. Grover search is the special case
+$p_0=M/N$.
+\end{remark}
+
+\begin{example}[The exact case $N=4$, $M=1$]
+Here $\sin(\theta/2)=1/\sqrt4=1/2$, so $\theta/2=\pi/6$ and $\theta=\pi/3$. After a
+single iteration ($k=1$) the angle is
+\[
+  \frac{(2\cdot1+1)\theta}{2}=\frac{3\theta}{2}=\frac{3}{2}\cdot\frac{\pi}{3}=\frac{\pi}{2},
+\]
+so by Theorem~\ref{l4:thm:afterk} the state is
+$G\ket{\psi_0}=\sin(\pi/2)\ket{x_0}+\cos(\pi/2)\ket{\psi_0^{\perp}}=\ket{x_0}$.
+Thus for $N=4$ a \emph{single} Grover iteration finds the marked item with
+certainty --- a rare instance where the algorithm is exactly deterministic.
+\end{example}
+
+\begin{example}[A multi-solution estimate]
+Suppose a SAT instance on $n=30$ variables has $M=2^{10}$ satisfying assignments
+among $N=2^{30}$ candidates. Classical exhaustive search needs on the order of
+$N/M=2^{20}\approx10^{6}$ trials to hit a solution. Grover instead needs about
+\[
+  \frac{\pi}{4}\sqrt{\frac{N}{M}}
+    =\frac{\pi}{4}\sqrt{2^{20}}
+    =\frac{\pi}{4}\cdot2^{10}\approx804
+\]
+oracle queries --- the square-root improvement in action.
+\end{example}
+
+\section{Optimality: the \texorpdfstring{$\Omega(\sqrt N)$}{Omega(sqrt N)} Lower Bound}
+
+Grover's algorithm is not just good; it is asymptotically the best possible.
+
+\begin{theorem}[Query lower bound]
+Any quantum algorithm that finds the marked item $x_0$ (or even merely decides
+whether a marked item exists) with constant success probability must make
+$\Omega(\sqrt N)$ oracle queries.
+\end{theorem}
+
+\begin{proof}[Idea]
+Run the algorithm both on the ``empty'' oracle $f\equiv0$ and on the oracle marking
+a single item $x_0$. Let $\ket{\phi_k}$ be the state after $k$ queries in the
+empty case and $\ket{\phi_k^{x_0}}$ the state in the marked case, and define the
+total deviation
+\[
+  D_k=\sum_{x_0}\norm{\,\ket{\phi_k^{x_0}}-\ket{\phi_k}\,}^{2}.
+\]
+A hybrid argument shows each additional query can increase $D_k$ by only a bounded
+amount: $D_k\le 4k^{2}$. On the other hand, to reliably distinguish which item is
+marked, the marked-case states for different $x_0$ must be nearly orthogonal to the
+empty-case state, which forces $D_k=\Omega(N)$. Combining
+$\Omega(N)\le D_k\le 4k^{2}$ gives $k=\Omega(\sqrt N)$.
+\end{proof}
+
+\begin{remark}[Grover is optimal]
+The upper bound of Theorem~\ref{l4:thm:kstar} and the lower bound above match up to
+constant factors: both are $\Theta(\sqrt N)$. Hence Grover's algorithm is optimal
+for unstructured search --- no quantum algorithm can do asymptotically better. The
+quadratic speedup is the best achievable when the only access to the problem is
+through an unstructured oracle; a super-polynomial speedup would require exploitable
+structure, as in Shor's algorithm or the phase-estimation-based methods.
+\end{remark}
+
+\section{Problems}
+
+\begin{exercise}
+\label{l4:ex:invmean}
+Show that the diffusion operator implements ``inversion about the mean'': for any
+state $\sum_x a_x\ket{x}$ with mean amplitude $\bar a=\tfrac1N\sum_x a_x$,
+\[
+  R_{\psi_0}\sum_x a_x\ket{x}=\sum_x(2\bar a-a_x)\ket{x}.
+\]
+\end{exercise}
+
+\begin{exercise}
+\label{l4:ex:phaseoracle}
+Verify the phase-kickback identity
+\[
+  \Uf\ket{x}\ket{-}=(-1)^{f(x)}\ket{x}\ket{-}
+\]
+starting from $\Uf\ket{x}\ket{y}=\ket{x}\ket{y\oplus f(x)}$, and explain why this
+lets us regard the oracle as the $n$-qubit operator $R_{x_0}$.
+\end{exercise}
+
+\begin{exercise}
+\label{l4:ex:n2}
+Take $N=2$ (one qubit, $n=1$) with the single marked item $x_0$. Compute $\theta$
+from \eqref{l4:eq:theta}, apply one Grover iterate to $\ket{\psi_0}$, and interpret the
+result. Why is the case $N=2$ slightly special?
+\end{exercise}
+
+\begin{exercise}
+\label{l4:ex:success}
+For general $N$, using $k^{\ast}=\lfloor(\pi/4)\sqrt N\rfloor$, show that the
+success probability satisfies $p_{k^{\ast}}\ge1-1/N$. (You may use that the
+residual angle from $\pi/2$ is at most $\theta/2$.)
+\end{exercise}
+
+\begin{exercise}
+\label{l4:ex:overrotate}
+Consider $N=2^{20}$. Approximately how many iterations $k^{\ast}$ maximize the
+success probability? What happens qualitatively to the success probability if one
+instead runs $2k^{\ast}$ iterations? Explain using $p_k=\sin^2((2k+1)\theta/2)$.
+\end{exercise}
+
+\begin{exercise}
+\label{l4:ex:multi}
+There are $M=4$ marked items among $N=1024$. Find $\sin(\theta/2)$, the optimal
+iteration count $k^{\ast}$, and compare with the single-solution count for the same
+$N$.
+\end{exercise}
+
+\begin{exercise}
+\label{l4:ex:reflprod}
+Prove the plane-geometry fact used in Theorem~\ref{l4:thm:rotation}: in a real
+two-dimensional plane, the composition of a reflection about a line $\ell_1$ and a
+reflection about a line $\ell_2$ (with $\ell_2$ at angle $\alpha$ from $\ell_1$) is
+a rotation by $2\alpha$.
+\end{exercise}
+
+\subsection*{Solutions}
+
+\begin{solution}[Exercise~\ref{l4:ex:invmean}]
+Write $R_{\psi_0}=2\ketbra{\psi_0}{\psi_0}-\id$ and let $\ket{\phi}=\sum_x a_x\ket{x}$.
+Since $\ket{\psi_0}=\tfrac1{\sqrt N}\sum_x\ket{x}$, we have
+$\braket{\psi_0|\phi}=\tfrac1{\sqrt N}\sum_x a_x=\sqrt N\,\bar a$. Therefore
+\[
+  2\ketbra{\psi_0}{\psi_0}\phi
+    =2\sqrt N\,\bar a\,\ket{\psi_0}
+    =2\sqrt N\,\bar a\cdot\frac1{\sqrt N}\sum_x\ket{x}
+    =\sum_x 2\bar a\,\ket{x}.
+\]
+Subtracting $\id\ket{\phi}=\sum_x a_x\ket{x}$ gives
+$R_{\psi_0}\ket{\phi}=\sum_x(2\bar a-a_x)\ket{x}$, i.e.\ each amplitude is reflected
+about the mean $\bar a$. This is why $R_{\psi_0}$ is often called ``inversion about
+the mean.''
+\end{solution}
+
+\begin{solution}[Exercise~\ref{l4:ex:phaseoracle}]
+With $\ket{-}=\tfrac1{\sqrt2}(\ket0-\ket1)$,
+\[
+  \Uf\ket{x}\ket{-}
+   =\tfrac1{\sqrt2}\bigl(\ket{x}\ket{0\oplus f(x)}-\ket{x}\ket{1\oplus f(x)}\bigr).
+\]
+If $f(x)=0$ this is $\tfrac1{\sqrt2}(\ket{x}\ket0-\ket{x}\ket1)=\ket{x}\ket{-}$. If
+$f(x)=1$ the two kets swap, giving
+$\tfrac1{\sqrt2}(\ket{x}\ket1-\ket{x}\ket0)=-\ket{x}\ket{-}$. Both cases combine into
+$(-1)^{f(x)}\ket{x}\ket{-}$. The answer qubit stays in $\ket{-}$ and factors out, so
+on the $n$-qubit register the oracle acts as $\ket{x}\mapsto(-1)^{f(x)}\ket{x}$,
+which negates exactly $\ket{x_0}$ --- that is $R_{x_0}=\id-2\ketbra{x_0}{x_0}$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{l4:ex:n2}]
+For $N=2$, $\sin(\theta/2)=1/\sqrt2$, so $\theta/2=\pi/4$ and $\theta=\pi/2$. The
+initial state is $\ket{\psi_0}=\tfrac1{\sqrt2}(\ket{x_0}+\ket{\psi_0^{\perp}})$, at
+angle $\theta/2=\pi/4$ from the $\ket{\psi_0^{\perp}}$ axis. One iterate rotates by
+$\theta=\pi/2$, bringing the angle to $\pi/4+\pi/2=3\pi/4$; equivalently
+$(2\cdot1+1)\theta/2=3\pi/4$, and $p_1=\sin^2(3\pi/4)=1/2$. So a single iterate does
+\emph{not} give certainty here, and indeed
+$\lfloor(\pi/4)\sqrt2\rfloor=\lfloor1.11\rfloor=1$ while the best achievable
+probability for $N=2$ is $1/2$, no better than a random guess. The case is special
+because with only two items the initial angle $\pi/4$ is already large and the
+rotation overshoots; unstructured search offers no advantage when $N=2$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{l4:ex:success}]
+Pick $k^{\ast}$ so that the angle $(2k^{\ast}+1)\theta/2$ is within $\theta/2$ of
+$\pi/2$; this is possible because consecutive angles differ by $\theta$. Writing the
+residual $\delta=\pi/2-(2k^{\ast}+1)\theta/2$ with $\abs{\delta}\le\theta/2$,
+\[
+  p_{k^{\ast}}=\sin^2\!\Bigl(\tfrac\pi2-\delta\Bigr)=\cos^2\delta\ge\cos^2\tfrac\theta2
+   =1-\sin^2\tfrac\theta2=1-\tfrac1N,
+\]
+using $\sin(\theta/2)=1/\sqrt N$. Hence the success probability is at least
+$1-1/N\to1$, so one run essentially always succeeds; if it fails one verifies with a
+single extra oracle call and repeats.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{l4:ex:overrotate}]
+For $N=2^{20}=1{,}048{,}576$, $\sqrt N=1024$, so
+$k^{\ast}=\lfloor(\pi/4)\cdot1024\rfloor=\lfloor 804.2\rfloor=804$. At $k^{\ast}$ the
+angle $(2k^{\ast}+1)\theta/2\approx\pi/2$ and $p_{k^{\ast}}\approx1$. Running instead
+$2k^{\ast}\approx1608$ iterations roughly doubles the angle to about
+$(2\cdot2k^{\ast}+1)\theta/2\approx 3\pi/2$; since $p_k$ oscillates as $\sin^2$, the
+state has rotated well past $\ket{x_0}$ and the success probability has fallen back
+toward small values. The lesson: the probability oscillates in $k$, so over-rotating
+destroys the amplitude gained --- stop at $k^{\ast}$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{l4:ex:multi}]
+With $M=4$, $N=1024$: $\sin(\theta/2)=\sqrt{M/N}=\sqrt{4/1024}=\sqrt{1/256}=1/16$.
+The optimal count is
+$k^{\ast}=\lfloor(\pi/4)\sqrt{N/M}\rfloor=\lfloor(\pi/4)\sqrt{256}\rfloor
+=\lfloor(\pi/4)\cdot16\rfloor=\lfloor12.57\rfloor=12$. For a single solution
+($M=1$) with the same $N$ one would need
+$\lfloor(\pi/4)\sqrt{1024}\rfloor=\lfloor(\pi/4)\cdot32\rfloor=\lfloor25.13\rfloor=25$
+iterations. So having $M=4$ solutions roughly halves the query count (from $25$ to
+$12$), consistent with the $O(\sqrt{N/M})$ scaling: a factor of $2$ speedup for a
+factor of $4$ more solutions.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{l4:ex:reflprod}]
+Place coordinates so that $\ell_1$ is the $x$-axis and $\ell_2$ makes angle $\alpha$
+with it. Reflection about a line at angle $\beta$ has matrix
+$M(\beta)=\begin{psmallmatrix}\cos2\beta&\sin2\beta\\\sin2\beta&-\cos2\beta\end{psmallmatrix}$.
+Thus reflection about $\ell_1$ is
+$M(0)=\begin{psmallmatrix}1&0\\0&-1\end{psmallmatrix}$
+and about $\ell_2$ is $M(\alpha)$. Their product is
+\[
+  M(\alpha)M(0)
+   =\begin{pmatrix}\cos2\alpha&\sin2\alpha\\ \sin2\alpha&-\cos2\alpha\end{pmatrix}
+    \begin{pmatrix}1&0\\0&-1\end{pmatrix}
+   =\begin{pmatrix}\cos2\alpha&-\sin2\alpha\\ \sin2\alpha&\cos2\alpha\end{pmatrix},
+\]
+which is the rotation matrix by angle $2\alpha$. Hence composing the two reflections
+gives a rotation by twice the angle between the mirror lines. In
+Theorem~\ref{l4:thm:rotation} the two mirror axes are $\ket{\psi_0^{\perp}}$ and
+$\ket{\psi_0}$, separated by $\theta/2$, giving rotation by $\theta$.
+\end{solution}

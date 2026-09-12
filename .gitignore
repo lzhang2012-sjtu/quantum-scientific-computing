@@ -1,0 +1,35 @@
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.nav
+*.snm
+*.bbl
+*.blg
+*.idx
+*.ilg
+*.ind
+main.pdf
+solutions.pdf
+
+# SDD scratch workspace
+.superpowers/
+
+# OS
+.DS_Store
+**/.DS_Store
+
+# Large binary decks / handwritten sources (kept locally, not tracked)
+*.pptx
+material/SuzhouNotes/Zhang_Quantum Computing for PDEs.pdf
+material/SuzhouNotes/build/
+material/notes/main.pdf
+
+# Jupyter
+.ipynb_checkpoints/

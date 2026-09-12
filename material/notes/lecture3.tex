@@ -1,0 +1,510 @@
+\chapter{The Deutsch--Jozsa and Bernstein--Vazirani Algorithms}
+
+The algorithms in this chapter are historically the first to demonstrate, in a
+clean and \emph{deterministic} way, that a quantum computer can outperform any
+classical computer. The tasks they solve are artificial and of little practical
+value, yet the tools they introduce---the oracle model, phase kickback, and
+Hadamard interference---form the conceptual backbone of nearly every later
+quantum algorithm, from Simon's problem to Shor's factoring algorithm. Master
+these three ideas and the rest of the course rests on solid ground.
+
+Throughout, $f$ denotes an unknown Boolean function that we may access only
+through an oracle. Our measure of cost is the \emph{number of oracle queries},
+not the number of elementary gates. We will see that a task requiring
+exponentially many classical queries can be solved with a single quantum query.
+
+\section{The Query and Oracle Model}
+
+We are given a Boolean function $f:\{0,1\}^n\to\{0,1\}$ whose internal structure
+is hidden from us. We do not have the code of $f$; we may only feed inputs and
+receive outputs through a black box. To use $f$ inside a quantum circuit we need
+its action to be reversible, since every quantum gate is unitary. The standard
+device for this is the following.
+
+\begin{definition}[Oracle / query model]
+\label{l3:def:oracle}
+Let $f:\{0,1\}^n\to\{0,1\}$. The \emph{oracle} (or \emph{quantum oracle}) for $f$
+is the operator $\Uf$ acting on $n+1$ qubits---an $n$-qubit \emph{input register}
+and a single-qubit \emph{target register}---defined on the computational basis by
+\[
+  \Uf\ket{x}\ket{y}=\ket{x}\ket{y\oplus f(x)},
+  \qquad x\in\{0,1\}^n,\ y\in\{0,1\},
+\]
+where $\oplus$ denotes addition modulo $2$. The \emph{query complexity} of a task
+is the minimum number of applications of $\Uf$ (over all algorithms that succeed)
+needed to solve it.
+\end{definition}
+
+The exclusive-or in the target register---rather than simply overwriting $y$ with
+$f(x)$---is precisely what makes the oracle reversible.
+
+\begin{lemma}[The oracle is unitary]
+\label{l3:lem:unitary}
+For every $f:\{0,1\}^n\to\{0,1\}$, the operator $\Uf$ of Definition~\ref{l3:def:oracle}
+is unitary and is its own inverse: $\Uf^{\dagger}\Uf=\Uf^2=\id$.
+\end{lemma}
+
+\begin{proof}
+The set $\{\ket{x}\ket{y}\}$ over $x\in\{0,1\}^n$, $y\in\{0,1\}$ is an orthonormal
+basis of the $2^{n+1}$-dimensional state space. The map
+$(x,y)\mapsto(x,\,y\oplus f(x))$ is a bijection of the index set to itself, because
+it is inverted by itself: applying it twice gives
+$(x,\,y\oplus f(x)\oplus f(x))=(x,y)$ since $f(x)\oplus f(x)=0$. Hence $\Uf$ merely
+permutes an orthonormal basis, so it is unitary, and $\Uf^2=\id$. Equivalently, in
+matrix form $\braket{x'y'|\Uf^{\dagger}\Uf|xy}=\delta_{xx'}\delta_{yy'}$, i.e.
+$\Uf^{\dagger}\Uf=\id$.
+\end{proof}
+
+\paragraph{Classical versus quantum access.}
+A classical algorithm can only submit one input $x$ at a time and read back the
+single bit $f(x)$; setting the target to $y=0$ gives $\Uf\ket{x}\ket{0}=\ket{x}\ket{f(x)}$.
+To learn a \emph{global} property of $f$ this way may force us to examine almost
+all $2^n$ inputs. A quantum algorithm can instead prepare a uniform superposition
+of all inputs and apply $\Uf$ once, acting on every input in parallel:
+\[
+  \Uf\Big(\tfrac{1}{\sqrt{N}}\sum_{x\in\{0,1\}^n}\ket{x}\Big)\ket{0}
+  =\tfrac{1}{\sqrt{N}}\sum_{x}\ket{x}\ket{f(x)},
+  \qquad N=2^n.
+\]
+Parallelism alone is not enough---measuring this state returns one random pair
+$(x,f(x))$, no better than a classical query. The extra ingredient that converts
+parallelism into advantage is \emph{interference}, engineered through phase
+kickback and the Hadamard transform.
+
+\section{Phase Kickback}
+
+The oracle writes $f(x)$ into the target register as a bit. We would prefer to
+have $f(x)$ appear as a \emph{phase} on the input register, since phases are what
+interfere. The following observation---perhaps the single most important trick in
+the chapter---accomplishes exactly this by choosing the target register cleverly.
+
+\begin{lemma}[Phase kickback]
+\label{l3:lem:kickback}
+Let $\ket{-}=\tfrac{1}{\sqrt2}(\ket{0}-\ket{1})$. Then for every $x\in\{0,1\}^n$,
+\[
+  \Uf\ket{x}\ket{-}=(-1)^{f(x)}\ket{x}\ket{-}.
+\]
+In particular the target qubit is left in $\ket{-}$ and may be discarded, so on
+the input register the oracle acts as the effective diagonal unitary
+$\tilde U_f\ket{x}=(-1)^{f(x)}\ket{x}$.
+\end{lemma}
+
+\begin{proof}
+Expand the target register and apply Definition~\ref{l3:def:oracle} to each branch:
+\[
+  \Uf\ket{x}\ket{-}
+  =\tfrac{1}{\sqrt2}\big(\Uf\ket{x}\ket{0}-\Uf\ket{x}\ket{1}\big)
+  =\tfrac{1}{\sqrt2}\big(\ket{x}\ket{f(x)}-\ket{x}\ket{1\oplus f(x)}\big).
+\]
+Consider the two cases for the bit $f(x)$. If $f(x)=0$ the target factor is
+$\tfrac{1}{\sqrt2}(\ket{0}-\ket{1})=\ket{-}=(+1)\ket{-}$. If $f(x)=1$ it is
+$\tfrac{1}{\sqrt2}(\ket{1}-\ket{0})=-\ket{-}=(-1)\ket{-}$. Both cases are captured
+by the single formula $(-1)^{f(x)}\ket{-}$, whence
+$\Uf\ket{x}\ket{-}=(-1)^{f(x)}\ket{x}\ket{-}$. Since the target factor is unchanged
+and unentangled from the input register, it factors out and can be dropped.
+\end{proof}
+
+\begin{remark}
+The name \emph{kickback} reflects that the eigenvalue $(-1)^{f(x)}$ of the target
+qubit's controlled action is ``kicked back'' onto the control (input) register.
+The target qubit acts purely as a passive signal state. This is the same mechanism
+that, with a target eigenstate of a general unitary, powers quantum phase
+estimation later in the course.
+\end{remark}
+
+Applying $\Uf$ to a uniform superposition with the target in $\ket{-}$ therefore
+produces, on the input register,
+\[
+  \tfrac{1}{\sqrt{N}}\sum_{x}\ket{x}\;\xmapsto{\ \Uf\ }\;
+  \tfrac{1}{\sqrt{N}}\sum_{x}(-1)^{f(x)}\ket{x}.
+\]
+Every value of $f$ is now recorded in a relative sign. It remains to read out
+these signs; the tool for that is the Hadamard transform.
+
+\section{The Hadamard Transform}
+
+We will use repeatedly the action of $H^{\otimes n}$ on a basis state. Recall for a
+single qubit $H\ket{a}=\tfrac{1}{\sqrt2}\sum_{b\in\{0,1\}}(-1)^{ab}\ket{b}$.
+
+\begin{lemma}[Hadamard identity]
+\label{l3:lem:had}
+For $x\in\{0,1\}^n$, writing $x\cdot z=\bigoplus_{i=1}^{n}x_i z_i$ for the bitwise
+inner product modulo $2$,
+\[
+  H^{\otimes n}\ket{x}=\frac{1}{\sqrt{2^{\,n}}}\sum_{z\in\{0,1\}^n}(-1)^{x\cdot z}\ket{z}.
+\]
+\end{lemma}
+
+\begin{proof}
+Take the tensor product of the single-qubit rule over the $n$ qubits:
+\[
+  H^{\otimes n}\ket{x}
+  =\bigotimes_{i=1}^{n}\Big(\tfrac{1}{\sqrt2}\sum_{z_i\in\{0,1\}}(-1)^{x_i z_i}\ket{z_i}\Big)
+  =\frac{1}{\sqrt{2^{\,n}}}\sum_{z\in\{0,1\}^n}(-1)^{\sum_i x_i z_i}\ket{z}.
+\]
+Because the phase is $\pm1$, the exponent $\sum_i x_i z_i$ may be reduced modulo
+$2$, giving $(-1)^{x\cdot z}$.
+\end{proof}
+
+We also record the orthogonality relation that makes the interference exact:
+\[
+  \frac{1}{2^{\,n}}\sum_{x\in\{0,1\}^n}(-1)^{x\cdot w}
+  =\delta_{w,0^n},
+  \qquad w\in\{0,1\}^n,
+\]
+which holds because the sum factors as $\prod_{i=1}^{n}\tfrac12\sum_{x_i}(-1)^{x_i w_i}$,
+and each factor equals $1$ if $w_i=0$ and $0$ if $w_i=1$.
+
+\section{The Deutsch Algorithm}
+
+Consider the simplest nontrivial case, $n=1$, so $f:\{0,1\}\to\{0,1\}$. There are
+four such functions. We wish to decide a global property of $f$ using as few
+queries as possible.
+
+\begin{definition}[Constant and balanced functions]
+\label{l3:def:constbal}
+A function $f:\{0,1\}^n\to\{0,1\}$ is \emph{constant} if $f(x)$ takes the same value
+on all $2^n$ inputs. It is \emph{balanced} if $f(x)=0$ on exactly half of the inputs
+and $f(x)=1$ on the other half. For $n=1$, $f$ is constant iff $f(0)=f(1)$ and
+balanced iff $f(0)\neq f(1)$.
+\end{definition}
+
+Classically, deciding whether $f$ is constant or balanced for $n=1$ requires
+\emph{two} queries: knowing $f(0)$ alone tells us nothing about $f(1)$. Deutsch's
+algorithm decides it with a single query.
+
+\begin{theorem}[Correctness of the Deutsch algorithm]
+\label{l3:thm:deutsch}
+Prepare the two-qubit state $\ket{0}\ket{1}$, apply $H$ to each qubit, apply $\Uf$,
+apply $H$ to the first qubit, and measure the first qubit. The outcome is $0$ if
+$f$ is constant and $1$ if $f$ is balanced. Exactly one query to $\Uf$ is used.
+\end{theorem}
+
+\begin{proof}
+After the first Hadamards,
+$H\ket{0}\otimes H\ket{1}=\ket{+}\ket{-}=\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})\ket{-}$.
+Applying $\Uf$ and using phase kickback (Lemma~\ref{l3:lem:kickback}) on each branch,
+\[
+  \Uf\,\tfrac{1}{\sqrt2}\big(\ket{0}+\ket{1}\big)\ket{-}
+  =\tfrac{1}{\sqrt2}\big((-1)^{f(0)}\ket{0}+(-1)^{f(1)}\ket{1}\big)\ket{-}.
+\]
+Now apply $H$ to the first qubit, using $H\ket{0}=\tfrac{1}{\sqrt2}(\ket0+\ket1)$
+and $H\ket{1}=\tfrac{1}{\sqrt2}(\ket0-\ket1)$:
+\[
+  \tfrac{1}{2}\Big[\big((-1)^{f(0)}+(-1)^{f(1)}\big)\ket{0}
+  +\big((-1)^{f(0)}-(-1)^{f(1)}\big)\ket{1}\Big]\ket{-}.
+\]
+If $f$ is constant, $f(0)=f(1)$, the $\ket{1}$ amplitude vanishes and the
+$\ket{0}$ amplitude is $\pm1$; the first qubit is $\pm\ket{0}$ and measurement
+yields $0$ with certainty. If $f$ is balanced, $f(0)\neq f(1)$, the $\ket{0}$
+amplitude vanishes and the first qubit is $\pm\ket{1}$; measurement yields $1$
+with certainty. The oracle is called once.
+\end{proof}
+
+Notice that the answer is read from the \emph{first} qubit, even though classically
+one would expect the ``information'' to live in the target qubit that received
+$f(x)$. This inversion is the hallmark of interference.
+
+\begin{example}[Deutsch on $f(a)=a\oplus 1$]
+\label{l3:ex:deutsch}
+Take $f(0)=1$, $f(1)=0$, which is balanced. After the query the first register is
+$\tfrac{1}{\sqrt2}\big((-1)^{1}\ket0+(-1)^{0}\ket1\big)=\tfrac{1}{\sqrt2}(-\ket0+\ket1)=-\ket{-}$.
+Applying $H$ gives $H(-\ket{-})=-\ket{1}$, so the measurement returns $1$,
+correctly reporting ``balanced.'' By contrast, for the constant function
+$f\equiv 1$ the first register after the query is
+$\tfrac{1}{\sqrt2}(-\ket0-\ket1)=-\ket{+}$, and $H(-\ket{+})=-\ket0$ returns $0$,
+reporting ``constant.''
+\end{example}
+
+\section{The Deutsch--Jozsa Algorithm}
+
+We now generalize to $n$ qubits under the following \emph{promise}: $f$ is either
+constant or balanced (Definition~\ref{l3:def:constbal}), and we are guaranteed that
+one of these holds. The task is to decide which. Classically, in the worst case
+one must query $2^{n-1}+1$ inputs: after seeing $2^{n-1}$ identical outputs the
+function could still be either constant or balanced, and one more query is needed.
+Deutsch--Jozsa decides it with a single quantum query.
+
+The circuit is the unifying pattern $H^{\otimes n}$--$\Uf$--$H^{\otimes n}$ on the
+$n$-qubit input register, with the target qubit held in $\ket{-}$.
+
+\begin{theorem}[Correctness of Deutsch--Jozsa]
+\label{l3:thm:dj}
+Prepare $\ket{0}^{\otimes n}$ on the input register and $\ket{-}$ on the target.
+Apply $H^{\otimes n}$, then $\Uf$, then $H^{\otimes n}$, and measure the input
+register. If $f$ is constant the outcome is $0^n$ with probability $1$; if $f$ is
+balanced the outcome $0^n$ occurs with probability $0$. Thus measuring all zeros
+certifies ``constant,'' and any nonzero outcome certifies ``balanced.'' One query
+to $\Uf$ is used.
+\end{theorem}
+
+\begin{proof}
+By Lemma~\ref{l3:lem:had}, $H^{\otimes n}\ket{0}^{\otimes n}
+=\tfrac{1}{\sqrt N}\sum_{x}\ket{x}$ with $N=2^n$. Applying $\Uf$ with the target
+in $\ket{-}$ triggers phase kickback (Lemma~\ref{l3:lem:kickback}) on every branch,
+giving (dropping the unchanged target factor)
+\[
+  \tfrac{1}{\sqrt N}\sum_{x}(-1)^{f(x)}\ket{x}.
+\]
+Apply $H^{\otimes n}$ once more and use Lemma~\ref{l3:lem:had} again:
+\[
+  H^{\otimes n}\tfrac{1}{\sqrt N}\sum_{x}(-1)^{f(x)}\ket{x}
+  =\frac{1}{N}\sum_{z}\Big(\sum_{x}(-1)^{f(x)}(-1)^{x\cdot z}\Big)\ket{z}.
+\]
+The amplitude of the outcome $z=0^n$ is obtained by setting $z=0^n$, so $x\cdot z=0$:
+\[
+  \alpha_{0^n}=\frac{1}{N}\sum_{x\in\{0,1\}^n}(-1)^{f(x)}.
+\]
+If $f$ is constant, every term is the same sign and $\alpha_{0^n}=\pm1$, so the
+outcome is $0^n$ with probability $\abs{\alpha_{0^n}}^2=1$. If $f$ is balanced,
+exactly $N/2$ terms equal $+1$ and $N/2$ equal $-1$, so they cancel and
+$\alpha_{0^n}=0$: the outcome $0^n$ never occurs. In either case a single query
+suffices, and the two cases are distinguished with certainty.
+\end{proof}
+
+\section{The Bernstein--Vazirani Algorithm}
+
+The Deutsch--Jozsa algorithm returns a single bit of information (constant vs.\
+balanced). The Bernstein--Vazirani algorithm uses the very same circuit to extract
+an entire hidden $n$-bit string in one query, provided $f$ has a special linear
+structure.
+
+\begin{definition}[Bernstein--Vazirani function]
+\label{l3:def:bv}
+Fix a hidden string $s\in\{0,1\}^n$. The associated \emph{linear} Boolean function is
+\[
+  f_s(x)=s\cdot x=\bigoplus_{i=1}^{n}s_i x_i \pmod 2,
+\]
+the parity of the number of positions at which $s$ and $x$ are both $1$. The
+Bernstein--Vazirani problem is: given oracle access to $\Uf$ for such an $f_s$,
+determine $s$.
+\end{definition}
+
+Classically, one recovers $s$ bit by bit. Querying $x=e_i$ (the string with a
+single $1$ in position $i$) returns $f_s(e_i)=s_i$; this determines one bit per
+query, so $n$ queries are needed and sufficient. The quantum algorithm needs one.
+
+\begin{theorem}[Correctness of Bernstein--Vazirani]
+\label{l3:thm:bv}
+For $f=f_s$ of Definition~\ref{l3:def:bv}, running the circuit of
+Theorem~\ref{l3:thm:dj}---$H^{\otimes n}$, then $\Uf$, then $H^{\otimes n}$, with the
+target in $\ket{-}$---leaves the input register in the state $\ket{s}$. Measuring
+recovers $s$ with certainty using a single query.
+\end{theorem}
+
+\begin{proof}
+As before, after $H^{\otimes n}$ and the single query with phase kickback the input
+register is
+\[
+  \tfrac{1}{\sqrt N}\sum_{x}(-1)^{f_s(x)}\ket{x}
+  =\tfrac{1}{\sqrt N}\sum_{x}(-1)^{s\cdot x}\ket{x}.
+\]
+Applying $H^{\otimes n}$ and using Lemma~\ref{l3:lem:had},
+\[
+  H^{\otimes n}\tfrac{1}{\sqrt N}\sum_{x}(-1)^{s\cdot x}\ket{x}
+  =\frac{1}{N}\sum_{z}\Big(\sum_{x}(-1)^{s\cdot x}(-1)^{x\cdot z}\Big)\ket{z}
+  =\frac{1}{N}\sum_{z}\Big(\sum_{x}(-1)^{x\cdot(s\oplus z)}\Big)\ket{z},
+\]
+where $s\cdot x\oplus x\cdot z=x\cdot(s\oplus z)$ because the inner product is
+linear in its second argument modulo $2$. By the orthogonality relation of
+Section~3, $\tfrac{1}{N}\sum_{x}(-1)^{x\cdot(s\oplus z)}=\delta_{s\oplus z,\,0^n}
+=\delta_{z,s}$. Hence only the term $z=s$ survives and the register is exactly
+$\ket{s}$. Measuring in the computational basis returns $s$ with probability $1$.
+\end{proof}
+
+Equivalently, $H^{\otimes n}\ket{s}=\tfrac{1}{\sqrt N}\sum_x(-1)^{s\cdot x}\ket{x}$
+by Lemma~\ref{l3:lem:had}, so the post-query state is $H^{\otimes n}\ket{s}$; a second
+$H^{\otimes n}$ inverts it (since $H^{\otimes n}$ is its own inverse) and returns
+$\ket{s}$.
+
+\begin{example}[A small Bernstein--Vazirani instance]
+\label{l3:ex:bv}
+Let $n=3$ and $s=101$, so $f_s(x)=x_1\oplus x_3$. After $H^{\otimes 3}$ and one
+query, the input register is $\tfrac{1}{\sqrt8}\sum_{x}(-1)^{x_1\oplus x_3}\ket{x}$.
+Applying $H^{\otimes 3}$ collapses this to $\ket{101}$, and the measurement reads
+off $s=101$ in one shot. A classical solver would instead query
+$x=100$, $010$, $001$ to obtain $s_1=1$, $s_2=0$, $s_3=1$ respectively---three
+queries for the same answer.
+\end{example}
+
+\section{Discussion and Significance}
+
+\begin{remark}[Deterministic advantage and its limits]
+\label{l3:rem:significance}
+Several points deserve emphasis.
+\begin{itemize}
+\item \emph{Deterministic vs.\ bounded-error.} All three algorithms succeed with
+probability exactly $1$; the advantage is not a matter of a lucky measurement. For
+Deutsch--Jozsa the separation is $1$ quantum query versus $2^{n-1}+1$ classical
+queries in the worst case (deterministically). If one allows a small classical
+error probability, a handful of random queries distinguishes constant from
+balanced with high confidence, so the \emph{bounded-error} classical query
+complexity of Deutsch--Jozsa is only $O(1)$; the exponential gap there is specific
+to the deterministic setting. For Bernstein--Vazirani the separation is $1$ versus
+$n$ queries and survives even in the bounded-error model.
+\item \emph{The unifying pattern.} Every algorithm here is the circuit
+$H^{\otimes n}\,\Uf\,H^{\otimes n}$ applied to $\ket{0}^{\otimes n}$ with the target
+in $\ket{-}$. Phase kickback writes $f$ into signs; the two Hadamard layers read
+those signs out by interference. This template recurs throughout quantum
+algorithms.
+\item \emph{Query advantage $\neq$ gate-complexity advantage.} We count calls to
+$\Uf$, treating the oracle as a unit-cost black box. The number of elementary
+gates needed to \emph{build} $\Uf$ for a given $f$ must be analyzed separately, and
+for a generic $f$ it can be large. The dramatic query separations above do not by
+themselves imply a separation in total running time.
+\item \emph{Relation to Simon and Shor.} Bernstein--Vazirani generalizes to
+Simon's problem, where $f$ obeys the hidden-structure promise
+$f(x)=f(x\oplus s)$ (equivalently $f(x)=f(y)$ iff $x\oplus y\in\{0^n,s\}$); the
+same $H^{\otimes n}\,\Uf\,H^{\otimes n}$ pattern yields linear equations
+$z\cdot s=0$ constraining $s$, and Simon's exponential separation holds even with
+bounded error. Simon's algorithm in turn inspired Shor's factoring algorithm,
+where the final Hadamard transform is replaced by the quantum Fourier transform of
+a later chapter.
+\end{itemize}
+\end{remark}
+
+\section{Problems}
+
+\begin{exercise}
+\label{l3:ex:p1}
+List all four functions $f:\{0,1\}\to\{0,1\}$ and classify each as constant or
+balanced. For each, compute by hand the first-qubit measurement outcome produced
+by the Deutsch algorithm of Theorem~\ref{l3:thm:deutsch}.
+\end{exercise}
+
+\begin{exercise}
+\label{l3:ex:p2}
+Prove that $\Uf$ of Definition~\ref{l3:def:oracle} is Hermitian, and use this together
+with $\Uf^2=\id$ to conclude that its eigenvalues are $\pm1$.
+\end{exercise}
+
+\begin{exercise}
+\label{l3:ex:p3}
+Show directly, without invoking Lemma~\ref{l3:lem:kickback}, that if the target qubit
+is initialized in $\ket{+}=\tfrac{1}{\sqrt2}(\ket0+\ket1)$ instead of $\ket{-}$,
+then $\Uf\ket{x}\ket{+}=\ket{x}\ket{+}$ for all $x$, so no phase is kicked back.
+Explain why $\ket{-}$ is the useful choice.
+\end{exercise}
+
+\begin{exercise}
+\label{l3:ex:p4}
+For $n=2$, let $f(x_1x_2)=x_1\oplus x_2$. Verify that $f$ is balanced and trace the
+Deutsch--Jozsa state through $H^{\otimes 2}$, $\Uf$, $H^{\otimes 2}$, confirming
+that the amplitude of $\ket{00}$ is $0$.
+\end{exercise}
+
+\begin{exercise}
+\label{l3:ex:p5}
+In the Bernstein--Vazirani setting with hidden string $s$, suppose the oracle is
+for $g(x)=s\cdot x\oplus c$ with an unknown constant bit $c$ (an ``affine''
+function). Show that the algorithm of Theorem~\ref{l3:thm:bv} still outputs $s$ with
+certainty, and identify where the constant $c$ goes.
+\end{exercise}
+
+\begin{exercise}
+\label{l3:ex:p6}
+Prove the orthogonality relation $\tfrac{1}{2^n}\sum_{x\in\{0,1\}^n}(-1)^{x\cdot w}
+=\delta_{w,0^n}$ used in the proof of Theorem~\ref{l3:thm:bv}, by factoring the sum
+over the $n$ bits.
+\end{exercise}
+
+\begin{exercise}
+\label{l3:ex:p7}
+Give the exact worst-case classical (deterministic) query complexity of the
+Deutsch--Jozsa problem on $n$ bits and justify it. Contrast this with the
+observation that a randomized classical algorithm distinguishes constant from
+balanced with error at most $1/3$ using only a constant number of queries.
+\end{exercise}
+
+\section{Solutions}
+
+\begin{solution}[Exercise~\ref{l3:ex:p1}]
+The four functions are: $f\equiv0$ (constant), $f\equiv1$ (constant),
+$f(a)=a$ (balanced, $f(0)=0,f(1)=1$), and $f(a)=a\oplus1$ (balanced,
+$f(0)=1,f(1)=0$). By Theorem~\ref{l3:thm:deutsch} the outcome is $0$ for the two
+constant functions and $1$ for the two balanced ones. Concretely, for $f\equiv0$
+the post-query first register is $\ket{+}\to H\ket{+}=\ket0$; for $f\equiv1$ it is
+$-\ket{+}\to-\ket0$ (outcome $0$); for $f(a)=a$ it is
+$\tfrac{1}{\sqrt2}(\ket0-\ket1)=\ket{-}\to\ket1$; for $f(a)=a\oplus1$ it is
+$-\ket{-}\to-\ket1$ (outcome $1$).
+\end{solution}
+
+\begin{solution}[Exercise~\ref{l3:ex:p2}]
+In the computational basis $\Uf$ is a real permutation matrix
+($\ket{x}\ket{y}\mapsto\ket{x}\ket{y\oplus f(x)}$). Because the permutation is an
+involution (Lemma~\ref{l3:lem:unitary}), the matrix equals its own transpose, hence is
+symmetric; being real and symmetric it is Hermitian, $\Uf^{\dagger}=\Uf$.
+Alternatively, from $\Uf^{\dagger}\Uf=\id$ (unitary) and $\Uf^2=\id$ (involution) we
+get $\Uf^{\dagger}=\Uf^{-1}=\Uf$. If $\Uf\ket{\psi}=\lambda\ket{\psi}$ then
+$\ket{\psi}=\Uf^2\ket{\psi}=\lambda^2\ket{\psi}$, so $\lambda^2=1$ and
+$\lambda\in\{+1,-1\}$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{l3:ex:p3}]
+Expanding as in Lemma~\ref{l3:lem:kickback},
+\[
+  \Uf\ket{x}\ket{+}
+  =\tfrac{1}{\sqrt2}\big(\ket{x}\ket{f(x)}+\ket{x}\ket{1\oplus f(x)}\big)
+  =\tfrac{1}{\sqrt2}\ket{x}\big(\ket{f(x)}+\ket{1\oplus f(x)}\big).
+\]
+Whether $f(x)=0$ or $f(x)=1$, the set $\{f(x),\,1\oplus f(x)\}$ equals $\{0,1\}$,
+so the target factor is always $\tfrac{1}{\sqrt2}(\ket0+\ket1)=\ket{+}$ with a
+$+$ sign. Thus $\Uf\ket{x}\ket{+}=\ket{x}\ket{+}$ and no phase depends on $f(x)$:
+$\ket{+}$ is a $+1$ eigenstate of the target's bit-flip action. The state $\ket{-}$
+is the $-1$ eigenstate, so flipping (which happens exactly when $f(x)=1$) multiplies
+it by $-1$; that sign is what encodes $f$. Hence $\ket{-}$ is the useful choice.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{l3:ex:p4}]
+Here $f(00)=0,\ f(01)=1,\ f(10)=1,\ f(11)=0$: two zeros and two ones, so $f$ is
+balanced. Starting from $\ket{00}$, $H^{\otimes2}$ gives
+$\tfrac12(\ket{00}+\ket{01}+\ket{10}+\ket{11})$. Phase kickback multiplies each
+$\ket{x}$ by $(-1)^{f(x)}$:
+$\tfrac12(\ket{00}-\ket{01}-\ket{10}+\ket{11})$. Note this factors as
+$\tfrac12(\ket0-\ket1)(\ket0-\ket1)=\ket{-}\ket{-}$. Applying $H^{\otimes2}$ gives
+$H\ket{-}\otimes H\ket{-}=\ket1\ket1=\ket{11}$. The amplitude of $\ket{00}$ is $0$,
+consistent with Theorem~\ref{l3:thm:dj}; indeed
+$\alpha_{00}=\tfrac14\sum_x(-1)^{f(x)}=\tfrac14(1-1-1+1)=0$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{l3:ex:p5}]
+With $g(x)=s\cdot x\oplus c$, phase kickback gives each branch the sign
+$(-1)^{g(x)}=(-1)^{c}(-1)^{s\cdot x}$. The factor $(-1)^c$ is a \emph{global} phase
+independent of $x$, so it can be pulled out of the sum:
+\[
+  \tfrac{1}{\sqrt N}\sum_x(-1)^{g(x)}\ket{x}
+  =(-1)^{c}\,\tfrac{1}{\sqrt N}\sum_x(-1)^{s\cdot x}\ket{x}.
+\]
+Applying $H^{\otimes n}$ yields $(-1)^{c}\ket{s}$ by Theorem~\ref{l3:thm:bv}. A global
+phase is physically undetectable and does not affect measurement probabilities, so
+the outcome is $s$ with certainty. The constant $c$ is invisible to this algorithm;
+recovering $c$ would require an additional query, e.g.\ evaluating $g(0^n)=c$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{l3:ex:p6}]
+The inner product splits over bits, so the sum factors:
+\[
+  \frac{1}{2^n}\sum_{x\in\{0,1\}^n}(-1)^{x\cdot w}
+  =\prod_{i=1}^{n}\Big(\tfrac12\sum_{x_i\in\{0,1\}}(-1)^{x_i w_i}\Big).
+\]
+For each factor, if $w_i=0$ the summand is $(-1)^0=1$ twice, giving
+$\tfrac12(1+1)=1$; if $w_i=1$ the summand is $+1$ and $-1$, giving
+$\tfrac12(1-1)=0$. The product is $1$ only when every $w_i=0$, i.e.\ $w=0^n$, and
+$0$ otherwise. Hence the sum equals $\delta_{w,0^n}$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{l3:ex:p7}]
+Deterministically, an adversary answering queries can keep all responses equal
+(say all $0$) for the first $2^{n-1}$ distinct inputs; at that point $f$ could still
+be constant (all outputs $0$) or balanced (the remaining $2^{n-1}$ inputs all $1$).
+Only a $(2^{n-1}+1)$-th query can force the decision, and $2^{n-1}+1$ queries always
+suffice: if any two of them disagree, $f$ is balanced, otherwise the majority
+argument forces it to be constant. So the exact worst-case deterministic query
+complexity is $2^{n-1}+1$. Randomly, sampling $k$ distinct inputs and answering
+``balanced'' iff any two disagree: a constant $f$ is never misclassified, while a
+balanced $f$ is missed only if all $k$ samples share a value, an event of
+probability $2\cdot 2^{-k}$ (up to the small correction for sampling without
+replacement). Taking $k=3$ already gives error below $1/3$, so a constant number of
+queries suffices with bounded error---this is why the exponential separation is
+special to the deterministic model, as noted in Remark~\ref{l3:rem:significance}.
+\end{solution}

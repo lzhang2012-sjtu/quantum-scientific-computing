@@ -1,0 +1,578 @@
+\chapter{The Quantum Fourier Transform}
+
+The Quantum Fourier Transform (QFT) is one of the most important subroutines in
+quantum computing. It is the quantum analogue of the classical discrete Fourier
+transform (DFT), and it sits at the heart of quantum phase estimation (QPE) and
+of Shor's factoring algorithm. In this chapter we define the QFT, prove that it
+is unitary, derive its product (tensor) representation, use that representation
+to build an efficient circuit from Hadamard and controlled-phase gates, count
+the gates to obtain the $O(n^2)$ bound, and discuss the inverse QFT together
+with its principal applications.
+
+Throughout we work with $n$ qubits, we write $N = 2^n$ for the dimension of the
+state space $(\C^2)^{\otimes n}\cong\C^N$, and we abbreviate the primitive
+$N$-th root of unity by
+\[
+  \omega \defeq e^{i 2\pi / N}, \qquad \omega^N = 1 .
+\]
+Computational basis states are labelled by integers $j\in\{0,1,\dots,N-1\}$, and
+we freely identify the integer $j$ with its $n$-bit binary string
+$j_1 j_2 \cdots j_n$, where $j_1$ is the most significant bit, so that
+\[
+  j = j_1 2^{n-1} + j_2 2^{n-2} + \cdots + j_n 2^{0}
+    = \sum_{l=1}^{n} j_l\, 2^{\,n-l},
+  \qquad \ket{j} = \ket{j_1}\otimes\cdots\otimes\ket{j_n}.
+\]
+
+\section{Definition and Motivation}
+
+\begin{definition}[Quantum Fourier Transform]\label{l5:def:qft}
+Let $N = 2^n$ and $\omega = e^{i 2\pi / N}$. The \emph{Quantum Fourier
+Transform} is the linear operator $\QFT$ on $\C^N$ that acts on computational
+basis states by
+\[
+  \QFT\ket{j} \;=\; \frac{1}{\sqrt N}\sum_{k=0}^{N-1} e^{i 2\pi j k / N}\ket{k}
+             \;=\; \frac{1}{\sqrt N}\sum_{k=0}^{N-1} \omega^{jk}\,\ket{k},
+  \qquad j = 0,1,\dots,N-1 .
+\]
+Equivalently, in the computational basis $\QFT$ is the $N\times N$ matrix with
+entries
+\[
+  \bigl(\QFT\bigr)_{kj} \;=\; \frac{1}{\sqrt N}\,\omega^{jk}
+  \qquad (0 \le j,k \le N-1),
+\]
+a (normalized) Vandermonde matrix in the powers of $\omega$.
+\end{definition}
+
+The action of $\QFT$ on a general state follows by linearity. If
+$\ket{\psi} = \sum_{j=0}^{N-1} x_j \ket{j}$ then
+\[
+  \QFT\ket{\psi}
+    = \sum_{k=0}^{N-1} y_k \ket{k},
+  \qquad
+  y_k = \frac{1}{\sqrt N}\sum_{j=0}^{N-1} \omega^{jk} x_j ,
+\]
+so the QFT transforms the vector of amplitudes $(x_0,\dots,x_{N-1})$ into
+$(y_0,\dots,y_{N-1})$ exactly as the classical DFT would. The essential point is
+that the input is a single computational basis state $\ket{j}$ while the output
+is an \emph{equal-magnitude} superposition of all $N$ basis states; the integer
+$j$ is encoded entirely in the relative phases $\omega^{jk}$.
+
+\begin{example}[The all-zeros input]\label{l5:ex:zero}
+For $j=0$ every phase is $\omega^{0}=1$, so
+\[
+  \QFT\ket{0} = \frac{1}{\sqrt N}\sum_{k=0}^{N-1}\ket{k}
+              = H^{\otimes n}\ket{0}^{\otimes n},
+\]
+the uniform superposition. Thus on the input $\ket{0\cdots 0}$ the QFT is
+nothing but a layer of Hadamard gates.
+\end{example}
+
+\begin{remark}[Same kernel as the classical DFT, but no free lunch]\label{l5:rem:dft}
+The kernel $\tfrac{1}{\sqrt N}\,e^{i2\pi jk/N}$ appearing in
+Definition~\ref{l5:def:qft} is \emph{identical} to that of the (symmetrically
+normalized) classical DFT; the QFT simply applies this transform to the $2^n$
+amplitudes of an $n$-qubit state \emph{in superposition}. It is tempting to
+conclude that the QFT gives an exponential speedup for Fourier analysis, but
+this is not so: after the transform we hold the coefficients $y_k$ only as
+quantum amplitudes, and a measurement returns a \emph{single} basis state
+$\ket{k}$ with probability $\abs{y_k}^2$. We cannot read out all $N$ amplitudes;
+in fact estimating them to good precision would require exponentially many
+repetitions. The power of the QFT is therefore not standalone but
+\emph{structural}: embedded inside a larger algorithm (phase estimation,
+period finding) it converts information hidden in the phases into information in
+the measurement statistics, so that a small number of measurements suffices. We
+also note the resource comparison developed below: the QFT circuit uses
+$O(n^2) = O((\log N)^2)$ elementary gates, versus $O(N\log N)$ arithmetic
+operations for the classical FFT and $O(N^2)$ for the naive DFT.
+\end{remark}
+
+\section{Unitarity}
+
+Because the QFT is to be realized as a quantum circuit, it must be unitary. We
+prove this directly from the definition. The engine of the proof is the
+following elementary but crucial identity.
+
+\begin{lemma}[Geometric-series / Kronecker-delta identity]\label{l5:lem:geom}
+Let $N\ge 1$ and let $m\in\Z$. Then
+\[
+  \sum_{k=0}^{N-1} e^{i 2\pi m k / N}
+  = \sum_{k=0}^{N-1}\bigl(e^{i2\pi m/N}\bigr)^{k}
+  = N\,[\,m\equiv 0 \bmod N\,],
+\]
+where the bracket equals $1$ if $m\equiv 0 \pmod N$ and $0$ otherwise. In
+particular, for $m = j - j'$ with $j,j' \in \{0,\dots,N-1\}$ we have
+$m\equiv 0 \pmod N$ iff $j = j'$, so
+\[
+  \sum_{k=0}^{N-1} e^{i 2\pi (j-j') k / N} = N\,\delta_{j,j'} .
+\]
+\end{lemma}
+
+\begin{proof}
+Write $r = e^{i 2\pi m/N}$, so the sum is the geometric series
+$\sum_{k=0}^{N-1} r^{k}$. If $m\equiv 0\pmod N$ then $r=1$ and every term is
+$1$, giving the value $N$. Otherwise $r\ne 1$, and the closed form of the
+geometric series applies:
+\[
+  \sum_{k=0}^{N-1} r^{k} = \frac{r^{N}-1}{r-1}
+  = \frac{e^{i 2\pi m}-1}{r-1} = \frac{1-1}{r-1} = 0,
+\]
+since $r^{N} = e^{i 2\pi m} = 1$ for integer $m$ while the denominator is
+nonzero. For the final statement, if $\abs{j-j'} < N$ then $j-j'\equiv 0
+\pmod N$ forces $j-j'=0$.
+\end{proof}
+
+\begin{theorem}[The QFT is unitary]\label{l5:thm:unitary}
+The operator of Definition~\ref{l5:def:qft} satisfies $\QFT^{\dagger}\QFT = \id$,
+so $\QFT$ is unitary.
+\end{theorem}
+
+\begin{proof}
+From Definition~\ref{l5:def:qft}, $\bigl(\QFT\bigr)_{kj} = N^{-1/2}\,\omega^{jk}$,
+so the adjoint has entries
+$\bigl(\QFT^{\dagger}\bigr)_{jk} = \overline{\bigl(\QFT\bigr)_{kj}}
+= N^{-1/2}\,\omega^{-jk}$. We compute the matrix element
+$\braket{j'|\QFT^{\dagger}\QFT|j}$, i.e.\ the $(j',j)$ entry of
+$\QFT^{\dagger}\QFT$, by inserting a resolution of the identity over the
+basis $\{\ket{k}\}$:
+\[
+  \braket{j'|\QFT^{\dagger}\QFT|j}
+    = \sum_{k=0}^{N-1} \overline{(\QFT)_{kj'}}\,(\QFT)_{kj}
+    = \sum_{k=0}^{N-1}
+        \Bigl(\tfrac{1}{\sqrt N}\,\omega^{-j'k}\Bigr)
+        \Bigl(\tfrac{1}{\sqrt N}\,\omega^{jk}\Bigr)
+    = \frac{1}{N}\sum_{k=0}^{N-1}\omega^{(j-j')k}.
+\]
+Since $\omega^{(j-j')k} = e^{i2\pi (j-j')k/N}$, Lemma~\ref{l5:lem:geom} gives
+$\sum_{k=0}^{N-1}\omega^{(j-j')k} = N\,\delta_{j,j'}$, and therefore
+\[
+  \braket{j'|\QFT^{\dagger}\QFT|j}
+    = \frac{1}{N}\,N\,\delta_{j,j'} = \delta_{j,j'} .
+\]
+As $j,j'$ range over the basis this says $\QFT^{\dagger}\QFT = \id$. Equivalently,
+the columns $\QFT\ket{j}$ are orthonormal. Hence $\QFT$ is unitary.
+\end{proof}
+
+Since $\QFT$ is unitary, $\QFT^{-1} = \QFT^{\dagger}$, and we record the inverse
+explicitly.
+
+\begin{definition}[Inverse QFT]\label{l5:def:iqft}
+The \emph{inverse Quantum Fourier Transform} is $\QFT^{-1} = \QFT^{\dagger}$,
+acting on basis states by
+\[
+  \QFT^{\dagger}\ket{j}
+   = \frac{1}{\sqrt N}\sum_{k=0}^{N-1} e^{-i 2\pi j k / N}\ket{k}
+   = \frac{1}{\sqrt N}\sum_{k=0}^{N-1} \omega^{-jk}\,\ket{k}.
+\]
+It differs from $\QFT$ only by conjugating every phase (replacing $\omega$ by
+$\overline{\omega}=\omega^{-1}$). Consequently the inverse circuit is obtained
+from the QFT circuit by reversing the order of the gates and negating every
+phase angle.
+\end{definition}
+
+\section{The Product (Tensor) Representation}
+
+To build a circuit we need the QFT output expressed qubit-by-qubit. The bridge
+is the \emph{product form}, which shows that $\QFT\ket{j}$ is an unentangled
+product state. First we fix notation for the binary fractions that appear in the
+phases.
+
+\begin{definition}[Binary fraction]\label{l5:def:binfrac}
+For bits $j_l, j_{l+1}, \dots, j_n \in\{0,1\}$ the \emph{binary fraction}
+$0.j_l j_{l+1}\cdots j_n$ is the real number
+\[
+  0.j_l j_{l+1}\cdots j_n
+   \defeq \frac{j_l}{2} + \frac{j_{l+1}}{2^{2}} + \cdots + \frac{j_n}{2^{\,n-l+1}}
+   = \sum_{s=l}^{n} \frac{j_s}{2^{\,s-l+1}} .
+\]
+In particular $0.j_n = j_n/2$ and $0.j_1 j_2\cdots j_n = j/2^{n} = j/N$.
+\end{definition}
+
+\begin{theorem}[Product representation]\label{l5:thm:product}
+For every $j = j_1 j_2\cdots j_n$ (binary),
+\[
+  \QFT\ket{j}
+   = \bigotimes_{l=1}^{n}
+       \frac{1}{\sqrt 2}\Bigl(\ket{0}
+        + e^{\,i 2\pi\, 0.j_l j_{l+1}\cdots j_n}\,\ket{1}\Bigr)
+   = \frac{1}{2^{n/2}}
+     \bigl(\ket{0}+e^{i2\pi\,0.j_1\cdots j_n}\ket{1}\bigr)\otimes\cdots\otimes
+     \bigl(\ket{0}+e^{i2\pi\,0.j_n}\ket{1}\bigr) .
+\]
+In particular the output is a product state: the $n$ output qubits are
+unentangled.
+\end{theorem}
+
+\begin{proof}
+Start from Definition~\ref{l5:def:qft} and expand the summation index $k$ in binary,
+$k = k_1 k_2\cdots k_n$ with $k = \sum_{l=1}^{n} k_l 2^{\,n-l}$. Then
+\[
+  \QFT\ket{j}
+   = \frac{1}{\sqrt N}\sum_{k=0}^{N-1} e^{i2\pi jk/N}\ket{k}
+   = \frac{1}{\sqrt N}
+      \sum_{k_1=0}^{1}\cdots\sum_{k_n=0}^{1}
+      e^{\,i 2\pi j \left(\sum_{l=1}^{n} k_l 2^{\,n-l}\right)/2^{n}}\,
+      \ket{k_1}\cdots\ket{k_n}.
+\]
+The exponent factorizes over $l$ because the exponential of a sum is a product
+of exponentials:
+\[
+  e^{\,i 2\pi j \left(\sum_{l} k_l 2^{\,n-l}\right)/2^{n}}
+   = \prod_{l=1}^{n} e^{\,i 2\pi j k_l 2^{\,n-l}/2^{n}}
+   = \prod_{l=1}^{n} e^{\,i 2\pi j k_l / 2^{\,l}} .
+\]
+Substituting and interchanging the (finite) sums with the product turns the
+sum over all strings $k$ into a product of independent single-qubit sums:
+\[
+  \QFT\ket{j}
+   = \frac{1}{\sqrt N}\bigotimes_{l=1}^{n}
+       \Bigl(\sum_{k_l=0}^{1} e^{\,i 2\pi j k_l / 2^{\,l}}\ket{k_l}\Bigr)
+   = \frac{1}{\sqrt N}\bigotimes_{l=1}^{n}
+       \Bigl(\ket{0} + e^{\,i 2\pi j / 2^{\,l}}\ket{1}\Bigr).
+\]
+It remains to simplify the phase $e^{\,i 2\pi j/2^{\,l}}$. Write $j$ in binary and
+divide by $2^{l}$:
+\[
+  \frac{j}{2^{l}}
+   = \frac{1}{2^{l}}\sum_{s=1}^{n} j_s 2^{\,n-s}
+   = \underbrace{\sum_{s\,:\,n-s\ge l} j_s 2^{\,n-s-l}}_{\text{integer}}
+     \; + \; \sum_{s\,:\,n-s< l} j_s 2^{\,n-s-l}.
+\]
+The first group consists of nonnegative integer powers of two and contributes an
+integer to $j/2^{l}$; since $e^{i2\pi(\text{integer})}=1$, it may be discarded.
+The second group runs over $s = n-l+1, n-l+2, \dots, n$ and gives, after
+relabelling,
+\[
+  \sum_{s=n-l+1}^{n} j_s 2^{\,n-s-l}
+   = \frac{j_{\,n-l+1}}{2} + \frac{j_{\,n-l+2}}{2^{2}} + \cdots + \frac{j_n}{2^{\,l}}
+   = 0.j_{\,n-l+1}\,j_{\,n-l+2}\cdots j_n .
+\]
+Hence $e^{\,i 2\pi j/2^{\,l}} = e^{\,i 2\pi\, 0.j_{\,n-l+1}\cdots j_n}$. Finally,
+$1/\sqrt N = 2^{-n/2} = \prod_{l=1}^n 2^{-1/2}$ distributes one factor
+$1/\sqrt2$ into each tensor factor, giving
+\[
+  \QFT\ket{j}
+   = \bigotimes_{l=1}^{n}\frac{1}{\sqrt2}
+     \Bigl(\ket{0}+e^{\,i2\pi\,0.j_{\,n-l+1}\cdots j_n}\ket{1}\Bigr).
+\]
+Reindexing the product by $l' = n-l+1$ (so that the factor with the shortest
+binary fraction $0.j_n$ moves to one end and the longest $0.j_1\cdots j_n$ to the
+other) puts the factors in the standard order stated in the theorem, in which
+the first output qubit carries the phase $0.j_1\cdots j_n$ and the last carries
+$0.j_n$. The output is a tensor product of single-qubit states, hence
+unentangled.
+\end{proof}
+
+\section{The Circuit}
+
+The product representation immediately suggests how to synthesize the QFT one
+qubit at a time. Two gate families suffice: the Hadamard gate $H$ and the
+controlled-phase gates $R_k$.
+
+\begin{definition}[Controlled-phase gate $R_k$]\label{l5:def:Rk}
+For an integer $k\ge 1$ let $R_k$ be the single-qubit phase gate
+\[
+  R_k = \begin{pmatrix} 1 & 0 \\ 0 & e^{i 2\pi/2^{k}} \end{pmatrix}
+      = \operatorname{diag}\!\bigl(1,\; e^{i 2\pi/2^{k}}\bigr).
+\]
+Thus $R_1 = \operatorname{diag}(1,-1) = Z$, $R_2 = \operatorname{diag}(1,i) = S$
+(the $\pi/2$ phase gate), $R_3 = \operatorname{diag}(1, e^{i\pi/4}) = T$, and so
+on. In the circuit we use the \emph{controlled} version, in which $R_k$ is
+applied to a target qubit conditioned on a control qubit being $\ket{1}$.
+\end{definition}
+
+The construction rests on the single-qubit identity, valid for a bit
+$j_m\in\{0,1\}$,
+\[
+  H\ket{j_m}
+   = \frac{1}{\sqrt2}\bigl(\ket{0} + e^{i\pi j_m}\ket{1}\bigr)
+   = \frac{1}{\sqrt2}\bigl(\ket{0} + e^{i 2\pi\, 0.j_m}\ket{1}\bigr),
+\]
+because $e^{i\pi j_m} = (-1)^{j_m}$ and $0.j_m = j_m/2$. A Hadamard therefore
+produces the leading term $0.j_m$ of the required phase; the lower-order bits
+are then folded in by controlled $R_k$ gates, using the split
+\[
+  e^{i2\pi\,0.j_m j_{m+1}\cdots j_n}
+   = e^{i2\pi\,0.j_m}\cdot e^{i2\pi\,0.0 j_{m+1}}\cdots e^{i2\pi\,0.0\cdots 0 j_n},
+\]
+where the factor $e^{i2\pi\,0.\overbrace{0\cdots0}^{k-1}\,j_{m+k-1}}
+= e^{i2\pi j_{m+k-1}/2^{k}}$ is exactly the phase $R_k$ applies when its control
+qubit holds the bit $j_{m+k-1}$.
+
+The full circuit processes the qubits in order $1,2,\dots,n$. On qubit $m$ we
+apply $H$, and then for each $k = 2,3,\dots, n-m+1$ a controlled-$R_k$ with the
+target being qubit $m$ and the control being qubit $m+k-1$. After all qubits are
+processed, the resulting single-qubit phases appear on the qubits in reversed
+order relative to Theorem~\ref{l5:thm:product}; a final layer of SWAP gates
+(\emph{bit reversal}) restores the correct qubit order.
+
+\begin{example}[The $n=2$ QFT circuit, worked in full]\label{l5:ex:n2}
+Take $n=2$, $N=4$, so the input is $\ket{j} = \ket{j_1 j_2}$ (with $j_1$ the
+high bit). We track the state through three steps and a final swap.
+
+\emph{Step 1 (Hadamard on qubit $1$).} Applying $H\otimes\id$,
+\[
+  (H\otimes \id)\ket{j_1 j_2}
+   = \frac{1}{\sqrt2}\bigl(\ket{0}+e^{i2\pi\,0.j_1}\ket{1}\bigr)\otimes\ket{j_2}.
+\]
+The first qubit now carries the partial phase $0.j_1$; it still needs the
+contribution of $j_2$.
+
+\emph{Step 2 (controlled $R_2$, control $=$ qubit $2$, target $=$ qubit $1$).}
+With $R_2 = \operatorname{diag}(1, e^{i\pi/2})$, the controlled gate multiplies
+the $\ket{1}$ component of qubit~$1$ by $e^{i2\pi j_2/2^{2}} = e^{i2\pi\,0.0 j_2}$,
+upgrading the phase $0.j_1$ to the full $0.j_1 j_2$:
+\[
+   \frac{1}{\sqrt2}\bigl(\ket{0}+e^{i2\pi\,0.j_1 j_2}\ket{1}\bigr)\otimes\ket{j_2}.
+\]
+
+\emph{Step 3 (Hadamard on qubit $2$).} Applying $\id\otimes H$ turns
+$\ket{j_2}$ into $\tfrac{1}{\sqrt2}(\ket{0}+e^{i2\pi\,0.j_2}\ket{1})$, giving
+\[
+   \frac{1}{2}
+     \bigl(\ket{0}+e^{i2\pi\,0.j_1 j_2}\ket{1}\bigr)\otimes
+     \bigl(\ket{0}+e^{i2\pi\,0.j_2}\ket{1}\bigr).
+\]
+
+\emph{Final SWAP (bit reversal).} Comparing with Theorem~\ref{l5:thm:product}, the
+QFT requires the first output qubit to carry $0.j_1 j_2$ and the second to carry
+$0.j_2$. The circuit above has produced the phase $0.j_1 j_2$ on the line that
+started as qubit~$1$ and $0.j_2$ on the line that started as qubit~$2$; in the
+general $n$-qubit construction these phases emerge in reversed order, so a SWAP
+layer is required. For $n=2$ a single SWAP exchanges the two lines to yield the
+standard ordering
+\[
+   \QFT\ket{j}
+    = \frac{1}{2}
+      \bigl(\ket{0}+e^{i2\pi\,0.j_1 j_2}\ket{1}\bigr)\otimes
+      \bigl(\ket{0}+e^{i2\pi\,0.j_2}\ket{1}\bigr),
+\]
+which is exactly Theorem~\ref{l5:thm:product} for $n=2$. In summary the two-qubit
+QFT is: $H$ on qubit $1$; controlled-$R_2$ from qubit $2$ onto qubit $1$; $H$ on
+qubit $2$; then SWAP.
+
+\emph{A concrete input.} Take $j = 3 = (11)_2$, so $j_1=j_2=1$. Here
+$0.j_2 = 0.1 = 1/2$ and $0.j_1 j_2 = 0.11 = 3/4$, hence
+$e^{i2\pi\,0.j_1 j_2} = e^{i 3\pi/2} = -i$ and $e^{i2\pi\,0.j_2} = e^{i\pi} = -1$.
+Therefore
+\[
+  \QFT\ket{3}
+   = \frac{1}{2}\bigl(\ket{0}- i\ket{1}\bigr)\otimes\bigl(\ket{0}-\ket{1}\bigr)
+   = \frac{1}{2}\bigl(\ket{0}-\ket{1}- i\ket{2}+ i\ket{3}\bigr).
+\]
+This agrees with Definition~\ref{l5:def:qft}: for $N=4$, $\omega = e^{i\pi/2}=i$,
+so
+\[
+  \QFT\ket{3} = \tfrac12\sum_{k=0}^{3} i^{3k}\ket{k}
+   = \tfrac12\bigl(\ket{0}+i^{3}\ket{1}+i^{6}\ket{2}+i^{9}\ket{3}\bigr)
+   = \tfrac12\bigl(\ket{0}-i\ket{1}-\ket{2}+i\ket{3}\bigr),
+\]
+which matches the tensor-product result once the bit-reversal SWAP has aligned
+the qubit order with the integer labels $\ket{0},\ket{1},\ket{2},\ket{3}$.
+\end{example}
+
+\section{Gate Count}
+
+\begin{theorem}[Gate complexity of the QFT]\label{l5:thm:count}
+The circuit described above realizes the QFT on $n$ qubits using exactly $n$
+Hadamard gates, $\binom{n}{2} = \tfrac{n(n-1)}{2}$ controlled-phase gates, and at
+most $\lfloor n/2\rfloor$ SWAP gates. The total is
+\[
+  n + \frac{n(n-1)}{2} + \Bigl\lfloor\frac n2\Bigr\rfloor = O(n^{2})
+\]
+elementary gates. Since $n = \log_2 N$, this is $O\bigl((\log N)^{2}\bigr)$,
+i.e.\ polylogarithmic in the dimension $N$.
+\end{theorem}
+
+\begin{proof}
+Process qubits in order $m = 1,2,\dots,n$. On qubit $m$ we apply exactly one
+Hadamard, contributing $n$ Hadamards in total. After the Hadamard on qubit $m$,
+we must fold in the bits $j_{m+1},\dots,j_n$, one controlled-phase gate each,
+namely controlled-$R_2,\dots,$ controlled-$R_{\,n-m+1}$; that is $n-m$
+controlled-phase gates on qubit $m$. Summing over $m$,
+\[
+  \sum_{m=1}^{n} (n-m) = (n-1)+(n-2)+\cdots+1+0
+   = \frac{n(n-1)}{2} = \binom{n}{2},
+\]
+which is $O(n^2)$. Finally, bit reversal exchanges qubit $m$ with qubit $n-m+1$
+for $m=1,\dots,\lfloor n/2\rfloor$, using $\lfloor n/2\rfloor = O(n)$ SWAP gates
+(each SWAP is three CNOTs, still $O(n)$ two-qubit gates). Adding the three
+contributions gives $n + \tfrac{n(n-1)}{2} + \lfloor n/2\rfloor = O(n^2)$.
+\end{proof}
+
+\begin{remark}[Approximate QFT and comparison with classical transforms]\label{l5:rem:approx}
+The controlled-$R_k$ gates apply a phase $e^{i2\pi/2^{k}}$ that becomes
+exponentially small in $k$: for large $k$ these gates are nearly the identity
+and are the hardest to implement accurately on hardware. Dropping all gates with
+$k > k_{\max} = O(\log(n/\varepsilon))$ yields the \emph{approximate QFT}, which
+is within error $\varepsilon$ of the exact QFT in operator norm while using only
+$O(n\log(n/\varepsilon))$ gates. Either way, the QFT's $O(n^2)$ (or
+$O(n\log n)$) gate count is dramatically smaller than the $O(N\log N)$
+arithmetic operations of the classical Fast Fourier Transform and the $O(N^2)$
+of the naive DFT --- recalling that $N = 2^n$. As stressed in
+Remark~\ref{l5:rem:dft}, this gate-count advantage is not by itself an end-to-end
+speedup, because a single measurement extracts only $O(n)$ classical bits from
+the transformed state.
+\end{remark}
+
+\section{Applications}
+
+\paragraph{Phase estimation (QPE).}
+Suppose a unitary $U$ has eigenvector $\ket{u}$ with eigenvalue
+$e^{i 2\pi\varphi}$, where $\varphi\in[0,1)$ has the exact $n$-bit binary
+expansion $\varphi = 0.\varphi_1\varphi_2\cdots\varphi_n$. Using controlled
+powers $U^{2^{t}}$ acting on a Hadamard-initialized $n$-qubit register, one
+prepares the state
+\[
+  \frac{1}{2^{n/2}}\bigotimes_{l=1}^{n}
+    \bigl(\ket{0}+e^{i2\pi\,0.\varphi_l\cdots\varphi_n}\ket{1}\bigr)
+  = \QFT\ket{\varphi_1\cdots\varphi_n},
+\]
+which by Theorem~\ref{l5:thm:product} is precisely $\QFT$ applied to the basis
+state encoding $\varphi$. Applying the \emph{inverse} QFT and measuring in the
+computational basis therefore returns the bits $\varphi_1\cdots\varphi_n$
+exactly (and, when $\varphi$ is not an exact $n$-bit fraction, its best $n$-bit
+approximation with high probability). This is the subject of the next lecture.
+
+\paragraph{Shor's period finding.}
+For a periodic function $f$ with unknown period $r$, preparing a superposition
+over the domain and applying $\Uf$ produces a state that is periodic in the
+computational register. Applying the QFT concentrates the amplitude on basis
+states $k$ near integer multiples of $N/r$: the hidden period is converted into
+sharp \emph{measurable} peaks whose positions, via continued fractions, reveal
+$r$. This period-finding routine is the quantum core of Shor's factoring and
+discrete-logarithm algorithms. In both applications the QFT (or its inverse)
+acts as a general-purpose engine that reads phase-encoded information out into
+measurement statistics.
+
+\section{Problems}
+
+\begin{exercise}\label{l5:ex:p1}
+Compute $\QFT\ket{1}$ for $n=2$ ($N=4$) directly from Definition~\ref{l5:def:qft},
+and verify the result using the product representation
+(Theorem~\ref{l5:thm:product}).
+\end{exercise}
+
+\begin{exercise}\label{l5:ex:p2}
+Prove that $\QFT\,\QFT^{\dagger} = \id$ as well, i.e.\ that $\QFT$ is unitary from
+both sides, by evaluating $\braket{k'|\QFT\,\QFT^{\dagger}|k}$ with the identity
+of Lemma~\ref{l5:lem:geom}.
+\end{exercise}
+
+\begin{exercise}\label{l5:ex:p3}
+Show that for the single-qubit case $n=1$ the QFT equals the Hadamard gate,
+$\QFT = H$. (Here $N=2$ and $\omega = e^{i\pi} = -1$.)
+\end{exercise}
+
+\begin{exercise}\label{l5:ex:p4}
+Using the geometric-series identity, show that $\QFT$ maps the uniform
+superposition $\tfrac{1}{\sqrt N}\sum_{j=0}^{N-1}\ket{j}$ to the basis state
+$\ket{0}$. Interpret this as the statement that a constant signal has only a
+zero-frequency component.
+\end{exercise}
+
+\begin{exercise}\label{l5:ex:p5}
+Write down, gate by gate, the $n=3$ QFT circuit (Hadamards, controlled-$R_k$
+gates, and SWAPs), and count the total number of gates. Confirm that it matches
+Theorem~\ref{l5:thm:count}.
+\end{exercise}
+
+\begin{exercise}\label{l5:ex:p6}
+For $N=2^n$ let $\ket{\psi_a} = \QFT\ket{a}$. Show that the states
+$\{\ket{\psi_a}\}_{a=0}^{N-1}$ form an orthonormal basis, and compute the inner
+product $\braket{\psi_a|\psi_b}$ for general $a,b$.
+\end{exercise}
+
+\begin{exercise}\label{l5:ex:p7}
+Consider the ``shift by $1$'' operator $V$ defined on the computational basis by
+$V\ket{j} = \ket{(j+1)\bmod N}$. Show that the QFT diagonalizes $V$: prove that
+each $\ket{\psi_k} \defeq \QFT\ket{k}$ satisfies
+$V\ket{\psi_k} = e^{-i2\pi k/N}\ket{\psi_k}$, so that the QFT basis states are
+eigenvectors of $V$.
+\end{exercise}
+
+\begin{solution}
+\textit{Exercise~\ref{l5:ex:p1}.} For $N=4$, $\omega=e^{i2\pi/4}=i$. By
+Definition~\ref{l5:def:qft},
+\[
+  \QFT\ket{1} = \tfrac12\sum_{k=0}^{3} i^{k}\ket{k}
+   = \tfrac12\bigl(\ket{0}+i\ket{1}-\ket{2}-i\ket{3}\bigr).
+\]
+For the product form, $j=1=(01)_2$ means $j_1=0,\ j_2=1$, so $0.j_2 = 0.1 =
+\tfrac12$ and $0.j_1 j_2 = 0.01 = \tfrac14$, giving phases
+$e^{i2\pi/4}=i$ and $e^{i2\pi/2}=-1$. Hence
+$\QFT\ket{1} = \tfrac12(\ket{0}+i\ket{1})\otimes(\ket{0}-\ket{1})
+= \tfrac12(\ket{0}-\ket{1}+i\ket{2}-i\ket{3})$, which equals the direct result
+after the bit-reversal reordering that identifies the tensor-product qubit order
+with the integer labels.
+
+\medskip
+\textit{Exercise~\ref{l5:ex:p2}.} With $(\QFT)_{kj}=N^{-1/2}\omega^{jk}$ and
+$(\QFT^{\dagger})_{jk}=N^{-1/2}\omega^{-jk}$,
+\[
+  \braket{k'|\QFT\,\QFT^{\dagger}|k}
+   = \sum_{j=0}^{N-1}(\QFT)_{k'j}\,(\QFT^{\dagger})_{jk}
+   = \frac{1}{N}\sum_{j=0}^{N-1}\omega^{k'j}\omega^{-jk}
+   = \frac{1}{N}\sum_{j=0}^{N-1}\omega^{j(k'-k)}
+   = \delta_{k,k'},
+\]
+using Lemma~\ref{l5:lem:geom}. Thus $\QFT\,\QFT^{\dagger}=\id$; combined with
+Theorem~\ref{l5:thm:unitary} this confirms $\QFT$ is unitary.
+
+\medskip
+\textit{Exercise~\ref{l5:ex:p3}.} For $n=1$, $N=2$ and $\omega=e^{i\pi}=-1$, so
+$(\QFT)_{kj}=\tfrac{1}{\sqrt2}(-1)^{jk}$, i.e.\ the matrix
+$\tfrac{1}{\sqrt2}\left(\begin{smallmatrix}1&1\\1&-1\end{smallmatrix}\right)=H$.
+Concretely $\QFT\ket{0}=\tfrac{1}{\sqrt2}(\ket0+\ket1)$ and
+$\QFT\ket{1}=\tfrac{1}{\sqrt2}(\ket0-\ket1)$, matching $H$.
+
+\medskip
+\textit{Exercise~\ref{l5:ex:p4}.} By linearity,
+\[
+  \QFT\Bigl(\tfrac{1}{\sqrt N}\sum_{j} \ket{j}\Bigr)
+   = \frac{1}{N}\sum_{k}\Bigl(\sum_{j}\omega^{jk}\Bigr)\ket{k}
+   = \frac{1}{N}\sum_{k} N\delta_{k,0}\ket{k} = \ket{0},
+\]
+where $\sum_j \omega^{jk} = N\delta_{k,0}$ by Lemma~\ref{l5:lem:geom}. A constant
+(``DC'') signal has all its weight at zero frequency, $k=0$.
+
+\medskip
+\textit{Exercise~\ref{l5:ex:p5}.} Processing qubits $1,2,3$:
+qubit~$1$: $H$, then controlled-$R_2$ (control $2$), controlled-$R_3$ (control
+$3$); qubit~$2$: $H$, then controlled-$R_2$ (control $3$); qubit~$3$: $H$;
+finally SWAP qubits $1$ and $3$. Counting: $3$ Hadamards, $2+1+0 = 3 =
+\binom{3}{2}$ controlled-phase gates, and $1$ SWAP ($\lfloor 3/2\rfloor = 1$),
+for $3+3+1=7$ gates, in agreement with Theorem~\ref{l5:thm:count}
+($n+\tfrac{n(n-1)}2+\lfloor n/2\rfloor = 3+3+1$).
+
+\medskip
+\textit{Exercise~\ref{l5:ex:p6}.} Since $\QFT$ is unitary
+(Theorem~\ref{l5:thm:unitary}) it maps the orthonormal basis $\{\ket{a}\}$ to the
+orthonormal set $\{\ket{\psi_a}\}$, so the latter is a basis. Explicitly,
+\[
+  \braket{\psi_a|\psi_b}
+   = \braket{a|\QFT^{\dagger}\QFT|b} = \braket{a|b} = \delta_{a,b},
+\]
+by Theorem~\ref{l5:thm:unitary}. (One may also verify this directly with
+Lemma~\ref{l5:lem:geom}: $\braket{\psi_a|\psi_b} = \tfrac1N\sum_k
+\omega^{k(b-a)} = \delta_{a,b}$.)
+
+\medskip
+\textit{Exercise~\ref{l5:ex:p7}.} Apply $V$ to a QFT basis state:
+\[
+  V\ket{\psi_k}
+   = V\,\frac{1}{\sqrt N}\sum_{j}\omega^{jk}\ket{j}
+   = \frac{1}{\sqrt N}\sum_{j}\omega^{jk}\ket{(j+1)\bmod N}.
+\]
+Reindex with $j' = (j+1)\bmod N$, i.e.\ $j = (j'-1)\bmod N$; because
+$\omega^{N}=1$ the phase $\omega^{jk} = \omega^{(j'-1)k} =
+\omega^{-k}\omega^{j'k}$ is well defined modulo $N$. Hence
+\[
+  V\ket{\psi_k} = \omega^{-k}\,\frac{1}{\sqrt N}\sum_{j'}\omega^{j'k}\ket{j'}
+   = \omega^{-k}\ket{\psi_k} = e^{-i2\pi k/N}\ket{\psi_k}.
+\]
+Thus $\ket{\psi_k}=\QFT\ket{k}$ is an eigenvector of $V$ with eigenvalue
+$e^{-i2\pi k/N}$, and equivalently $\QFT^{\dagger} V\,\QFT\ket{k} =
+e^{-i2\pi k/N}\ket{k}$, so $\QFT^{\dagger} V\QFT$ is diagonal: the QFT
+diagonalizes the cyclic shift.
+\end{solution}
