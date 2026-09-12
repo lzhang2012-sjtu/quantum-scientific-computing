@@ -1,0 +1,21 @@
+% solutions.tex — Instructor solutions manual (build separately from main.tex).
+% Reuses the shared preamble; pulls exercise numbers from main.aux via xr.
+\documentclass[11pt,openany]{book}
+\input{preamble}
+\usepackage{xr}
+\externaldocument{main}   % requires main.aux to exist (compile main.tex first)
+
+\title{\textbf{Quantum Scientific Computing}\\[0.5em]\large Solutions Manual (Instructor)}
+\author{Course Instructor}
+\date{Fall 2026--2027}
+
+\begin{document}
+\frontmatter
+\maketitle
+\tableofcontents
+\mainmatter
+
+\include{solutions/sol00_placeholder}
+% Task 2+ append: \include{solutions/solNN_slug}
+
+\end{document}
