@@ -11,46 +11,1005 @@
 \end{itemize}
 \end{objectives}
 
-\todo{Write the introductory paragraph orienting the lecture.}
+This lecture develops the mathematical stage on which all of quantum computing
+takes place. The single postulate we need is deceptively simple: \emph{the state
+of a quantum system is a unit vector in a complex inner-product space.} From this
+one idea we recover Dirac's bra--ket notation, the geometry of overlaps and
+orthogonality, the description of a single qubit and the Bloch sphere, and---via
+the tensor product---the exponentially large state space of many qubits, where
+entanglement first appears. We then turn to the operational layer: gates as
+unitary operators, the standard single- and multi-qubit gates, quantum circuits,
+universal gate sets, and the no-cloning theorem. We close with two ideas that
+recur throughout the course: the density-operator formalism, which lets us
+describe subsystems and mixtures, and the complexity measures (query complexity,
+gate count, circuit depth) by which we judge quantum algorithms. Everything in
+later lectures is built on top of this vocabulary.
 
 \section{Qubits, superposition, and measurement}
 \label{sec:lec01-1}
-\todo{Draft this section.}
+
+We begin with the linear-algebraic setting.
+
+\begin{definition}[Complex inner-product space]\label{def:lec01-inner}
+Let $\Hilb$ be a complex vector space. An \emph{inner product} on $\Hilb$ is a map
+$\langle\,\cdot\,,\,\cdot\,\rangle:\Hilb\times\Hilb\to\C$ satisfying, for all
+$u,v,w\in\Hilb$ and $a,b\in\C$:
+\begin{enumerate}[label=(\roman*)]
+  \item \emph{Conjugate symmetry:} $\langle u,v\rangle=\overline{\langle v,u\rangle}$.
+  \item \emph{Linearity in the second argument:}
+        $\langle u,\,a v+b w\rangle=a\langle u,v\rangle+b\langle u,w\rangle$.
+        (Combined with (i), this makes the inner product \emph{conjugate-linear}
+        in the first argument.)
+  \item \emph{Positive-definiteness:} $\langle u,u\rangle\ge 0$, with equality
+        if and only if $u=0$.
+\end{enumerate}
+\end{definition}
+
+We adopt the physicists' convention that the inner product is linear in the
+\emph{second} slot and conjugate-linear in the first; this is the convention that
+makes Dirac notation come out cleanly. Concretely, on $\C^{N}$ with
+$x=(x_0,\dots,x_{N-1})^{T}$ and $y=(y_0,\dots,y_{N-1})^{T}$,
+\begin{equation}
+  \langle x,y\rangle \;=\; x\dg y \;=\; \sum_{i=0}^{N-1}\overline{x_i}\,y_i .
+\end{equation}
+
+\begin{definition}[Norm and unit vector]\label{def:lec01-norm}
+The \emph{norm} induced by the inner product is $\norm{u}=\sqrt{\langle u,u\rangle}$.
+A vector $u$ is a \emph{unit vector} (or \emph{normalized}) if $\norm{u}=1$. Two
+vectors $u,v$ are \emph{orthogonal} if $\langle u,v\rangle=0$.
+\end{definition}
+
+\begin{definition}[Finite-dimensional Hilbert space]\label{def:lec01-hilbert}
+A \emph{finite-dimensional Hilbert space} is a finite-dimensional complex
+inner-product space $\Hilb$ (in finite dimension completeness is automatic, so no
+further condition is needed). If $\dim\Hilb=N$, then choosing an orthonormal basis
+gives an isomorphism $\Hilb\cong\C^{N}$ that preserves the inner product. For a
+system of $n$ qubits we will find $N=2^{n}$.
+\end{definition}
+
+The state-space postulate can now be stated precisely.
+
+\begin{remark}[State-space postulate]
+The state of an isolated quantum system is described by a \emph{unit} vector in a
+Hilbert space $\Hilb$. The space is closed under linear combination: if
+$u,v\in\Hilb$ and $a,b\in\C$, then $a u+b v\in\Hilb$. This closure is the
+\emph{superposition principle}---any linear combination of legal states is again a
+legal (unnormalized) state.
+\end{remark}
+
+\subsection{The inner product controls all geometry}
+
+\begin{proposition}[Elementary consequences of the axioms]\label{prop:lec01-elem}
+For all $u,v\in\Hilb$ and $a\in\C$:
+\begin{enumerate}[label=(\alph*)]
+  \item $\langle u,0\rangle=\langle 0,u\rangle=0$;
+  \item $\norm{a u}=\abs{a}\,\norm{u}$;
+  \item \emph{(Pythagoras)} if $\langle u,v\rangle=0$ then
+        $\norm{u+v}^{2}=\norm{u}^{2}+\norm{v}^{2}$.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+(a) By linearity in the second argument, $\langle u,0\rangle=\langle u,0\cdot 0\rangle=0\,\langle u,0\rangle=0$;
+the other equality follows from conjugate symmetry.
+(b) $\norm{a u}^{2}=\langle a u,a u\rangle=\overline{a}\,a\,\langle u,u\rangle=\abs{a}^{2}\norm{u}^{2}$,
+and take square roots.
+(c) Expand $\norm{u+v}^{2}=\langle u+v,u+v\rangle=\norm{u}^{2}+\langle u,v\rangle+\langle v,u\rangle+\norm{v}^{2}$;
+the two cross terms vanish because $\langle u,v\rangle=0$ forces
+$\langle v,u\rangle=\overline{\langle u,v\rangle}=0$.
+\end{proof}
+
+The single most useful inequality in the whole subject is the following.
+
+\begin{theorem}[Cauchy--Schwarz inequality]\label{thm:lec01-cs}
+For all $u,v\in\Hilb$,
+\begin{equation}
+  \abs{\langle u,v\rangle}\;\le\;\norm{u}\,\norm{v},
+\end{equation}
+with equality if and only if $u$ and $v$ are linearly dependent.
+\end{theorem}
+
+\begin{proof}
+If $v=0$ both sides are $0$ and $u,v$ are trivially dependent, so assume $v\neq0$.
+For any $\lambda\in\C$, positive-definiteness gives
+\[
+  0\;\le\;\norm{u-\lambda v}^{2}
+   \;=\;\norm{u}^{2}-\overline{\lambda}\langle v,u\rangle-\lambda\langle u,v\rangle+\abs{\lambda}^{2}\norm{v}^{2}.
+\]
+Choose $\lambda=\dfrac{\langle v,u\rangle}{\norm{v}^{2}}$ (the value that minimizes the
+right-hand side). Then $\lambda\langle u,v\rangle=\dfrac{\langle v,u\rangle\langle u,v\rangle}{\norm{v}^{2}}=\dfrac{\abs{\langle u,v\rangle}^{2}}{\norm{v}^{2}}$, and likewise $\overline{\lambda}\langle v,u\rangle=\dfrac{\abs{\langle u,v\rangle}^{2}}{\norm{v}^{2}}$, so
+\[
+  0\;\le\;\norm{u}^{2}-\frac{\abs{\langle u,v\rangle}^{2}}{\norm{v}^{2}}.
+\]
+Rearranging yields $\abs{\langle u,v\rangle}^{2}\le\norm{u}^{2}\norm{v}^{2}$, i.e.
+the claim. Equality holds iff $\norm{u-\lambda v}=0$, i.e. $u=\lambda v$, which is
+exactly linear dependence.
+\end{proof}
+
+\begin{corollary}[Triangle inequality]\label{cor:lec01-tri}
+$\norm{u+v}\le\norm{u}+\norm{v}$ for all $u,v\in\Hilb$.
+\end{corollary}
+
+\begin{proof}
+$\norm{u+v}^{2}=\norm{u}^{2}+2\,\mathrm{Re}\,\langle u,v\rangle+\norm{v}^{2}
+ \le \norm{u}^{2}+2\abs{\langle u,v\rangle}+\norm{v}^{2}
+ \le \norm{u}^{2}+2\norm{u}\norm{v}+\norm{v}^{2}=(\norm{u}+\norm{v})^{2}$,
+using $\mathrm{Re}\,z\le\abs{z}$ and \cref{thm:lec01-cs}. Take square roots.
+\end{proof}
+
+For unit vectors the Cauchy--Schwarz inequality reads $\abs{\langle u,v\rangle}\le1$,
+so we may write
+\begin{equation}\label{eq:lec01-geomdecomp}
+  \langle u,v\rangle \;=\; \underbrace{\norm{u}\,\norm{v}}_{\text{length}}\;
+  \underbrace{\cos\theta}_{\text{alignment}}\;\underbrace{\ee^{\ii\varphi}}_{\text{relative phase}},
+  \qquad \cos\theta=\frac{\abs{\langle u,v\rangle}}{\norm{u}\,\norm{v}}\in[0,1].
+\end{equation}
+The modulus measures how much the two directions coincide ($\cos\theta=1$ means
+parallel, $\cos\theta=0$ means orthogonal), while the argument $\varphi$ is a
+\emph{relative phase} with no analogue for real vectors. Orthogonality,
+$\langle u,v\rangle=0$, is exactly the statement that the two states are perfectly
+distinguishable.
+
+\subsection{Dirac notation}
+
+\begin{definition}[Ket and bra]\label{def:lec01-braket}
+A vector of $\Hilb$ is written as a \emph{ket} $\ket{x}$. To each ket there
+corresponds a \emph{bra} $\bra{x}$, the element of the dual space $\Hilb^{*}$
+acting by $\bra{x}:\ket{y}\mapsto\langle x,y\rangle$. In coordinates, if $\ket{x}$
+is the column vector with entries $x_i$, then $\bra{x}$ is the row vector
+$x\dg=(\overline{x_0},\dots,\overline{x_{N-1}})$, the conjugate transpose.
+\end{definition}
+
+\begin{definition}[Inner and outer products]\label{def:lec01-inout}
+The \emph{inner product} of $\ket{x}$ and $\ket{y}$ is the scalar
+$\braket{x|y}=\langle x,y\rangle\in\C$. The \emph{outer product} $\ket{x}\!\bra{y}$
+is the linear operator acting as
+\[
+  \bigl(\ket{x}\!\bra{y}\bigr)\ket{z}=\ket{x}\,\braket{y|z}=\braket{y|z}\,\ket{x}.
+\]
+In coordinates it is the matrix with entries $\bigl(\ket{x}\!\bra{y}\bigr)_{ij}=x_i\,\overline{y_j}$.
+\end{definition}
+
+Fix an orthonormal basis $\{\ket{i}\}_{i=0}^{N-1}$, meaning $\braket{i|j}=\delta_{ij}$.
+Any ket expands as $\ket{x}=\sum_i x_i\ket{i}$, and applying $\bra{j}$ picks out a
+single coefficient:
+\begin{equation}\label{eq:lec01-coeff}
+  \braket{j|x}=\sum_i x_i\braket{j|i}=\sum_i x_i\,\delta_{ji}=x_j .
+\end{equation}
+So the $j$-th amplitude is literally the overlap $\braket{j|x}$.
+
+\begin{theorem}[Completeness / resolution of the identity]\label{thm:lec01-completeness}
+If $\{\ket{i}\}_{i=0}^{N-1}$ is an orthonormal basis of $\Hilb$, then
+\begin{equation}
+  \sum_{i=0}^{N-1}\proj{i}\;=\;\id .
+\end{equation}
+Consequently every operator $A$ satisfies $A=\sum_{i,j}A_{ij}\,\ket{i}\!\bra{j}$ with
+$A_{ij}=\braket{i|A|j}$.
+\end{theorem}
+
+\begin{proof}
+Let $P=\sum_i\proj{i}$. For an arbitrary $\ket{x}=\sum_j x_j\ket{j}$,
+\[
+  P\ket{x}=\sum_i\ket{i}\braket{i|x}=\sum_i x_i\ket{i}=\ket{x},
+\]
+using \eqref{eq:lec01-coeff}. Since $P\ket{x}=\ket{x}$ for every $\ket{x}$, we have
+$P=\id$. For the second statement, insert the identity on both sides of $A$:
+$A=\id\,A\,\id=\sum_{i,j}\ket{i}\braket{i|A|j}\bra{j}=\sum_{i,j}A_{ij}\,\ket{i}\!\bra{j}$.
+\end{proof}
+
+\begin{remark}[Projectors]
+For a unit vector $\ket{u}$ the operator $P_u=\proj{u}$ is the orthogonal
+\emph{projector} onto the line spanned by $\ket{u}$: it is Hermitian
+($P_u\dg=P_u$) and idempotent, since $P_u^{2}=\ket{u}\braket{u|u}\bra{u}=\proj{u}=P_u$
+because $\braket{u|u}=1$. The completeness relation of
+\cref{thm:lec01-completeness} decomposes $\id$ into a sum of orthogonal rank-one
+projectors, one per basis vector.
+\end{remark}
+
+\subsection{The single qubit}
+
+\begin{definition}[Qubit and computational basis]\label{def:lec01-qubit}
+A \emph{qubit} is a quantum system whose state space is $\Hilb=\C^{2}$. The
+distinguished orthonormal basis
+\[
+  \ket{0}=\begin{pmatrix}1\\0\end{pmatrix},\qquad
+  \ket{1}=\begin{pmatrix}0\\1\end{pmatrix}
+\]
+is called the \emph{computational basis}. A general pure state is
+\begin{equation}\label{eq:lec01-qubit}
+  \ket{\psi}=a\ket{0}+b\ket{1},\qquad a,b\in\C,\qquad \abs{a}^{2}+\abs{b}^{2}=1 .
+\end{equation}
+The coefficients $a,b$ are called \emph{amplitudes}; $\abs{a}^{2}$ and $\abs{b}^{2}$
+are the probabilities of obtaining $0$ or $1$ in a computational-basis measurement.
+\end{definition}
+
+The recipe just stated---outcome $i$ occurs with probability $\abs{\braket{i|\psi}}^{2}$,
+and the post-measurement state collapses to $\ket{i}$---is the \emph{Born rule},
+the measurement postulate of quantum mechanics. More generally, a projective
+measurement with orthogonal projectors $\{P_m\}$, $\sum_m P_m=\id$, returns outcome
+$m$ with probability $p_m=\bra{\psi}P_m\ket{\psi}$ and leaves the state
+$P_m\ket{\psi}/\sqrt{p_m}$; the probabilities sum to one by completeness.
+
+\begin{remark}[Global phase is unobservable]\label{rem:lec01-global}
+Measurement probabilities depend on the amplitudes only through moduli of the form
+$\abs{\braket{i|\psi}}^{2}$. Replacing $\ket{\psi}$ by $\ee^{\ii\gamma}\ket{\psi}$ for a
+real \emph{global phase} $\gamma$ leaves every such probability unchanged, and more
+generally leaves $\braket{\phi|A|\psi}$-type quantities invariant when the same
+phase appears on both sides. Hence $\ee^{\ii\gamma}\ket{\psi}$ and $\ket{\psi}$ describe
+the same physical state: genuine states are points of the \emph{projective space}
+$\Prob(\Hilb)$, i.e. rays rather than vectors. \emph{Relative} phases between the
+terms of a superposition, by contrast, are physical and drive interference.
+\end{remark}
+
+\begin{proposition}[Bloch parametrization]\label{prop:lec01-bloch}
+Every single-qubit pure state can be written, up to an unobservable global phase, as
+\begin{equation}\label{eq:lec01-blochform}
+  \ket{\psi}=\cos\tfrac{\theta}{2}\,\ket{0}+\ee^{\ii\varphi}\sin\tfrac{\theta}{2}\,\ket{1},
+  \qquad \theta\in[0,\pi],\quad \varphi\in[0,2\pi).
+\end{equation}
+The pair $(\theta,\varphi)$ is the pair of spherical angles of a point on the unit
+sphere $S^{2}\subset\R^{3}$, the \emph{Bloch sphere}.
+\end{proposition}
+
+\begin{proof}
+Start from \eqref{eq:lec01-qubit} with $\abs{a}^{2}+\abs{b}^{2}=1$. Write the
+amplitudes in polar form $a=r_a \ee^{\ii\alpha}$ and $b=r_b \ee^{\ii\beta}$ with
+$r_a,r_b\ge0$. Since $r_a^{2}+r_b^{2}=1$ we may set $r_a=\cos\tfrac{\theta}{2}$ and
+$r_b=\sin\tfrac{\theta}{2}$ for a unique $\theta\in[0,\pi]$ (both cosine and sine of
+$\theta/2$ are then nonnegative). Thus
+\[
+  \ket{\psi}=\ee^{\ii\alpha}\cos\tfrac{\theta}{2}\ket{0}+\ee^{\ii\beta}\sin\tfrac{\theta}{2}\ket{1}
+           =\ee^{\ii\alpha}\Bigl(\cos\tfrac{\theta}{2}\ket{0}+\ee^{\ii(\beta-\alpha)}\sin\tfrac{\theta}{2}\ket{1}\Bigr).
+\]
+The overall factor $\ee^{\ii\alpha}$ is a global phase, which by
+\cref{rem:lec01-global} we may discard. Setting $\varphi=\beta-\alpha\ (\mathrm{mod}\ 2\pi)$
+gives \eqref{eq:lec01-blochform}. When $\theta\in\{0,\pi\}$ the state is $\ket{0}$
+or $\ket{1}$ and $\varphi$ is irrelevant (the poles of the sphere), consistent with
+the identification of states with points of $S^{2}$.
+\end{proof}
+
+\begin{remark}[Reading the Bloch sphere]
+In this picture $\ket{0}$ and $\ket{1}$ sit at the north and south poles
+($\theta=0,\pi$), and \emph{orthogonal} qubit states are \emph{antipodal} points,
+not perpendicular ones---a state and its orthogonal complement are separated by
+angle $\theta=\pi$ on the sphere even though they are separated by $90^{\circ}$ in
+$\C^{2}$. The equatorial states $\tfrac{1}{\sqrt2}(\ket{0}+\ee^{\ii\varphi}\ket{1})$
+have $\theta=\pi/2$ and differ only in their relative phase $\varphi$.
+\end{remark}
+
+\begin{example}[Amplitudes and normalization]\label{ex:lec01-pm}
+The state $\ket{+}=\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})$ has
+$\abs{a}^{2}=\abs{b}^{2}=\tfrac12$, so a computational-basis measurement yields $0$
+or $1$ with equal probability $\tfrac12$; its Bloch angles are $\theta=\pi/2,\varphi=0$.
+The state $\ket{-}=\tfrac{1}{\sqrt2}(\ket{0}-\ket{1})$ has the \emph{same} measurement
+statistics in the computational basis but differs by the relative phase
+$\varphi=\pi$; indeed $\braket{+|-}=\tfrac12(1-1)=0$, so $\ket{+}$ and $\ket{-}$ are
+orthogonal and perfectly distinguishable by a suitable measurement.
+\end{example}
 
 \section{Multi-qubit systems and tensor products}
 \label{sec:lec01-2}
-\todo{Draft this section.}
+
+\begin{definition}[Tensor-product state space]\label{def:lec01-tensor}
+If systems $A$ and $B$ have state spaces $\Hilb_A$ and $\Hilb_B$, the composite
+system has state space the \emph{tensor product} $\Hilb_A\otimes\Hilb_B$. If
+$\{\ket{i}_A\}$ and $\{\ket{j}_B\}$ are orthonormal bases, then
+$\{\ket{i}_A\otimes\ket{j}_B\}$ is an orthonormal basis of the product, with inner
+product
+\[
+  \bigl(\bra{i}\otimes\bra{j}\bigr)\bigl(\ket{k}\otimes\ket{l}\bigr)
+    =\braket{i|k}\,\braket{j|l}.
+\]
+Hence $\dim(\Hilb_A\otimes\Hilb_B)=(\dim\Hilb_A)(\dim\Hilb_B)$. For $n$ qubits,
+\[
+  \Hilb=(\C^{2})^{\otimes n}\cong\C^{2^{n}},\qquad \dim\Hilb=2^{n}.
+\]
+\end{definition}
+
+We abbreviate $\ket{i}\otimes\ket{j}$ as $\ket{i}\ket{j}$ or $\ket{ij}$. The
+computational basis of $n$ qubits is $\{\ket{x}:x\in\{0,1\}^{n}\}$, indexed by the
+$2^{n}$ bit strings. The exponential growth of the dimension---$50$ qubits already
+give a space of dimension $2^{50}>10^{15}$---is one root of quantum computing's
+potential power: a classical description of a general state requires exponentially
+many amplitudes.
+
+\begin{definition}[Product and entangled states]\label{def:lec01-product}
+A state $\ket{\psi}\in\Hilb_A\otimes\Hilb_B$ is a \emph{product state} (or
+\emph{separable}) if it can be written as $\ket{\psi}=\ket{\alpha}_A\otimes\ket{\beta}_B$
+for some $\ket{\alpha}_A\in\Hilb_A$, $\ket{\beta}_B\in\Hilb_B$. Otherwise
+$\ket{\psi}$ is \emph{entangled}.
+\end{definition}
+
+\begin{example}[A generic two-qubit state]
+Two qubits live in $\C^{4}$ with basis $\ket{00},\ket{01},\ket{10},\ket{11}$. A
+general state is
+\[
+  \ket{\psi}=\sum_{i,j\in\{0,1\}}x_{ij}\ket{ij},\qquad
+  \sum_{i,j}\abs{x_{ij}}^{2}=1 .
+\]
+For instance $\tfrac12(\ket{00}+\ket{01}+\ket{10}+\ket{11})$ is normalized
+($4\cdot\tfrac14=1$) and, as the reader can check, factors as
+$\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})\otimes\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})$, so it
+is a product state.
+\end{example}
+
+\begin{definition}[Bell state]\label{def:lec01-bell}
+The \emph{Bell state} (or EPR pair) is the two-qubit state
+\begin{equation}
+  \ket{\Phi^{+}}=\tfrac{1}{\sqrt2}\bigl(\ket{00}+\ket{11}\bigr).
+\end{equation}
+\end{definition}
+
+\begin{theorem}[The Bell state is entangled]\label{thm:lec01-bell}
+There is no pair of single-qubit states $\ket{\alpha},\ket{\beta}\in\C^{2}$ with
+$\ket{\Phi^{+}}=\ket{\alpha}\otimes\ket{\beta}$.
+\end{theorem}
+
+\begin{proof}
+Suppose for contradiction that such a factorization exists. Write
+$\ket{\alpha}=a_0\ket{0}+a_1\ket{1}$ and $\ket{\beta}=b_0\ket{0}+b_1\ket{1}$. Then
+\[
+  \ket{\alpha}\otimes\ket{\beta}
+    =a_0 b_0\ket{00}+a_0 b_1\ket{01}+a_1 b_0\ket{10}+a_1 b_1\ket{11}.
+\]
+Matching coefficients with
+$\ket{\Phi^{+}}=\tfrac{1}{\sqrt2}\ket{00}+0\cdot\ket{01}+0\cdot\ket{10}+\tfrac{1}{\sqrt2}\ket{11}$
+requires
+\[
+  a_0 b_0=\tfrac{1}{\sqrt2},\qquad a_0 b_1=0,\qquad a_1 b_0=0,\qquad a_1 b_1=\tfrac{1}{\sqrt2}.
+\]
+From $a_0 b_0=\tfrac{1}{\sqrt2}\neq0$ we get $a_0\neq0$ and $b_0\neq0$. Then
+$a_0 b_1=0$ forces $b_1=0$, while $a_1 b_0=0$ forces $a_1=0$; hence
+$a_1 b_1=0\neq\tfrac{1}{\sqrt2}$, a contradiction. Therefore no factorization exists
+and $\ket{\Phi^{+}}$ is entangled.
+\end{proof}
+
+\begin{remark}[Physical meaning of entanglement]
+The correlations of $\ket{\Phi^{+}}$ have no separable description. Measuring the
+first qubit in the computational basis yields $0$ or $1$ with probability $\tfrac12$
+each; whatever the outcome, the post-measurement state of the second qubit is forced
+to the \emph{same} value ($0\mapsto\ket{0}$, $1\mapsto\ket{1}$). The two outcomes are
+perfectly correlated even if the qubits are spatially far apart. This correlation,
+inexpressible as any classical mixture of independent single-qubit states, is the
+resource behind teleportation, superdense coding, and much of quantum advantage.
+\end{remark}
 
 \section{Gates, universal gate sets, and circuits}
 \label{sec:lec01-3}
-\todo{Draft this section.}
+
+The postulates of quantum mechanics say that the state of an isolated system evolves
+in time by a linear, inner-product-preserving map. On a finite-dimensional Hilbert
+space such a map is exactly a unitary operator, and in quantum computing we call it
+a gate.
+
+\begin{definition}[Unitary operator / quantum gate]\label{def:lec01-unitary}
+Let $\Hilb\cong\C^{d}$ be a finite-dimensional Hilbert space. A linear operator
+$U:\Hilb\to\Hilb$ is \emph{unitary} if
+\[
+  U\dg U = U U\dg = \id,
+\]
+where $U\dg$ is the conjugate transpose (adjoint) of $U$. A \emph{quantum gate} on
+$n$ qubits is a unitary operator on $\Hilb=(\C^{2})^{\otimes n}\cong\C^{2^{n}}$.
+\end{definition}
+
+Equivalently, $U$ is unitary iff its columns (or rows) form an orthonormal basis of
+$\C^{d}$, iff $U^{-1}=U\dg$. In particular every gate is invertible, so quantum
+computation is reversible.
+
+\begin{theorem}[Gates preserve inner products and norm]\label{thm:lec01-unitary-preserves}
+Let $U$ be a linear operator on $\Hilb$. The following are equivalent.
+\begin{enumerate}[label=\textup{(\roman*)}]
+  \item $U$ is unitary, i.e. $U\dg U=\id$.
+  \item $U$ preserves inner products: $\braket{U\psi|U\phi}=\braket{\psi|\phi}$ for
+        all $\ket{\psi},\ket{\phi}\in\Hilb$.
+  \item $U$ preserves norm: $\norm{U\psi}=\norm{\psi}$ for all $\ket{\psi}\in\Hilb$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+$(\mathrm{i})\Rightarrow(\mathrm{ii})$. Using
+$\braket{U\psi|U\phi}=\bra{\psi}U\dg U\ket{\phi}$ and $U\dg U=\id$, we get
+$\braket{U\psi|U\phi}=\bra{\psi}\id\ket{\phi}=\braket{\psi|\phi}$.
+
+$(\mathrm{ii})\Rightarrow(\mathrm{iii})$. Take $\ket{\phi}=\ket{\psi}$: then
+$\norm{U\psi}^{2}=\braket{U\psi|U\psi}=\braket{\psi|\psi}=\norm{\psi}^{2}$, and
+taking nonnegative square roots gives $\norm{U\psi}=\norm{\psi}$.
+
+$(\mathrm{iii})\Rightarrow(\mathrm{i})$. Norm preservation gives
+$\bra{\psi}U\dg U\ket{\psi}=\bra{\psi}\id\ket{\psi}$ for all $\ket{\psi}$, so the
+self-adjoint operator $M\defeq U\dg U-\id$ satisfies $\bra{\psi}M\ket{\psi}=0$ for
+every $\ket{\psi}$. For a self-adjoint operator the quadratic form determines the
+operator (via the polarization identity, or by choosing $\ket{\psi}$ to be its
+eigenvectors), hence $M=0$, i.e. $U\dg U=\id$. On a finite-dimensional space a left
+inverse is a two-sided inverse, so also $UU\dg=\id$ and $U$ is unitary.
+\end{proof}
+
+Physically, \cref{thm:lec01-unitary-preserves} says gates map normalized states to
+normalized states and never change the ``angle'' between two states; this
+inner-product rigidity is exactly what will forbid cloning in \cref{sec:lec01-4}.
+
+\subsection{Single-qubit gates}
+
+\begin{definition}[Pauli, Hadamard, and phase gates]\label{def:lec01-gates}
+The \emph{Pauli gates} and identity on $\C^{2}$ are
+\[
+  I=\begin{pmatrix}1&0\\0&1\end{pmatrix},\quad
+  X=\begin{pmatrix}0&1\\1&0\end{pmatrix},\quad
+  Y=\begin{pmatrix}0&-\ii\\\ii&0\end{pmatrix},\quad
+  Z=\begin{pmatrix}1&0\\0&-1\end{pmatrix}.
+\]
+The \emph{Hadamard gate} and the \emph{phase gates} $S$ and $T$ are
+\[
+  H=\frac{1}{\sqrt{2}}\begin{pmatrix}1&1\\1&-1\end{pmatrix},\qquad
+  S=\begin{pmatrix}1&0\\0&\ii\end{pmatrix},\qquad
+  T=\begin{pmatrix}1&0\\0&\ee^{\ii\pi/4}\end{pmatrix}.
+\]
+\end{definition}
+
+Each of these is unitary: one checks directly that $X\dg X=Y\dg Y=Z\dg Z=I$, that
+$H\dg H=I$, and that $S,T$ are diagonal with unit-modulus entries. In the
+computational basis,
+\[
+  X\ket{0}=\ket{1},\quad X\ket{1}=\ket{0},\qquad
+  Z\ket{0}=\ket{0},\quad Z\ket{1}=-\ket{1},
+\]
+so $X$ is a \emph{bit flip} (the quantum \textsc{not} gate) and $Z$ is a
+\emph{phase flip}: it fixes $\ket{0}$ and multiplies $\ket{1}$ by $-1$. The Hadamard
+gate creates superpositions,
+\[
+  H\ket{0}=\ket{+}=\tfrac{1}{\sqrt{2}}(\ket{0}+\ket{1}),\qquad
+  H\ket{1}=\ket{-}=\tfrac{1}{\sqrt{2}}(\ket{0}-\ket{1}),
+\]
+and is self-inverse, $H^{2}=I$. The phase gates leave $\ket{0}$ alone and rotate the
+phase of $\ket{1}$: $S$ multiplies it by $\ii$ and $T$ by $\ee^{\ii\pi/4}$.
+
+The four operators $\{I,X,Y,Z\}$ form a basis of the (complex) vector space of
+$2\times2$ matrices, so every single-qubit gate is a complex linear combination of
+Pauli matrices. Geometrically, a single-qubit pure state corresponds to a point on
+the Bloch sphere; the Pauli gates act as rotations by $\pi$ about the $x$, $y$, $z$
+axes (up to a global phase).
+
+\begin{lemma}[Hadamard conjugation]\label{lem:lec01-conj}
+$H X H = Z$ and $H Z H = X$.
+\end{lemma}
+
+\begin{proof}
+Recall $H=H\dg$ and $H^{2}=I$. Compute $HXH$ by matrix multiplication. First
+\[
+  XH=\begin{pmatrix}0&1\\1&0\end{pmatrix}
+     \frac{1}{\sqrt2}\begin{pmatrix}1&1\\1&-1\end{pmatrix}
+    =\frac{1}{\sqrt2}\begin{pmatrix}1&-1\\1&1\end{pmatrix},
+\]
+and then
+\[
+  HXH=\frac{1}{\sqrt2}\begin{pmatrix}1&1\\1&-1\end{pmatrix}\cdot
+      \frac{1}{\sqrt2}\begin{pmatrix}1&-1\\1&1\end{pmatrix}
+     =\frac{1}{2}\begin{pmatrix}2&0\\0&-2\end{pmatrix}
+     =\begin{pmatrix}1&0\\0&-1\end{pmatrix}=Z.
+\]
+For the second identity, conjugate the first by $H$ on both sides and use $H^{2}=I$:
+from $HXH=Z$ we get $H(HXH)H=HZH$, i.e. $(H^{2})X(H^{2})=HZH$, so $X=HZH$.
+\end{proof}
+
+\Cref{lem:lec01-conj} is the precise statement that $H$ is a ``bridge'' between the
+bit-flip and phase-flip pictures: a phase flip in the computational basis looks like
+a bit flip in the Hadamard ($\ket{+},\ket{-}$) basis, and vice versa. Two further
+identities are recorded for reference.
+
+\begin{proposition}\label{prop:lec01-yxz}
+$Y=\ii XZ$ and $S=T^{2}$.
+\end{proposition}
+
+\begin{proof}
+Direct computation:
+\[
+  XZ=\begin{pmatrix}0&1\\1&0\end{pmatrix}
+     \begin{pmatrix}1&0\\0&-1\end{pmatrix}
+    =\begin{pmatrix}0&-1\\1&0\end{pmatrix},\qquad
+  \ii XZ=\begin{pmatrix}0&-\ii\\\ii&0\end{pmatrix}=Y.
+\]
+For the phase gates, $T$ is diagonal so $T^{2}=\diag(1,\ee^{\ii\pi/4})^{2}=\diag(1,\ee^{\ii\pi/2})=\diag(1,\ii)=S$.
+\end{proof}
+
+\begin{remark}[$T$ is non-Clifford]
+The \emph{Clifford group} is generated by $\{H,S,\CNOT\}$ (equivalently, the
+unitaries that map the Pauli group to itself under conjugation). The identities above
+show $X,Y,Z$ and $S=T^{2}$ lie in this group. The $T$ gate does \emph{not}:
+conjugating a Pauli by $T$ produces a superposition of Paulis rather than another
+Pauli. This matters because the Gottesman--Knill theorem says Clifford circuits are
+efficiently classically simulable; the $T$ gate is precisely the ingredient that
+lifts a gate set to universality for quantum computation.
+\end{remark}
+
+\subsection{Multi-qubit gates}
+
+To act on more than one qubit we take tensor products. A gate $A$ on qubit~$0$ and
+$B$ on qubit~$1$ acts on the joint state as $A\otimes B$, with
+$(A\otimes B)(\ket{u}\otimes\ket{v})=A\ket{u}\otimes B\ket{v}$. The most important
+genuinely two-qubit gate is the controlled-\textsc{not}.
+
+\begin{definition}[$\CNOT$ and Toffoli]\label{def:lec01-cnot}
+The \emph{controlled-\textsc{not}} gate $\CNOT$ acts on two qubits (control $a$,
+target $b$) by
+\[
+  \CNOT\ket{a,b}=\ket{a,\,a\oplus b},\qquad a,b\in\{0,1\},
+\]
+where $\oplus$ is addition modulo $2$. In the ordered computational basis
+$\ket{00},\ket{01},\ket{10},\ket{11}$ its matrix is the $4\times4$ permutation
+unitary
+\[
+  \CNOT=\begin{pmatrix}
+    1&0&0&0\\ 0&1&0&0\\ 0&0&0&1\\ 0&0&1&0
+  \end{pmatrix}.
+\]
+The \emph{Toffoli} (or \textsc{ccnot}) gate acts on three qubits by
+$\mathrm{CCNOT}\ket{a,b,c}=\ket{a,\,b,\,(a\wedge b)\oplus c}$, flipping the target
+$c$ exactly when both controls $a,b$ equal $1$.
+\end{definition}
+
+Since $\CNOT$ permutes the four basis vectors it is a permutation matrix, hence
+unitary; the same holds for the Toffoli gate, which swaps
+$\ket{110}\leftrightarrow\ket{111}$. Both are their own inverse. The Toffoli gate is
+universal for classical reversible computation: with ancillas it can implement
+\textsc{and}, \textsc{not}, and fan-out, so any Boolean circuit can be made
+reversible.
+
+\begin{remark}[Why XOR keeps oracles reversible]
+A classical oracle for $f:\{0,1\}^{n}\to\{0,1\}$ is realized quantumly as
+$\Uf\ket{x}\ket{b}=\ket{x}\ket{b\oplus f(x)}$. Writing the answer with $\oplus$ rather
+than overwriting $b$ with $f(x)$ is what makes $\Uf$ a permutation of basis states,
+hence unitary and reversible: applying $\Uf$ twice returns $\ket{b\oplus f(x)\oplus f(x)}=\ket{b}$,
+so $\Uf^{2}=\id$. A plain overwrite $b\mapsto f(x)$ is generally not injective and
+cannot be unitary. The $\CNOT$ rule $b\mapsto a\oplus b$ is the single-bit instance
+of this construction.
+\end{remark}
+
+\subsection{Reading quantum circuits}
+
+A \emph{quantum circuit} is a diagram in which each horizontal wire is a qubit and
+gates are drawn on the wires. Three conventions govern how to read one.
+\begin{enumerate}[label=(\arabic*)]
+  \item \textbf{Time flows left to right.} The input state sits at the far left; a
+        gate drawn further left is applied earlier.
+  \item \textbf{Controls.} On a controlled gate, a filled dot $\bullet$ marks a
+        control that activates when the qubit is $\ket{1}$; an open dot $\circ$
+        marks a $0$-control, which activates when the qubit is $\ket{0}$.
+  \item \textbf{Matrix order is reversed.} If the circuit applies $U_{1}$ first, then
+        $U_{2}$, the overall unitary is the \emph{reverse-order} product $U=U_{2}\,U_{1}$,
+        because operators act on the ket to their right. For a length-$m$ sequence,
+        $U=U_{m}U_{m-1}\cdots U_{1}$.
+\end{enumerate}
+
+A controlled-$U$ gate with control $a$ can be written compactly as
+$c\text{-}U\,\ket{a}\ket{b}=\ket{a}\,U^{a}\ket{b}$, so $U$ is applied to the target
+raised to the power $a\in\{0,1\}$ (nothing happens when $a=0$). The \textsc{swap}
+gate exchanges two qubits, $\mathrm{SWAP}\ket{a,b}=\ket{b,a}$; it can be built from
+three $\CNOT$s.
+
+\begin{definition}[Circuit depth]\label{def:lec01-depth}
+Group the gates of a circuit into \emph{layers}, where a layer is a maximal set of
+gates acting on disjoint qubits that can be executed simultaneously. The \emph{depth}
+of the circuit is the number of layers, equivalently the largest number of gates on
+any single input-to-output path through the diagram.
+\end{definition}
+
+Gates acting on disjoint sets of qubits commute as tensor factors and run in
+parallel, so depth (not total gate count) measures wall-clock runtime, and keeping
+depth low is central to running on noisy hardware.
+
+\begin{example}[A small circuit's unitary as a reverse-order product]
+Consider one qubit with, from left to right, an $H$ gate, then an $S$ gate, then
+another $H$ gate. The overall unitary is the reverse-order product
+\[
+  U = H\,S\,H
+    = \frac{1}{2}\begin{pmatrix}1&1\\1&-1\end{pmatrix}
+      \begin{pmatrix}1&0\\0&\ii\end{pmatrix}
+      \begin{pmatrix}1&1\\1&-1\end{pmatrix}
+    = \frac{1}{2}\begin{pmatrix}1+\ii&1-\ii\\1-\ii&1+\ii\end{pmatrix}.
+\]
+One checks $U\dg U=I$, confirming the composite is again a gate.
+\end{example}
+
+\subsection{Building a Bell state}
+
+We now assemble single- and two-qubit gates into a circuit that creates entanglement.
+Prepare two qubits in $\ket{00}$, apply $H$ to qubit~$0$, then apply $\CNOT$ with
+qubit~$0$ as control and qubit~$1$ as target.
+
+\begin{theorem}[Bell-state preparation]\label{thm:lec01-bellprep}
+With qubit~$0$ the control and qubit~$1$ the target,
+\[
+  \CNOT\,(H\otimes I)\,\ket{00}
+    = \tfrac{1}{\sqrt2}\big(\ket{00}+\ket{11}\big)=\ket{\Phi^{+}}.
+\]
+\end{theorem}
+
+\begin{proof}
+First apply $H\otimes I$. Since $H\ket{0}=\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})$ and
+$I\ket{0}=\ket{0}$,
+\[
+  (H\otimes I)\ket{00}
+    = \tfrac{1}{\sqrt2}(\ket{0}+\ket{1})\otimes\ket{0}
+    = \tfrac{1}{\sqrt2}\big(\ket{00}+\ket{10}\big).
+\]
+Now apply $\CNOT$ term by term using $\CNOT\ket{a,b}=\ket{a,a\oplus b}$. On $\ket{00}$
+the control is $0$, so the state is unchanged. On $\ket{10}$ the control is $1$, so
+the target flips: $\ket{10}\mapsto\ket{11}$. Hence
+\[
+  \CNOT\,\tfrac{1}{\sqrt2}\big(\ket{00}+\ket{10}\big)
+    = \tfrac{1}{\sqrt2}\big(\ket{00}+\ket{11}\big)=\ket{\Phi^{+}}. \qedhere
+\]
+\end{proof}
+
+By \cref{thm:lec01-bell} the state $\ket{\Phi^{+}}$ is entangled, so this two-gate
+circuit turns a product input into a maximally entangled Bell pair.
+
+\subsection{Universal gate sets and compilation}
+
+\begin{definition}[Universal gate set]\label{def:lec01-universal}
+A finite set $\mathcal{G}$ of gates is \emph{universal} if the unitaries generated by
+applying gates from $\mathcal{G}$ to arbitrary subsets of qubits are dense in the
+group of all $n$-qubit unitaries (up to global phase): for every target unitary $U$
+and every $\varepsilon>0$ there is a finite circuit $V$ over $\mathcal{G}$ with
+$\norm{U-V}\le\varepsilon$.
+\end{definition}
+
+Two facts underlie this definition. First, any $n$-qubit unitary can be written
+\emph{exactly} as a product of single-qubit and two-qubit gates,
+$U=U_{m}U_{m-1}\cdots U_{1}$, though $m$ may be exponential in $n$. Second, a fixed
+\emph{finite} set already suffices to approximate every gate: the set
+$\mathcal{G}=\{H,\,T,\,\CNOT\}$ is universal. We settle for approximation because a
+discrete set cannot hit a continuum of unitaries exactly, but it can come within any
+$\varepsilon$.
+
+\begin{remark}[Solovay--Kitaev cost]
+The Solovay--Kitaev theorem quantifies the price of this discretization: any
+single-qubit gate can be approximated to error $\varepsilon$ by a circuit of
+$\bigo\!\big(\polylog(1/\varepsilon)\big)$ gates from a universal set, and an
+$m$-gate circuit can be recompiled into the finite set using only
+$\bigo\!\big(m\,\polylog(m/\varepsilon)\big)$ gates, found by an efficient classical
+algorithm. The overhead is thus only polylogarithmic in the inverse precision, which
+is why compiling ideal circuits to a fixed hardware gate set is practical.
+\end{remark}
+
+Running an abstract circuit on a real device requires \emph{compilation}:
+(i) rewriting logical gates such as $H$, $T$, $\CNOT$ into the machine's native gate
+set; and (ii) inserting \textsc{swap} gates to route qubits, because hardware qubits
+are not all pairwise connected. Throughout one minimizes gate count and depth to
+suppress noise and maximize fidelity.
 
 \section{The no-cloning theorem and reversibility}
 \label{sec:lec01-4}
-\todo{Draft this section.}
+
+Classically, copying a bit is trivial. Quantum mechanically it is impossible to copy
+an \emph{unknown} state, a fact discovered by Wootters, Zurek, and Dieks in 1982. A
+copier would be a gate $U$ that, given the state to copy and a fixed blank register
+$\ket{s}$, outputs two copies.
+
+\begin{theorem}[No-Cloning Theorem]\label{thm:lec01-nocloning}
+There is no unitary $U$ on $\Hilb\otimes\Hilb$ and blank state $\ket{s}\in\Hilb$ such
+that
+\[
+  U\big(\ket{\psi}\otimes\ket{s}\big)=\ket{\psi}\otimes\ket{\psi}
+  \qquad\text{for every normalized } \ket{\psi}\in\Hilb,
+\]
+unless $\dim\Hilb=1$. More precisely, any such $U$ can clone two states
+$\ket{x_{1}},\ket{x_{2}}$ simultaneously only if they are equal or orthogonal.
+\end{theorem}
+
+\begin{proof}
+Suppose such $U$ and $\ket{s}$ exist. Apply the cloning equation to two normalized
+states $\ket{x_{1}}$ and $\ket{x_{2}}$:
+\[
+  U\ket{x_{1}}\ket{s}=\ket{x_{1}}\ket{x_{1}},\qquad
+  U\ket{x_{2}}\ket{s}=\ket{x_{2}}\ket{x_{2}}.
+\]
+Take the inner product of these two equations. On the left, because $U$ is unitary it
+preserves inner products (\cref{thm:lec01-unitary-preserves}), and $\braket{s|s}=1$,
+so
+\[
+  \big(\bra{x_{1}}\bra{s}\big)U\dg U\big(\ket{x_{2}}\ket{s}\big)
+   = \braket{x_{1}|x_{2}}\,\braket{s|s}
+   = \braket{x_{1}|x_{2}}.
+\]
+On the right, the inner product of $\ket{x_{1}}\ket{x_{1}}$ with
+$\ket{x_{2}}\ket{x_{2}}$ factors across the tensor product,
+\[
+  \big(\bra{x_{1}}\bra{x_{1}}\big)\big(\ket{x_{2}}\ket{x_{2}}\big)
+   = \braket{x_{1}|x_{2}}\,\braket{x_{1}|x_{2}}
+   = \braket{x_{1}|x_{2}}^{2}.
+\]
+Equating the two sides, $\braket{x_{1}|x_{2}} = \braket{x_{1}|x_{2}}^{2}$. Writing
+$z=\braket{x_{1}|x_{2}}$, this reads $z=z^{2}$, i.e. $z(z-1)=0$, so $z\in\{0,1\}$.
+Thus $\ket{x_{1}}$ and $\ket{x_{2}}$ are either identical ($z=1$) or orthogonal
+($z=0$). A universal cloner would need this for \emph{all} pairs, but a space of
+dimension $\geq 2$ contains states with inner product strictly between $0$ and $1$
+(e.g. $\ket{0}$ and $\ket{+}$, with $\braket{0|+}=\tfrac{1}{\sqrt2}$). This
+contradiction proves no universal cloner exists; only mutually orthogonal states can
+be cloned.
+\end{proof}
+
+The essence of the proof is that cloning $\ket{\psi}\mapsto\ket{\psi}\otimes\ket{\psi}$
+is a nonlinear (quadratic) map of $\ket{\psi}$, whereas every quantum gate is linear;
+linearity forces the inner-product constraint $z=z^{2}$, which no continuum of states
+can satisfy.
+
+\begin{remark}[Consequences]\leavevmode
+\begin{itemize}[nosep]
+  \item \emph{No broadcasting.} Since an unknown state cannot be duplicated, it cannot
+        be broadcast to several parties.
+  \item \emph{$\CNOT$ does not clone superpositions.} For $\ket{x}=a\ket{0}+b\ket{1}$,
+        \[
+          \CNOT\ket{x}\ket{0}=a\ket{00}+b\ket{11}\neq\ket{x}\ket{x}
+          =\ket{x}\otimes(a\ket{0}+b\ket{1}),
+        \]
+        because the right side contains cross terms $ab\,\ket{01},\,ab\,\ket{10}$
+        absent on the left. $\CNOT$ copies only computational-basis information.
+  \item \emph{BB84 security.} Because an eavesdropper can neither copy the
+        transmitted qubits nor measure them without disturbing non-orthogonal states,
+        interception in the BB84 protocol necessarily introduces detectable errors,
+        giving quantum key distribution its security.
+\end{itemize}
+\end{remark}
+
+The same inner-product argument, run in reverse, forbids the deletion of an unknown
+state.
+
+\begin{theorem}[No-Deleting Theorem]\label{thm:lec01-nodeleting}
+There is no unitary $U$ and fixed target $\ket{\Sigma}$ with
+\[
+  U\big(\ket{\psi}\otimes\ket{\psi}\big)=\ket{\psi}\otimes\ket{\Sigma}
+  \qquad\text{for all normalized } \ket{\psi},
+\]
+on a Hilbert space of dimension $\geq 2$.
+\end{theorem}
+
+\begin{proof}
+Assume such $U$ exists and apply it to two states $\ket{x_{1}},\ket{x_{2}}$. Taking
+inner products, using unitarity on the left and factoring on the right,
+\[
+  \braket{x_{1}|x_{2}}^{2}=\braket{x_{1}|x_{2}}\,\braket{\Sigma|\Sigma}
+                          =\braket{x_{1}|x_{2}},
+\]
+since $\braket{\Sigma|\Sigma}=1$. Again $z=\braket{x_{1}|x_{2}}$ satisfies $z^{2}=z$,
+so $z\in\{0,1\}$, which fails for non-orthogonal states. Hence no universal deleting
+operation exists.
+\end{proof}
+
+\paragraph{Reversibility.} Because every gate $U$ is unitary, it has an inverse
+$U^{-1}=U\dg$ that is itself a gate: any computation implemented by a sequence
+$U_m\cdots U_1$ can be undone by applying $U_1\dg\cdots U_m\dg$. Quantum evolution is
+therefore \emph{logically reversible}, in sharp contrast to classical irreversible
+gates such as \textsc{and} (which discards a bit and dissipates energy, by Landauer's
+principle). This reversibility is why classical subroutines must be embedded in the
+XOR-oracle form $\ket{x}\ket{b}\mapsto\ket{x}\ket{b\oplus f(x)}$ of the previous
+section, and why \emph{uncomputation}---running ancilla-producing gates backward to
+reset scratch registers to $\ket{0}$---is a routine part of quantum algorithm design.
+The one intrinsically irreversible step is measurement, which collapses the state and
+destroys the pre-measurement superposition.
 
 \section{Density operators and mixed states}
 \label{sec:lec01-5}
-\todo{Draft this section.}
+
+So far every state has been a single unit vector $\ket{\psi}$, called a \emph{pure
+state}. Often, though, we know only that a system is in one of several states
+$\ket{\psi_i}$ with classical probabilities $p_i$ (an \emph{ensemble}
+$\{p_i,\ket{\psi_i}\}$), or we hold only part of a larger entangled system. Both
+situations are captured by the density-operator formalism.
+
+\begin{definition}[Density operator]\label{def:lec01-density}
+The \emph{density operator} of the ensemble $\{p_i,\ket{\psi_i}\}$ (with $p_i\ge0$,
+$\sum_i p_i=1$) is
+\begin{equation}\label{eq:lec01-density}
+  \rho\;=\;\sum_i p_i\,\proj{\psi_i}.
+\end{equation}
+A pure state $\ket{\psi}$ corresponds to the rank-one $\rho=\proj{\psi}$.
+\end{definition}
+
+For any observable measurement with projectors $\{P_m\}$ the outcome probabilities
+and the expectation of $M=\sum_m m\,P_m$ are
+\begin{equation}\label{eq:lec01-bornrho}
+  p(m)=\Tr[P_m\rho],\qquad \E[M]=\Tr[M\rho],
+\end{equation}
+which for a pure state reduce to the Born rule of \cref{sec:lec01-1} since
+$\Tr[P_m\proj{\psi}]=\bra{\psi}P_m\ket{\psi}$.
+
+\begin{proposition}[Characterization of density operators]\label{prop:lec01-densitychar}
+An operator $\rho$ is the density operator of some ensemble if and only if
+\begin{enumerate}[label=(\roman*)]
+  \item $\Tr\rho=1$, and
+  \item $\rho\succeq0$ (Hermitian and positive semidefinite).
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+($\Rightarrow$) From \eqref{eq:lec01-density}, $\rho\dg=\sum_i p_i(\proj{\psi_i})\dg=\rho$
+is Hermitian; for any $\ket{\phi}$, $\bra{\phi}\rho\ket{\phi}=\sum_i p_i\abs{\braket{\phi|\psi_i}}^{2}\ge0$,
+so $\rho\succeq0$; and $\Tr\rho=\sum_i p_i\Tr[\proj{\psi_i}]=\sum_i p_i=1$.
+($\Leftarrow$) A positive semidefinite Hermitian operator has a spectral
+decomposition $\rho=\sum_i\lambda_i\proj{\lambda_i}$ with $\lambda_i\ge0$ and, by
+$\Tr\rho=1$, $\sum_i\lambda_i=1$; this exhibits $\rho$ as the density operator of the
+ensemble $\{\lambda_i,\ket{\lambda_i}\}$.
+\end{proof}
+
+\begin{definition}[Purity; pure vs.\ mixed]\label{def:lec01-purity}
+The \emph{purity} of $\rho$ is $\Tr[\rho^{2}]\in(0,1]$. A state is \emph{pure} iff
+$\rho^{2}=\rho$ (equivalently $\Tr[\rho^{2}]=1$, equivalently $\rho$ is a rank-one
+projector); otherwise $\Tr[\rho^{2}]<1$ and $\rho$ is called \emph{mixed}.
+\end{definition}
+
+For example, the maximally mixed single-qubit state $\rho=\tfrac12\id$ has
+$\Tr[\rho^{2}]=\tfrac12$: it describes a qubit that is $\ket{0}$ or $\ket{1}$ with
+probability $\tfrac12$ each, and no measurement can distinguish it from the even
+mixture of $\ket{+}$ and $\ket{-}$---the ensemble decomposition is not unique, only
+$\rho$ is physical.
+
+\subsection{The partial trace and reduced states}
+
+To describe one part of a composite system we ``trace out'' the rest.
+
+\begin{definition}[Partial trace]\label{def:lec01-ptrace}
+Let $\Hilb=\Hilb_A\otimes\Hilb_B$ with orthonormal basis $\{\ket{j}_B\}$ of
+$\Hilb_B$. The \emph{partial trace over $B$} is the linear map sending an operator
+$M$ on $\Hilb$ to the operator on $\Hilb_A$
+\begin{equation}
+  \Tr_B[M]\;=\;\sum_j (\id_A\otimes\bra{j}_B)\,M\,(\id_A\otimes\ket{j}_B).
+\end{equation}
+On product operators it acts as $\Tr_B[A\otimes B]=A\,\Tr[B]$. The \emph{reduced
+density operator} of subsystem $A$ is $\rho_A=\Tr_B[\rho]$; it yields the correct
+statistics \eqref{eq:lec01-bornrho} for every measurement performed on $A$ alone.
+\end{definition}
+
+\begin{example}[Reduced state of a Bell pair]\label{ex:lec01-bellreduced}
+Take the Bell state $\ket{\Phi^{+}}=\tfrac{1}{\sqrt2}(\ket{00}+\ket{11})$ with density
+operator
+\[
+  \rho=\proj{\Phi^{+}}
+   =\tfrac12\big(\ket{00}+\ket{11}\big)\big(\bra{00}+\bra{11}\big)
+   =\tfrac12\big(\proj{00}+\ket{00}\!\bra{11}+\ket{11}\!\bra{00}+\proj{11}\big).
+\]
+Trace out the second qubit. Using
+$\Tr_B[\ket{ab}\!\bra{cd}]=\ket{a}\!\bra{c}\,\braket{d|b}$ (so only terms with $b=d$
+survive),
+\[
+  \rho_A=\Tr_B[\rho]
+   =\tfrac12\big(\proj{0}\,\underbrace{\braket{0|0}}_{1}+\ket{0}\!\bra{1}\,\underbrace{\braket{1|0}}_{0}
+   +\ket{1}\!\bra{0}\,\underbrace{\braket{0|1}}_{0}+\proj{1}\,\underbrace{\braket{1|1}}_{1}\big)
+   =\tfrac12\big(\proj{0}+\proj{1}\big)=\tfrac12\id.
+\]
+So the reduced state of one half of a Bell pair is \emph{maximally mixed}, with
+purity $\Tr[\rho_A^{2}]=\tfrac12<1$, even though the global state is pure
+($\Tr[\rho^{2}]=1$). The missing information lives entirely in the correlations
+between the two qubits: this loss of purity upon restriction to a subsystem is a
+hallmark of entanglement.
+\end{example}
+
+Unitary evolution acts on density operators by conjugation,
+$\rho\mapsto U\rho U\dg$, which for a pure state reproduces
+$\ket{\psi}\mapsto U\ket{\psi}$. Not every physical operation is unitary, however;
+the general (completely positive, trace-preserving) quantum channels---and the
+distance measures that compare density operators---are the subject of the next
+lecture. For most of this course we work with pure states and unitary operations,
+but the density operator remains the right tool whenever we discuss subsystems,
+noise, or statistical mixtures.
 
 \section{Complexity of quantum algorithms}
 \label{sec:lec01-6}
-\todo{Draft this section.}
+
+Finally we fix the yardsticks by which quantum algorithms are judged. Let $n$ be the
+number of qubits needed to represent the input.
+
+\paragraph{Gate complexity.} The \emph{gate complexity} of a circuit is the total
+number of elementary (one- and two-qubit) gates it contains. A quantum algorithm is
+\emph{efficient} if its gate complexity is $\bigo(\poly(n))$. Because measurement
+outcomes are probabilistic, we are satisfied if the algorithm produces the correct
+answer with high enough probability $p$: for a decision problem we require $p>2/3$
+(or merely $p>1/2+1/\poly(n)$), and repeating the circuit $\bigo(\log(1/\delta))$
+times with a majority vote drives the error below any $\delta>0$ by the Chernoff
+bound.
+
+\paragraph{Query complexity.} Often the input is supplied by a black-box unitary---a
+\emph{quantum oracle}---and we count only the number of calls to it, ignoring the
+cost of the surrounding gates. For a Boolean function $f:\{0,1\}^{n}\to\{0,1\}$ two
+standard oracles are the XOR (or bit) oracle $\Uf\ket{x}\ket{b}=\ket{x}\ket{b\oplus f(x)}$
+and the phase oracle
+\begin{equation}
+  \Uf\ket{x}=(-1)^{f(x)}\ket{x},
+\end{equation}
+the latter returning the answer as a \emph{phase kickback}. Query complexity is the
+central cost measure for the algorithms of Part~I (Deutsch--Jozsa, Grover, phase
+estimation): quantum speedups are most cleanly stated as reductions in the number of
+oracle calls. Note that having query access to $f$ does not mean we know $f$
+globally---finding an $x$ with $f(x)=0$ can still be hard.
+
+\paragraph{Circuit depth.} Group the gates into layers of mutually commuting,
+disjoint-qubit gates (\cref{def:lec01-depth}); the \emph{depth} is the number of
+layers, i.e. the longest input-to-output path. Since gates in a layer run in
+parallel, depth is the quantum analogue of wall-clock time. It is also the binding
+physical constraint on near-term hardware, whose qubits stay coherent only for a
+limited \emph{coherence time}; one often trades a larger gate count or more
+repetitions for a shallower circuit that fits within the coherence budget.
+
+\paragraph{Space and ancillas.} The qubits of an algorithm split into \emph{system}
+registers (holding the data of interest) and \emph{ancilla} registers (scratch space
+needed to make operations unitary). Whenever possible one \emph{uncomputes} ancillas
+back to $\ket{0}$ so they can be reused; a register that can be freed this way is a
+\emph{working register}, and its cost is often not charged in asymptotic analyses.
+
+\paragraph{Asymptotic notation.} We measure all of these costs asymptotically in $n$
+(and in accuracy parameters such as $1/\varepsilon$). Recall that $g(n)=\bigo(h(n))$
+means $\abs{g(n)}\le C\,h(n)$ for some constant $C>0$ and all large $n$; we write
+$\poly(n)$ for $\bigo(n^{c})$ and $\polylog(n)$ for $\poly(\log n)$. An
+\emph{exponential} speedup replaces a classical $\bigo(2^{n})$ cost with a quantum
+$\poly(n)$ cost, while Grover's algorithm gives a \emph{quadratic} speedup,
+$\bigo(2^{n})\to\bigo(2^{n/2})$. These are the comparisons we will make throughout.
 
 \exercisesection
-\begin{exercise}
-\todo{Add exercise.}
+\begin{exercise}\label{ex:lec01-1}
+Let $\ket{\psi}=2\ii\ket{0}-\ket{1}\in\C^{2}$ (unnormalized). Find $\norm{\psi}$ and
+the normalized state $\ket{\hat\psi}$, and give the probabilities of measuring $0$
+and $1$ in the computational basis.
 \end{exercise}
-\begin{exercise}
-\todo{Add exercise.}
+
+\begin{exercise}\label{ex:lec01-2}
+Show that $\ket{+}=\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})$ and
+$\ket{-}=\tfrac{1}{\sqrt2}(\ket{0}-\ket{1})$ form an orthonormal basis of $\C^{2}$,
+and express $\ket{0}$ and $\ket{1}$ in this basis.
 \end{exercise}
-\begin{exercise}
-\todo{Add exercise.}
+
+\begin{exercise}\label{ex:lec01-3}
+Using the equality case of the Cauchy--Schwarz inequality
+(\cref{thm:lec01-cs}), prove that two \emph{unit} vectors $\ket{u},\ket{v}$ satisfy
+$\abs{\braket{u|v}}=1$ if and only if $\ket{v}=\ee^{\ii\gamma}\ket{u}$ for some real
+$\gamma$---i.e. they are the same physical state.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec01-4}
+Let $\ket{u}$ be a unit vector and $P=\proj{u}$. Prove that $P^{2}=P$ and $P\dg=P$,
+and compute $\Tr(P)$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec01-5}
+Find the Bloch angles $(\theta,\varphi)$ of the state
+$\ket{\psi}=\tfrac{1}{2}\ket{0}+\tfrac{\sqrt3}{2}\ee^{\ii\pi/3}\ket{1}$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec01-6}
+Decide whether $\ket{\psi}=\tfrac{1}{\sqrt2}(\ket{00}+\ket{01})$ is a product state.
+If so, exhibit an explicit factorization; if not, prove it is entangled.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec01-7}
+Verify by matrix multiplication that $H$ is unitary and self-inverse
+($H\dg=H$ and $H^{2}=I$). Then, using \cref{lem:lec01-conj} and
+\cref{prop:lec01-yxz}, compute $HYH$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec01-8}
+Compute $\CNOT\ket{+}\ket{+}$ and decide whether the result is entangled. Then
+exhibit a unitary $U$ and blank state $\ket{s}$ with $U\ket{0}\ket{s}=\ket{0}\ket{0}$
+and $U\ket{1}\ket{s}=\ket{1}\ket{1}$, and explain why this does not contradict the
+no-cloning theorem (\cref{thm:lec01-nocloning}).
+\end{exercise}
+
+\begin{exercise}\label{ex:lec01-9}
+Consider the two-qubit state $\ket{\psi}=\tfrac{1}{\sqrt2}(\ket{00}+\ket{11})$ but now
+measure only the \emph{first} qubit. Using the density operator, (a) compute the
+reduced state $\rho_A=\Tr_B[\proj{\psi}]$ and its purity $\Tr[\rho_A^{2}]$;
+(b) give the probability of outcome $0$ on the first qubit and the resulting
+(normalized) state of the second qubit. Compare with the reduced state of the
+product state $\ket{+}\ket{+}$.
 \end{exercise}
 
 \readingsection
 \begin{itemize}[leftmargin=1.4em]
-  \item Lin Lin, \emph{Lecture Notes on Quantum Algorithms for Scientific Computation}, Ch.~1 (\texttt{qasc\_notes.pdf}).
-  \item Lin Lin, \emph{live notes}, Ch.~2 (\texttt{live\_notes\_0429.pdf}).
-  \item A.~Childs, \emph{Lecture Notes on Quantum Algorithms}, introductory chapters.
+  \item Lin Lin, \emph{Lecture Notes on Quantum Algorithms for Scientific
+        Computation}, Ch.~1 (postulates, density operator, quantum circuits,
+        no-cloning, complexity) --- \texttt{qasc\_notes.pdf}.
+  \item Lin Lin, \emph{live notes}, Ch.~2 (states, tensor products, entanglement,
+        mixed states) --- \texttt{live\_notes\_0429.pdf}.
+  \item A.~Childs, \emph{Lecture Notes on Quantum Algorithms}, Ch.~1--2 (quantum
+        circuit model and universality) --- \texttt{material/}.
+  \item M.~A.~Nielsen and I.~L.~Chuang, \emph{Quantum Computation and Quantum
+        Information}, Ch.~1--2, for a complete textbook treatment.
 \end{itemize}

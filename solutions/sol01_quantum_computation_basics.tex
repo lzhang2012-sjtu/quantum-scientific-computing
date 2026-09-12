@@ -1,0 +1,112 @@
+\chapter{Quantum Computation Basics}
+% Solutions to the exercises of \cref{ch:lec01}.
+
+\begin{solution}[Exercise~\ref{ex:lec01-1}]
+$\norm{\psi}^{2}=\abs{2\ii}^{2}+\abs{-1}^{2}=4+1=5$, so $\norm{\psi}=\sqrt5$. The
+normalized state is $\ket{\hat\psi}=\tfrac{1}{\sqrt5}(2\ii\ket{0}-\ket{1})$. The
+probabilities are $\abs{2\ii/\sqrt5}^{2}=4/5$ for outcome $0$ and
+$\abs{-1/\sqrt5}^{2}=1/5$ for outcome $1$; they sum to $1$ as required.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-2}]
+$\braket{+|+}=\tfrac12(1+1)=1$ and $\braket{-|-}=\tfrac12(1+1)=1$, so both are unit
+vectors. $\braket{+|-}=\tfrac12(\braket{0|0}-\braket{0|1}+\braket{1|0}-\braket{1|1})=\tfrac12(1-0+0-1)=0$,
+so they are orthogonal; two orthonormal vectors in a $2$-dimensional space form a
+basis. Adding and subtracting, $\ket{0}=\tfrac{1}{\sqrt2}(\ket{+}+\ket{-})$ and
+$\ket{1}=\tfrac{1}{\sqrt2}(\ket{+}-\ket{-})$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-3}]
+For unit vectors, $\norm{u}=\norm{v}=1$, so Cauchy--Schwarz gives
+$\abs{\braket{u|v}}\le1$ with equality iff $\ket{u},\ket{v}$ are linearly dependent,
+i.e. $\ket{v}=\lambda\ket{u}$ for some $\lambda\in\C$. Taking norms,
+$1=\norm{v}=\abs{\lambda}\norm{u}=\abs{\lambda}$, so $\lambda=\ee^{\ii\gamma}$ for some
+real $\gamma$. Conversely, if $\ket{v}=\ee^{\ii\gamma}\ket{u}$ then
+$\braket{u|v}=\ee^{\ii\gamma}$ and $\abs{\braket{u|v}}=1$. By the invariance of
+physical states under a global phase, the two are the same physical state.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-4}]
+$P^{2}=\ket{u}\braket{u|u}\bra{u}=\proj{u}=P$ since $\braket{u|u}=1$. Taking the
+adjoint, $P\dg=(\proj{u})\dg=\proj{u}=P$. For the trace, using the identity
+$\Tr(\ket{u}\!\bra{v})=\braket{v|u}$ we get $\Tr(P)=\braket{u|u}=1$ (a rank-one
+projector has trace equal to its rank).
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-5}]
+Compare with the Bloch form
+$\ket{\psi}=\cos\tfrac{\theta}{2}\ket{0}+\ee^{\ii\varphi}\sin\tfrac{\theta}{2}\ket{1}$.
+The $\ket{0}$ amplitude is real and nonnegative, $\cos\tfrac{\theta}{2}=\tfrac12$,
+giving $\theta/2=\pi/3$, so $\theta=2\pi/3$. Then
+$\sin\tfrac{\theta}{2}=\sin\tfrac{\pi}{3}=\tfrac{\sqrt3}{2}$, matching the modulus of
+the $\ket{1}$ amplitude, and its phase is $\varphi=\pi/3$. Hence
+$(\theta,\varphi)=(2\pi/3,\ \pi/3)$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-6}]
+Factor out the first qubit:
+$\ket{\psi}=\tfrac{1}{\sqrt2}\ket{0}\otimes(\ket{0}+\ket{1})
+=\ket{0}\otimes\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})=\ket{0}\otimes\ket{+}$.
+This is an explicit product of single-qubit states, so $\ket{\psi}$ is separable (a
+product state), not entangled.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-7}]
+$H$ has real symmetric entries, so $H\dg=H^{\top}=H$. Then
+$H^{2}=\tfrac12\left(\begin{smallmatrix}1&1\\1&-1\end{smallmatrix}\right)
+\left(\begin{smallmatrix}1&1\\1&-1\end{smallmatrix}\right)
+=\tfrac12\left(\begin{smallmatrix}2&0\\0&2\end{smallmatrix}\right)=I$, which shows
+$H\dg H=H^{2}=I$, so $H$ is unitary and self-inverse. For $HYH$, use $Y=\ii XZ$
+(\cref{prop:lec01-yxz}) and $H^{2}=I$:
+\[
+  HYH=\ii\,H X Z H = \ii(HXH)(HZH)=\ii\,Z\,X
+     = \ii\begin{pmatrix}1&0\\0&-1\end{pmatrix}
+       \begin{pmatrix}0&1\\1&0\end{pmatrix}
+     = \ii\begin{pmatrix}0&1\\-1&0\end{pmatrix}
+     = \begin{pmatrix}0&\ii\\-\ii&0\end{pmatrix}=-Y.
+\]
+So $HYH=-Y$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-8}]
+Write $\ket{+}\ket{+}=\tfrac12(\ket{00}+\ket{01}+\ket{10}+\ket{11})$. Apply $\CNOT$
+(control $0$) term by term: $\ket{00}\to\ket{00}$, $\ket{01}\to\ket{01}$,
+$\ket{10}\to\ket{11}$, $\ket{11}\to\ket{10}$. The sum is invariant, so
+$\CNOT\ket{+}\ket{+}=\tfrac12(\ket{00}+\ket{01}+\ket{11}+\ket{10})=\ket{+}\ket{+}$.
+The result is a product state, hence \emph{not} entangled: $\ket{+}\ket{+}$ is a
+$+1$ eigenstate of this $\CNOT$.
+
+For the cloning of orthogonal states, take $\ket{s}=\ket{0}$ and $U=\CNOT$ with
+control $0$, target $1$. Then $\CNOT\ket{0}\ket{0}=\ket{0}\ket{0}$ and
+$\CNOT\ket{1}\ket{0}=\ket{1}\ket{1}$, so both orthogonal basis states are copied.
+This does not contradict \cref{thm:lec01-nocloning}: the theorem only forbids a
+\emph{single} gate that copies \emph{every} state. This $\CNOT$ copies
+$\ket{0},\ket{1}$ but fails to copy a superposition $a\ket{0}+b\ket{1}$, producing the
+entangled $a\ket{00}+b\ket{11}$ instead. Cloning a fixed orthonormal set is exactly
+the classical copy the theorem permits.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-9}]
+(a) With $\rho=\proj{\psi}=\tfrac12(\proj{00}+\ket{00}\!\bra{11}+\ket{11}\!\bra{00}+\proj{11})$,
+tracing out the second qubit and keeping only terms whose second-qubit bra and ket
+labels agree gives
+\[
+  \rho_A=\Tr_B[\rho]=\tfrac12\big(\proj{0}\braket{0|0}+\proj{1}\braket{1|1}\big)
+        =\tfrac12(\proj{0}+\proj{1})=\tfrac12\id.
+\]
+Its purity is $\Tr[\rho_A^{2}]=\Tr[\tfrac14\id]=\tfrac14\cdot2=\tfrac12<1$, so the
+reduced state is maximally mixed.
+
+(b) The projector for outcome $0$ on the first qubit is $\proj{0}\otimes\id$. The
+outcome probability equals the squared norm of the unnormalized post-measurement
+vector $(\proj{0}\otimes\id)\ket{\psi}=\tfrac{1}{\sqrt2}\ket{00}$, namely
+$\bigl\|\tfrac{1}{\sqrt2}\ket{00}\bigr\|^{2}=\tfrac12$. Equivalently
+$p(0)=\Tr[(\proj{0}\otimes\id)\rho]=\tfrac12$, consistent with $\rho_A=\tfrac12\id$.
+After normalization the state is $\ket{0}\otimes\ket{0}$, so the second qubit is left
+in $\ket{0}$---perfectly correlated with the first outcome.
+
+For comparison, the product state $\ket{+}\ket{+}$ has reduced first-qubit state
+$\rho_A'=\proj{+}$, a \emph{pure} state with purity $\Tr[\rho_A'^{2}]=1$: no
+information is hidden in correlations because the state is separable. The contrast
+$\tfrac12<1$ versus $1$ quantifies the entanglement of the Bell pair.
+\end{solution}
