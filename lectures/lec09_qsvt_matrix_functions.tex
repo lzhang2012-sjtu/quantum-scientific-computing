@@ -10,42 +10,647 @@
 \end{itemize}
 \end{objectives}
 
-\todo{Write the introductory paragraph orienting the lecture.}
+Qubitization and quantum signal processing (\cref{ch:lec08}) taught us to apply a
+bounded degree-$d$ polynomial to the \emph{eigenvalues} of a Hermitian block-encoded
+matrix using $\bigo(d)$ queries and unit subnormalization. But the input models of
+\cref{ch:lec06} routinely produce block encodings of \emph{non-Hermitian} matrices---a
+sparse coefficient matrix of a linear system, a nonsymmetric generator of a
+differential equation, a rectangular data matrix---for which ``eigenvalue'' is not
+even the right notion. The correct object is the \emph{singular value decomposition},
+and the correct generalization of the eigenvalue transformation is the
+\emph{quantum singular value transformation} (QSVT), due to Gily\'en, Su, Low, and
+Wiebe: a single degree-$d$ polynomial applied to the \emph{singular values} of $A$,
+again with $\bigo(d)$ queries to the block encoding $U_A$ and its adjoint $U_A\dg$.
+Remarkably, the circuit is \emph{identical} to the general-encoding qubitization of
+\cref{sec:lec08-3}---the alternation of $U_A$ and $U_A\dg$ that we were forced into by
+non-Hermiticity is exactly what threads a degree through the singular values---so QSVT
+requires almost no new machinery beyond a change of viewpoint from eigenvectors to
+left/right singular vectors (\cref{sec:lec09-1}). Once the transformation is set up we
+record the working theorem for real target polynomials (\cref{sec:lec09-2}), and then
+harvest the three applications that make QSVT the ``grand unification'' of quantum
+algorithms: matrix inversion $x\mapsto1/(\kappa x)$ (the engine of the quantum linear
+systems problem, \cref{ch:lec10}), Hamiltonian simulation $x\mapsto\ee^{-\ii xt}$ via
+the Jacobi--Anger expansion (\cref{ch:lec12}), and spectral filtering by an
+approximate sign or rectangle function (\cref{sec:lec09-3}). We then compare QSVT with
+the LCU route of \cref{ch:lec07}---coherent versus $\ell^1$-weighted, singular value
+versus eigenvalue---to see when each is preferable (\cref{sec:lec09-4}), and close with
+the practical question of computing the phase factors (\cref{sec:lec09-5}). Throughout,
+$A\in\C^{N\times N}$ with $N=2^n$ is accessed by a $(1,m)$-block encoding
+$U_A\in\mathrm{BE}_{1,m}(A)$, so that $\norm{A}\le1$ and all singular values lie in
+$[0,1]$; we reuse the QSP theorem (\cref{thm:lec08-qsp}) and its real-polynomial
+corollary (\cref{cor:lec08-real}) without reproof.
 
 \section{From eigenvalue to singular value transformation}
 \label{sec:lec09-1}
-\todo{Draft this section.}
+
+\paragraph{Singular value decomposition and the three matrix functions.}
+Let $A\in\C^{N\times N}$ have singular value decomposition
+\begin{equation}
+  A=W\Sigma V\dg=\sum_{i\in[N]}\sigma_i\,\ket{w_i}\!\bra{v_i},
+  \qquad 0\le\sigma_i\le1,
+  \label{eq:lec09-svd}
+\end{equation}
+where $\{\ket{v_i}\}$ (right singular vectors) and $\{\ket{w_i}\}$ (left singular
+vectors) are orthonormal bases and $\Sigma=\diag(\sigma_0,\dots,\sigma_{N-1})$.
+Equivalently $A\ket{v_i}=\sigma_i\ket{w_i}$ and $A\dg\ket{w_i}=\sigma_i\ket{v_i}$.
+Given a scalar function $f\colon\R\to\C$, there are \emph{three} natural matrix
+functions built from \eqref{eq:lec09-svd}, depending on which singular basis is used
+on the two sides.
+
+\begin{definition}[Generalized matrix functions]
+\label{def:lec09-gmf}
+With $A$ as in \eqref{eq:lec09-svd} and $f(\Sigma)\defeq\diag(f(\sigma_0),\dots,
+f(\sigma_{N-1}))$, define
+\begin{equation}
+  f^{(\mathrm{SV})}(A)\defeq W f(\Sigma) V\dg,\qquad
+  f^{\triangleright}(A)\defeq W f(\Sigma) W\dg,\qquad
+  f^{\triangleleft}(A)\defeq V f(\Sigma) V\dg .
+  \label{eq:lec09-gmf}
+\end{equation}
+We call $f^{(\mathrm{SV})}(A)$ the (two-sided) \emph{singular value transformation},
+and $f^{\triangleright},f^{\triangleleft}$ the \emph{left} and \emph{right} generalized
+matrix functions; all three are loosely referred to as singular value
+transformations.
+\end{definition}
+
+The three coincide when $A$ is Hermitian and $f$ has definite parity; in general they
+differ, and QSVT will produce $f^{(\mathrm{SV})}(A)$ for \emph{odd} $f$ and
+$f^{\triangleleft}(A)$ (equivalently $f^{\triangleright}(A)$) for \emph{even} $f$. Two
+identities record their basic algebra.
+
+\begin{proposition}[Relations among the generalized functions]
+\label{prop:lec09-rel}
+$f^{(\mathrm{SV})}(A\dg)=\bigl(f^{(\mathrm{SV})}(A)\bigr)\dg$,
+$f^{\triangleleft}(A)=f^{\triangleright}(A\dg)$, and, for even $f$,
+\begin{equation}
+  f^{\triangleleft}(A)=f\!\bigl(\sqrt{A\dg A}\bigr),\qquad
+  f^{\triangleright}(A)=f\!\bigl(\sqrt{AA\dg}\bigr).
+  \label{eq:lec09-rel}
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+The first two are immediate from \eqref{eq:lec09-gmf} and the SVD of $A\dg=V\Sigma
+W\dg$. For \eqref{eq:lec09-rel}, note $A\dg A=V\Sigma^2 V\dg$, so
+$\sqrt{A\dg A}=V\Sigma V\dg$ is Hermitian with eigenvalue decomposition sharing the
+right singular vectors and eigenvalues $\sigma_i$; hence
+$f(\sqrt{A\dg A})=Vf(\Sigma)V\dg=f^{\triangleleft}(A)$, and symmetrically for
+$AA\dg=W\Sigma^2W\dg$.
+\end{proof}
+
+\paragraph{Qubitization of a general matrix, in the singular basis.}
+The construction of \cref{sec:lec08-3} carries over verbatim once eigenvectors are
+replaced by singular vectors. Applying $U_A\in\mathrm{BE}_{1,m}(A)$ to the flagged
+right singular state gives, with $\Pi=\proj{0^m}\otimes\id$,
+\begin{equation}
+  U_A\ket{0^m}\ket{v_i}=\sigma_i\ket{0^m}\ket{w_i}
+     +\sqrt{1-\sigma_i^2}\,\ket{\perp_i'},\qquad \Pi\ket{\perp_i'}=0,
+  \label{eq:lec09-apply}
+\end{equation}
+because $\Pi U_A\Pi=\proj{0^m}\otimes A$ and $A\ket{v_i}=\sigma_i\ket{w_i}$. Since
+$U_A\dg\in\mathrm{BE}_{1,m}(A\dg)$ and $A\dg\ket{w_i}=\sigma_i\ket{v_i}$, the same step
+run backward defines a companion state $\ket{\perp_i}$ via
+$U_A\dg\ket{0^m}\ket{w_i}=\sigma_i\ket{0^m}\ket{v_i}+\sqrt{1-\sigma_i^2}\,\ket{\perp_i}$.
+Set
+\begin{equation}
+  \mathcal B_i=\{\ket{0^m}\ket{v_i},\ket{\perp_i}\},\qquad
+  \mathcal B_i'=\{\ket{0^m}\ket{w_i},\ket{\perp_i'}\},
+  \label{eq:lec09-bases}
+\end{equation}
+spanning two-dimensional subspaces $\mathcal H_i,\mathcal H_i'$. Exactly as in
+\cref{lem:lec08-general},
+\begin{equation}
+  [U_A]^{\mathcal B_i'}_{\mathcal B_i}
+  =\begin{pmatrix}\sigma_i&\sqrt{1-\sigma_i^2}\\[2pt]
+    \sqrt{1-\sigma_i^2}&-\sigma_i\end{pmatrix}
+  =[U_A\dg]^{\mathcal B_i}_{\mathcal B_i'},\qquad
+  [Z_\Pi]_{\mathcal B_i}=[Z_\Pi]_{\mathcal B_i'}=\begin{pmatrix}1&0\\0&-1\end{pmatrix},
+  \label{eq:lec09-blocks}
+\end{equation}
+so $U_A$ maps $\mathcal H_i\to\mathcal H_i'$ and $U_A\dg$ maps $\mathcal H_i'\to
+\mathcal H_i$, and $Z_\Pi=2\Pi-\id$ fixes the shared flagged vector while flipping the
+perpendicular one. The qubitization iterate $\widetilde O=U_A\dg Z_\Pi U_A Z_\Pi$
+therefore restricts to $O(\sigma_i)^2$ on $\mathcal H_i$, with $O(\sigma_i)$ the planar
+rotation of \eqref{eq:lec08-Orot}. Reading off the $(1,1)$-entries of the powers gives
+the singular value analogue of \cref{thm:lec08-general}.
+
+\begin{theorem}[Chebyshev singular value transformation]
+\label{thm:lec09-cheb}
+Let $U_A\in\mathrm{BE}_{1,m}(A)$ and $Z_\Pi=2\Pi-\id$ with $\Pi=\proj{0^m}\otimes\id$.
+Then for every $k\ge1$,
+\begin{equation}
+  \bigl(U_A\dg Z_\Pi U_A Z_\Pi\bigr)^k
+    \in\mathrm{BE}_{1,m}\bigl(T_{2k}^{\triangleleft}(A)\bigr),\qquad
+  U_A Z_\Pi\bigl(U_A\dg Z_\Pi U_A Z_\Pi\bigr)^k
+    \in\mathrm{BE}_{1,m}\bigl(T_{2k+1}^{(\mathrm{SV})}(A)\bigr),
+  \label{eq:lec09-chebBE}
+\end{equation}
+where $T_{2k}^{\triangleleft}(A)=V T_{2k}(\Sigma)V\dg$ and
+$T_{2k+1}^{(\mathrm{SV})}(A)=W T_{2k+1}(\Sigma)V\dg$.
+\end{theorem}
+
+\begin{proof}
+By \eqref{eq:lec09-blocks} the composite $\widetilde O$ acts on $\mathcal H_i$ as
+$\bigl([U_A]^{\mathcal B_i'}_{\mathcal B_i}Z\bigr)^2=O(\sigma_i)^2$, whose $k$-th power
+$O(\sigma_i)^{2k}$ has $(1,1)$-entry $T_{2k}(\sigma_i)$ (\cref{lem:lec08-rot}); since
+the $\mathcal H_i$ are orthogonal and $\{\ket{0^m}\ket{v_i}\}$ span the range of $\Pi$,
+$\Pi\widetilde O^k\Pi=\proj{0^m}\otimes\sum_i T_{2k}(\sigma_i)\proj{v_i}
+=\proj{0^m}\otimes V T_{2k}(\Sigma)V\dg$, the even (left/right) case with base vector
+$\ket{v_i}$ mapped to itself. Prepending one $U_A Z_\Pi$ carries
+$\mathcal H_i\to\mathcal H_i'$; the surviving flagged block is the $(1,1)$-entry of
+$O(\sigma_i)^{2k+1}$, namely $T_{2k+1}(\sigma_i)$, and the base vector is now
+$\ket{0^m}\ket{w_i}$, giving $\sum_i T_{2k+1}(\sigma_i)\ket{w_i}\!\bra{v_i}=
+W T_{2k+1}(\Sigma)V\dg$.
+\end{proof}
+
+Two structural facts are worth isolating. First, \emph{parity is forced}: an even
+degree returns a one-sided transformation ($V\!\cdots V\dg$), an odd degree returns the
+two-sided $W\!\cdots V\dg$. This is not a defect but the honest reflection of the fact
+that singular values are nonnegative and a matrix function must respect the two
+singular bases. Second, when we only care about $f^{(\mathrm{SV})}(A)$ for a general
+$f$, we approximate an \emph{odd} extension of $f$ (odd about the origin) so that the
+polynomial has odd parity; for $f^{\triangleleft}(A)$ we approximate an \emph{even}
+extension. Because all $\sigma_i\ge0$, evaluating the extended polynomial on $[0,1]$
+recovers $f$ on the singular values regardless of the extension's behavior on $[-1,0)$.
+
+\paragraph{The Hermitian special case.}
+When $A$ is Hermitian with eigendecomposition $A=\sum_i\lambda_i\proj{u_i}$, the SVD is
+$\sigma_i=\abs{\lambda_i}$, $\ket{v_i}=\ket{u_i}$, $\ket{w_i}=\operatorname{sgn}
+(\lambda_i)\ket{u_i}$. For an \emph{even} polynomial $P$, $P(\lambda_i)=P(\sigma_i)$,
+so $P^{\triangleleft}(A)=P(A)$; for an \emph{odd} polynomial,
+$P(\lambda_i)=\operatorname{sgn}(\lambda_i)P(\sigma_i)$, so
+$P^{(\mathrm{SV})}(A)=P(A)$. Thus \emph{for a definite-parity polynomial the QSVT and
+the QET of \cref{ch:lec08} produce the same operator}: eigenvalue transformation and
+singular value transformation are two views of one circuit. The distinction becomes
+real only when $A$ is non-Hermitian, or when $P$ has indefinite parity (then the two
+objects genuinely differ and cannot be produced by a single definite-parity QSVT
+sweep).
 
 \section{Real-polynomial QSVT}
 \label{sec:lec09-2}
-\todo{Draft this section.}
+
+Lifting the scalar QSP identity to a matrix is now automatic: replace the signal
+rotation $O(\lambda)$ by the qubitization iterate built from $U_A,U_A\dg$, and each
+$Z$-rotation $\ee^{\ii\phi_j Z}$ by the flag rotation $\ee^{\ii\phi_j Z_\Pi}$. Because
+every factor preserves the subspaces $\mathcal H_i$ and acts there as the corresponding
+$2\times2$ QSP factor at $\lambda=\sigma_i$, the flagged block of the whole product is
+the QSP polynomial evaluated singular value by singular value. Concretely, for even
+degree $d$,
+\begin{equation}
+  U_\Phi=\ee^{\ii\phi_0 Z_\Pi}\!\!\prod_{j=1}^{d/2}\!\Bigl[(U_A\dg Z_\Pi)\,
+     \ee^{\ii\phi_{2j-1}Z_\Pi}(U_A Z_\Pi)\,\ee^{\ii\phi_{2j}Z_\Pi}\Bigr]
+  \label{eq:lec09-Uphi-even}
+\end{equation}
+block-encodes $P^{\triangleleft}(A)$ for an even $P$, and for odd degree $d$ the
+analogous product ending in one extra $U_A Z_\Pi$ block-encodes $P^{(\mathrm{SV})}(A)$
+for an odd $P$. As in \cref{sec:lec08-4}, the interleaved reflections $Z_\Pi$ are
+absorbed into the flag rotations by a $\pm\pi/2$ shift of the phases (the
+``$C$-convention''), so the physical circuit is: $d$ alternating calls to $U_A/U_A\dg$,
+$d+1$ controlled flag rotations $\mathrm{CR}(\phi_j)$ (each an
+$m$-qubit-controlled single-qubit $Z$-rotation), and one extra ancilla. This is
+\cref{thm:lec08-qsp} transported to the block encoding, and it holds for the full class
+of complex definite-parity $P$ of \cref{thm:lec08-qsp}. In practice we want a
+\emph{real} target, extracted by the same $\tfrac12(P+P^*)$ trick as in QSP.
+
+\begin{theorem}[QSVT with real polynomials]
+\label{thm:lec09-qsvt}
+Let $A\in\C^{N\times N}$ be encoded by $U_A\in\mathrm{BE}_{1,m}(A)$, and let
+$P\in\R[x]$ have degree $d$, parity $d\bmod2$, and $\abs{P(x)}\le1$ on $[-1,1]$ (the
+conditions of \cref{cor:lec08-real}). Then there is a phase sequence
+$\Phi\in\R^{d+1}$ such that the QSVT circuit $U_\Phi$ (\cref{fig:lec09-qsvt}) is a
+$(1,m+1)$-block encoding of $P^{(\mathrm{SV})}(A)=W P(\Sigma) V\dg$ when $d$ is odd,
+and of $P^{\triangleleft}(A)=V P(\Sigma) V\dg$ when $d$ is even. The circuit uses
+$U_A,U_A\dg$, an $m$-qubit controlled-\textsc{not}, and single-qubit rotation gates a
+total of $\bigo(d)$ times, with one additional ancilla qubit.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+By the cosine--sine decomposition of \cref{sec:lec08-3}, in the singular basis $U_\Phi$
+is a direct sum of the $2\times2$ QSP unitaries $U_\Phi(\sigma_i)$ over $i$ (plus inert
+$1\times1$ blocks when the flagged and unflagged ranks differ). By
+\cref{thm:lec08-qsp} the $(1,1)$-entry of $U_\Phi(\sigma_i)$ is a complex $P$ of the
+stated degree and parity, so the flagged block of $U_\Phi$ is $\sum_i P(\sigma_i)
+(\text{base})_i$, i.e.\ $P^{(\mathrm{SV})}$ (odd $d$) or $P^{\triangleleft}$ (even $d$).
+To extract the \emph{real} part $P_{\mathrm{Re}}=\operatorname{Re}P$ without a second
+ancilla, sandwich $U_\Phi$ between Hadamards on a control qubit and negate all phases in
+the $\ket1$ branch: the $\ket1$ branch block-encodes $(U_\Phi)^*$, whose flagged block
+is $P^*(\Sigma)$, and the Hadamard interference leaves $\tfrac12(P+P^*)(\Sigma)=
+P_{\mathrm{Re}}(\Sigma)$ in the flagged $\ket0$ outcome. Since running $U_{-\Phi}$ is
+the same circuit with the signal qubit initialized in $\ket1$, no new gates are needed;
+the phase factors $\Phi$ exist by \cref{cor:lec08-real}. Query count and ancilla count
+are read off the circuit.
+\end{proof}
+
+\begin{figure}[t]
+\centering
+\begin{minipage}{0.92\textwidth}
+\centering
+\footnotesize
+\setlength{\fboxsep}{8pt}
+\fbox{\parbox{0.9\textwidth}{\centering
+control (Hadamard-sandwiched): \quad
+$\ket0\to H\to \mathrm{CR}(\phi_d)\to\cdots\to\mathrm{CR}(\phi_0)\to H\to\ket0$\\[2pt]
+flag ($m$ qubits) with $U_A,U_A\dg$ alternating; system register carries $\ket\psi$.\\[2pt]
+Output flagged block: $P^{(\mathrm{SV})}(A)$ ($d$ odd, last gate $U_A$) or
+$P^{\triangleleft}(A)$ ($d$ even, last gate $U_A\dg$).}}
+\end{minipage}
+\caption{Schematic of the real-polynomial QSVT circuit $U_\Phi$ of
+\cref{thm:lec09-qsvt}. It is the general-encoding qubitization of \cref{sec:lec08-3}
+with interleaved flag rotations $\mathrm{CR}(\phi_j)\equiv\ee^{\ii\phi_j Z_\Pi}$ (in the
+$C$-convention) and one extra control ancilla to extract $\operatorname{Re}P$.}
+\label{fig:lec09-qsvt}
+\end{figure}
+
+\paragraph{Matrix dilation: QSVT from QET.}
+There is an instructive second route that reduces QSVT to the Hermitian QET of
+\cref{ch:lec08}. Form the Hermitian \emph{dilation}
+\begin{equation}
+  D(A)=\begin{pmatrix}0&A\dg\\ A&0\end{pmatrix},\qquad
+  \ket{z_i^{\pm}}=\tfrac1{\sqrt2}\bigl(\ket0\ket{v_i}\pm\ket1\ket{w_i}\bigr),\qquad
+  D(A)\ket{z_i^{\pm}}=\pm\sigma_i\ket{z_i^{\pm}},
+  \label{eq:lec09-dilation}
+\end{equation}
+so the eigenvalues of $D(A)$ are $\pm\sigma_i$. A block encoding $U_{D(A)}$ is built
+from a controlled $U_A/U_A\dg$ with one extra ancilla. Applying the QET of $D(A)$ with a
+polynomial $f$ yields, in the $2\times2$ ancilla block,
+\begin{equation}
+  f\bigl(D(A)\bigr)=\begin{pmatrix}f^{\triangleleft}_{\mathrm{even}}(A)&
+     f^{(\mathrm{SV})}_{\mathrm{odd}}(A\dg)\\[2pt]
+     f^{(\mathrm{SV})}_{\mathrm{odd}}(A)&f^{\triangleright}_{\mathrm{even}}(A)\end{pmatrix},
+  \label{eq:lec09-fdilation}
+\end{equation}
+i.e.\ the even part of $f$ produces the one-sided functions on the diagonal and the odd
+part produces the two-sided $f^{(\mathrm{SV})}$ off-diagonal. In particular, for odd
+$f$, $f(D(A))\ket0\ket\psi=\ket1\,f^{(\mathrm{SV})}(A)\ket\psi$: the signal qubit
+deterministically flips to $\ket1$ and the system holds $f^{(\mathrm{SV})}(A)\ket\psi$.
+The dilation viewpoint makes the parity bookkeeping of \eqref{eq:lec09-chebBE}
+transparent and is how one often analyzes QLSP (\cref{ch:lec10}); the direct circuit of
+\cref{thm:lec09-qsvt} is more economical because it never doubles the matrix.
 
 \section{Applications: inversion, exponential, filtering}
 \label{sec:lec09-3}
-\todo{Draft this section.}
+
+Every application below is an instance of one recipe: pick the target $f$, find a
+bounded real polynomial $P$ of odd (or even) parity approximating $f$ on the relevant
+sub-interval of $[0,1]$, and invoke \cref{thm:lec09-qsvt}. The degree $d$ is the query
+cost, so the game is polynomial approximation theory.
+
+\subsection*{Matrix inversion: \texorpdfstring{$f(x)=1/(\kappa x)$}{f(x)=1/(kappa x)}}
+
+Let $A$ be invertible with condition number $\kappa=\norm{A}\,\norm{A^{-1}}$; after the
+normalization $\norm{A}\le1$, the singular values lie in $[1/\kappa,1]$. Then
+$A^{-1}=V\Sigma^{-1}W\dg=g^{(\mathrm{SV})}(A\dg)$ with $g(x)=1/x$, an odd function.
+Since $1/x$ is unbounded and singular at $0$, we cannot approximate it on all of
+$[-1,1]$; we only need it on the spectral support $[1/\kappa,1]$ (and, by oddness, on
+$[-1,-1/\kappa]$). Choose an odd polynomial $P$ with
+\begin{equation}
+  \Bigl|P(x)-\frac{1}{\eta\kappa x}\Bigr|\le\epsilon
+  \quad\text{for all } x\in[-1,-\tfrac1\kappa]\cup[\tfrac1\kappa,1],
+  \qquad \abs{P(x)}\le1 \text{ on } [-1,1],
+  \label{eq:lec09-inv-target}
+\end{equation}
+where the subnormalization $\eta\ge1$ (say $\eta=4/3$) merely rescales so that
+$\abs{P}\le1$ globally, as \cref{cor:lec08-real} requires. A polynomial of degree
+\begin{equation}
+  d=\bigo\!\Bigl(\kappa\log\tfrac1\epsilon\Bigr)
+  \label{eq:lec09-inv-degree}
+\end{equation}
+achieves \eqref{eq:lec09-inv-target}; the linear scaling in $\kappa$ is essentially
+optimal and matches the classical intuition that resolving $1/x$ down to $x=1/\kappa$
+requires resolution $\sim\kappa$. \cref{thm:lec09-qsvt} then block-encodes
+$P^{(\mathrm{SV})}(A\dg)\approx\tfrac1{\eta\kappa}A^{-1}$ with $\bigo(\kappa\log
+(1/\epsilon))$ queries. This is the primitive that solves the quantum linear systems
+problem: prepare $\ket b$, apply the block encoding, and amplitude-amplify the flagged
+outcome; the full complexity accounting (including the overlap-dependent success
+probability and the $\bigo(\kappa)$ rounds of amplitude amplification) is the subject
+of \cref{ch:lec10}. The worked example at the end of the section constructs the
+approximating polynomial explicitly.
+
+\subsection*{Hamiltonian simulation: \texorpdfstring{$f(x)=\ee^{-\ii x t}$}{f(x)=exp(-ixt)}}
+
+For a Hermitian $A=H$ with $\norm H\le1$, time evolution is the eigenvalue
+transformation $\ee^{-\ii Ht}=\sum_i\ee^{-\ii\lambda_i t}\proj{u_i}$. Split into real
+and imaginary parts $\cos(Ht)$ and $\sin(Ht)$, each of definite parity, and approximate
+the scalars $\cos(tx),\sin(tx)$ on $[-1,1]$ by their truncated \emph{Jacobi--Anger}
+expansions,
+\begin{equation}
+  \cos(tx)=J_0(t)+2\sum_{k\ge1}(-1)^{k}J_{2k}(t)\,T_{2k}(x),\qquad
+  \sin(tx)=2\sum_{k\ge0}(-1)^{k}J_{2k+1}(t)\,T_{2k+1}(x),
+  \label{eq:lec09-jacobi}
+\end{equation}
+where $J_\nu$ are Bessel functions of the first kind. Because $\abs{J_\nu(t)}$ decays
+super-exponentially once $\nu\gtrsim \ee t/2$, truncating at
+\begin{equation}
+  d=\bigo\!\Bigl(t+\frac{\log(1/\epsilon)}{\log(\ee+\log(1/\epsilon)/t)}\Bigr)
+   =\bigo\!\Bigl(t+\log\tfrac1\epsilon\Bigr)
+  \label{eq:lec09-ham-degree}
+\end{equation}
+gives a uniform $\epsilon$-approximation. Each truncated series is a bounded real
+even/odd polynomial (rescaled by $\tfrac12$ so the sum of $\abs{\text{coefficients}}$
+does not exceed $1$), so QET realizes $\cos(Ht)$ and $\sin(Ht)$, and one LCU combines
+them into $\ee^{-\ii Ht}$. The additive $t$ term is the optimal ``no fast-forwarding''
+scaling and the additive $\log(1/\epsilon)$ is the optimal precision dependence---QSVT
+is thus an optimal Hamiltonian-simulation primitive, developed in full in
+\cref{ch:lec12}. (For a general non-Hermitian block encoding one can use the same
+Jacobi--Anger polynomials on the singular values, or the QETU circuit of the
+reading, which applies $F(\cos(H/2))$ directly from the evolution oracle $\ee^{-\ii
+H}$.)
+
+\subsection*{Filtering: eigenstate and energy filters}
+
+Many algorithms need a \emph{spectral filter}: a matrix that is $\approx1$ on part of
+the spectrum and $\approx0$ elsewhere, used to project (approximately) onto a target
+eigenspace, prepare ground states, or estimate energies. The building block is a
+polynomial approximation to the \emph{sign function} $\operatorname{sgn}(x)$, which in
+turn gives a shifted step (rectangle). Concretely, an odd polynomial $P_{\mathrm{sgn}}$
+with
+\begin{equation}
+  \bigl|P_{\mathrm{sgn}}(x)-\operatorname{sgn}(x)\bigr|\le\epsilon
+  \quad\text{for } \abs{x}\in[\Delta,1],\qquad \abs{P_{\mathrm{sgn}}}\le1 \text{ on }
+  [-1,1],
+  \label{eq:lec09-sign}
+\end{equation}
+exists with degree $d=\bigo\!\bigl(\Delta^{-1}\log(1/\epsilon)\bigr)$, where
+$2\Delta$ is the width of the ``dead zone'' around $0$ that we decline to resolve
+(equivalently the spectral gap we assume). Such $P_{\mathrm{sgn}}$ is built from a
+rescaled error function $\operatorname{erf}(kx)$ with $k\sim\Delta^{-1}
+\sqrt{\log(1/\epsilon)}$, itself expanded in Chebyshev polynomials. From the sign we
+assemble:
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item an \emph{approximate rectangle} on $[a,b]$ via
+    $R(x)=\tfrac12\bigl[P_{\mathrm{sgn}}(x-a)-P_{\mathrm{sgn}}(x-b)\bigr]$ (an even or
+    indefinite-parity polynomial, handled by the parity splitting of
+    \cref{sec:lec09-2});
+  \item an \emph{eigenstate filter} $R(H)$ that suppresses eigencomponents outside
+    $[a,b]$, so that $R(H)\ket\psi$ retains only the target band---the basis of
+    ground-state preparation and of the linear-systems eigenvalue filter of Lin--Tong;
+  \item a \emph{fixed-point amplitude amplification / uniform singular value
+    amplification} primitive, obtained by choosing $P_{\mathrm{sgn}}$ to send a small
+    known overlap $a\ge\delta$ to $\approx1$.
+\end{itemize}
+
+\begin{proposition}[Fixed-point amplitude amplification via QSVT]
+\label{prop:lec09-fpaa}
+Let $U_A$ be an $n$-qubit unitary and $\Pi'$ a projector with
+$\Pi'U_A\ket{\varphi_0}=a\ket\psi$, $a\ge\delta>0$. Then there is an $(n+1)$-qubit QSVT
+circuit $U_\Phi$ with global-phase-invariant distance
+$D_p\bigl(\ket0\ket\psi,\,U_\Phi\ket0\ket{\varphi_0}\bigr)\le\epsilon$, using
+$U_A,U_A\dg$ and controlled reflections $\bigo\!\bigl(\delta^{-1}\log(1/\epsilon)\bigr)$
+times.
+\end{proposition}
+
+\begin{proof}
+In the bases $\mathcal B=\{\ket{\varphi_0},\dots\}$, $\mathcal B'=\{\ket\psi,\dots\}$,
+$U_A$ has the flagged $1\times1$ ``singular value'' $a=\bra\psi U_A\ket{\varphi_0}$
+(cf.\ the Grover/reflection picture of \cref{ch:lec03}). Choose an odd real polynomial
+$F$ with $\abs{F(x)-1}\le\epsilon^2/2$ for $x\in[\delta,1]$ and $\abs F\le1$; by
+\eqref{eq:lec09-sign} this is a shifted sign approximation with degree
+$\bigo(\delta^{-1}\log(1/\epsilon))$. QSVT then block-encodes
+$F(a)\ket\psi\!\bra{\varphi_0}$, and the output overlap with $\ket0\ket\psi$ is
+$\abs{F(a)}\ge1-\epsilon^2/2$, whence $D_p=\sqrt{2(1-\abs{F(a)})}\le\epsilon$. Unlike
+standard amplitude amplification this never overshoots and needs only the lower bound
+$\delta$, not the exact value of $a$.
+\end{proof}
+
+Choosing $A=R_{\psi_0}$ (the Grover diffusion reflection) and $a=1/\sqrt N$ recovers
+unstructured search: $\deg F=\bigo(\sqrt N\log(1/\epsilon))$ finds the marked state to
+precision $\epsilon$ with the Grover speedup and no overshoot. The same construction
+with $A$ a general block encoding \emph{amplifies its singular values uniformly}
+toward $\norm A$ (uniform singular value amplification), a subroutine we reuse when
+converting a loosely subnormalized block encoding to a tight one.
+
+\begin{example}[Approximating $1/x$ on $[1/\kappa,1]$]
+\label{exa:lec09-inv}
+We make \eqref{eq:lec09-inv-target} concrete. A standard construction starts from the
+integral identity, valid for $x\neq0$,
+\begin{equation}
+  \frac1x=\int_0^\infty \ee^{-x^2 t^2/2}\,\sqrt{\tfrac2\pi}\;\operatorname{sgn}(x)\,
+     x\,\dd(\text{\dots})
+  \label{eq:lec09-int}
+\end{equation}
+but the cleaner route (Childs--Kothari--Somma) is: on $\abs x\ge1/\kappa$ write
+$\tfrac1x=\tfrac{1-(1-x^2)^{b}}{x}$ up to error $(1-\kappa^{-2})^b\le\ee^{-b/\kappa^2}$,
+choose $b=\bigo(\kappa^2\log(1/\epsilon))$, and note that
+$\tfrac{1-(1-x^2)^b}{x}$ is an \emph{odd} polynomial of degree $2b-1$ in $x$ that is
+bounded by $\bigo(\kappa)$ on $[-1,1]$. Truncating its Chebyshev expansion and
+discarding the negligible high-degree tail reduces the degree to $\bigo(\kappa\log
+(1/\epsilon))$ while keeping the error $\epsilon$ on $[1/\kappa,1]$; finally divide by
+$\eta\kappa$ (with $\eta=4/3$) so that $\abs{P}\le1$ on all of $[-1,1]$. The resulting
+odd $P$ satisfies \eqref{eq:lec09-inv-target}, and by \cref{thm:lec09-qsvt} the QSVT
+circuit block-encodes $P^{(\mathrm{SV})}(A\dg)=V P(\Sigma)V\dg\approx\tfrac1{\eta\kappa}
+A^{-1}$ using $\bigo(\kappa\log(1/\epsilon))$ queries. This is precisely the polynomial
+whose phase factors one obtains from a QSP solver (\cref{sec:lec09-5}); the companion
+notebook plots $P$ against $1/(\eta\kappa x)$ and checks the error on $[1/\kappa,1]$.
+\end{example}
 
 \section{QSVT versus LCU}
 \label{sec:lec09-4}
-\todo{Draft this section.}
+
+We now have two general-purpose ways to realize a matrix function $f(A)$ from a block
+encoding: build it as a \emph{linear combination of unitaries} (\cref{ch:lec07}), or
+apply \emph{QSVT} (this chapter). They are complementary, and the choice matters in
+practice.
+
+\paragraph{What each transforms.} LCU forms $\sum_\ell c_\ell U_\ell$; when the $U_\ell$
+are qubitized Chebyshev blocks $T_k(A)$ this realizes any polynomial
+$\sum_k c_k T_k(A)$---an \emph{eigenvalue} transformation for Hermitian $A$ (and only
+awkwardly a singular value transformation, via the dilation
+\eqref{eq:lec09-dilation}). QSVT natively realizes the \emph{singular value}
+transformation of a general matrix, and coincides with the eigenvalue transformation in
+the Hermitian definite-parity case. So for a non-Hermitian $A$ with an intrinsic
+$f(\sigma_i)$ target, QSVT is the natural tool.
+
+\paragraph{Subnormalization: coherent versus $\ell^1$.} This is the decisive
+difference. QSVT produces $P(A)$ at \emph{unit} subnormalization (a $(1,m+1)$-block
+encoding) using $d$ queries, independent of the size of the coefficients of $P$. LCU
+produces $\sum_\ell c_\ell U_\ell$ at subnormalization $\norm{c}_1=\sum_\ell\abs
+{c_\ell}$: the success probability of the flagged outcome scales like
+$1/\norm{c}_1^2$, so a target polynomial with a large $\ell^1$ coefficient norm (a
+generic degree-$d$ polynomial has $\norm{c}_1$ growing with $d$) costs an
+$\bigo(\norm{c}_1)$ overhead in amplitude amplification on top of the query count. QSVT
+avoids this overhead entirely because qubitization threads the degree through a single
+coherent product rather than summing independent branches. Concretely, to realize
+$T_d(A)$: LCU of monomials pays $\norm{c}_1\sim2^{d}$; QSVT (or a single qubitization
+sweep) pays $1$.
+
+\paragraph{Ancillas, generality, and when LCU wins.} QSVT needs one extra ancilla and a
+classically precomputed phase sequence; LCU needs $\lceil\log_2 L\rceil$ ancillas for
+$L$ terms and a $\mathrm{prep}/\mathrm{select}$ pair. When the function is already a
+\emph{short} LCU with small $\norm{c}_1$---for example $\ee^{-\ii Ht}=\cos(Ht)-\ii
+\sin(Ht)$ as a two-term combination of QSVT-built factors, or a sum of a handful of
+Hamiltonian-simulation terms (LCHS, \cref{ch:lec13})---LCU is simplest and its
+$\ell^1$ cost is negligible. LCU is also the right frame when the terms are genuinely
+distinct unitaries (a Pauli/LCU Hamiltonian) rather than powers of one block encoding.
+The two techniques compose: the standard pattern is ``QSVT to build each definite-parity
+piece at unit subnormalization, then a low-weight LCU to add the pieces,'' which is
+exactly how $\ee^{-\ii Ht}$ and indefinite-parity $f(A)$ are assembled
+(\cref{sec:lec09-2,sec:lec09-3}).
+
+\begin{center}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}p{0.24\textwidth}p{0.34\textwidth}p{0.34\textwidth}@{}}
+\hline
+ & \textbf{QSVT} & \textbf{LCU}\\
+\hline
+transforms & singular values (eigenvalues if Hermitian, definite parity) & eigenvalues
+  (Chebyshev/monomial basis)\\
+subnormalization & $1$ (coherent) & $\norm{c}_1$ ($\ell^1$ overhead)\\
+queries & $\bigo(d)$ to $U_A,U_A\dg$ & $\bigo(L)$ selects $+$ AA overhead
+  $\bigo(\norm{c}_1)$\\
+ancillas & $+1$ & $+\lceil\log_2 L\rceil$\\
+best when & high-degree single-$A$ polynomial, non-Hermitian $A$ & short sum, distinct
+  unitaries, small $\norm{c}_1$\\
+\hline
+\end{tabular}
+\end{center}
 
 \section{Phase-factor computation}
 \label{sec:lec09-5}
-\todo{Draft this section.}
+
+QSVT is only useful if the phase sequence $\Phi\in\R^{d+1}$ realizing a target real
+polynomial $P$ can actually be computed. The problem inherits directly from QSP
+(\cref{sec:lec08-5})---QSVT adds no new phase-finding difficulty, only the deterministic
+$C$-convention $\pm\pi/2$ shift of \cref{sec:lec09-2}---so we recall the three families
+and what is specific to matrix-function targets.
+
+\paragraph{Direct (root-finding) methods.} Given the real target $P_{\mathrm{Re}}$, one
+first \emph{completes} it: find $Q$ with $\abs P^2+(1-x^2)\abs Q^2=1$ (with
+$\operatorname{Re}P=P_{\mathrm{Re}}$) by factoring the degree-$2d$ polynomial
+$1-P_{\mathrm{Re}}^2$ into Fej\'er--Riesz square form over its roots, then strips one
+degree per phase from the ratio of leading coefficients (the constructive converse of
+\cref{thm:lec08-qsp}). Exact in principle; the root extraction is ill-conditioned for
+large $d$ and needs high-precision arithmetic. Prony-type and capitalization variants
+improve stability.
+
+\paragraph{Optimization-based methods.} Fixing the parity leaves
+$\widetilde d=\lceil(d+1)/2\rceil$ free phases; minimize the least-squares mismatch
+\begin{equation}
+  F(\Phi)=\frac1{\widetilde d}\sum_{k=1}^{\widetilde d}
+    \Bigl(\operatorname{Re}\bigl[U_\Phi(x_k)_{11}\bigr]-P_{\mathrm{Re}}(x_k)\Bigr)^2,
+    \qquad x_k=\cos\!\Bigl(\tfrac{(2k-1)\pi}{4\widetilde d}\Bigr),
+  \label{eq:lec09-optobj}
+\end{equation}
+over $\Phi$ on the positive Chebyshev nodes. Started from the symmetric ansatz
+$\Phi_0=(\tfrac\pi4,0,\dots,0,\tfrac\pi4)$ this nonconvex objective behaves almost
+convexly near the solution, so quasi-Newton descent converges in double precision even
+for $d$ in the thousands---the workhorse for the inversion and filtering polynomials of
+\cref{sec:lec09-3}.
+
+\paragraph{Symmetric QSP and the nonlinear Fourier transform.} Restricting to symmetric
+sequences $\phi_j=\phi_{d-j}$ makes $U_\Phi(x)_{11}$ automatically real of the correct
+parity, halves the unknowns, and turns completion into a well-conditioned
+fixed-point/Newton iteration with no explicit $Q$. A recent and conceptually clean
+viewpoint recasts phase-factor finding as an (inverse) \emph{nonlinear Fourier
+transform}, for which fast, provably stable algorithms exist. In practice one calls a
+mature solver (e.g.\ \texttt{QSPPACK}'s optimization routine or a symmetric-QSP Newton
+solver) as a black box: input the Chebyshev coefficients of $P_{\mathrm{Re}}$, receive
+$\Phi$; the QSVT circuit of \cref{thm:lec09-qsvt} then block-encodes
+$P^{(\mathrm{SV})}(A)$ with $\bigo(d)$ queries. For the rest of Part~II we therefore
+treat ``block-encode a bounded degree-$d$ singular value transformation'' as a
+primitive costing $\bigo(d)$ queries, one ancilla, and $d$ classically precomputed
+rotations.
 
 \exercisesection
-\begin{exercise}
-\todo{Add exercise.}
+
+\begin{exercise}\label{ex:lec09-1}
+\emph{The three generalized functions.} For $A=W\Sigma V\dg$ prove
+\cref{prop:lec09-rel}: $f^{(\mathrm{SV})}(A\dg)=(f^{(\mathrm{SV})}(A))\dg$,
+$f^{\triangleleft}(A)=f^{\triangleright}(A\dg)$, and, for even $f$,
+$f^{\triangleleft}(A)=f(\sqrt{A\dg A})$, $f^{\triangleright}(A)=f(\sqrt{AA\dg})$.
+Give an explicit $2\times2$ non-Hermitian $A$ for which $f^{\triangleleft}(A)\neq
+f^{\triangleright}(A)$ when $f(x)=x^2$.
 \end{exercise}
-\begin{exercise}
-\todo{Add exercise.}
+
+\begin{exercise}\label{ex:lec09-2}
+\emph{Parity and which function you get.} Using \cref{thm:lec09-cheb}, explain why an
+even-degree QSVT sweep produces the one-sided $P^{\triangleleft}(A)=VP(\Sigma)V\dg$
+while an odd-degree sweep produces the two-sided $P^{(\mathrm{SV})}(A)=WP(\Sigma)V\dg$.
+For a Hermitian $A=\sum_i\lambda_i\proj{u_i}$ and $P$ odd, show
+$P^{(\mathrm{SV})}(A)=P(A)$ (eigenvalue transformation), and for $P$ even show
+$P^{\triangleleft}(A)=P(A)$; identify where $\operatorname{sgn}(\lambda_i)$ enters.
 \end{exercise}
-\begin{exercise}
-\todo{Add exercise.}
+
+\begin{exercise}\label{ex:lec09-3}
+\emph{The Chebyshev singular value block.} Let $A\in\mathrm{BE}_{1,m}(A)$ be a general
+(non-Hermitian) encoding. Write out the operator sequences that block-encode
+$T_2^{\triangleleft}(A)$ and $T_3^{(\mathrm{SV})}(A)$, count the queries to $U_A$ and to
+$U_A\dg$ in each, and verify the counts equal the Chebyshev degree. Using
+$T_2(x)=2x^2-1$, express $T_2^{\triangleleft}(A)$ in terms of $A\dg A$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec09-4}
+\emph{Matrix dilation.} Verify \eqref{eq:lec09-dilation}: with $\ket{z_i^\pm}=
+\tfrac1{\sqrt2}(\ket0\ket{v_i}\pm\ket1\ket{w_i})$, show $D(A)\ket{z_i^\pm}=
+\pm\sigma_i\ket{z_i^\pm}$. Deduce \eqref{eq:lec09-fdilation}, and conclude that for an
+odd $f$, $f(D(A))\ket0\ket\psi=\ket1\,f^{(\mathrm{SV})}(A)\ket\psi$ so that measuring
+the signal qubit yields outcome $1$ with certainty.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec09-5}
+\emph{Inversion degree.} Following \cref{exa:lec09-inv}, show that
+$g_b(x)=\tfrac{1-(1-x^2)^b}{x}$ is an odd polynomial of degree $2b-1$, that
+$\abs{g_b(x)-1/x}\le\ee^{-b/\kappa^2}/\abs x$ for $\abs x\ge1/\kappa$, and hence that
+$b=\bigo(\kappa^2\log(1/\epsilon))$ suffices for pointwise error $\epsilon$ on
+$[1/\kappa,1]$. Explain how truncating the Chebyshev expansion of $g_b$ reduces the
+effective degree to $\bigo(\kappa\log(1/\epsilon))$, and why the extra $\eta=4/3$ factor
+is needed for \cref{cor:lec08-real}.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec09-6}
+\emph{Jacobi--Anger truncation.} From \eqref{eq:lec09-jacobi} and the bound
+$\abs{J_\nu(t)}\le(t/2)^\nu/\nu!$, show that truncating the $\cos(tx)$ series after the
+$T_{2K}$ term incurs uniform error $\bigo\bigl((t/2)^{2K}/(2K)!\bigr)$ on $[-1,1]$, and
+deduce that $K=\bigo(t+\log(1/\epsilon))$ gives error $\epsilon$. Why do we rescale the
+truncated series by $\tfrac12$ before feeding it to \cref{thm:lec09-qsvt}?
+\end{exercise}
+
+\begin{exercise}\label{ex:lec09-7}
+\emph{Fixed-point amplitude amplification.} Prove \cref{prop:lec09-fpaa}: given
+$\Pi'U_A\ket{\varphi_0}=a\ket\psi$ with $a\ge\delta$, and an odd $F$ with
+$\abs{F(x)-1}\le\epsilon^2/2$ on $[\delta,1]$ and $\abs F\le1$, show that the QSVT
+circuit outputs a state at global-phase-invariant distance
+$\sqrt{2(1-\abs{F(a)})}\le\epsilon$ from $\ket0\ket\psi$. Specialize to Grover search
+($a=1/\sqrt N$) and read off the degree $\bigo(\sqrt N\log(1/\epsilon))$; contrast with
+standard Grover's overshooting behavior.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec09-8}
+\emph{QSVT versus LCU for $T_d$.} Compare the two ways to block-encode $T_d(A)$ for
+Hermitian $A$: (i) a single qubitization/QSVT sweep, and (ii) an LCU of the monomials
+$A^0,\dots,A^d$ with $T_d(x)=\sum_k c_k x^k$. Estimate $\norm c_1$ for $T_d$ (recall the
+leading coefficient of $T_d$ is $2^{d-1}$), and hence the amplitude-amplification
+overhead of the LCU route. State the subnormalization and query count of each and
+explain why QSVT is preferred for large $d$.
 \end{exercise}
 
 \readingsection
 \begin{itemize}[leftmargin=1.4em]
-  \item Lin Lin, \emph{qasc notes}, Ch.~8.
-  \item Lin Lin, \emph{live notes}, Ch.~13.
-  \item Dong An, \emph{Quantum Numerical Linear Algebra} talk (QSVT).
+  \item Lin Lin, \emph{qasc notes}, Ch.~8 (generalized matrix functions, qubitization
+        of general matrices and the Chebyshev singular value transformation, the QSVT
+        circuit and real-polynomial QSVT theorem, matrix dilation, application to
+        linear systems, and Grover/fixed-point amplitude amplification revisited).
+  \item Lin Lin, \emph{live notes}, Ch.~13 (derivation of QSVT from the cosine--sine
+        decomposition, real-polynomial singular value transformation, QSVT beyond the
+        computational basis, fixed-point amplitude amplification and uniform singular
+        value amplification, Gibbs-state preparation, eigenvalue transformation with
+        Hamiltonian-evolution oracles (QETU), and perturbation theory of singular value
+        transformations).
+  \item Dong An, \emph{Quantum Numerical Linear Algebra} tutorial talk (the
+        singular value vs.\ eigenvalue transformation picture, the main result
+        ``block-encode $p(A)$ with $\bigo(d)$ queries,'' and the applications
+        $f(x)=1/(\kappa x)$ (linear systems), $f(x)=\ee^{-\ii xt}$ (Hamiltonian
+        simulation), filtering, and amplitude amplification $f(x)=qx/2$ with
+        $\deg p\sim q\log(1/\epsilon)$).
+  \item A.~Gily\'en, Y.~Su, G.~H.~Low, and N.~Wiebe, \emph{Quantum singular value
+        transformation and beyond: exponential improvements for quantum matrix
+        arithmetics}, Proc.\ STOC 2019, 193--204 (arXiv:1806.01838), for the original
+        QSVT theorem and the polynomial-approximation corollaries used here; and
+        J.~Martyn, Z.~Rossi, A.~Tan, and I.~Chuang, \emph{Grand unification of quantum
+        algorithms}, PRX Quantum \textbf{2}, 040203 (2021), for the unifying picture.
+  \item A.~M.~Childs, R.~Kothari, and R.~D.~Somma, \emph{Quantum algorithm for systems
+        of linear equations with exponentially improved dependence on precision}, SIAM
+        J.\ Comput.\ \textbf{46}, 1920--1950 (2017), for the explicit $1/x$ polynomial;
+        and L.~Lin and Y.~Tong, \emph{Optimal quantum eigenstate filtering with
+        application to solving quantum linear systems}, Quantum \textbf{4}, 361 (2020),
+        for eigenstate/energy filtering.
 \end{itemize}

@@ -1,0 +1,216 @@
+\chapter{Quantum Singular Value Transformation and Matrix Functions}
+% Solutions to the exercises of \cref{ch:lec09}.
+
+\begin{solution}[Exercise~\ref{ex:lec09-1}]
+Write $A=W\Sigma V\dg$, so $A\dg=V\Sigma W\dg$ (an SVD of $A\dg$ with left/right roles
+swapped).
+\emph{(i)} $f^{(\mathrm{SV})}(A\dg)=V f(\Sigma) W\dg=(Wf(\Sigma)V\dg)\dg
+=(f^{(\mathrm{SV})}(A))\dg$ since $f(\Sigma)$ is diagonal (real entries need not be
+assumed; conjugate-transposing swaps $W,V\dg$ and conjugates $f(\Sigma)$, but
+$f^{(\mathrm{SV})}(A\dg)$ uses $\bar f$ only if $f$ is complex---for the real $f$ of
+QSVT the identity is exact, and in general one reads it with $f(\Sigma)$ Hermitian).
+\emph{(ii)} $f^{\triangleright}(A\dg)=V f(\Sigma)V\dg=f^{\triangleleft}(A)$ directly
+from the definitions with $A\dg=V\Sigma W\dg$ (the ``left'' singular vectors of $A\dg$
+are the $\ket{v_i}$).
+\emph{(iii)} For even $f$: $A\dg A=V\Sigma^2 V\dg$, so $\sqrt{A\dg A}=V\Sigma V\dg$
+(the positive square root, using $\sigma_i\ge0$), which is Hermitian with eigenvectors
+$\ket{v_i}$ and eigenvalues $\sigma_i$; hence $f(\sqrt{A\dg A})=Vf(\Sigma)V\dg
+=f^{\triangleleft}(A)$. Symmetrically $AA\dg=W\Sigma^2 W\dg$ gives
+$f(\sqrt{AA\dg})=Wf(\Sigma)W\dg=f^{\triangleright}(A)$.
+
+\emph{Example.} Take $A=\bigl(\begin{smallmatrix}0&2\\0&0\end{smallmatrix}\bigr)$
+(rescale to $\norm A\le1$ if desired; the inequality is unaffected). Then
+$A\dg A=\bigl(\begin{smallmatrix}0&0\\0&4\end{smallmatrix}\bigr)$ and
+$AA\dg=\bigl(\begin{smallmatrix}4&0\\0&0\end{smallmatrix}\bigr)$, so with $f(x)=x^2$
+(even), $f^{\triangleleft}(A)=A\dg A=\bigl(\begin{smallmatrix}0&0\\0&4\end{smallmatrix}
+\bigr)\neq\bigl(\begin{smallmatrix}4&0\\0&0\end{smallmatrix}\bigr)=AA\dg
+=f^{\triangleright}(A)$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec09-2}]
+By \cref{thm:lec09-cheb}, an even-degree sweep $\widetilde O^k=(U_A\dg Z_\Pi U_A
+Z_\Pi)^k$ keeps the base vector fixed ($\mathcal H_i\to\mathcal H_i$, base
+$\ket{0^m}\ket{v_i}$), so the flagged block is $\sum_i T_{2k}(\sigma_i)\proj{v_i}
+=VT_{2k}(\Sigma)V\dg=T_{2k}^{\triangleleft}(A)$: both sides carry the \emph{right}
+singular vectors, giving the one-sided $V\cdots V\dg$ form. An odd-degree sweep applies
+one extra $U_A Z_\Pi$, which maps $\mathcal H_i\to\mathcal H_i'$ (base
+$\ket{0^m}\ket{v_i}\mapsto$ output paired with $\ket{0^m}\ket{w_i}$), so the flagged
+block is $\sum_i T_{2k+1}(\sigma_i)\ket{w_i}\!\bra{v_i}=WT_{2k+1}(\Sigma)V\dg
+=T_{2k+1}^{(\mathrm{SV})}(A)$: the two singular bases appear, hence the two-sided form.
+
+For Hermitian $A=\sum_i\lambda_i\proj{u_i}$ the SVD is $\sigma_i=\abs{\lambda_i}$,
+$\ket{v_i}=\ket{u_i}$, $\ket{w_i}=\operatorname{sgn}(\lambda_i)\ket{u_i}$. If $P$ is odd,
+$P(\sigma_i)=P(\abs{\lambda_i})=\operatorname{sgn}(\lambda_i)P(\lambda_i)$, so
+\[
+  P^{(\mathrm{SV})}(A)=\sum_i P(\sigma_i)\ket{w_i}\!\bra{v_i}
+  =\sum_i \operatorname{sgn}(\lambda_i)P(\lambda_i)\,\operatorname{sgn}(\lambda_i)
+     \proj{u_i}=\sum_i P(\lambda_i)\proj{u_i}=P(A),
+\]
+the two $\operatorname{sgn}(\lambda_i)$ factors---one from $\ket{w_i}$, one from
+$P(\sigma_i)$---cancelling. If $P$ is even, $P(\sigma_i)=P(\abs{\lambda_i})=P(\lambda_i)$
+and no sign appears, so $P^{\triangleleft}(A)=\sum_i P(\lambda_i)\proj{u_i}=P(A)$.
+Thus the QSVT reproduces the eigenvalue transformation exactly for definite-parity $P$,
+with $\operatorname{sgn}(\lambda_i)$ entering only through $\ket{w_i}$ in the odd case.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec09-3}]
+By \cref{thm:lec09-cheb} with $k=1$, the even block
+\[
+  T_2^{\triangleleft}:\quad U_A\dg Z_\Pi\,U_A Z_\Pi
+  \ \in\ \mathrm{BE}_{1,m}\bigl(T_2^{\triangleleft}(A)\bigr),
+\]
+which uses $1$ query to $U_A$ and $1$ to $U_A\dg$, total $2=\deg T_2$. For the odd
+$T_3^{(\mathrm{SV})}$ prepend one $U_A Z_\Pi$ to the $k=1$ iterate:
+\[
+  T_3^{(\mathrm{SV})}:\quad U_A Z_\Pi\,\bigl(U_A\dg Z_\Pi\,U_A Z_\Pi\bigr)
+  =U_A Z_\Pi\,U_A\dg Z_\Pi\,U_A Z_\Pi
+  \ \in\ \mathrm{BE}_{1,m}\bigl(T_3^{(\mathrm{SV})}(A)\bigr),
+\]
+which uses $2$ queries to $U_A$ and $1$ to $U_A\dg$, total $3=\deg T_3$. In both cases
+the number of signal queries (to $U_A$ or $U_A\dg$) equals the Chebyshev degree.
+Finally, $T_2(x)=2x^2-1$ gives
+\[
+  T_2^{\triangleleft}(A)=V T_2(\Sigma)V\dg=V(2\Sigma^2-\id)V\dg=2V\Sigma^2 V\dg-\id
+  =2A\dg A-\id,
+\]
+using $A\dg A=V\Sigma^2 V\dg$ from \cref{prop:lec09-rel}.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec09-4}]
+With $D(A)=\bigl(\begin{smallmatrix}0&A\dg\\ A&0\end{smallmatrix}\bigr)$ and
+$\ket{z_i^\pm}=\tfrac1{\sqrt2}(\ket0\ket{v_i}\pm\ket1\ket{w_i})$,
+\[
+  D(A)\ket0\ket{v_i}=\ket1\,A\ket{v_i}=\sigma_i\ket1\ket{w_i},\qquad
+  D(A)\ket1\ket{w_i}=\ket0\,A\dg\ket{w_i}=\sigma_i\ket0\ket{v_i},
+\]
+so $D(A)\ket{z_i^\pm}=\tfrac1{\sqrt2}(\sigma_i\ket1\ket{w_i}\pm\sigma_i\ket0\ket{v_i})
+=\pm\sigma_i\,\tfrac1{\sqrt2}(\ket0\ket{v_i}\pm\ket1\ket{w_i})=\pm\sigma_i\ket{z_i^\pm}$.
+Hence the eigenvalues of $D(A)$ are $\pm\sigma_i$ with eigenvectors $\ket{z_i^\pm}$.
+For a polynomial $f$, $f(D(A))=\sum_i\bigl[f(\sigma_i)\proj{z_i^+}+f(-\sigma_i)
+\proj{z_i^-}\bigr]$. Expanding $\proj{z_i^\pm}$ in the $\ket0,\ket1$ blocks and using
+$f_{\mathrm{even}}=\tfrac12(f(\sigma)+f(-\sigma))$,
+$f_{\mathrm{odd}}=\tfrac12(f(\sigma)-f(-\sigma))$,
+\[
+  f(D(A))=\begin{pmatrix}
+    \sum_i f_{\mathrm{even}}(\sigma_i)\proj{v_i} &
+    \sum_i f_{\mathrm{odd}}(\sigma_i)\ket{v_i}\!\bra{w_i}\\[2pt]
+    \sum_i f_{\mathrm{odd}}(\sigma_i)\ket{w_i}\!\bra{v_i} &
+    \sum_i f_{\mathrm{even}}(\sigma_i)\proj{w_i}
+  \end{pmatrix}
+  =\begin{pmatrix}f^{\triangleleft}_{\mathrm{even}}(A)&f^{(\mathrm{SV})}_{\mathrm{odd}}
+     (A\dg)\\ f^{(\mathrm{SV})}_{\mathrm{odd}}(A)&f^{\triangleright}_{\mathrm{even}}(A)
+     \end{pmatrix},
+\]
+which is \eqref{eq:lec09-fdilation}. If $f$ is odd then $f_{\mathrm{even}}=0$ and
+$f_{\mathrm{odd}}=f$, so the diagonal blocks vanish and
+$f(D(A))\ket0\ket\psi=\ket1\sum_i f(\sigma_i)\ket{w_i}\!\braket{v_i}{\psi}
+=\ket1\,f^{(\mathrm{SV})}(A)\ket\psi$. The signal qubit is therefore $\ket1$ with
+probability $1$: measuring it yields outcome $1$ deterministically, and the system holds
+$f^{(\mathrm{SV})}(A)\ket\psi$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec09-5}]
+\emph{Polynomial.} $g_b(x)=\dfrac{1-(1-x^2)^b}{x}$. Since $1-(1-x^2)^b$ is a polynomial
+in $x^2$ with zero constant term (it vanishes at $x=0$), it is divisible by $x^2$, so
+$g_b$ is a polynomial; it has only \emph{odd} powers of $x$ (as $\tfrac{\text{even}}{x}$
+with the even part starting at $x^2$), and its top term comes from $-(-x^2)^b/x=
+-(-1)^b x^{2b-1}$, so $\deg g_b=2b-1$ and $g_b$ is odd.
+\emph{Accuracy.} For $\abs x\ge1/\kappa$,
+\[
+  \Bigl|g_b(x)-\tfrac1x\Bigr|=\frac{(1-x^2)^b}{\abs x}\le\frac{(1-\kappa^{-2})^b}
+  {\abs x}\le\kappa\,(1-\kappa^{-2})^b\le\kappa\,\ee^{-b/\kappa^2},
+\]
+using $1-u\le\ee^{-u}$ with $u=\kappa^{-2}$ and $\abs x\ge1/\kappa$. Setting
+$\kappa\ee^{-b/\kappa^2}\le\epsilon$ gives $b\ge\kappa^2\log(\kappa/\epsilon)
+=\bigo(\kappa^2\log(1/\epsilon))$, so $b=\bigo(\kappa^2\log(1/\epsilon))$ suffices for
+error $\epsilon$ on $[1/\kappa,1]$ (and by oddness on $[-1,-1/\kappa]$).
+\emph{Degree reduction.} Although $\deg g_b=2b-1=\bigo(\kappa^2\log(1/\epsilon))$, the
+function $g_b$ is smooth and bounded by $\bigo(\kappa)$ on $[-1,1]$, and its Chebyshev
+coefficients decay fast: truncating the Chebyshev expansion of $g_b$ at degree
+$\bigo(\kappa\log(1/\epsilon))$ changes it by at most $\epsilon$ uniformly on $[-1,1]$
+(the tail beyond $\sim\kappa\log(1/\epsilon)$ is negligible because the ``resolution''
+needed to capture $1/x$ down to $x=1/\kappa$ is $\sim\kappa$, not $\kappa^2$). This
+yields the optimal degree $d=\bigo(\kappa\log(1/\epsilon))$.
+\emph{The factor $\eta$.} On $[1/\kappa,1]$, $g_b(x)\approx1/x$ can be as large as
+$\kappa$, so the raw polynomial is not bounded by $1$ on $[-1,1]$. \cref{cor:lec08-real}
+requires $\abs P\le1$; dividing by $\eta\kappa$ with $\eta=4/3$ (a safety margin above
+$\max_{[1/\kappa,1]}\abs{g_b}\le\kappa$) guarantees $\abs{P}\le1$, at the cost of the
+extra subnormalization $\eta\kappa$ which is later removed by amplitude amplification.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec09-6}]
+The Jacobi--Anger tail after the $T_{2K}$ term is
+$2\sum_{k>K}(-1)^k J_{2k}(t)T_{2k}(x)$. Since $\abs{T_{2k}(x)}\le1$ on $[-1,1]$ and
+$\abs{J_\nu(t)}\le(t/2)^\nu/\nu!$,
+\[
+  \Bigl|\text{tail}\Bigr|\le2\sum_{k>K}\frac{(t/2)^{2k}}{(2k)!}
+  \le2\cdot\frac{(t/2)^{2K+2}}{(2K+2)!}\sum_{j\ge0}\Bigl(\frac{t/2}{2K+3}\Bigr)^{2j}
+  =\bigo\!\Bigl(\frac{(t/2)^{2K}}{(2K)!}\Bigr),
+\]
+once $2K+3>t/2$ (so the geometric series converges), i.e.\ the tail is dominated by its
+first omitted term up to a constant. By Stirling, $(t/2)^{2K}/(2K)!\le\epsilon$ as soon
+as $2K\gtrsim\ee t/2$ and $2K\gtrsim\log(1/\epsilon)$; combining, $K=\bigo(t+\log
+(1/\epsilon))$ gives uniform error $\epsilon$ on $[-1,1]$ (and the same bound holds for
+the $\sin$ series). \emph{Rescaling.} The truncated cosine series has coefficient
+$\ell^1$-norm $\abs{J_0(t)}+2\sum_{k=1}^K\abs{J_{2k}(t)}$, which can exceed $1$, so as a
+polynomial it may exceed $1$ in modulus somewhere on $[-1,1]$, violating
+\cref{cor:lec08-real}. Multiplying by $\tfrac12$ (so the target is $\tfrac12\cos(tx)$,
+whose value is bounded by $\tfrac12<1$ and whose Chebyshev partial sums stay bounded by
+$1$) restores the QSVT admissibility condition; the extra factor $\tfrac12$ of
+subnormalization is undone afterward by amplitude amplification or absorbed into the
+LCU combination of $\cos$ and $\sin$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec09-7}]
+Build orthonormal bases $\mathcal B=\{\ket{\varphi_0},\dots\}$ and
+$\mathcal B'=\{\ket\psi,\dots\}$. Since $\ket\psi\in\operatorname{range}\Pi'$,
+$\bra\psi U_A\ket{\varphi_0}=\bra\psi\Pi'U_A\ket{\varphi_0}=a$, so the flagged entry of
+$U_A$ in these bases is the scalar ``singular value'' $a$: $[U_A]^{\mathcal B'}_
+{\mathcal B}=\bigl(\begin{smallmatrix}a&*\\ *&*\end{smallmatrix}\bigr)$. Choose an odd
+real $F$ with $\abs{F(x)-1}\le\epsilon^2/2$ on $[\delta,1]$ and $\abs F\le1$ on
+$[-1,1]$; by \eqref{eq:lec09-sign} such $F$ is a shifted-sign approximation of degree
+$\deg F=\bigo(\delta^{-1}\log(1/\epsilon))$. QSVT (\cref{thm:lec09-qsvt}, odd case with
+projectors, i.e.\ the basis-change form) produces a circuit $U_\Phi$ block-encoding
+$F(a)\ket\psi\!\bra{\varphi_0}$, so
+\[
+  U_\Phi\ket0\ket{\varphi_0}=F(a)\ket0\ket\psi+\ket{e^\perp},\qquad
+  \norm{\ket{e^\perp}}^2=1-\abs{F(a)}^2 .
+\]
+The overlap of $U_\Phi\ket0\ket{\varphi_0}$ with $\ket0\ket\psi$ has modulus
+$\abs{F(a)}\ge1-\epsilon^2/2$, so the global-phase-invariant distance is
+\[
+  D_p\bigl(U_\Phi\ket0\ket{\varphi_0},\ket0\ket\psi\bigr)
+  =\sqrt{2\bigl(1-\abs{F(a)}\bigr)}\le\sqrt{2\cdot\tfrac{\epsilon^2}2}=\epsilon .
+\]
+The gate count is $\bigo(\deg F)=\bigo(\delta^{-1}\log(1/\epsilon))$ queries.
+\emph{Grover.} Take $U_A=R_{\psi_0}$ the diffusion reflection, $\Pi'=\proj{x_0}$; then
+$\Pi'R_{\psi_0}\ket{\psi_0}=\tfrac1{\sqrt N}\ket{x_0}$, i.e.\ $a=1/\sqrt N$, so
+$\delta=1/\sqrt N$ and $\deg F=\bigo(\sqrt N\log(1/\epsilon))$ finds $\ket{x_0}$ to
+precision $\epsilon$. Unlike standard Grover---which rotates past the target if the
+iteration count is even slightly off, since the amplitude is $\sin((2k+1)\theta)$ and
+overshoots for large $k$---the fixed-point construction has $F(a)\to1$ monotonically for
+all $a\ge\delta$ and never overshoots, needing only the \emph{lower bound} $\delta$
+rather than the exact overlap.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec09-8}]
+\emph{(i) QSVT/qubitization.} A single sweep of \cref{thm:lec09-cheb}
+(\cref{ch:lec08} for Hermitian $A$) block-encodes $T_d(A)$ with subnormalization $1$,
+using $d$ queries to $U_A$ (and $U_A\dg$), one flag register, no extra
+amplitude-amplification overhead.
+\emph{(ii) LCU of monomials.} Write $T_d(x)=\sum_{k=0}^d c_k x^k$ and block-encode each
+$A^k$ (itself $k$ queries), combining with $\mathrm{prep}/\mathrm{select}$ into
+$\tfrac1{\norm c_1}\sum_k c_k A^k=\tfrac1{\norm c_1}T_d(A)$: subnormalization
+$\norm c_1=\sum_k\abs{c_k}$, using $\lceil\log_2(d+1)\rceil$ ancillas. The leading
+coefficient of $T_d$ alone is $2^{d-1}$, and the $\ell^1$ norm of the coefficients grows
+like $\norm c_1=\Theta((1+\sqrt2)^d)$ (the value $\sum_k\abs{c_k}=\abs{T_d(\ii\cdot
+(\text{sign pattern}))}$ is exponentially large). Recovering an unsubnormalized
+$T_d(A)$ then costs $\bigo(\norm c_1)=\bigo((1+\sqrt2)^d)$ rounds of amplitude
+amplification---exponential in $d$.
+\emph{Comparison.} QSVT delivers $T_d(A)$ at unit subnormalization and $\bigo(d)$
+queries; the monomial LCU delivers it at exponentially small subnormalization
+$1/\norm c_1$ and hence exponential amplitude-amplification overhead. For large $d$
+QSVT is therefore vastly preferable: qubitization threads the whole degree through one
+coherent product, so no $\ell^1$ cost accrues, whereas the LCU pays for summing
+exponentially large-magnitude, sign-alternating monomial contributions.
+\end{solution}
