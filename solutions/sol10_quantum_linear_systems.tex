@@ -1,0 +1,180 @@
+\chapter{Quantum Linear Systems}
+% Solutions to the exercises of \cref{ch:lec10}.
+
+\begin{solution}[Exercise~\ref{ex:lec10-1}]
+Let $A=W\Sigma V\dg$ be the SVD with $\Sigma=\diag(\sigma_0,\dots,\sigma_{N-1})$. Since
+$\norm A=\sigma_{\max}\le1$ and $\norm{A^{-1}}=1/\sigma_{\min}$, we have
+$\kappa=\norm A\norm{A^{-1}}=\sigma_{\max}/\sigma_{\min}$, so $\sigma_{\min}
+=\sigma_{\max}/\kappa\ge(\text{after rescaling }\sigma_{\max}=1)\ 1/\kappa$; hence all
+singular values lie in $[1/\kappa,1]$.
+
+For the dilation $\widetilde A=\bigl(\begin{smallmatrix}0&A\\ A\dg&0\end{smallmatrix}
+\bigr)$, using $A\ket{v_i}=\sigma_i\ket{w_i}$, $A\dg\ket{w_i}=\sigma_i\ket{v_i}$, the
+vectors $\ket{z_i^\pm}=\tfrac1{\sqrt2}(\ket0\ket{v_i}\pm\ket1\ket{w_i})$ satisfy
+$\widetilde A\ket{z_i^\pm}=\pm\sigma_i\ket{z_i^\pm}$ (cf.\ \eqref{eq:lec09-dilation}), so
+the eigenvalues are $\pm\sigma_i$; thus $\norm{\widetilde A}=\sigma_{\max}$,
+$\norm{\widetilde A^{-1}}=1/\sigma_{\min}$, and $\kappa(\widetilde A)=\kappa(A)$.
+Finally, $\widetilde A(0,x)^{\mathsf T}=(Ax,\,A\dg 0)^{\mathsf T}=(Ax,0)^{\mathsf T}$, so
+$\widetilde A(0,x)^{\mathsf T}=(b,0)^{\mathsf T}\iff Ax=b$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec10-2}]
+From \eqref{eq:lec10-hhl}, the amplitude on $\ket1$ in the $j$-th eigencomponent is
+$c_j\,C/\lambda_j$, so the unnormalized post-selected vector is
+$\ket{\tilde x\!\succ}=\sum_j (C/\lambda_j)c_j\ket{v_j}=C\,A^{-1}\ket b$ and the success
+probability is
+\[
+  p(1)=\norm{\ket{\tilde x\!\succ}}^2=C^2\norm{A^{-1}\ket b}^2
+      =\frac{\xi^2}{\kappa^2},
+\]
+with $C=1/\kappa$ and $\xi=\norm{A^{-1}\ket b}$. Since $\norm{A^{-1}\ket b}\ge
+\norm A^{-1}=1$ (as $\norm A=1$), we have $\xi\ge1$, hence $p(1)\ge1/\kappa^2
+=\Omega(\kappa^{-2})$. If $\braket{v_0}{b}=\Omega(1)$ for the eigenvector $\ket{v_0}$ of
+$\lambda_{\min}=1/\kappa$, then $\norm{A^{-1}\ket b}\ge\abs{\braket{v_0}{b}}/\lambda_{\min}
+=\Omega(\kappa)$, so $\xi=\Omega(\kappa)$ and $p(1)=\Omega(1)$. Direct repetition needs
+$1/p(1)=\bigo(\kappa^2/\xi^2)$ runs; amplitude amplification (\cref{ch:lec03}) reaches
+$\Omega(1)$ success in $\bigo(1/\sqrt{p(1)})=\bigo(\kappa/\xi)$ rounds, i.e.\ it replaces
+the $\kappa^2$ overhead by $\kappa$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec10-3}]
+Write the exact and approximate unnormalized solutions with $C=1/\kappa$:
+$C x=C\sum_j (c_j/\lambda_j)\ket{v_j}$ and $\ket{\tilde x\!\succ}=C\sum_j
+(c_j/\tilde\lambda_j)\ket{v_j}$. Then
+\[
+  \Bigl\|\ket{\tilde x\!\succ}-Cx\Bigr\|
+  =C\Bigl\|\sum_j c_j\Bigl(\tfrac1{\tilde\lambda_j}-\tfrac1{\lambda_j}\Bigr)\ket{v_j}
+  \Bigr\|,\qquad
+  \Bigl|\tfrac1{\tilde\lambda_j}-\tfrac1{\lambda_j}\Bigr|
+  =\frac{\abs{e_j}}{\lambda_j\abs{1+e_j}}\le\frac{\epsilon/4}{\lambda_j(1-1/4)}
+  \le\frac{\epsilon/2}{\lambda_j},
+\]
+using $\abs{e_j}\le\epsilon/4\le\tfrac12$. Hence
+$\norm{\ket{\tilde x\!\succ}-Cx}\le(C\epsilon/2)\bigl\|\sum_j(c_j/\lambda_j)\ket{v_j}
+\bigr\|=(C\epsilon/2)\norm x$, i.e.\ a relative error $\le\epsilon/2$ on the
+unnormalized vector; normalizing and applying the triangle inequality (as in
+\cref{rem:lec10-mult}) gives $\norm{\ket{\tilde x}-\ket x}\le\epsilon$. To achieve this,
+each $\lambda_j$---in particular $\lambda_{\min}=\Theta(1/\kappa)$---must be resolved to
+\emph{multiplicative} accuracy $\epsilon$, i.e.\ additive accuracy $\epsilon/\kappa$. QPE
+resolving to additive accuracy $\delta$ costs $\bigo(1/\delta)$, so
+$T_{\mathrm{QPE}}=\Omega(\kappa/\epsilon)$. The QSVT solver instead uses a fixed
+polynomial of degree $\bigo(\kappa\log(1/\epsilon))$, whose $\epsilon$ dependence is only
+logarithmic---an exponential improvement in precision.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec10-4}]
+\emph{Polynomial and degree.} Expand $(1-x^2)^b=\sum_{k=0}^b\binom bk(-1)^k x^{2k}$, so
+$1-(1-x^2)^b$ has no constant term and only even powers $x^2,\dots,x^{2b}$; dividing by
+$x$ gives $g_b(x)=\sum_{k=1}^b\binom bk(-1)^{k-1}x^{2k-1}$, an \emph{odd} polynomial of
+degree $2b-1$. \emph{Error.} For $x\neq0$,
+\[
+  \Bigl|g_b(x)-\tfrac1x\Bigr|=\Bigl|\tfrac{1-(1-x^2)^b}{x}-\tfrac1x\Bigr|
+  =\frac{(1-x^2)^b}{\abs x}\le\frac{\ee^{-bx^2}}{\abs x},
+\]
+using $1-x^2\le\ee^{-x^2}$. For $\abs x\ge1/\kappa$ this is $\le\kappa\,\ee^{-b/\kappa^2}$;
+setting $\kappa\,\ee^{-b/\kappa^2}\le\epsilon$ gives $b\ge\kappa^2\log(\kappa/\epsilon)
+=\bigo(\kappa^2\log(1/\epsilon))$ (absorbing $\log\kappa$). \emph{Chebyshev truncation.}
+$g_b$ has degree $2b-1=\bigo(\kappa^2\log(1/\epsilon))$, but its Chebyshev coefficients
+decay so that truncating to degree $d=\bigo(\sqrt{b\log(b/\epsilon)})=\bigo(\kappa\log
+(1/\epsilon))$ preserves the error $\epsilon$ on $[1/\kappa,1]$ (the high-degree tail is
+exponentially small). \emph{The factor $\eta$.} \cref{cor:lec08-real} (hence
+\cref{thm:lec09-qsvt}) requires $\abs P\le1$ on all of $[-1,1]$; but
+$g_b(1/\kappa)\approx\kappa$, so we divide by $\eta\kappa$ with $\eta>1$ (e.g.\ $4/3$),
+which both enforces the bound with margin and rescales the target to $1/(\eta\kappa x)$.
+The subnormalization factor $\eta\kappa$ is undone downstream by amplitude amplification.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec10-5}]
+Write $H(f)=\bigl(\begin{smallmatrix}0&MQ_b\\ Q_bM&0\end{smallmatrix}\bigr)$ with
+$M=(1-f)\id+fA$ (Hermitian). For an eigenvalue $\lambda$,
+\[
+  0=\det\begin{pmatrix}\lambda\id&-MQ_b\\ -Q_bM&\lambda\id\end{pmatrix}
+  =\det\bigl(\lambda^2\id-Q_bM^2Q_b\bigr),
+\]
+where the second equality uses that $\lambda\id$ commutes with both off-diagonal blocks
+(Schur complement / block elimination). Now $Q_b\ket b=0$, so $\ket b$ is a
+$0$-eigenvector of $Q_bM^2Q_b$; the nonzero eigenvalues have eigenvectors orthogonal to
+$\ket b$, on which $Q_b$ acts as the identity, so $Q_bM^2Q_b=M^2$ there. Hence
+\[
+  \Delta^2(f)=\!\!\inf_{\braket{b}{\varphi}=0,\,\norm\varphi=1}\!\!\bra\varphi M^2\ket\varphi
+  \ \ge\ \inf_{\norm\varphi=1}\bra\varphi M^2\ket\varphi
+  =\lambda_{\min}(M)^2.
+\]
+The eigenvalues of $M=(1-f)\id+fA$ are $(1-f)+f\mu$ for $\mu\in\mathrm{spec}(A)\subseteq
+[1/\kappa,1]$, so $\lambda_{\min}(M)=(1-f)+f/\kappa$. Thus $\Delta(f)\ge1-f+f/\kappa$.
+This is decreasing in $f$ on $[0,1]$ (since $1/\kappa\le1$), so the gap is smallest at
+$f=1$, where $\Delta(1)\ge1/\kappa$: the gap stays open and shrinks to $\Theta(1/\kappa)$
+only at the very end of the path.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec10-6}]
+By the gap bound and perturbation theory, $\norm{\partial_f\ket{x(f)}}\le2/\Delta_*(f)$
+with $\Delta_*(f)=1-f+f/\kappa$, so the eigenpath length is
+\[
+  L(0,1)=\int_0^1\norm{\partial_f\ket{x(f)}}\,\dd f
+  \le\int_0^1\frac{2\,\dd f}{1-f+f/\kappa}
+  =\frac{2}{1-1/\kappa}\bigl[-\log(1-f+f/\kappa)\bigr]_0^1
+  =\frac{2\log\kappa}{1-1/\kappa},
+\]
+which is $\bigo(\log\kappa)$. \emph{Equal path length per step.} With
+$f(s)=(1-\kappa^{-s})/(1-\kappa^{-1})$ one computes $1-f(s)+f(s)/\kappa=\kappa^{-s}$
+(since $1-f(1-1/\kappa)=\kappa^{-s}$), so $\Delta_*(f(s))=\kappa^{-s}$ decays
+geometrically as $s$ advances; meanwhile $\dot f(s)=\kappa^{-s}\log\kappa/(1-1/\kappa)$
+also decays like $\kappa^{-s}$, so $\norm{\partial_s\ket{x(f(s))}}\le\dot f/\Delta_*$ is
+\emph{constant} in $s$. A uniform grid $s_j=j/M$ therefore places equal path length
+$\bigo((\log\kappa)/M)$ between consecutive steps, so with $M=\Theta(\log\kappa)$ each
+consecutive overlap obeys $\abs{\braket{x(f_j)}{x(f_{j-1})}}\ge1-\tfrac12 L_*^2
+=1-\bigo(1/M^2)$, giving $\Omega(1)$ total success (with fixed-point amplification
+holding each step at $1-1/M$). Each eigenstate-filter projector costs
+$\bigo(\Delta_*(f_j)^{-1}\log(1/\epsilon))$; summing $\sum_j\Delta_*(f_j)^{-1}=\sum_j
+\kappa^{s_j}\approx M\int_0^1\kappa^s\,\dd s=M\kappa/\log\kappa$ and inserting
+$M=\Theta(\log\kappa)$ gives $\bigo(\kappa\log(1/\epsilon))$ queries, the scaling of
+\cref{thm:lec10-zeno}.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec10-7}]
+By \cref{exa:lec10-poisson} the tridiagonal Toeplitz matrix $\mathrm{tridiag}(b,a,b)$ has
+eigenvalues $\lambda_k=a+2\abs b\cos(k\pi/(N+1))$, $k=1,\dots,N$. For the $1$D Laplacian
+$a=2/h^2$, $\abs b=1/h^2$:
+\[
+  \lambda_{\max}=\tfrac2{h^2}\bigl(1-\cos\tfrac{N\pi}{N+1}\bigr)\to\tfrac4{h^2},\qquad
+  \lambda_{\min}=\tfrac2{h^2}\bigl(1-\cos\tfrac{\pi}{N+1}\bigr)\to\pi^2,
+\]
+using $1-\cos\theta\approx\theta^2/2$ for small $\theta$ with $\theta=\pi/(N+1)\approx\pi
+h$. Hence $\kappa(A)=\lambda_{\max}/\lambda_{\min}\approx4/(h^2\pi^2)=\bigo(h^{-2})
+=\bigo(N^2)$. \emph{Higher dimensions.} For $A_d=\sum_{i=1}^d\id^{\otimes(i-1)}\otimes A
+\otimes\id^{\otimes(d-i)}$ the eigenvalues are sums $\lambda_{k_1}+\dots+\lambda_{k_d}$,
+so $\norm{A_d}=d\lambda_{\max}\approx4d/h^2$ and $\lambda_{\min}(A_d)=d\lambda_{\min}
+\approx d\pi^2$; thus $\kappa(A_d)=\norm{A_d}/\lambda_{\min}(A_d)\approx4/(h^2\pi^2)
+=\kappa(A)$, \emph{independent of $d$}. The total grid has $N^d$ points, so a quantum
+solver costing $\poly(d)\cdot\widetilde{\bigo}(\kappa)=\poly(d)\cdot\widetilde{\bigo}
+(N^2)$ (for a scalar functional of $\ket x$, with efficient $U_A,U_b$) beats classical
+iterative methods whose per-step cost $\bigo(N^d)$ is exponential in $d$. In $1$D there
+is no such gap: $N=N^1$ points and cost $\widetilde{\bigo}(N^2)$ both scale
+polynomially, so no advantage arises.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec10-8}]
+\emph{Conditioning.} Since $A$ has large norm and $A^{-1},B$ are moderate,
+$\norm{A^{-1}B}$ is small; more to the point, $\id+A^{-1}B=A^{-1}(A+B)$, so
+$\kappa(\id+A^{-1}B)=\norm{A^{-1}(A+B)}\,\norm{(A+B)^{-1}A}
+\le\norm{A^{-1}}\norm{A+B}\,\norm{(A+B)^{-1}}\norm A$. Because $A$ dominates the sum
+($\norm{A+B}\approx\norm A$ and $\norm{(A+B)^{-1}}\approx\norm{A^{-1}}$ up to $\bigo(1)$
+factors when $\norm B\ll\norm A$), this is $\bigo(1)$. \emph{Identity.}
+$(\id+A^{-1}B)^{-1}A^{-1}=\bigl(A^{-1}(A+B)\bigr)^{-1}A^{-1}=(A+B)^{-1}A\,A^{-1}
+=(A+B)^{-1}$. \emph{Pipeline.} Using \cref{ch:lec07} arithmetic: (1) block-encode
+$A^{-1}$ (cheap: $A$ is well-conditioned/easily invertible, e.g.\ diagonal or circulant,
+so its inversion polynomial has low degree); (2) multiply to form $A^{-1}B$; (3) add
+$\id$ to get $\id+A^{-1}B$; (4) invert $\id+A^{-1}B$ (\emph{this} is the QLSP solve, but
+now on an $\bigo(1)$-conditioned matrix, hence \emph{cheap} in $\kappa$); (5) multiply by
+$A^{-1}$ to obtain $(A+B)^{-1}$. The originally ill-conditioned inversion of $A+B$
+(condition number $\sim\norm A$) is thereby replaced by two well-conditioned inversions.
+\emph{Subnormalization of naive $MA$.} Every block-encoded matrix has spectral norm
+$\le1$, so a block encoding of $M$ carries subnormalization $\tilde\gamma(U_M)\ge1$;
+the product $MA$ has subnormalization $\ge\tilde\gamma(U_M)\tilde\gamma(U_A)$, and
+recovering the shrunken solution norm costs $\bigo(\kappa(M))$ amplitude-amplification
+rounds. Thus applying a preconditioner $M$ with large $\kappa(M)$ trades condition
+number for subnormalization $\propto\kappa(M)$, which is why quantum preconditioning
+requires the preconditioner itself to be cheap to apply \emph{and} well conditioned---the
+motivation for the split/multilevel constructions of \cref{sec:lec10-5}.
+\end{solution}
