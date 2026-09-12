@@ -140,3 +140,37 @@ $\theta$ and the Fisher information effectively vanishes. This matches
 \cref{exa:lec02-phase}: the $X$-basis measurement is Fisher-optimal for the phase
 $\theta$, saturating the quantum Cram\'er--Rao bound $F_Q(\theta)=1$.
 \end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec02-7}]
+Write $c=\ee^{-t/T_2}\in(0,1]$, so
+$\rho(t)=\tfrac12\bigl(\begin{smallmatrix}1&c\\c&1\end{smallmatrix}\bigr)$. Then
+\[
+  \rho(t)^{2}=\tfrac14\begin{pmatrix}1&c\\c&1\end{pmatrix}
+                      \begin{pmatrix}1&c\\c&1\end{pmatrix}
+             =\tfrac14\begin{pmatrix}1+c^{2}&2c\\2c&1+c^{2}\end{pmatrix},
+\]
+so the purity is
+\[
+  \Tr\bigl(\rho(t)^{2}\bigr)=\tfrac14\bigl((1+c^{2})+(1+c^{2})\bigr)
+   =\frac{1+c^{2}}{2}=\frac{1+\ee^{-2t/T_2}}{2}.
+\]
+For the trace distance to the completely mixed state $\tfrac12\id$,
+\[
+  \rho(t)-\tfrac12\id
+   =\tfrac12\begin{pmatrix}0&c\\c&0\end{pmatrix},
+\]
+a Hermitian matrix with eigenvalues $\pm c/2$, hence
+$\norm{\rho(t)-\tfrac12\id}_1=c$ and
+\[
+  D\bigl(\rho(t),\tfrac12\id\bigr)=\tfrac12\norm{\rho(t)-\tfrac12\id}_1
+   =\frac{c}{2}=\frac{\ee^{-t/T_2}}{2}.
+\]
+At $t=0$ we have $c=1$: the purity is $\tfrac12(1+1)=1$ (the state is pure, as it must
+be for $\proj{+}$) and $D=\tfrac12$, matching \cref{exa:lec02-dephase}. Both
+$\Tr(\rho(t)^{2})=\tfrac12(1+\ee^{-2t/T_2})$ and $D=\tfrac12\ee^{-t/T_2}$ are strictly
+decreasing in $t$, and as $t\to\infty$ (i.e.\ $c\to0$) the purity falls to its minimum
+$\tfrac12$ and the trace distance falls to $0$: the state converges to the completely
+mixed state $\tfrac12\id$ and becomes indistinguishable from it. This is decoherence
+erasing the coherence---and hence the distinguishability---of the initial
+superposition.
+\end{solution}

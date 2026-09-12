@@ -4,6 +4,7 @@
 \begin{objectives}
 \begin{itemize}[leftmargin=1.4em,nosep]
   \item Describe quantum operations as completely positive trace-preserving maps.
+  \item Recognize decoherence as a dephasing channel that decays density-matrix coherences.
   \item Compare states and channels using trace distance, fidelity, and the diamond norm.
   \item Apply concentration inequalities to bound measurement error.
   \item Use statistical amplification and the Cram\'er--Rao bound to reason about shot budgets.
@@ -190,6 +191,60 @@ diagonal in the measurement basis---a \emph{classical state} encoding the outcom
 distribution. This shows that classical stochastic processes are a special case of
 quantum channels.
 \end{example}
+
+\subsection{Decoherence as a channel: dephasing and the ``cat'' state}
+\label{sec:lec02-6}
+
+The phase-flip channel of \cref{exa:lec02-flip} is the discrete face of a physical
+process---\emph{decoherence}, the loss of quantum coherence to an environment---and
+tracking its effect on a density matrix gives concrete intuition for why noisy
+qubits behave classically. Write a single-qubit state in the computational basis as
+\[
+  \rho=\begin{pmatrix}\rho_{00}&\rho_{01}\\ \rho_{10}&\rho_{11}\end{pmatrix},
+\]
+so the diagonal entries $\rho_{00},\rho_{11}$ are the \emph{populations} (measurement
+probabilities in the $Z$ basis) and the off-diagonal $\rho_{01}=\overline{\rho_{10}}$
+is the \emph{coherence} that encodes the relative phase of a superposition.
+
+\begin{example}[Dephasing decays the off-diagonal element]\label{exa:lec02-dephase}
+Apply the phase-flip channel $\mathcal{Q}_{\mathrm{pf}}[\rho]=p\,\rho+(1-p)\,Z\rho Z$
+of \cref{exa:lec02-flip}. Since $Z\rho Z$ flips the sign of the off-diagonal entries
+($Z\ket{0}\!\bra{1}Z=-\ket{0}\!\bra{1}$) while fixing the diagonal, one qubit passing
+through the channel gives
+\[
+  \mathcal{Q}_{\mathrm{pf}}[\rho]
+   =\begin{pmatrix}\rho_{00}&(2p-1)\rho_{01}\\ (2p-1)\rho_{10}&\rho_{11}\end{pmatrix}.
+\]
+The populations are untouched, but the coherence is multiplied by $2p-1\in[-1,1]$.
+Interpreting the channel as one time step of duration $\Delta t$ and setting
+$2p-1=\ee^{-\Delta t/T_2}$ for a \emph{dephasing time} $T_2>0$, repeated application
+for a total time $t$ multiplies $\rho_{01}$ by $(2p-1)^{t/\Delta t}=\ee^{-t/T_2}$:
+the off-diagonal element decays exponentially,
+\begin{equation}\label{eq:lec02-dephase}
+  \rho_{01}(t)=\ee^{-t/T_2}\,\rho_{01}(0),
+\end{equation}
+while the diagonal is preserved. In the limit $t\to\infty$ (equivalently $p\to\tfrac12$)
+the state becomes $\diag(\rho_{00},\rho_{11})$, exactly the output of the measurement
+channel $\mathcal{Q}_{\mathrm{meas}}$ of \cref{exa:lec02-meas}. Decoherence thus turns
+a coherent superposition into a classical probability distribution over the basis
+states \emph{without ever performing a measurement}: it is measurement enacted by an
+inattentive environment.
+\end{example}
+
+Stinespring dilation (below) makes the mechanism precise: the qubit becomes entangled
+with an environment, and discarding the environment is exactly the partial trace that
+suppresses the coherence. A pure superposition
+$\ket{\psi}=\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})$ has density matrix
+$\proj{\psi}=\tfrac12\bigl(\begin{smallmatrix}1&1\\1&1\end{smallmatrix}\bigr)$
+with full coherence and purity $\Tr(\proj{\psi}^{2})=1$; the fully dephased state
+$\tfrac12\id$ has zero coherence and purity $\tfrac12$. These are physically distinct
+states---and the trace distance of \cref{sec:lec02-2} quantifies exactly how
+distinguishable they are: $D(\proj{\psi},\tfrac12\id)=\tfrac12$, so a single optimal
+measurement identifies which one was prepared only three times in four. This is the
+formal content of the ``Schr\"odinger's cat'' slogan: a genuine superposition
+$\tfrac{1}{\sqrt2}(\ket{\text{alive}}+\ket{\text{dead}})$ (nonzero coherence) is a
+different object from the classical mixture $\tfrac12(\proj{\text{alive}}+\proj{\text{dead}})$
+(zero coherence), and decoherence is the channel that maps the former to the latter.
 
 \subsection{Stinespring dilation}
 
@@ -702,6 +757,16 @@ lower bound on $\Var(\hat\theta)$ for $N$ independent measurements. For which $\
 is the information largest, and for which is it zero?
 \end{exercise}
 
+\begin{exercise}\label{ex:lec02-7}
+Let $\ket{\psi}=\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})$ pass through the dephasing
+channel of \cref{exa:lec02-dephase} for a time $t$, so its density matrix is
+$\rho(t)=\tfrac12\bigl(\begin{smallmatrix}1&\ee^{-t/T_2}\\ \ee^{-t/T_2}&1\end{smallmatrix}\bigr)$.
+Compute the purity $\Tr(\rho(t)^{2})$ and the trace distance
+$D(\rho(t),\tfrac12\id)$ to the completely mixed state as functions of $t$. Verify
+that at $t=0$ the state is pure with $D=\tfrac12$, and that both quantities decay
+monotonically to their fully mixed values as $t\to\infty$.
+\end{exercise}
+
 \readingsection
 \begin{itemize}[leftmargin=1.4em]
   \item Lin Lin, \emph{live notes}, Ch.~3 (probability, quantum channels and CPTP
@@ -714,4 +779,9 @@ is the information largest, and for which is it zero?
         Information}, Ch.~8--9 (quantum operations, trace distance and fidelity).
   \item J.~Watrous, \emph{The Theory of Quantum Information}, Ch.~2--3 (channels,
         Choi representation, diamond norm), for a rigorous treatment.
+  \item D.~C.~Brody, \emph{The Joy of Quantum Computing}, Princeton University
+        Press, 2025, Ch.~13--14 (the density-matrix picture; decoherence as
+        entanglement with the environment and the Schr\"odinger's-cat superposition
+        versus classical mixture) --- accessible motivation for
+        \cref{sec:lec02-6}.
 \end{itemize}
