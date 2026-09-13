@@ -6,6 +6,7 @@
   \item State the postulates of quantum mechanics in the language of qubits and registers.
   \item Manipulate multi-qubit states via tensor products and Dirac notation.
   \item Read and build simple quantum circuits from a universal gate set.
+  \item Prepare states by gate synthesis and describe projective and generalized (POVM) measurements.
   \item Trace the quantum teleportation and superdense-coding protocols amplitude by amplitude.
   \item Explain measurement, the no-cloning theorem, no-signaling, and density operators.
   \item Quantify nonlocality through the CHSH inequality and its quantum value $2\sqrt2$.
@@ -788,6 +789,305 @@ set; and (ii) inserting \textsc{swap} gates to route qubits, because hardware qu
 are not all pairwise connected. Throughout one minimizes gate count and depth to
 suppress noise and maximize fidelity.
 
+\section{State preparation and measurement}
+\label{sec:lec01-prepmeas}
+
+Every quantum algorithm is bracketed by two operations that are not gates: it must
+begin by \emph{preparing} an input state and end by \emph{measuring} an output. The
+gate model of \cref{sec:lec01-3} describes the unitary evolution in between; this
+section treats the two endpoints systematically, building on the computational-basis
+Born rule already stated in \cref{sec:lec01-1}. Both endpoints have a cost, and that
+cost often dominates: a beautiful $\poly(n)$-gate circuit is useless if loading its
+input takes $\bigo(2^{n})$ gates, and an expectation value is only as good as the
+number of measurement repetitions one can afford.
+
+\subsection{Preparing states from \texorpdfstring{$\ket{0\cdots0}$}{|0...0>}}
+
+By convention every register starts in the all-zeros state $\ket{0}^{\otimes n}=\ket{0\cdots0}$.
+Preparing a target state means finding a circuit that maps $\ket{0\cdots0}$ to it.
+
+\begin{proposition}[Basis states and the uniform superposition]\label{prop:lec01-prepbasic}
+Let $x=x_{1}\cdots x_{n}\in\{0,1\}^{n}$.
+\begin{enumerate}[label=\textup{(\alph*)}]
+  \item The computational basis state $\ket{x}$ is prepared from $\ket{0\cdots0}$ by
+        applying $X$ to each qubit $j$ with $x_{j}=1$; that is,
+        $\bigl(\bigotimes_{j}X^{x_{j}}\bigr)\ket{0\cdots0}=\ket{x}$, using at most
+        $n$ gates.
+  \item The uniform superposition over all $2^{n}$ strings is prepared by one
+        Hadamard per qubit,
+        \begin{equation}\label{eq:lec01-uniform}
+          H^{\otimes n}\ket{0\cdots0}
+            =\frac{1}{\sqrt{2^{n}}}\sum_{x\in\{0,1\}^{n}}\ket{x},
+        \end{equation}
+        using exactly $n$ gates.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+(a) $X^{x_{j}}\ket{0}=\ket{x_{j}}$ acts qubitwise, and the tensor product of the
+single-qubit results is $\ket{x_{1}}\cdots\ket{x_{n}}=\ket{x}$.
+(b) On one qubit $H\ket{0}=\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})$. Taking the tensor
+power and expanding the product of $n$ sums,
+\[
+  H^{\otimes n}\ket{0\cdots0}
+    =\bigotimes_{j=1}^{n}\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})
+    =\frac{1}{\sqrt{2^{n}}}\sum_{x\in\{0,1\}^{n}}\ket{x},
+\]
+since choosing $\ket{0}$ or $\ket{1}$ from each factor enumerates all bit strings $x$
+exactly once.
+\end{proof}
+
+The uniform superposition \eqref{eq:lec01-uniform} is the workhorse input of the
+query algorithms of Part~I: a single depth-one layer of Hadamards places the register
+in an equal-weight combination of all $2^{n}$ inputs, on which an oracle can then act
+``in parallel.''
+
+\subsection{Single-qubit state synthesis}
+
+A general single-qubit target is, up to global phase, the Bloch state
+$\ket{\psi(\theta,\varphi)}=\cos\tfrac{\theta}{2}\ket{0}+\ee^{\ii\varphi}\sin\tfrac{\theta}{2}\ket{1}$
+of \cref{prop:lec01-bloch}. It is reached from $\ket{0}$ by a rotation about the $y$
+axis followed by one about the $z$ axis, where the rotation gates are
+\begin{equation}\label{eq:lec01-rotations}
+  R_{y}(\theta)=\ee^{-\ii\theta Y/2}
+    =\begin{pmatrix}\cos\tfrac{\theta}{2}&-\sin\tfrac{\theta}{2}\\[2pt]
+      \sin\tfrac{\theta}{2}&\phantom{-}\cos\tfrac{\theta}{2}\end{pmatrix},
+  \qquad
+  R_{z}(\varphi)=\ee^{-\ii\varphi Z/2}
+    =\begin{pmatrix}\ee^{-\ii\varphi/2}&0\\ 0&\ee^{\ii\varphi/2}\end{pmatrix}.
+\end{equation}
+
+\begin{proposition}[Single-qubit preparation]\label{prop:lec01-1qprep}
+For any $\theta\in[0,\pi]$ and $\varphi\in[0,2\pi)$,
+\[
+  R_{z}(\varphi)\,R_{y}(\theta)\,\ket{0}
+    =\ee^{-\ii\varphi/2}\Bigl(\cos\tfrac{\theta}{2}\ket{0}+\ee^{\ii\varphi}\sin\tfrac{\theta}{2}\ket{1}\Bigr),
+\]
+so up to the global phase $\ee^{-\ii\varphi/2}$ the circuit prepares
+$\ket{\psi(\theta,\varphi)}$ with two gates.
+\end{proposition}
+
+\begin{proof}
+From \eqref{eq:lec01-rotations},
+$R_{y}(\theta)\ket{0}=\cos\tfrac{\theta}{2}\ket{0}+\sin\tfrac{\theta}{2}\ket{1}$.
+Applying the diagonal $R_{z}(\varphi)$ multiplies the $\ket{0}$ amplitude by
+$\ee^{-\ii\varphi/2}$ and the $\ket{1}$ amplitude by $\ee^{\ii\varphi/2}$:
+\[
+  R_{z}(\varphi)R_{y}(\theta)\ket{0}
+    =\ee^{-\ii\varphi/2}\cos\tfrac{\theta}{2}\ket{0}
+     +\ee^{\ii\varphi/2}\sin\tfrac{\theta}{2}\ket{1}
+    =\ee^{-\ii\varphi/2}\Bigl(\cos\tfrac{\theta}{2}\ket{0}+\ee^{\ii\varphi}\sin\tfrac{\theta}{2}\ket{1}\Bigr).
+\]
+The overall factor $\ee^{-\ii\varphi/2}$ is an unobservable global phase
+(\cref{rem:lec01-global}).
+\end{proof}
+
+\begin{example}[Preparing $\ket{+\ii}$]\label{exa:lec01-prepplusi}
+The state $\ket{+\ii}=\tfrac{1}{\sqrt2}(\ket{0}+\ii\ket{1})$ has Bloch angles
+$\theta=\pi/2$ (equal moduli) and $\varphi=\pi/2$ (relative phase $\ii=\ee^{\ii\pi/2}$).
+By \cref{prop:lec01-1qprep} it is prepared by $R_{z}(\pi/2)R_{y}(\pi/2)\ket{0}$: the
+$R_{y}(\pi/2)$ produces $\ket{+}=\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})$, and
+$R_{z}(\pi/2)$ then multiplies the $\ket{1}$ amplitude by $\ee^{\ii\pi/2}=\ii$
+relative to the $\ket{0}$ amplitude, giving $\tfrac{1}{\sqrt2}(\ket{0}+\ii\ket{1})$ up
+to global phase. Note $S\ket{+}=\ket{+\ii}$ as well, so a single $S$ gate achieves the
+same result here.
+\end{example}
+
+\subsection{General amplitude encoding}
+
+Preparing an arbitrary $n$-qubit state $\ket{\psi}=\sum_{x\in\{0,1\}^{n}}a_{x}\ket{x}$
+from a classical list of the $2^{n}$ amplitudes $\{a_{x}\}$ is far more expensive than
+the special cases above.
+
+\begin{theorem}[Cost of exact amplitude encoding]\label{thm:lec01-prepcost}
+Every $n$-qubit pure state $\ket{\psi}=\sum_{x}a_{x}\ket{x}$ can be prepared exactly
+from $\ket{0\cdots0}$ by a circuit of single-qubit rotations and $\CNOT$ gates, and
+$\bigo(2^{n})$ gates suffice. Conversely, a counting argument shows that
+$\Omega(2^{n})$ gates are necessary for generic states, so this scaling is optimal up
+to constants.
+\end{theorem}
+
+We state the result at this level and do not reproduce the construction; the standard
+recipe of Möttönen, Vartiainen, Bergholm, and Salomaa, and the equivalent
+Shende--Bullock--Markov decomposition, prepare $\ket{\psi}$ by a cascade of
+uniformly controlled $R_{y}$ and $R_{z}$ rotations, one layer per qubit, encoding the
+amplitudes' moduli and phases in the rotation angles. The upper bound matches an
+information-theoretic lower bound: specifying a generic unit vector in $\C^{2^{n}}$
+requires $\sim 2^{n}$ real parameters, and each gate supplies only $\bigo(1)$, so no
+subexponential circuit can reach all states.
+
+\begin{remark}[Efficient special cases]\label{rem:lec01-prepefficient}
+The exponential cost of \cref{thm:lec01-prepcost} is a worst case over \emph{all}
+states; the states that arise in practice are usually structured, and structure buys
+efficiency.
+\begin{itemize}[nosep]
+  \item \emph{Product states} $\ket{\psi_{1}}\otimes\cdots\otimes\ket{\psi_{n}}$ cost
+        $\bigo(n)$ gates: prepare each qubit independently by \cref{prop:lec01-1qprep}.
+  \item \emph{Efficiently computable amplitudes.} If the $a_{x}$ are given by a
+        formula one can evaluate reversibly (for example a discretized smooth density,
+        via the Grover--Rudolph procedure that recursively rotates on conditional
+        probabilities), the state can be prepared in $\poly(n)$ gates.
+  \item \emph{Sparse states} with only $s$ nonzero amplitudes can be prepared in
+        $\bigo(s\,n)$ gates, independent of the full dimension $2^{n}$.
+\end{itemize}
+When the amplitudes come from external data rather than a formula, one instead posits
+a black-box \emph{state-preparation oracle}; this input model, and its role in
+quantum numerical linear algebra, is developed in \cref{ch:lec06}.
+\end{remark}
+
+\subsection{Projective measurement}
+
+The computational-basis Born rule of \cref{sec:lec01-1} is the special case of a more
+general measurement postulate, which we now state in full.
+
+\begin{definition}[Projective (von Neumann) measurement]\label{def:lec01-projmeas}
+An \emph{observable} is a Hermitian operator $O=O\dg$ on $\Hilb$. Writing its spectral
+decomposition as $O=\sum_{m}m\,P_{m}$, where the distinct real eigenvalues $m$ index
+mutually orthogonal projectors $P_{m}$ (so $P_{m}P_{m'}=\delta_{mm'}P_{m}$,
+$P_{m}\dg=P_{m}$) that resolve the identity, $\sum_{m}P_{m}=\id$, the associated
+\emph{projective measurement} of a state $\ket{\psi}$ returns outcome $m$ with
+probability
+\begin{equation}\label{eq:lec01-projprob}
+  p_{m}=\bra{\psi}P_{m}\ket{\psi}=\norm{P_{m}\ket{\psi}}^{2},
+\end{equation}
+and leaves the post-measurement state
+\begin{equation}\label{eq:lec01-projpost}
+  \frac{P_{m}\ket{\psi}}{\sqrt{p_{m}}}\qquad(\text{defined whenever }p_{m}>0).
+\end{equation}
+\end{definition}
+
+The probabilities are nonnegative and sum to one:
+$\sum_{m}p_{m}=\bra{\psi}\bigl(\sum_{m}P_{m}\bigr)\ket{\psi}=\braket{\psi|\psi}=1$ by
+completeness. Choosing $O$ diagonal in the computational basis, so that
+$P_{m}=\proj{m}$ is rank one, recovers exactly the Born rule of
+\cref{def:lec01-qubit}: $p_{m}=\bra{\psi}\proj{m}\ket{\psi}=\abs{\braket{m|\psi}}^{2}$
+and the state collapses to $\ket{m}$. \Cref{def:lec01-projmeas} generalizes this in
+two ways---the projectors may have rank $>1$ (a \emph{degenerate} outcome, as when we
+measure only some of the qubits), and the eigenbasis need not be the computational one.
+
+\begin{proposition}[Expectation value]\label{prop:lec01-expect}
+The expected value of the observable $O=\sum_{m}m\,P_{m}$ in the state $\ket{\psi}$ is
+\begin{equation}\label{eq:lec01-expect}
+  \langle O\rangle \;=\; \sum_{m}m\,p_{m}\;=\;\sum_{m}m\,\bra{\psi}P_{m}\ket{\psi}\;=\;\bra{\psi}O\ket{\psi}.
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+By definition of the mean of the outcome random variable, $\langle O\rangle=\sum_{m}m\,p_{m}$.
+Substituting \eqref{eq:lec01-projprob} and pulling the sum inside the inner product,
+$\sum_{m}m\,\bra{\psi}P_{m}\ket{\psi}=\bra{\psi}\bigl(\sum_{m}m\,P_{m}\bigr)\ket{\psi}=\bra{\psi}O\ket{\psi}$.
+\end{proof}
+
+\begin{example}[Measuring $Z$ and $X$ on $\ket{0}$ and $\ket{+}$]\label{exa:lec01-measZX}
+Take $O=Z=(+1)\proj{0}+(-1)\proj{1}$, with outcomes $\pm1$ and projectors
+$P_{+1}=\proj{0}$, $P_{-1}=\proj{1}$. On $\ket{0}$ the outcome is $+1$ with
+probability $\abs{\braket{0|0}}^{2}=1$, so $\langle Z\rangle=1$. On
+$\ket{+}=\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})$ each outcome has probability $\tfrac12$,
+so $\langle Z\rangle=\tfrac12(+1)+\tfrac12(-1)=0$; equivalently
+$\bra{+}Z\ket{+}=0$. Now take $O=X=(+1)\proj{+}+(-1)\proj{-}$. On $\ket{0}$,
+$\abs{\braket{+|0}}^{2}=\abs{\braket{-|0}}^{2}=\tfrac12$, so $\langle X\rangle=0$; but
+on $\ket{+}$ the outcome is $+1$ with certainty and $\langle X\rangle=1$. The two
+observables have complementary sharpness: $\ket{+}$ is an eigenstate of $X$ (definite
+outcome) but maximally uncertain for $Z$, and vice versa for $\ket{0}$.
+\end{example}
+
+\subsection{Measuring in an arbitrary basis}
+
+Real hardware measures only in the computational basis. To measure in some other
+orthonormal basis $\{\ket{\phi_{m}}\}$ one first rotates that basis onto the
+computational one with a unitary and then measures the qubits.
+
+\begin{proposition}[Basis change before measurement]\label{prop:lec01-basischange}
+Let $\{\ket{\phi_{m}}\}_{m}$ be an orthonormal basis and define the unitary
+$V=\sum_{m}\ket{m}\!\bra{\phi_{m}}$, which satisfies $V\ket{\phi_{m}}=\ket{m}$.
+Measuring $\ket{\psi}$ in the basis $\{\ket{\phi_{m}}\}$---i.e. with projectors
+$\proj{\phi_{m}}$---produces outcome $m$ with the same probability as first applying
+$V$ and then measuring $V\ket{\psi}$ in the computational basis:
+\[
+  \abs{\braket{\phi_{m}|\psi}}^{2}=\abs{\braket{m|V|\psi}}^{2}.
+\]
+\end{proposition}
+
+\begin{proof}
+That $V$ is unitary follows from
+$V\dg V=\sum_{m,m'}\ket{\phi_{m}}\braket{m|m'}\bra{\phi_{m'}}=\sum_{m}\proj{\phi_{m}}=\id$,
+the last equality being completeness of the orthonormal basis
+(\cref{thm:lec01-completeness}). From the definition
+$\braket{m|V|\psi}=\sum_{m'}\braket{m|m'}\braket{\phi_{m'}|\psi}=\braket{\phi_{m}|\psi}$,
+and squaring the modulus gives the claim.
+\end{proof}
+
+\begin{example}[Measuring in the $X$ basis via $H$]\label{exa:lec01-xbasis}
+The Hadamard gate satisfies $H\ket{+}=\ket{0}$ and $H\ket{-}=\ket{1}$, so
+$V=H=\proj{0}H+\dots$ is exactly the basis-change unitary
+$\ket{0}\!\bra{+}+\ket{1}\!\bra{-}$ for the $X$ basis $\{\ket{+},\ket{-}\}$. Hence a
+measurement of $X$ is implemented by applying $H$ and measuring in the computational
+basis, reading $\ket{+}\mapsto0$ and $\ket{-}\mapsto1$. For instance, on
+$\ket{\psi}=\cos\tfrac{\pi}{8}\ket{0}+\sin\tfrac{\pi}{8}\ket{1}$ the $X$-basis outcome
+$+$ occurs with probability
+$\abs{\braket{+|\psi}}^{2}=\tfrac12\bigl(\cos\tfrac{\pi}{8}+\sin\tfrac{\pi}{8}\bigr)^{2}
+=\cos^{2}\tfrac{\pi}{8}=\tfrac{2+\sqrt2}{4}\approx0.854$, so
+$\langle X\rangle=2\cos^{2}\tfrac{\pi}{8}-1=\cos\tfrac{\pi}{4}=\tfrac{1}{\sqrt2}$, in
+agreement with $\bra{\psi}X\ket{\psi}=\sin\tfrac{\pi}{4}=\tfrac{1}{\sqrt2}$.
+\end{example}
+
+\subsection{Generalized measurements and POVMs}
+
+Projective measurement is not the most general thing one can do: coupling the system
+to an ancilla, evolving unitarily, and then projectively measuring the ancilla
+implements a broader class of measurements on the system alone. These are captured by
+positive operator-valued measures.
+
+\begin{definition}[POVM]\label{def:lec01-povm}
+A \emph{positive operator-valued measure} (POVM) is a finite collection of operators
+$\{E_{m}\}$ on $\Hilb$, called \emph{effects}, satisfying
+\begin{equation}\label{eq:lec01-povm}
+  E_{m}\succeq0\ \ \text{for all }m,\qquad \sum_{m}E_{m}=\id.
+\end{equation}
+Applied to a state $\ket{\psi}$, it returns outcome $m$ with probability
+$p_{m}=\bra{\psi}E_{m}\ket{\psi}$ (more generally $p_{m}=\Tr[E_{m}\rho]$ for a density
+operator $\rho$).
+\end{definition}
+
+Positivity of each $E_{m}$ makes $p_{m}\ge0$, and completeness $\sum_{m}E_{m}=\id$
+makes $\sum_{m}p_{m}=1$, so the $p_{m}$ are a genuine probability distribution. A
+projective measurement is the special case $E_{m}=P_{m}$ where the effects are
+orthogonal projectors; a general POVM drops both orthogonality and idempotence,
+allowing more outcomes than the dimension of $\Hilb$ and specifying no
+post-measurement state on its own.
+
+\begin{theorem}[Naimark dilation, statement]\label{thm:lec01-naimark}
+Every POVM $\{E_{m}\}$ on $\Hilb$ arises from a projective measurement on a larger
+space: there exist an ancilla space, a fixed ancilla state, an isometry (or unitary
+coupling) into $\Hilb\otimes\Hilb_{\mathrm{anc}}$, and orthogonal projectors
+$\{\tilde P_{m}\}$ on the enlarged space such that
+$\bra{\psi}E_{m}\ket{\psi}=\bra{\Psi}\tilde P_{m}\ket{\Psi}$ for the dilated state
+$\ket{\Psi}$, for every $\ket{\psi}$ and every $m$.
+\end{theorem}
+
+We record this result at the statement level; a constructive proof (writing
+$E_{m}=M_{m}\dg M_{m}$ and building the isometry from the $M_{m}$) is a standard
+exercise once quantum channels are in hand. The picture it justifies is the useful
+one: \emph{measurement is itself a quantum channel}, an irreversible map on density
+operators, and every generalized measurement is ``really'' a projective measurement
+that has been given room to breathe on an ancilla. The channel viewpoint, and the
+distance measures that quantify how well two states can be told apart by any POVM, are
+developed in \cref{ch:lec02}.
+
+\subsection{From expectations to estimates}
+
+Measurement yields a random outcome, so a single shot cannot reveal an expectation
+value; one repeats the prepare-measure cycle and averages. If each shot returns
+$\pm1$ with $\langle O\rangle$ the mean, the empirical average of $M$ independent
+shots has standard deviation $\bigo(1/\sqrt{M})$, so estimating $\langle O\rangle$ to
+additive error $\varepsilon$ requires $M=\bigo(1/\varepsilon^{2})$ repetitions. This
+quadratic dependence on precision---the \emph{shot-noise} or \emph{standard quantum
+limit}---is a recurring cost throughout the course; we defer its precise statistical
+treatment (variance, Chernoff/Hoeffding bounds, and the quadratic
+amplitude-estimation speedup to $\bigo(1/\varepsilon)$) to \cref{ch:lec02}, and the
+circuit that reads off $\langle\psi|U|\psi\rangle$ as such an expectation---the
+Hadamard test---to \cref{ch:lec04}.
+
 \section{Quantum teleportation and superdense coding}
 \label{sec:lec01-tele}
 
@@ -1289,6 +1589,34 @@ $f(\alpha_1,\alpha_2,\beta_1,\beta_2)=\cos(\alpha_1-\beta_1)-\cos(\alpha_1-\beta
 +\cos(\alpha_2-\beta_1)+\cos(\alpha_2-\beta_2)$. \emph{Hint:} fix
 $\beta_1,\beta_2$ and optimize over $\alpha_1,\alpha_2$ first, writing each of the two
 $\alpha$-dependent pairs as a single cosine of the form $R\cos(\alpha-\phi)$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec01-13}
+Give explicit rotation angles that prepare the state
+$\ket{\psi}=\tfrac{1}{2}\ket{0}+\tfrac{\sqrt3}{2}\ee^{\ii\pi/2}\ket{1}$ from $\ket{0}$
+as $R_{z}(\varphi)R_{y}(\theta)\ket{0}$, using \cref{prop:lec01-1qprep}. State the
+values of $\theta$ and $\varphi$, and verify that the resulting state agrees with
+$\ket{\psi}$ up to a global phase.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec01-14}
+Let $\ket{\psi}=\cos\tfrac{\pi}{8}\ket{0}+\sin\tfrac{\pi}{8}\ket{1}$ and let $O$ be the
+observable measured ``along angle $\vartheta=\tfrac{\pi}{4}$'', i.e. the Hermitian
+operator with eigenstates $\ket{\vartheta}=\cos\tfrac{\vartheta}{2}\ket{0}+\sin\tfrac{\vartheta}{2}\ket{1}$
+(outcome $+1$) and its orthogonal partner (outcome $-1$). (a) Write the two projectors
+$P_{\pm1}$. (b) Compute the outcome probabilities $p_{\pm1}$ for $\ket{\psi}$ and the
+expectation $\langle O\rangle$. (c) Identify the basis-change unitary $V$ of
+\cref{prop:lec01-basischange} that reduces this to a computational-basis measurement.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec01-15}
+Consider the three operators
+$E_{0}=\tfrac12\proj{0}$, $E_{1}=\tfrac12\proj{1}$, and $E_{2}=\tfrac12\id$ on $\C^{2}$.
+(a) Verify that $\{E_{0},E_{1},E_{2}\}$ is a valid POVM (\cref{def:lec01-povm}): check
+each $E_{m}\succeq0$ and $\sum_{m}E_{m}=\id$. (b) Compute the three outcome
+probabilities on $\ket{0}$ and on $\ket{+}$. (c) Explain why this cannot be a
+projective measurement, and why an outcome of $2$ tells you nothing about the input
+qubit.
 \end{exercise}
 
 \readingsection

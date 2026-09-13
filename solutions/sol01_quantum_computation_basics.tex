@@ -168,3 +168,57 @@ where $c=\cos(\beta_1-\beta_2)\in[-1,1]$, with equality iff $c=0$, i.e.
 $\beta_1-\beta_2=\pm\tfrac{\pi}{2}$. Thus $\max f=\sqrt8=2\sqrt2$, so
 $\abs{\E[S]}\le 2\sqrt2$ for this state and the chosen settings attain it.
 \end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-13}]
+Match $\ket{\psi}=\tfrac12\ket{0}+\tfrac{\sqrt3}{2}\ee^{\ii\pi/2}\ket{1}$ to the Bloch
+form $\cos\tfrac{\theta}{2}\ket{0}+\ee^{\ii\varphi}\sin\tfrac{\theta}{2}\ket{1}$. The
+$\ket{0}$ amplitude fixes $\cos\tfrac{\theta}{2}=\tfrac12$, so $\theta/2=\pi/3$ and
+$\theta=2\pi/3$; then $\sin\tfrac{\theta}{2}=\tfrac{\sqrt3}{2}$ matches the $\ket{1}$
+modulus, and the relative phase gives $\varphi=\pi/2$. By \cref{prop:lec01-1qprep},
+\[
+  R_{z}(\tfrac{\pi}{2})R_{y}(\tfrac{2\pi}{3})\ket{0}
+    =\ee^{-\ii\pi/4}\Bigl(\tfrac12\ket{0}+\ee^{\ii\pi/2}\tfrac{\sqrt3}{2}\ket{1}\Bigr)
+    =\ee^{-\ii\pi/4}\ket{\psi},
+\]
+which is $\ket{\psi}$ up to the global phase $\ee^{-\ii\pi/4}$. Hence
+$(\theta,\varphi)=(2\pi/3,\ \pi/2)$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-14}]
+(a) With $\ket{\vartheta}=\cos\tfrac{\vartheta}{2}\ket{0}+\sin\tfrac{\vartheta}{2}\ket{1}$
+and orthogonal partner
+$\ket{\vartheta_{\perp}}=-\sin\tfrac{\vartheta}{2}\ket{0}+\cos\tfrac{\vartheta}{2}\ket{1}$,
+the projectors are $P_{+1}=\proj{\vartheta}$ and $P_{-1}=\proj{\vartheta_{\perp}}$.
+(b) For $\vartheta=\tfrac{\pi}{4}$ and
+$\ket{\psi}=\cos\tfrac{\pi}{8}\ket{0}+\sin\tfrac{\pi}{8}\ket{1}$, the overlap is
+$\braket{\vartheta|\psi}=\cos\tfrac{\pi}{8}\cos\tfrac{\pi}{8}+\sin\tfrac{\pi}{8}\sin\tfrac{\pi}{8}
+=\cos\bigl(\tfrac{\pi}{8}-\tfrac{\pi}{8}\bigr)=1$, since $\vartheta/2=\pi/8$ equals the
+polar angle of $\ket{\psi}$. Thus $\ket{\psi}=\ket{\vartheta}$ exactly: $p_{+1}=1$,
+$p_{-1}=0$, and $\langle O\rangle=(+1)\cdot1+(-1)\cdot0=1$. The state is an eigenstate
+of this observable.
+(c) The basis-change unitary sends $\ket{\vartheta}\mapsto\ket{0}$ and
+$\ket{\vartheta_{\perp}}\mapsto\ket{1}$, namely
+$V=\ket{0}\!\bra{\vartheta}+\ket{1}\!\bra{\vartheta_{\perp}}=R_{y}(-\vartheta)=R_{y}(-\tfrac{\pi}{4})$;
+applying it gives $V\ket{\psi}=\ket{0}$, so a computational-basis measurement returns
+$0$ (outcome $+1$) with certainty, matching part~(b).
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-15}]
+(a) Each effect is Hermitian and positive semidefinite: $E_{0}=\tfrac12\proj{0}$ and
+$E_{1}=\tfrac12\proj{1}$ are $\tfrac12$ times rank-one projectors (eigenvalues
+$\tfrac12,0\ge0$), and $E_{2}=\tfrac12\id$ has eigenvalues $\tfrac12,\tfrac12\ge0$.
+Their sum is
+$E_{0}+E_{1}+E_{2}=\tfrac12(\proj{0}+\proj{1})+\tfrac12\id=\tfrac12\id+\tfrac12\id=\id$,
+so \eqref{eq:lec01-povm} holds and $\{E_{0},E_{1},E_{2}\}$ is a valid POVM.
+(b) On $\ket{0}$: $p_{0}=\bra{0}E_{0}\ket{0}=\tfrac12$, $p_{1}=\bra{0}E_{1}\ket{0}=0$,
+$p_{2}=\bra{0}E_{2}\ket{0}=\tfrac12$. On $\ket{+}$:
+$p_{0}=\tfrac12\abs{\braket{0|+}}^{2}=\tfrac14$, likewise $p_{1}=\tfrac14$, and
+$p_{2}=\tfrac12\braket{+|+}=\tfrac12$. Each triple sums to $1$.
+(c) It is not projective because the effects are not orthogonal idempotents: e.g.
+$E_{0}^{2}=\tfrac14\proj{0}\neq E_{0}$, and there are three outcomes on a
+two-dimensional space, more than any orthogonal resolution of $\id$ can provide.
+Because $E_{2}=\tfrac12\id$ is proportional to the identity,
+$p_{2}=\tfrac12\braket{\psi|\psi}=\tfrac12$ for \emph{every} input state, so obtaining
+outcome $2$ is equally likely regardless of $\ket{\psi}$ and therefore conveys no
+information about the qubit (an ``inconclusive'' result).
+\end{solution}
