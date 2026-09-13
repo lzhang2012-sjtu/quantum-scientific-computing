@@ -33,3 +33,8 @@ material/notes/main.pdf
 
 # Jupyter
 .ipynb_checkpoints/
+notebooks/.vscode/
+
+# UnitaryLab algorithm run artifacts (circuit SVGs, result txt)
+results/
+notebooks/results/
