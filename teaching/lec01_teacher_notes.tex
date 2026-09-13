@@ -117,6 +117,53 @@ $\ket{+}:(\tfrac\pi2,0)$;\ \ $\ket{-}:(\tfrac\pi2,\pi)$;\ \
 $\ket{+\ii}:(\tfrac\pi2,\tfrac\pi2)$;\ \ $\ket{-\ii}:(\tfrac\pi2,\tfrac{3\pi}2)$.
 \end{board}
 
+\noindent Reference plot to reproduce on the board (state $\ket\psi$ at polar angle
+$\theta$, azimuth $\varphi$), with the $z$-basis measurement shown as the projection
+of the Bloch vector onto the $z$-axis:
+\begin{center}
+\begin{tikzpicture}[scale=2.4,>=Latex]
+  \draw[thick] (0,0) circle (1);
+  \draw[dashed] (-1,0) arc (180:360:1 and 0.34);
+  \draw (1,0) arc (0:180:1 and 0.34);
+  % axes
+  \draw[->] (0,0) -- (0,1.28) node[above] {$z$};
+  \draw[->] (0,0) -- (0,-1.28);
+  \draw[->] (0,0) -- (1.35,0) node[right] {$y$};
+  \draw[->] (0,0) -- (-0.78,-0.78) node[below left] {$x$};
+  % landmarks
+  \node[above right] at (0,1) {$\ket0$};
+  \node[below right] at (0,-1) {$\ket1$};
+  \node[right] at (1,0) {$\ket{+\ii}$};
+  \node[left] at (-1,0) {$\ket{-\ii}$};
+  \node[below left] at (-0.78,-0.78) {$\ket{+}$};
+  % state vector at polar theta from +z, azimuth phi
+  \coordinate (P) at (0.42,0.66);
+  \draw[->,very thick,red] (0,0) -- (P) node[above right] {$\ket\psi$};
+  % theta arc
+  \draw[blue] (0,0.5) arc (90:57:0.5);
+  \node[blue] at (0.14,0.63) {\small$\theta$};
+  % azimuth phi arc near origin in the equatorial plane (schematic)
+  \draw[blue] (0.28,0) arc (0:-38:0.28);
+  \node[blue] at (0.36,-0.12) {\small$\varphi$};
+  % z-basis measurement projection
+  \draw[dashed,teal] (P) -- (0,0.66);
+  \fill[teal] (0,0.66) circle (0.022);
+  \node[teal,left] at (0,0.68) {\small $\langle Z\rangle=\cos\theta$};
+\end{tikzpicture}
+\end{center}
+
+\begin{board}
+\textbf{Measurement on the sphere.} A $z$-basis (computational) measurement of
+$\ket{\psi(\theta,\varphi)}$ projects onto the poles:
+\[
+  \Prob(0)=\cos^2\tfrac\theta2=\tfrac{1+\cos\theta}{2},\quad
+  \Prob(1)=\sin^2\tfrac\theta2=\tfrac{1-\cos\theta}{2},\quad
+  \langle Z\rangle=\Prob(0)-\Prob(1)=\cos\theta .
+\]
+The azimuth $\varphi$ (relative phase) does \emph{not} affect $z$-statistics---you must
+rotate first to see it (Block 3, ``measuring in a rotated basis'').
+\end{board}
+
 \begin{inclass}[Find the Bloch angles]\label{ic:bloch}
 Give the Bloch angles $(\theta,\varphi)$ of $\ket{\psi}=\tfrac12\ket0+\tfrac{\sqrt3}{2}\ket1$
 and of $\ket{+\ii}=\tfrac1{\sqrt2}(\ket0+\ii\ket1)$.
@@ -291,6 +338,27 @@ $\abs{\braket{\phi_m|\psi}}^2=\abs{\braket{m|V|\psi}}^2$.
 So ``measure $X$'' $=$ apply $H$, then measure $z$; read $\ket{+}\!\to\!0$, $\ket{-}\!\to\!1$.
 Expectation: $\langle O\rangle=\bra{\psi}O\ket{\psi}$.
 \end{board}
+
+\noindent Picture: an $X$-basis measurement projects the Bloch vector onto the
+$x$-axis (the $\ket{\pm}$ poles of the rotated basis); equivalently, $H$ rotates the
+$x$-axis onto the $z$-axis and we read the meter as usual.
+\begin{center}
+\begin{tikzpicture}[scale=2.1,>=Latex]
+  \draw[thick] (0,0) circle (1);
+  \draw[dashed] (-1,0) arc (180:360:1 and 0.34);
+  \draw (1,0) arc (0:180:1 and 0.34);
+  \draw[->] (0,0) -- (0,1.22) node[above] {$z$};
+  \draw[->] (0,0) -- (1.28,0) node[right] {$y$};
+  \draw[->] (0,0) -- (-0.78,-0.78) node[below left] {$x$};
+  \node[above right] at (0,1) {$\ket0$};
+  \node[below left] at (-0.78,-0.78) {$\ket{+}$};
+  \node[above right] at (0.78,0.78) {$\ket{-}$};
+  % state |0> on +z, projected onto the x-axis (the +/- measurement axis)
+  \draw[->,very thick,red] (0,0) -- (0,1) node[midway,right] {\small$\ket0$};
+  \draw[dashed,teal] (0,1) -- (-0.5,-0.5);
+  \node[teal,below right] at (-0.5,-0.5) {\small $\Prob(+)=\Prob(-)=\tfrac12$};
+\end{tikzpicture}
+\end{center}
 
 \begin{inclass}[Measurement in the $X$ basis]\label{ic:xbasis}
 For $\ket0$, find $\Prob(+)$ and $\Prob(-)$ in the $X$ basis and $\langle X\rangle$.
