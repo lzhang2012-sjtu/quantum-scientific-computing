@@ -41,3 +41,6 @@ notebooks/results/
 
 # Syllabus build PDF
 syllabus/syllabus.pdf
+
+# Teaching build PDFs
+teaching/*.pdf
