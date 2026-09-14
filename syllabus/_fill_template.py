@@ -94,8 +94,8 @@ sched = [
  ("5. 微分方程量子算法：线性与非线性 PDE（Poisson、波动方程、Hamilton–Jacobi 方程等）；薛定谔化方法；离散化与矩阵形式；误差来源（离散化/量子误差）；测量复杂性与可观测量计算。\n"
   "Quantum algorithms for differential equations: linear/nonlinear PDEs (Poisson, wave, Hamilton–Jacobi); Schrödingerization; discretization; error sources; measurement complexity.",
   "9", "讲授 + 文献分析", "张镭"),
- ("6. 量子科学计算应用专题（含实践）：金融（期权定价、风险分析）；材料（特征值问题、电子结构）；机器学习（核方法、回归）；高维问题与量子优势；UnitaryLab 与 Agent Coding 实践。\n"
-  "Applications of quantum scientific computing (with practice): finance; materials; machine learning; high-dimensional problems and quantum advantage; UnitaryLab & agent-coding lab.",
+ ("6. 量子科学计算应用专题（含实践）：金融（期权定价、风险分析）；材料（特征值问题、电子结构）；机器学习（核方法、回归）；张量网络（tensor networks）；高维问题与量子优势；UnitaryLab 与 Agent Coding 实践。\n"
+  "Applications of quantum scientific computing (with practice): finance; materials; machine learning; tensor networks; high-dimensional problems and quantum advantage; UnitaryLab & agent-coding lab.",
   "6", "讲授 + 讨论 + 上机实验", "张镭"),
  ("合计  Total", "48", "", ""),
 ]
