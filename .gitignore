@@ -38,3 +38,6 @@ notebooks/.vscode/
 # UnitaryLab algorithm run artifacts (circuit SVGs, result txt)
 results/
 notebooks/results/
+
+# Syllabus build PDF
+syllabus/syllabus.pdf
