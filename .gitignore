@@ -44,3 +44,6 @@ syllabus/syllabus.pdf
 
 # Teaching build PDFs
 teaching/*.pdf
+
+# Word lock/temp files
+~$*.docx
