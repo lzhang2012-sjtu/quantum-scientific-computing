@@ -225,9 +225,13 @@ Action: $X\ket0=\ket1$ (bit flip); $Z\ket1=-\ket1$ (phase flip);
 $H\ket0=\ket{+}$, $H\ket1=\ket{-}$; $H^2=\id$.
 \end{board}
 
-\sketch{On the wire, draw the box $\boxed{H}$ acting on $\ket0$ giving $\ket{+}$;
-next to it the $2\times2$ matrix times $\binom{1}{0}=\tfrac1{\sqrt2}\binom{1}{1}$, to
-tie the picture to the algebra.}
+\noindent Circuit view --- a single wire carries the qubit, a box is a gate; e.g.\ $H$ on $\ket0$:
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket0$} & \gate{H} & \rstick{$\ket{+}$}\qw
+\end{quantikz}
+\end{center}
+tying the picture to the algebra $H\binom{1}{0}=\tfrac1{\sqrt2}\binom{1}{1}$.
 
 \begin{inclass}[Apply $H$ then measure]\label{ic:Hmeas}
 Start in $\ket1$. Apply $H$, then measure in the computational basis. What state
@@ -238,6 +242,13 @@ $H\ket1=\ket{-}=\tfrac1{\sqrt2}(\ket0-\ket1)$. Then $\Prob(0)=\abs{1/\sqrt2}^2=\
 and $\Prob(1)=\tfrac12$; the $-$ sign (relative phase) does not affect
 computational-basis probabilities.
 \end{answer}
+
+\noindent Circuit for this problem ($H$, then a computational-basis meter):
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket1$} & \gate{H} & \meter{} & \cw
+\end{quantikz}
+\end{center}
 
 \subsection*{3. The $\CNOT$ and reading circuits \tmark{8}}
 \begin{board}
@@ -250,9 +261,14 @@ Circuit reading: (1) time flows left$\to$right; (2) $\bullet$ = control (fires o
 $\ket1$); (3) matrix order is \emph{reversed}: $U_1$ then $U_2$ $\Rightarrow U=U_2U_1$.
 \end{board}
 
-\sketch{Two-wire circuit for the Bell state: top wire $\ket0$ into $\boxed{H}$, then a
-control dot $\bullet$; bottom wire $\ket0$ with a $\oplus$ (target) joined by a
-vertical line. Label output $\ket{\Phi^+}$.}
+\noindent The Bell-state circuit --- $H$ on the top wire, then $\CNOT$ with control
+$\bullet$ (top) and target $\oplus$ (bottom):
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket0$} & \gate{H} & \ctrl{1} & \qw \\
+\lstick{$\ket0$} & \qw & \targ{} & \rstick[2]{$\ket{\Phi^+}$}\qw
+\end{quantikz}
+\end{center}
 
 \subsection*{4. Build the Bell state; prove it is entangled \tmark{12}}
 \begin{board}
@@ -312,6 +328,12 @@ and $R_z(\varphi)R_y(\theta)\ket0=\ee^{-\ii\varphi/2}\ket{\psi(\theta,\varphi)}$
 Interpretation: $R_y$ tips the Bloch vector down by $\theta$ (sets moduli); $R_z$
 spins it by $\varphi$ around the axis (sets relative phase).
 
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket0$} & \gate{R_y(\theta)} & \gate{R_z(\varphi)} & \rstick{$\ket{\psi(\theta,\varphi)}$}\qw
+\end{quantikz}
+\end{center}
+
 \begin{inclass}[Give the preparation angles]\label{ic:prep}
 Which $R_y(\theta)$, $R_z(\varphi)$ prepare $\ket{+\ii}=\tfrac1{\sqrt2}(\ket0+\ii\ket1)$
 from $\ket0$? Give one single-gate alternative.
@@ -338,6 +360,30 @@ $\abs{\braket{\phi_m|\psi}}^2=\abs{\braket{m|V|\psi}}^2$.
 So ``measure $X$'' $=$ apply $H$, then measure $z$; read $\ket{+}\!\to\!0$, $\ket{-}\!\to\!1$.
 Expectation: $\langle O\rangle=\bra{\psi}O\ket{\psi}$.
 \end{board}
+
+\begin{board}
+\textbf{Why ``measure $X$'' $=$ apply $H$ then measure $Z$} (derive on the board):
+\begin{enumerate}[leftmargin=1.5em,itemsep=1pt,topsep=2pt]
+  \item \emph{What $X$ means.} $X=(+1)\proj{+}+(-1)\proj{-}$, so measuring $X$ \emph{is}
+        the projective measurement in its eigenbasis $\{\ket{+},\ket{-}\}$ (outcome $\pm1$).
+  \item \emph{Basis change.} To measure in a basis $\{\ket{\phi_m}\}$, apply $V$ with
+        $V\ket{\phi_m}=\ket m$, then measure $z$:
+        $\Prob(m)=\abs{\braket{m|V|\psi}}^2=\abs{\braket{\phi_m|\psi}}^2$ (using $\bra m V=\bra{\phi_m}$).
+  \item \emph{$H$ is that $V$.} $H\ket{+}=\ket0,\ H\ket{-}=\ket1$ (and $H=H\dg$, $H^2=\id$),
+        so reading $\ket0\!\to\!+1$, $\ket1\!\to\!-1$ reproduces the $X$-statistics:
+        $\Prob(+1)=\abs{\braket{+|\psi}}^2=\abs{\braket{0|H|\psi}}^2$.
+\end{enumerate}
+\emph{One line:} $H$ \emph{diagonalizes} $X$, i.e.\ $HXH=Z$; conjugating the observable by
+$H$ turns an $X$-measurement into a $Z$-measurement. (Likewise $V=H S\dg$ gives a $Y$-measurement,
+since $Y$'s eigenbasis is $\ket{\pm\ii}$.)
+\end{board}
+
+\noindent Circuit --- ``measure $X$'' is $H$ followed by a computational-basis meter:
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket\psi$} & \gate{H} & \meter{$Z$} & \cw
+\end{quantikz}
+\end{center}
 
 \noindent Picture: an $X$-basis measurement projects the Bloch vector onto the
 $x$-axis (the $\ket{\pm}$ poles of the rotated basis); equivalently, $H$ rotates the
@@ -412,9 +458,16 @@ $X^{m_2}Z^{m_1}\ket\psi$; he applies $Z^{m_1}X^{m_2}$ to recover $\ket\psi$.
 Needs 2 classical bits; source is destroyed (no-cloning safe); no signaling.
 \end{board}
 
-\sketch{Three-wire circuit: qubit 1 $=\ket\psi$; qubits 2--3 joined at the left by a
-Bell-pair symbol. On 1,2: $\CNOT_{1\to2}$ then $\boxed H$ on 1; meters on 1 and 2 with
-double-line (classical) wires to a box $Z^{m_1}X^{m_2}$ on qubit 3.}
+\noindent The teleportation circuit --- the left $H,\CNOT$ on wires 2--3 create
+$\ket{\Phi^+}$; then $\CNOT_{1\to2}$, $H_1$, the two meters, and the feed-forward
+corrections $X^{m_2},Z^{m_1}$ on Bob's wire (switched on by the classical outcomes):
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket\psi$} & \qw      & \qw      & \ctrl{1} & \gate{H} & \meter{} & \cw & \cw \\
+\lstick{$\ket0$}    & \gate{H} & \ctrl{1} & \targ{}  & \qw      & \meter{} & \cw & \cw \\
+\lstick{$\ket0$}    & \qw      & \targ{}  & \qw      & \qw      & \qw      & \gate{X^{m_2}} & \gate{Z^{m_1}}\rstick{$\ket\psi$}
+\end{quantikz}
+\end{center}
 
 \begin{inclass}[One correction branch]\label{ic:tele}
 In teleportation, suppose Alice measures $(m_1,m_2)=(1,0)$. What is Bob's qubit before

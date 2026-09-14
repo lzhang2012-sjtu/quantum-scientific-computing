@@ -13,6 +13,7 @@
 \usepackage{xcolor}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta}
+\usepackage{quantikz}
 \usepackage[most]{tcolorbox}
 \usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
 
@@ -36,6 +37,8 @@
 \newcommand{\bigo}{\mathcal{O}}
 \newcommand{\id}{\mathbb{I}}
 \newcommand{\dg}{^{\dagger}}
+% quantikz also defines \proj (a circuit element we do not use); override it with our projector.
+\let\proj\relax
 \newcommand{\proj}[1]{\ket{#1}\!\bra{#1}}
 \newcommand{\Xgate}{\mathsf{X}}
 \newcommand{\Ygate}{\mathsf{Y}}
