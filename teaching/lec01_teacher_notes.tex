@@ -469,6 +469,42 @@ corrections $X^{m_2},Z^{m_1}$ on Bob's wire (switched on by the classical outcom
 \end{quantikz}
 \end{center}
 
+\begin{board}
+\textbf{Why it works (amplitude tracking --- do it live).} Let $\ket\psi=a\ket0+b\ket1$;
+order the qubits $(1,2,3)$. Start from $\ket\psi\otimes\ket{\Phi^+}$:
+\[
+  \tfrac1{\sqrt2}\big[a\ket0(\ket{00}+\ket{11})+b\ket1(\ket{00}+\ket{11})\big].
+\]
+Apply $\CNOT_{1\to2}$ (flip qubit 2 when qubit 1 is $\ket1$), then $H_1$:
+\[
+  \xrightarrow{\ \CNOT_{1\to2}\ }
+  \tfrac1{\sqrt2}\big[a\ket0(\ket{00}+\ket{11})+b\ket1(\ket{10}+\ket{01})\big]
+\]
+\[
+  \xrightarrow{\ H_1\ }\tfrac12\big[\,
+  \ket{00}(a\ket0+b\ket1)+\ket{01}(a\ket1+b\ket0)
+  +\ket{10}(a\ket0-b\ket1)+\ket{11}(a\ket1-b\ket0)\,\big].
+\]
+Group by Alice's two bits $(m_1,m_2)$ (each outcome equally likely, prob.\ $\tfrac14$):
+Bob's qubit 3 is left in $X^{m_2}Z^{m_1}\ket\psi$:
+\[
+  (0,0)\!\to\!\ket\psi,\quad (0,1)\!\to\! X\ket\psi,\quad
+  (1,0)\!\to\! Z\ket\psi,\quad (1,1)\!\to\! XZ\ket\psi,
+\]
+so Bob applies $Z^{m_1}X^{m_2}$ to recover $\ket\psi$ exactly.
+\end{board}
+
+\noindent\textbf{What this teaches (say aloud):}
+\begin{itemize}[leftmargin=1.5em,itemsep=1pt,topsep=2pt]
+  \item \emph{Resources:} one shared Bell pair (entanglement) $+$ two classical bits move one
+        unknown qubit. Entanglement alone cannot; classical bits alone cannot.
+  \item \emph{No-cloning respected:} Alice's measurement collapses qubits 1--2, destroying her
+        copy---the state is \emph{moved}, not duplicated. The amplitudes $a,b$ are never learned.
+  \item \emph{No faster-than-light signaling:} before the two bits arrive, Bob's four branches are
+        equally likely, so his qubit is the maximally mixed $\tfrac12\id$---he learns nothing until
+        the classical message is received.
+\end{itemize}
+
 \begin{inclass}[One correction branch]\label{ic:tele}
 In teleportation, suppose Alice measures $(m_1,m_2)=(1,0)$. What is Bob's qubit before
 correction, and which gate(s) fix it?
