@@ -121,7 +121,8 @@ setcell(C(23,1),
  "参考资料 / References:\n"
  "1. A. Childs, Lecture Notes on Quantum Algorithms, https://www.cs.umd.edu/~amchilds/qa/\n"
  "2. Lin Lin, Lecture Notes on Quantum Algorithms for Scientific Computation, https://math.berkeley.edu/~linlin/qasc/\n"
- "3. UnitaryLab, https://unitarylab.com/unitary-studio-test/")
+ "3. Chen Zhaoyun, 量子计算算法教程 (Quantum Computing Algorithms Tutorial), https://chenzhaoyun.com/quantum-tutorial/\n"
+ "4. UnitaryLab, https://unitarylab.com/unitary-studio-test/")
 
 # --- notes r24 ---
 setcell(C(24,1),
