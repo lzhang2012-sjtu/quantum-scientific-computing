@@ -453,16 +453,16 @@ no-cloning $\Rightarrow$ you can \emph{move} an unknown qubit, not copy it.
 the seafaring Odysseus, using an entangled pair they made \emph{before} parting.
 
 \begin{board}
-\textbf{Teleportation (sketch).} Alice has unknown $\ket\psi$ (qubit 1) and half of
-$\ket{\Phi^+}$ (qubit 2); Bob holds qubit 3. Alice applies $\CNOT_{1\to2}$, then $H_1$,
-measures $(m_1,m_2)$ (each of 4 outcomes, prob.\ $\tfrac14$). Bob's qubit is then
+\textbf{Teleportation (sketch).} Penelope has unknown $\ket\psi$ (qubit 1) and half of
+$\ket{\Phi^+}$ (qubit 2); Odysseus holds qubit 3. Penelope applies $\CNOT_{1\to2}$, then $H_1$,
+measures $(m_1,m_2)$ (each of 4 outcomes, prob.\ $\tfrac14$). Odysseus's qubit is then
 $X^{m_2}Z^{m_1}\ket\psi$; he applies $Z^{m_1}X^{m_2}$ to recover $\ket\psi$.
 Needs 2 classical bits; source is destroyed (no-cloning safe); no signaling.
 \end{board}
 
 \noindent The teleportation circuit --- the left $H,\CNOT$ on wires 2--3 create
 $\ket{\Phi^+}$; then $\CNOT_{1\to2}$, $H_1$, the two meters, and the feed-forward
-corrections $X^{m_2},Z^{m_1}$ on Bob's wire (switched on by the classical outcomes):
+corrections $X^{m_2},Z^{m_1}$ on Odysseus's wire (switched on by the classical outcomes):
 \begin{center}
 \begin{quantikz}
 \lstick{$\ket\psi$} & \qw      & \qw      & \ctrl{1} & \gate{H} & \meter{} & \cw & \cw \\
@@ -487,35 +487,35 @@ Apply $\CNOT_{1\to2}$ (flip qubit 2 when qubit 1 is $\ket1$), then $H_1$:
   \ket{00}(a\ket0+b\ket1)+\ket{01}(a\ket1+b\ket0)
   +\ket{10}(a\ket0-b\ket1)+\ket{11}(a\ket1-b\ket0)\,\big].
 \]
-Group by Alice's two bits $(m_1,m_2)$ (each outcome equally likely, prob.\ $\tfrac14$):
-Bob's qubit 3 is left in $X^{m_2}Z^{m_1}\ket\psi$:
+Group by Penelope's two bits $(m_1,m_2)$ (each outcome equally likely, prob.\ $\tfrac14$):
+Odysseus's qubit 3 is left in $X^{m_2}Z^{m_1}\ket\psi$:
 \[
   (0,0)\!\to\!\ket\psi,\quad (0,1)\!\to\! X\ket\psi,\quad
   (1,0)\!\to\! Z\ket\psi,\quad (1,1)\!\to\! XZ\ket\psi,
 \]
-so Bob applies $Z^{m_1}X^{m_2}$ to recover $\ket\psi$ exactly.
+so Odysseus applies $Z^{m_1}X^{m_2}$ to recover $\ket\psi$ exactly.
 \end{board}
 
 \noindent\textbf{What this teaches (say aloud):}
 \begin{itemize}[leftmargin=1.5em,itemsep=1pt,topsep=2pt]
   \item \emph{Resources:} one shared Bell pair (entanglement) $+$ two classical bits move one
         unknown qubit. Entanglement alone cannot; classical bits alone cannot.
-  \item \emph{No-cloning respected:} Alice's measurement collapses qubits 1--2, destroying her
+  \item \emph{No-cloning respected:} Penelope's measurement collapses qubits 1--2, destroying her
         copy---the state is \emph{moved}, not duplicated. The amplitudes $a,b$ are never learned.
-  \item \emph{No faster-than-light signaling:} before the two bits arrive, Bob's four branches are
+  \item \emph{No faster-than-light signaling:} before the two bits arrive, Odysseus's four branches are
         equally likely, so his qubit is the maximally mixed $\tfrac12\id$---he learns nothing until
         the classical message is received.
   \item \emph{Information, not matter:} only quantum \emph{information} (the amplitudes $a,b$)
-        crosses the gap---rebuilt on Bob's pre-existing qubit from 2 classical bits $+$ shared
+        crosses the gap---rebuilt on Odysseus's pre-existing qubit from 2 classical bits $+$ shared
         entanglement; no qubit or mass travels (Brody, Ch.~4).
 \end{itemize}
 
 \begin{inclass}[One correction branch]\label{ic:tele}
-In teleportation, suppose Alice measures $(m_1,m_2)=(1,0)$. What is Bob's qubit before
+In teleportation, suppose Penelope measures $(m_1,m_2)=(1,0)$. What is Odysseus's qubit before
 correction, and which gate(s) fix it?
 \end{inclass}
 \begin{answer}
-Bob holds $X^{0}Z^{1}\ket\psi=Z\ket\psi=a\ket0-b\ket1$. Since $m_1=1,m_2=0$ he applies
+Odysseus holds $X^{0}Z^{1}\ket\psi=Z\ket\psi=a\ket0-b\ket1$. Since $m_1=1,m_2=0$ he applies
 $Z^{1}X^{0}=Z$; because $Z^2=\id$, $Z(Z\ket\psi)=\ket\psi$. \checkmark
 \end{answer}
 

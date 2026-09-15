@@ -387,9 +387,9 @@ and Holt (CHSH). The remarkable point is that a philosophical assumption---that
 measurement outcomes are predetermined and unaffected by distant choices---makes a
 \emph{quantitative}, testable prediction that quantum mechanics violates.
 
-Two separated parties, Alice and Bob, each receive one qubit of a shared pair. Each
-holds a measuring device with two settings. Alice's two possible measurements return
-values $A_1,A_2\in\{+1,-1\}$; Bob's return $B_1,B_2\in\{+1,-1\}$. In each run each
+Two separated parties, Penelope and Odysseus, each receive one qubit of a shared pair. Each
+holds a measuring device with two settings. Penelope's two possible measurements return
+values $A_1,A_2\in\{+1,-1\}$; Odysseus's return $B_1,B_2\in\{+1,-1\}$. In each run each
 party freely picks one setting, so only one of $A_1,A_2$ and one of $B_1,B_2$ is
 actually observed. Consider the combination
 \begin{equation}\label{eq:lec01-chsh-S}
@@ -398,7 +398,7 @@ actually observed. Consider the combination
 
 \begin{theorem}[CHSH inequality]\label{thm:lec01-chsh}
 Suppose the four quantities $A_1,A_2,B_1,B_2\in\{+1,-1\}$ all possess definite values
-in every run (\emph{realism}) and that Alice's values do not depend on Bob's setting
+in every run (\emph{realism}) and that Penelope's values do not depend on Odysseus's setting
 or vice versa (\emph{locality}). Then the expectation of $S$ obeys
 \[
   \bigl|\,\E[S]\,\bigr|\;=\;\bigl|\,\E[A_1B_1]-\E[A_1B_2]+\E[A_2B_1]+\E[A_2B_2]\,\bigr|\;\le\;2.
@@ -422,8 +422,8 @@ rotation $R_y(-\theta)$ that carries $\ket{\theta}\mapsto\ket{0}$ and then measu
 the computational basis.
 
 \begin{proposition}[Quantum correlator of a Bell pair]\label{prop:lec01-chsh-corr}
-If Alice measures her half of $\ket{\Phi^{+}}=\tfrac{1}{\sqrt2}(\ket{00}+\ket{11})$
-along angle $\alpha$ and Bob measures his half along angle $\beta$ (with the $\pm1$
+If Penelope measures her half of $\ket{\Phi^{+}}=\tfrac{1}{\sqrt2}(\ket{00}+\ket{11})$
+along angle $\alpha$ and Odysseus measures his half along angle $\beta$ (with the $\pm1$
 labeling above), the correlation of their outcomes is
 \begin{equation}\label{eq:lec01-chsh-cosab}
   \E[AB]\;=\;\cos(\alpha-\beta).
@@ -453,8 +453,8 @@ by the double-angle identity.
 \end{proof}
 
 \begin{corollary}[Tsirelson-point violation]\label{cor:lec01-tsirelson}
-With settings $\alpha_1=0,\ \alpha_2=\tfrac{\pi}{2}$ for Alice and
-$\beta_1=\tfrac{\pi}{4},\ \beta_2=\tfrac{3\pi}{4}$ for Bob, the quantum prediction is
+With settings $\alpha_1=0,\ \alpha_2=\tfrac{\pi}{2}$ for Penelope and
+$\beta_1=\tfrac{\pi}{4},\ \beta_2=\tfrac{3\pi}{4}$ for Odysseus, the quantum prediction is
 \[
   \E[S]=\cos(\alpha_1-\beta_1)-\cos(\alpha_1-\beta_2)+\cos(\alpha_2-\beta_1)+\cos(\alpha_2-\beta_2)
        =4\cos\tfrac{\pi}{4}=2\sqrt2\approx2.828,
@@ -1099,27 +1099,27 @@ two classical bits with one qubit and one shared Bell pair.
 
 \subsection{The teleportation protocol}
 
-Alice holds an unknown qubit $\ket{\psi}=a\ket{0}+b\ket{1}$ that she wishes to
-deliver to Bob, who is far away. She may not know $a,b$ and (by no-cloning,
+Penelope holds an unknown qubit $\ket{\psi}=a\ket{0}+b\ket{1}$ that she wishes to
+deliver to Odysseus, who is far away. She may not know $a,b$ and (by no-cloning,
 \cref{sec:lec01-4}) cannot copy the qubit. The one resource they share is a Bell pair
-$\ket{\Phi^{+}}$ prepared earlier, when they were together: Alice keeps one half,
-Bob the other.
+$\ket{\Phi^{+}}$ prepared earlier, when they were together: Penelope keeps one half,
+Odysseus the other.
 
-Label the three qubits $1$ (Alice's message), $2$ (Alice's half of the pair), and $3$
-(Bob's half). The joint state is
+Label the three qubits $1$ (Penelope's message), $2$ (Penelope's half of the pair), and $3$
+(Odysseus's half). The joint state is
 \begin{equation}\label{eq:lec01-tele-init}
   \ket{\psi}_1\otimes\ket{\Phi^{+}}_{23}
     =\bigl(a\ket{0}+b\ket{1}\bigr)_1\otimes\tfrac{1}{\sqrt2}\bigl(\ket{00}+\ket{11}\bigr)_{23}.
 \end{equation}
 
 \begin{theorem}[Teleportation]\label{thm:lec01-tele}
-Alice applies $\CNOT$ from qubit~$1$ (control) to qubit~$2$ (target), then $H$ to
+Penelope applies $\CNOT$ from qubit~$1$ (control) to qubit~$2$ (target), then $H$ to
 qubit~$1$, then measures qubits~$1$ and~$2$ in the computational basis, obtaining two
-bits $(m_1,m_2)$ each equally likely. Conditioned on $(m_1,m_2)$, Bob's qubit~$3$ is
+bits $(m_1,m_2)$ each equally likely. Conditioned on $(m_1,m_2)$, Odysseus's qubit~$3$ is
 \[
   X^{m_2}Z^{m_1}\ket{\psi}\quad\text{up to nothing else,}
 \]
-so after Bob applies the correction $Z^{m_1}X^{m_2}$ his qubit is exactly $\ket{\psi}$.
+so after Odysseus applies the correction $Z^{m_1}X^{m_2}$ his qubit is exactly $\ket{\psi}$.
 \end{theorem}
 
 \begin{proof}
@@ -1139,7 +1139,7 @@ $H\ket{1}=\tfrac{1}{\sqrt2}(\ket{0}-\ket{1})$:
   \tfrac12\Bigl(a(\ket{0}+\ket{1})_1(\ket{00}+\ket{11})_{23}
       +b(\ket{0}-\ket{1})_1(\ket{10}+\ket{01})_{23}\Bigr).
 \]
-Regroup by the four values of qubits $1,2$ (Alice's registers), factoring out qubit~$3$:
+Regroup by the four values of qubits $1,2$ (Penelope's registers), factoring out qubit~$3$:
 \begin{equation}\label{eq:lec01-tele-grouped}
 \begin{aligned}
   \tfrac12\Bigl(\;
@@ -1158,7 +1158,7 @@ probability $\tfrac14$. Reading off qubit~$3$ in each branch:
   \end{array}
 \]
 where we used $X\ket{\psi}=a\ket{1}+b\ket{0}$ and $Z\ket{\psi}=a\ket{0}-b\ket{1}$.
-In every branch Bob's state is $X^{m_2}Z^{m_1}\ket{\psi}$; since $X,Z$ are their own
+In every branch Odysseus's state is $X^{m_2}Z^{m_1}\ket{\psi}$; since $X,Z$ are their own
 inverses, applying $Z^{m_1}X^{m_2}$ (i.e.\ $X$ if $m_2=1$, then $Z$ if $m_1=1$)
 returns qubit~$3$ to $\ket{\psi}$.
 \end{proof}
@@ -1166,24 +1166,24 @@ returns qubit~$3$ to $\ket{\psi}$.
 \begin{remark}[Why teleportation needs, but does not beat, classical communication]
 Three features of the protocol are worth dwelling on.
 \begin{itemize}[nosep]
-  \item \emph{Classical bits are indispensable.} Before Bob learns $(m_1,m_2)$ his
-        qubit is, on average over Alice's random outcomes, the maximally mixed state
+  \item \emph{Classical bits are indispensable.} Before Odysseus learns $(m_1,m_2)$ his
+        qubit is, on average over Penelope's random outcomes, the maximally mixed state
         $\tfrac12\id$ (average of the four correction images of $\ket{\psi}$), carrying
         no information about $\ket{\psi}$. Only the two classical bits, sent over an
-        ordinary channel, tell Bob which correction to apply.
-  \item \emph{No faster-than-light signaling.} Because Bob's marginal is $\tfrac12\id$
-        regardless of what Alice does, nothing Alice performs on qubits~$1,2$ changes
-        the statistics Bob can observe locally. The state is completed only once the
+        ordinary channel, tell Odysseus which correction to apply.
+  \item \emph{No faster-than-light signaling.} Because Odysseus's marginal is $\tfrac12\id$
+        regardless of what Penelope does, nothing Penelope performs on qubits~$1,2$ changes
+        the statistics Odysseus can observe locally. The state is completed only once the
         classical message arrives, which travels no faster than light. This is the
         \emph{no-signaling} principle, and it is exactly why the nonlocal correlations
         of \cref{sec:lec01-chsh} coexist peacefully with relativity.
-  \item \emph{The source is destroyed.} Alice's measurement collapses qubit~$1$ to a
+  \item \emph{The source is destroyed.} Penelope's measurement collapses qubit~$1$ to a
         computational-basis state, erasing $a,b$ from the original. Teleportation
         \emph{moves} the state rather than copying it---consistent with no-cloning
         (\cref{thm:lec01-nocloning}), which would otherwise be violated by an
         end-to-end map $\ket{\psi}\mapsto\ket{\psi}\otimes\ket{\psi}$.
   \item \emph{Information, not matter.} What crosses the distance is quantum
-        \emph{information}---the amplitudes $a,b$---reconstructed on Bob's
+        \emph{information}---the amplitudes $a,b$---reconstructed on Odysseus's
         \emph{pre-existing} qubit from two classical bits together with the shared
         entanglement; no physical qubit or mass is transported. (Brody, \emph{The Joy of
         Quantum Computing}, Ch.~4, tells this as Penelope teleporting a qubit across the
@@ -1193,13 +1193,13 @@ Three features of the protocol are worth dwelling on.
 
 \subsection{Superdense coding}
 
-Running the same Bell resource ``in reverse'' lets Alice send \emph{two} classical
+Running the same Bell resource ``in reverse'' lets Penelope send \emph{two} classical
 bits by physically transmitting a \emph{single} qubit.
 
 \begin{proposition}[Superdense coding]\label{prop:lec01-superdense}
-Alice and Bob share $\ket{\Phi^{+}}=\tfrac{1}{\sqrt2}(\ket{00}+\ket{11})$ (qubit~$1$
-Alice's, qubit~$2$ Bob's). To send two bits $(x,y)\in\{0,1\}^2$, Alice applies
-$Z^{x}X^{y}$ to her qubit and sends it to Bob. Bob then applies $\CNOT_{1\to2}$
+Penelope and Odysseus share $\ket{\Phi^{+}}=\tfrac{1}{\sqrt2}(\ket{00}+\ket{11})$ (qubit~$1$
+Penelope's, qubit~$2$ Odysseus's). To send two bits $(x,y)\in\{0,1\}^2$, Penelope applies
+$Z^{x}X^{y}$ to her qubit and sends it to Odysseus. Odysseus then applies $\CNOT_{1\to2}$
 followed by $H$ on qubit~$1$ and measures both qubits, recovering $(x,y)$ with
 certainty.
 \end{proposition}
@@ -1304,16 +1304,16 @@ can satisfy.
 
 \begin{remark}[No-cloning protects no-signaling]\label{rem:lec01-clonesignal}
 Cloning is not merely inconvenient---if it were possible it would let entanglement
-signal faster than light, in flat contradiction with relativity. Suppose Alice and Bob
-share $\ket{\Phi^{+}}$ and Alice encodes one bit into her \emph{choice of measurement
+signal faster than light, in flat contradiction with relativity. Suppose Penelope and Odysseus
+share $\ket{\Phi^{+}}$ and Penelope encodes one bit into her \emph{choice of measurement
 basis}: to send $0$ she measures in the computational ($z$) basis, to send $1$ in the
-Hadamard ($x$) basis. Her measurement leaves Bob's qubit in $\{\ket{0},\ket{1}\}$ or in
-$\{\ket{+},\ket{-}\}$ accordingly, but as \cref{ex:lec01-bellreduced} shows Bob's
+Hadamard ($x$) basis. Her measurement leaves Odysseus's qubit in $\{\ket{0},\ket{1}\}$ or in
+$\{\ket{+},\ket{-}\}$ accordingly, but as \cref{ex:lec01-bellreduced} shows Odysseus's
 reduced state is $\tfrac12\id$ either way, so a single measurement cannot reveal
-Alice's basis. \emph{If} Bob could clone his qubit into many copies, he could estimate
+Penelope's basis. \emph{If} Odysseus could clone his qubit into many copies, he could estimate
 its state statistically: an ensemble that is $50/50$ in \emph{both} the $z$ and $x$
-bases (the $\tfrac12\id$ case) versus one sharply peaked in whichever basis Alice used
-would be distinguishable, revealing Alice's bit instantaneously over any distance. The
+bases (the $\tfrac12\id$ case) versus one sharply peaked in whichever basis Penelope used
+would be distinguishable, revealing Penelope's bit instantaneously over any distance. The
 no-cloning theorem forbids exactly this state estimation, and thereby closes the
 would-be superluminal channel---the same no-signaling conclusion reached constructively
 by teleportation in \cref{sec:lec01-tele}.
@@ -1569,11 +1569,11 @@ product state $\ket{+}\ket{+}$.
 \end{exercise}
 
 \begin{exercise}\label{ex:lec01-10}
-In the teleportation protocol (\cref{thm:lec01-tele}), suppose Alice's measurement
-yields $(m_1,m_2)=(1,0)$. (a) Write down Bob's pre-correction state and verify it
-equals $Z\ket{\psi}$. (b) State the correction Bob applies and confirm it restores
+In the teleportation protocol (\cref{thm:lec01-tele}), suppose Penelope's measurement
+yields $(m_1,m_2)=(1,0)$. (a) Write down Odysseus's pre-correction state and verify it
+equals $Z\ket{\psi}$. (b) State the correction Odysseus applies and confirm it restores
 $\ket{\psi}$. (c) Averaging over all four equally likely outcomes \emph{before} the
-classical bits arrive, show that Bob's reduced state is $\tfrac12\id$, and explain in
+classical bits arrive, show that Odysseus's reduced state is $\tfrac12\id$, and explain in
 one sentence why this is what forbids superluminal signaling.
 \end{exercise}
 
