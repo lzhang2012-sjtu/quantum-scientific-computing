@@ -41,7 +41,7 @@ amplitudes into probabilities; global phase is invisible; every state is a point
 the Bloch sphere.
 
 \medskip
-\noindent\textbf{Pacing:} Dirac notation \& the qubit \tmark{10}; Born rule \& phase
+\noindent\textbf{Pacing:} Dirac notation \& the qubit \tmark{10}; measurement (Born rule) \& phase
 \tmark{10}; in-class problem 1 \tmark{6}; Bloch derivation \& sketch \tmark{13};
 in-class problem 2 \tmark{6}.
 
@@ -62,17 +62,28 @@ Orthonormal basis: $\braket{i|j}=\delta_{ij}$; amplitude $=$ overlap $\braket{j|
 Stress the one postulate everything rests on: \emph{a state is a unit vector in a
 complex Hilbert space}, and superposition is just closure under linear combination.
 
-\subsection*{2. The Born rule; global vs.\ relative phase \tmark{10}}
+\subsection*{2. Measurement: the Born rule \tmark{10}}
 \begin{board}
-\textbf{Born rule.} Measuring $\ket{\psi}=a\ket0+b\ket1$ in the computational basis:
+\textbf{Measurement postulate (computational basis).} The possible outcomes are the
+basis labels; write the projectors $P_0=\proj0$, $P_1=\proj1$. For
+$\ket{\psi}=a\ket0+b\ket1$,
 \[
-  \Prob(0)=\abs{\braket{0|\psi}}^2=\abs{a}^2,\quad
-  \Prob(1)=\abs{b}^2,\quad \text{state collapses to }\ket{0}\text{ or }\ket{1}.
+  \Prob(k)=\bra{\psi}P_k\ket{\psi}=\abs{\braket{k|\psi}}^2
+  \quad\Rightarrow\quad \Prob(0)=\abs{a}^2,\ \ \Prob(1)=\abs{b}^2,
 \]
-\textbf{Global phase invisible:} $\ee^{\ii\gamma}\ket{\psi}$ gives the same $\abs{a}^2,\abs{b}^2$.
-\textbf{Relative phase is physical:}
-$\ket{+}=\tfrac1{\sqrt2}(\ket0+\ket1)$ vs.\ $\ket{-}=\tfrac1{\sqrt2}(\ket0-\ket1)$,
-same $z$-statistics but $\braket{+|-}=0$.
+and the state \emph{collapses} to $\ket{k}$ (post-measurement $P_k\ket{\psi}/\norm{P_k\ket{\psi}}$).
+Measurement is \emph{probabilistic} and \emph{irreversible}: it destroys the
+superposition, so one shot yields one bit---\emph{repeated} identical preparations give
+the statistics. Expectation of $Z$ ($\pm1$ on $\ket0,\ket1$):
+$\langle Z\rangle=\bra{\psi}Z\ket{\psi}=\Prob(0)-\Prob(1)=\abs{a}^2-\abs{b}^2$.
+\end{board}
+
+\begin{board}
+\textbf{Global vs.\ relative phase.} $\ee^{\ii\gamma}\ket{\psi}$ gives the same
+$\abs{a}^2,\abs{b}^2$ (global phase invisible). But
+$\ket{+}=\tfrac1{\sqrt2}(\ket0+\ket1)$ and $\ket{-}=\tfrac1{\sqrt2}(\ket0-\ket1)$ share
+$z$-statistics yet $\braket{+|-}=0$: the \emph{relative} phase is physical and shows up
+only in a rotated basis (Block 3).
 \end{board}
 
 Emphasize the moral: probabilities see only \emph{moduli}, so an overall phase drops
