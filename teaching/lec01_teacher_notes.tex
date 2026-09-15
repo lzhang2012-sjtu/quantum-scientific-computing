@@ -297,9 +297,17 @@ Separable: $\ket\psi=\tfrac1{\sqrt2}(\ket0+\ket1)\otimes\tfrac1{\sqrt2}(\ket0+\k
 \end{answer}
 
 \begin{advanced}
-CHSH / Bell nonlocality: the Bell pair's correlations exceed the classical bound
-$\abs{\E[S]}\le2$, reaching $2\sqrt2$ (Tsirelson). Rich but time-costly; point to the
-student notes and Lecture 2. Mention only.
+\textbf{CHSH / Bell nonlocality} (optional deep-dive, $\approx$10\,min if time allows).
+Two parties share $\ket{\Phi^+}$; each picks one of two $\pm1$-valued measurements.
+Form $S=A_1(B_1-B_2)+A_2(B_1+B_2)$.
+\emph{Classical bound (realism+locality):} if $A_i,B_j\in\{\pm1\}$ all have definite
+values, one of $B_1\mp B_2$ is $0$ and the other $\pm2$, so $S=\pm2$ each run and
+$\abs{\E[S]}\le2$.
+\emph{Quantum:} measuring $\ket{\Phi^+}$ along Bloch angles $\alpha,\beta$ gives
+$\E[AB]=\cos(\alpha-\beta)$; at $\alpha_1{=}0,\alpha_2{=}\tfrac\pi2,\ \beta_1{=}\tfrac\pi4,
+\beta_2{=}\tfrac{3\pi}4$,
+$\E[S]=4\cos\tfrac\pi4=2\sqrt2\approx2.83>2$ (Tsirelson). Nature agrees with quantum
+mechanics---no local-realistic model can. Full derivation in the student notes / Lecture 2.
 \end{advanced}
 
 % =====================================================================
@@ -519,10 +527,54 @@ Odysseus holds $X^{0}Z^{1}\ket\psi=Z\ket\psi=a\ket0-b\ket1$. Since $m_1=1,m_2=0$
 $Z^{1}X^{0}=Z$; because $Z^2=\id$, $Z(Z\ket\psi)=\ket\psi$. \checkmark
 \end{answer}
 
+\subsection*{5. Superdense coding --- the dual (optional / extension) \tmark{6}}
+The same Bell resource run ``in reverse'': send \emph{two} classical bits by
+transmitting \emph{one} qubit.
+\begin{board}
+Penelope and Odysseus share $\ket{\Phi^+}$ (qubit 1 Penelope's, qubit 2 Odysseus's).
+To send $(x,y)\in\{0,1\}^2$, Penelope applies $Z^{x}X^{y}$ to \emph{her} qubit and sends
+it over; the four choices map $\ket{\Phi^+}$ to the four orthonormal Bell states:
+\[
+  (0,0)\!:\tfrac1{\sqrt2}(\ket{00}+\ket{11}),\quad
+  (0,1)\!:\tfrac1{\sqrt2}(\ket{10}+\ket{01}),
+\]
+\[
+  (1,0)\!:\tfrac1{\sqrt2}(\ket{00}-\ket{11}),\quad
+  (1,1)\!:\tfrac1{\sqrt2}(\ket{10}-\ket{01}).
+\]
+Odysseus applies $\CNOT_{1\to2}$ then $H_1$ (the inverse Bell circuit) and measures,
+reading $(x,y)$ with certainty.
+\end{board}
+\noindent\emph{Duality:} 1 qubit $+$ 1 shared Bell pair $\leftrightarrow$ 2 classical
+bits; teleportation and superdense coding are the two directions of the same trade.
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket0$} & \gate{H} & \ctrl{1} & \gate{Z^{x}X^{y}} & \ctrl{1} & \gate{H} & \meter{} \\
+\lstick{$\ket0$} & \qw & \targ{} & \qw & \targ{} & \qw & \meter{}
+\end{quantikz}
+\end{center}
+
+\begin{inclass}[Encode two bits]\label{ic:superdense}
+Which gate does Penelope apply to send $(x,y)=(1,1)$, and which Bell state results?
+\end{inclass}
+\begin{answer}
+$Z^{1}X^{1}=ZX$ on her qubit: $X\otimes\id$ takes $\ket{\Phi^+}$ to
+$\tfrac1{\sqrt2}(\ket{10}+\ket{01})$, then $Z\otimes\id$ to
+$\tfrac1{\sqrt2}(\ket{01}-\ket{10})$ (the singlet, up to global phase). Odysseus's
+inverse Bell circuit then returns $\ket{11}$, i.e.\ $(1,1)$. \checkmark
+\end{answer}
+
 \begin{advanced}
-Density operators / mixed states, POVMs and Naimark dilation, shot-noise scaling
-$M=\bigo(1/\varepsilon^2)$, and complexity classes (query complexity, gate count,
-depth) are all set up in the student notes and revisited in Lecture 2. Mention only.
+\textbf{Bridge to Lecture 2 --- density operators} (optional; the natural sequel).
+When we hold only \emph{part} of an entangled pair, or a probabilistic mixture, a single
+ket no longer suffices: use $\rho=\sum_i p_i\proj{\psi_i}$ with $\Tr\rho=1$,
+$\rho\succeq0$. Born rule becomes $p(m)=\Tr[P_m\rho]$, $\langle M\rangle=\Tr[M\rho]$.
+\emph{Pure} iff $\Tr[\rho^2]=1$, else \emph{mixed}; the maximally mixed $\tfrac12\id$
+has $\Tr[\rho^2]=\tfrac12$. The \emph{reduced state} of one half of $\ket{\Phi^+}$ is
+$\rho_A=\Tr_B\proj{\Phi^+}=\tfrac12\id$---exactly why Odysseus's teleportation marginal
+is $\tfrac12\id$ and no-signaling holds. POVMs / Naimark dilation, shot-noise
+$M=\bigo(1/\varepsilon^2)$, and complexity classes are also set up in the student notes
+and taken up in Lecture 2.
 \end{advanced}
 
 \end{document}
