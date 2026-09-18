@@ -316,6 +316,64 @@ give a space of dimension $2^{50}>10^{15}$---is one root of quantum computing's
 potential power: a classical description of a general state requires exponentially
 many amplitudes.
 
+\subsection{Building product states explicitly}
+\label{sec:lec01-buildprod}
+
+Before turning to entanglement, it pays to compute a tensor product by hand, since the
+result is less obvious than stacking two vectors.
+
+\begin{example}[The tensor product of two qubits, componentwise]\label{exa:lec01-tp-explicit}
+Let $\ket{\psi}=\psi_0\ket0+\psi_1\ket1=\begin{psmallmatrix}\psi_0\\\psi_1\end{psmallmatrix}$
+and $\ket{\varphi}=\begin{psmallmatrix}\varphi_0\\\varphi_1\end{psmallmatrix}$. Pair
+\emph{each} entry of $\ket{\psi}$ with \emph{all} of $\ket{\varphi}$:
+\begin{equation}\label{eq:lec01-tp}
+  \ket{\psi}\otimes\ket{\varphi}
+   =\begin{pmatrix}\psi_0\begin{psmallmatrix}\varphi_0\\\varphi_1\end{psmallmatrix}\\[6pt]
+                   \psi_1\begin{psmallmatrix}\varphi_0\\\varphi_1\end{psmallmatrix}\end{pmatrix}
+   =\begin{pmatrix}\psi_0\varphi_0\\ \psi_0\varphi_1\\ \psi_1\varphi_0\\ \psi_1\varphi_1\end{pmatrix}.
+\end{equation}
+The four amplitudes are the four \emph{products} of one amplitude from each qubit, in
+order; the outcome is a single $4$-component vector describing both qubits at once.
+Its norm is preserved,
+$\sum_{i,j}\abs{\psi_i\varphi_j}^{2}=(\abs{\psi_0}^2+\abs{\psi_1}^2)(\abs{\varphi_0}^2+\abs{\varphi_1}^2)=1$,
+so it is again a valid state. \textbf{Warning:} $\ket{\psi}\otimes\ket{\varphi}$ is
+\emph{not} $\ket{\psi}$'s two entries stacked on top of $\ket{\varphi}$'s---it is the
+componentwise products of \eqref{eq:lec01-tp}.
+\end{example}
+
+\begin{remark}[The $\ket{k}$ notation for computational-basis states]\label{rem:lec01-ket-k}
+Writing an integer $k$ in a ket denotes the ``one-hot'' vector with a single $1$ at
+index $k$ and $0$ elsewhere. Thus for two qubits
+\[
+  \ket{00}=\begin{psmallmatrix}1\\0\\0\\0\end{psmallmatrix}=\ket{0}_4,\quad
+  \ket{01}=\ket{1}_4,\quad \ket{10}=\ket{2}_4,\quad \ket{11}=\ket{3}_4,
+\]
+the four one-hot $4$-vectors. Note $\ket{00}=\ket{0}_4$ is \emph{not} the single-qubit
+$\ket{0}_2$; when the dimension is not clear from context we tag it, $\ket{k}_d$. In
+general $\ket{x_1\cdots x_n}=\ket{k}$ with $k\in\{0,\dots,2^{n}-1\}$ the integer whose
+binary representation is $x_1\cdots x_n$; these one-hot states are exactly the
+computational basis, orthonormal by $\braket{k|m}=\delta_{km}$.
+\end{remark}
+
+\begin{example}[Product states built by gates]\label{exa:lec01-prod-gates}
+Start both qubits in $\ket0$ and act with single-qubit gates (top qubit written on the
+left; ``top-to-bottom'' in a circuit is ``left-to-right'' in the ket):
+\[
+  \begin{aligned}
+   \ket0\otimes\ket0 &= \ket{00}=\ket{0}_4, \\
+   (X\ket0)\otimes\ket0 &= \ket1\otimes\ket0=\ket{10}=\ket{2}_4, \\
+   \ket0\otimes(H\ket0) &= \ket0\otimes\ket{+}=\tfrac1{\sqrt2}(\ket{00}+\ket{01}), \\
+   (H\ket0)\otimes(H\ket0) &= \ket{+}\otimes\ket{+}
+       =\tfrac12(\ket{00}+\ket{01}+\ket{10}+\ket{11})=\tfrac12\sum_{k=0}^{3}\ket{k}.
+  \end{aligned}
+\]
+The last line---all four amplitudes equal to $\tfrac12$---is the uniform superposition;
+for $n$ qubits, $H^{\otimes n}\ket{0\cdots0}=\tfrac{1}{\sqrt{2^{n}}}\sum_{x\in\{0,1\}^{n}}\ket{x}$,
+the standard opening move of many quantum algorithms (\cref{sec:lec01-prepmeas}). Every
+state here is a product state; the interesting question is when a two-qubit state
+\emph{cannot} be built this way---the subject of the rest of this section.
+\end{example}
+
 \begin{definition}[Product and entangled states]\label{def:lec01-product}
 A state $\ket{\psi}\in\Hilb_A\otimes\Hilb_B$ is a \emph{product state} (or
 \emph{separable}) if it can be written as $\ket{\psi}=\ket{\alpha}_A\otimes\ket{\beta}_B$
@@ -1709,6 +1767,9 @@ qubit.
   \item J.~Brody, \emph{The Joy of Quantum Computing}, Princeton University Press,
         2025, Ch.~4--7 (teleportation, no-cloning and no-signaling, the CHSH/Bell
         inequality, reversible arithmetic) --- \texttt{material/}.
+  \item ``系统（二）：乘积态'' (product states), a concrete step-by-step treatment of
+        the tensor product and computational-basis $\ket{k}$ notation ---
+        \texttt{material/productstate\_zhihu.pdf}.
   \item M.~A.~Nielsen and I.~L.~Chuang, \emph{Quantum Computation and Quantum
         Information}, Ch.~1--2, for a complete textbook treatment.
 \end{itemize}
