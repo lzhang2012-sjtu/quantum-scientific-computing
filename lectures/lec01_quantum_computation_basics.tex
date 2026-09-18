@@ -336,6 +336,78 @@ $\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})\otimes\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})$, s
 is a product state.
 \end{example}
 
+We can decide separability concretely, without guessing a factorization, by viewing
+the amplitudes as a matrix.
+
+\begin{proposition}[Separability test for two qubits]\label{prop:lec01-septest}
+Write a two-qubit state as $\ket{\psi}=\sum_{i,j\in\{0,1\}}x_{ij}\ket{ij}$ and collect
+its amplitudes into the $2\times2$ \emph{coefficient matrix}
+$X=\begin{psmallmatrix}x_{00}&x_{01}\\ x_{10}&x_{11}\end{psmallmatrix}$. Then
+$\ket{\psi}$ is a product state if and only if
+\[
+  \det X \;=\; x_{00}x_{11}-x_{01}x_{10}\;=\;0
+  \qquad(\text{equivalently, } \rank X=1).
+\]
+\end{proposition}
+
+\begin{proof}
+If $\ket{\psi}=\ket{\alpha}\otimes\ket{\beta}$ with $\ket{\alpha}=a_0\ket0+a_1\ket1$ and
+$\ket{\beta}=b_0\ket0+b_1\ket1$, then $x_{ij}=a_i b_j$, i.e.\ $X=\mathbf{a}\,\mathbf{b}^{\mathsf T}$
+is an outer product; hence $\rank X\le1$ and
+$\det X=a_0b_0\,a_1b_1-a_0b_1\,a_1b_0=0$. Conversely, a nonzero $2\times2$ matrix with
+$\det X=0$ has rank $1$, so it factors as $X=\mathbf{a}\,\mathbf{b}^{\mathsf T}$ for some
+vectors $\mathbf a,\mathbf b$; reading off $x_{ij}=a_ib_j$ gives
+$\ket{\psi}=\ket{\alpha}\otimes\ket{\beta}$ (the overall normalization may be split between
+the two factors). More generally, for a bipartite state the number of nonzero singular
+values of $X$ is the \emph{Schmidt rank}: rank $1$ means product, rank $>1$ means entangled.
+\end{proof}
+
+\begin{example}[The test in action]\label{exa:lec01-septest}
+\begin{itemize}[nosep,leftmargin=1.4em]
+  \item $\ket{+}\ket{0}=\tfrac1{\sqrt2}(\ket{00}+\ket{10})$ has
+        $X=\tfrac1{\sqrt2}\begin{psmallmatrix}1&0\\ 1&0\end{psmallmatrix}$, so $\det X=0$:
+        a product state (as its name already says).
+  \item $\tfrac12(\ket{00}+\ket{01}+\ket{10}+\ket{11})$ has every $x_{ij}=\tfrac12$, so
+        $\det X=\tfrac14-\tfrac14=0$: the product state $\ket{+}\ket{+}$ above.
+  \item The Bell state $\ket{\Phi^{+}}$ has
+        $X=\tfrac1{\sqrt2}\begin{psmallmatrix}1&0\\ 0&1\end{psmallmatrix}$, so
+        $\det X=\tfrac12\neq0$: entangled---a one-line alternative to
+        \cref{thm:lec01-bell}.
+\end{itemize}
+\end{example}
+
+\begin{remark}[Product states are the exception, not the rule]\label{rem:lec01-generic-ent}
+A product state factors into independent single-qubit states, so it carries no
+correlation between the qubits: an $n$-qubit product state
+$\ket{\psi_1}\otimes\cdots\otimes\ket{\psi_n}$ is fixed by $n$ points on the Bloch sphere,
+just $2n$ real parameters (see the figure). A general normalized $n$-qubit state has
+$2^{n}$ complex amplitudes---$2\cdot2^{n}-2$ real parameters up to global phase,
+exponentially many. For $n=2$ that is a $4$-parameter product family sitting inside a
+$6$-parameter state space: the product states form a lower-dimensional (measure-zero)
+surface, so \emph{almost every} multi-qubit state is entangled. Entanglement is the
+generic case; product states are the special, ``classically describable'' corner.
+\end{remark}
+
+\begin{center}
+\begin{tikzpicture}[scale=0.9]
+  \draw (0,0) circle (0.7);
+  \draw[dashed] (-0.7,0) arc (180:360:0.7 and 0.24);
+  \draw (0.7,0) arc (0:180:0.7 and 0.24);
+  \draw[->,thick,red] (0,0) -- (0.32,0.5);
+  \node at (0,-1.05) {$\ket{\psi_1}$};
+  \node at (1.35,0) {$\otimes$};
+  \begin{scope}[xshift=2.7cm]
+    \draw (0,0) circle (0.7);
+    \draw[dashed] (-0.7,0) arc (180:360:0.7 and 0.24);
+    \draw (0.7,0) arc (0:180:0.7 and 0.24);
+    \draw[->,thick,red] (0,0) -- (-0.45,0.35);
+    \node at (0,-1.05) {$\ket{\psi_2}$};
+  \end{scope}
+  \node at (4.15,0) {$\otimes\ \cdots$};
+  \node[align=left] at (7.3,0) {\small A product state:\\ \small $n$ independent Bloch arrows,\\ \small no shared correlation.};
+\end{tikzpicture}
+\end{center}
+
 \begin{definition}[Bell state]\label{def:lec01-bell}
 The \emph{Bell state} (or EPR pair) is the two-qubit state
 \begin{equation}
