@@ -316,11 +316,32 @@ give a space of dimension $2^{50}>10^{15}$---is one root of quantum computing's
 potential power: a classical description of a general state requires exponentially
 many amplitudes.
 
-\subsection{Building product states explicitly}
+\begin{remark}[The $\ket{k}$ notation for computational-basis states]\label{rem:lec01-ket-k}
+Writing an integer $k$ in a ket denotes the ``one-hot'' vector with a single $1$ at
+index $k$ and $0$ elsewhere. Thus for two qubits
+\[
+  \ket{00}=\begin{psmallmatrix}1\\0\\0\\0\end{psmallmatrix}=\ket{0}_4,\quad
+  \ket{01}=\ket{1}_4,\quad \ket{10}=\ket{2}_4,\quad \ket{11}=\ket{3}_4,
+\]
+the four one-hot $4$-vectors. Note $\ket{00}=\ket{0}_4$ is \emph{not} the single-qubit
+$\ket{0}_2$; when the dimension is not clear from context we tag it, $\ket{k}_d$. In
+general $\ket{x_1\cdots x_n}=\ket{k}$ with $k\in\{0,\dots,2^{n}-1\}$ the integer whose
+binary representation is $x_1\cdots x_n$; these one-hot states are exactly the
+computational basis, orthonormal by $\braket{k|m}=\delta_{km}$.
+\end{remark}
+
+\subsection{Product and entangled states}
 \label{sec:lec01-buildprod}
 
-Before turning to entanglement, it pays to compute a tensor product by hand, since the
-result is less obvious than stacking two vectors.
+\begin{definition}[Product and entangled states]\label{def:lec01-product}
+A state $\ket{\psi}\in\Hilb_A\otimes\Hilb_B$ is a \emph{product state} (or
+\emph{separable}) if it can be written as $\ket{\psi}=\ket{\alpha}_A\otimes\ket{\beta}_B$
+for some $\ket{\alpha}_A\in\Hilb_A$, $\ket{\beta}_B\in\Hilb_B$. Otherwise
+$\ket{\psi}$ is \emph{entangled}.
+\end{definition}
+
+To see how a product state is assembled, it pays to compute a tensor product by hand,
+since the result is less obvious than stacking two vectors.
 
 \begin{example}[The tensor product of two qubits, componentwise]\label{exa:lec01-tp-explicit}
 Let $\ket{\psi}=\psi_0\ket0+\psi_1\ket1=\begin{psmallmatrix}\psi_0\\\psi_1\end{psmallmatrix}$
@@ -341,20 +362,6 @@ so it is again a valid state. \textbf{Warning:} $\ket{\psi}\otimes\ket{\varphi}$
 componentwise products of \eqref{eq:lec01-tp}.
 \end{example}
 
-\begin{remark}[The $\ket{k}$ notation for computational-basis states]\label{rem:lec01-ket-k}
-Writing an integer $k$ in a ket denotes the ``one-hot'' vector with a single $1$ at
-index $k$ and $0$ elsewhere. Thus for two qubits
-\[
-  \ket{00}=\begin{psmallmatrix}1\\0\\0\\0\end{psmallmatrix}=\ket{0}_4,\quad
-  \ket{01}=\ket{1}_4,\quad \ket{10}=\ket{2}_4,\quad \ket{11}=\ket{3}_4,
-\]
-the four one-hot $4$-vectors. Note $\ket{00}=\ket{0}_4$ is \emph{not} the single-qubit
-$\ket{0}_2$; when the dimension is not clear from context we tag it, $\ket{k}_d$. In
-general $\ket{x_1\cdots x_n}=\ket{k}$ with $k\in\{0,\dots,2^{n}-1\}$ the integer whose
-binary representation is $x_1\cdots x_n$; these one-hot states are exactly the
-computational basis, orthonormal by $\braket{k|m}=\delta_{km}$.
-\end{remark}
-
 \begin{example}[Product states built by gates]\label{exa:lec01-prod-gates}
 Start both qubits in $\ket0$ and act with single-qubit gates (top qubit written on the
 left; ``top-to-bottom'' in a circuit is ``left-to-right'' in the ket):
@@ -371,15 +378,8 @@ The last line---all four amplitudes equal to $\tfrac12$---is the uniform superpo
 for $n$ qubits, $H^{\otimes n}\ket{0\cdots0}=\tfrac{1}{\sqrt{2^{n}}}\sum_{x\in\{0,1\}^{n}}\ket{x}$,
 the standard opening move of many quantum algorithms (\cref{sec:lec01-prepmeas}). Every
 state here is a product state; the interesting question is when a two-qubit state
-\emph{cannot} be built this way---the subject of the rest of this section.
+\emph{cannot} be built this way---the subject of the next subsections.
 \end{example}
-
-\begin{definition}[Product and entangled states]\label{def:lec01-product}
-A state $\ket{\psi}\in\Hilb_A\otimes\Hilb_B$ is a \emph{product state} (or
-\emph{separable}) if it can be written as $\ket{\psi}=\ket{\alpha}_A\otimes\ket{\beta}_B$
-for some $\ket{\alpha}_A\in\Hilb_A$, $\ket{\beta}_B\in\Hilb_B$. Otherwise
-$\ket{\psi}$ is \emph{entangled}.
-\end{definition}
 
 \begin{example}[A generic two-qubit state]
 Two qubits live in $\C^{4}$ with basis $\ket{00},\ket{01},\ket{10},\ket{11}$. A
@@ -393,6 +393,9 @@ For instance $\tfrac12(\ket{00}+\ket{01}+\ket{10}+\ket{11})$ is normalized
 $\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})\otimes\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})$, so it
 is a product state.
 \end{example}
+
+\subsection{Detecting entanglement: the separability test}
+\label{sec:lec01-septest-sub}
 
 We can decide separability concretely, without guessing a factorization, by viewing
 the amplitudes as a matrix.
@@ -465,6 +468,9 @@ generic case; product states are the special, ``classically describable'' corner
   \node[align=left] at (7.3,0) {\small A product state:\\ \small $n$ independent Bloch arrows,\\ \small no shared correlation.};
 \end{tikzpicture}
 \end{center}
+
+\subsection{The Bell state and entanglement}
+\label{sec:lec01-bell-sub}
 
 \begin{definition}[Bell state]\label{def:lec01-bell}
 The \emph{Bell state} (or EPR pair) is the two-qubit state
