@@ -1,0 +1,465 @@
+\documentclass[11pt]{article}
+\input{teacher_preamble}
+\title{\textbf{Lecture 3 --- Grover's Algorithm and Amplitude Amplification}\\[0.3em]\large Teacher's Notes (chalk, one 3$\times$45\,min meeting)}
+\author{Course Instructor}
+\date{}
+\begin{document}
+\maketitle
+
+\noindent\textbf{How to use these notes.} This is a chalk-delivery lesson plan for
+one three-hour meeting, split into three 45-minute blocks. Boxed \textsf{On the
+board} panels give the exact equations and text to write; \textcolor{teal}{\textbf{Sketch}}
+cues say what to draw; \tmark{n} markers pace each chunk. Work the derivations
+\emph{live} at the board rather than reading them out. Each block has in-class
+problems with teacher-facing answers---put the problem up, give students 3--6
+minutes, then walk the solution. Orange \emph{Advanced} boxes are optional; mention
+them only if time allows. The engine of the whole lecture is one picture ---
+\emph{two reflections make a rotation} --- so keep the invariant-plane diagram up on
+the side board once you draw it in Block 2.
+
+\medskip
+\noindent\textbf{Learning goals (by the end of the meeting a student can):}
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item State the bit and phase oracles, and derive phase kickback with a $\ket{-}$ ancilla.
+  \item Run Deutsch, Deutsch--Jozsa, and Bernstein--Vazirani, explaining why one query suffices.
+  \item Build Grover's two reflections (oracle $R_{x_0}$ and diffusion $R_{\psi_0}$) and prove $G$ rotates by $\theta$ in a 2-D plane.
+  \item Compute the optimal iteration count $k^{\ast}\approx(\pi/4)\sqrt{N}$ (and $(\pi/4)\sqrt{N/M}$) and the success probability.
+  \item State amplitude amplification ($\bigo(1/\sqrt p)$) and the $\Omega(\sqrt N)$ lower bound.
+\end{itemize}
+
+\medskip
+\noindent\textbf{Prerequisites (Lectures 1--2).} Qubits as unit vectors, tensor
+products, the standard gates $X,Z,H$, $H\ket0=\ket{+}$, $H\ket1=\ket{-}$,
+computational-basis measurement (Born rule), and unitarity/reversibility. No prior
+exposure to oracles assumed.
+
+\medskip
+\noindent\textbf{Materials.} Blackboard with room for a persistent ``cheat strip''
+(oracle definitions, $H^{\otimes n}$ identity) on one side; \emph{colored chalk}
+(white for algebra, one color for signs/phases created by the oracle, one for the
+rotating state vector in the invariant plane).
+
+% =====================================================================
+\block{Block 1 --- Oracles, phase kickback, and the first speedups}{45}
+% =====================================================================
+\noindent\emph{Objective:} an oracle is a black-box unitary charged per query;
+phase kickback turns a bit oracle into a sign; two Hadamard layers read the signs
+out by interference---the template behind Deutsch, Deutsch--Jozsa, and
+Bernstein--Vazirani.
+
+\medskip
+\noindent\textbf{Pacing:} the oracle/query model \tmark{8}; phase kickback (derive)
+\tmark{9}; in-class problem 1 \tmark{5}; the Hadamard transform \& Deutsch
+\tmark{9}; Deutsch--Jozsa \& Bernstein--Vazirani \tmark{9}; in-class problem 2
+\tmark{5}.
+
+\subsection*{1. The oracle / query model \tmark{8}}
+Open on the cheat strip and leave it up all lecture: we do not see the code of a
+Boolean $f$, only a reversible black box, and we count \emph{queries}, not gates.
+
+\begin{board}
+\textbf{Bit (XOR) oracle.} For $f:\{0,1\}^n\to\{0,1\}$, on input register $\ket x$
+and target $\ket y$,
+\[
+  \Uf\ket{x}\ket{y}=\ket{x}\ket{y\oplus f(x)} .
+\]
+The $\oplus$ (not overwrite) makes it reversible: $\Uf^2=\id$, so $\Uf$ is unitary
+and its own inverse. \textbf{Query complexity} $=$ number of calls to $\Uf$.
+\textbf{Phase oracle} (what we really want): $\ket{x}\mapsto(-1)^{f(x)}\ket{x}$.
+\end{board}
+
+Stress the two-line moral: a classical query returns one pair $(x,f(x))$; a
+quantum circuit can apply $\Uf$ to a \emph{superposition} of all inputs at once.
+But raw parallelism is useless---measuring gives one random pair. The missing
+ingredient is \emph{interference}, and phase kickback is how we create it.
+
+\subsection*{2. Phase kickback --- derive it live \tmark{9}}
+This is the single most important trick of the day. Put the target in $\ket{-}$ and
+watch the sign appear on the input.
+
+\begin{board}
+\textbf{Phase kickback.} With $\ket{-}=\tfrac1{\sqrt2}(\ket0-\ket1)$,
+\[
+  \Uf\ket{x}\ket{-}
+   =\tfrac1{\sqrt2}\big(\ket{x}\ket{f(x)}-\ket{x}\ket{1\oplus f(x)}\big)
+   =(-1)^{f(x)}\ket{x}\ket{-}.
+\]
+\emph{Check the two cases:} $f(x)=0\Rightarrow\tfrac1{\sqrt2}(\ket0-\ket1)=+\ket{-}$;
+$f(x)=1\Rightarrow\tfrac1{\sqrt2}(\ket1-\ket0)=-\ket{-}$. The target is unchanged
+and unentangled, so it \emph{factors out}: on the input register $\Uf$ acts as the
+phase oracle $\tilde U_f\ket x=(-1)^{f(x)}\ket x$.
+\end{board}
+
+\noindent The $\ket{-}$ ancilla that powers kickback ($X\ket{-}=-\ket{-}$, so the
+target is a $-1$ eigenstate of the flip):
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket{x}$ (input)} & \gate[2]{\Uf} & \rstick{$(-1)^{f(x)}\ket{x}$}\qw \\
+\lstick{$\ket1$}           & \gate{H}      & \qw
+\end{quantikz}
+\end{center}
+The first $H$ prepares $\ket-$ from $\ket1$; the sign is kicked back onto the input.
+
+\begin{inclass}[Compute a kickback action]\label{ic:l3-kickback}
+Let $n=2$ and $f(x)=x_1\wedge x_2$ (AND), so $f=1$ only on $x=11$. Compute
+$\Uf\big(\tfrac12\sum_{x}\ket x\big)\ket{-}$ and read off the resulting state of the
+input register.
+\end{inclass}
+\begin{answer}
+By kickback each branch picks up $(-1)^{f(x)}$, and the $\ket-$ factors out. Only
+$x=11$ is marked, so the input register becomes
+$\tfrac12(\ket{00}+\ket{01}+\ket{10}-\ket{11})$---a single sign flip on $\ket{11}$.
+\checkmark
+\end{answer}
+
+\subsection*{3. The Hadamard transform and Deutsch \tmark{9}}
+\begin{board}
+\textbf{Hadamard identity.} For $x\in\{0,1\}^n$, with $x\cdot z=\bigoplus_i x_iz_i$,
+\[
+  H^{\otimes n}\ket{x}=\frac{1}{\sqrt{2^{\,n}}}\sum_{z\in\{0,1\}^n}(-1)^{x\cdot z}\ket{z},
+  \qquad
+  H^{\otimes n}\ket{0^n}=\frac{1}{\sqrt N}\sum_{x}\ket{x}\ (N=2^n).
+\]
+\textbf{Orthogonality:}\quad
+$\dfrac1{2^n}\sum_{x}(-1)^{x\cdot w}=\delta_{w,0^n}$ (the interference is exact).
+\end{board}
+
+\begin{board}
+\textbf{Deutsch ($n=1$).} Decide constant ($f(0)=f(1)$) vs.\ balanced
+($f(0)\neq f(1)$) in \emph{one} query. Run $H$ on $\ket0$, query, $H$ again:
+\[
+  \ket{+}\ket{-}\xrightarrow{\Uf}
+  \tfrac1{\sqrt2}\big((-1)^{f(0)}\ket0+(-1)^{f(1)}\ket1\big)\ket{-}
+  \xrightarrow{H}
+  \begin{cases}\pm\ket0 & \text{constant}\\ \pm\ket1 & \text{balanced.}\end{cases}
+\]
+Measure: outcome $0\Rightarrow$ constant, $1\Rightarrow$ balanced (classically needs
+$2$ queries).
+\end{board}
+
+\subsection*{4. Deutsch--Jozsa and Bernstein--Vazirani \tmark{9}}
+Same circuit, $n$ qubits: $H^{\otimes n}$, one query (target in $\ket-$),
+$H^{\otimes n}$, measure. This template recurs all the way to Shor.
+
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket{0}^{\otimes n}$} & \gate{H^{\otimes n}} & \gate[2]{\Uf} & \gate{H^{\otimes n}} & \meter{} \\
+\lstick{$\ket1$}               & \gate{H}             &               & \qw                  & \qw
+\end{quantikz}
+\end{center}
+
+\begin{board}
+\textbf{Deutsch--Jozsa} (promise: $f$ constant or balanced). After the query the
+input is $\tfrac1{\sqrt N}\sum_x(-1)^{f(x)}\ket x$; a second $H^{\otimes n}$ gives
+amplitude of $\ket{0^n}$
+\[
+  \alpha_{0^n}=\frac1N\sum_x(-1)^{f(x)}
+  =\begin{cases}\pm1 & \text{constant}\\ 0 & \text{balanced.}\end{cases}
+\]
+So measuring $0^n$ certifies ``constant''; any nonzero outcome certifies ``balanced.''
+\medskip
+
+\textbf{Bernstein--Vazirani.} If $f_s(x)=s\cdot x$, the same circuit yields
+$\ket{s}$ exactly: the post-query state is $H^{\otimes n}\ket s$, and a second
+$H^{\otimes n}$ (its own inverse) returns $\ket s$. One query recovers all $n$ bits
+(classically $n$).
+\end{board}
+
+\begin{inclass}[Determine the DJ outcome]\label{ic:l3-dj}
+On $n=2$ take $f(x_1x_2)=x_1\oplus x_2$. Is $f$ constant or balanced? Trace the
+Deutsch--Jozsa circuit and give the amplitude of $\ket{00}$ at the meter.
+\end{inclass}
+\begin{answer}
+$f(00){=}0,f(01){=}1,f(10){=}1,f(11){=}0$: two $0$s and two $1$s, so
+\emph{balanced}. Then $\alpha_{00}=\tfrac14\sum_x(-1)^{f(x)}
+=\tfrac14(1-1-1+1)=0$, so $\ket{00}$ never occurs---correctly reporting
+``balanced.'' (In fact $f=f_s$ with $s=11$, so the measured string is $11$.) \checkmark
+\end{answer}
+
+\begin{advanced}
+Bounded-error caveat: the dramatic ``$1$ vs.\ $2^{n-1}+1$'' Deutsch--Jozsa gap is a
+\emph{deterministic} separation---a few random classical queries distinguish
+constant from balanced with high confidence, so the randomized classical cost is
+$\bigo(1)$. Bernstein--Vazirani's $1$-vs-$n$ separation survives even with bounded
+error. Mention only.
+\end{advanced}
+
+% =====================================================================
+\block{Block 2 --- Grover's algorithm}{45}
+% =====================================================================
+\noindent\emph{Objective:} unstructured search is two reflections---mark the
+solution, then invert about the mean---and their product rotates the state toward
+$\ket{x_0}$ by a fixed angle $\theta$ per step, so $\bigo(\sqrt N)$ steps suffice.
+
+\medskip
+\noindent\textbf{Pacing:} the problem \& phase oracle \tmark{7}; the two reflections
+(board) \tmark{10}; the invariant plane \& rotation derivation \tmark{13}; in-class
+problem 1 \tmark{5}; worked $N=8$ run \tmark{7}; in-class problem 2 \tmark{3}.
+
+\subsection*{1. Unstructured search and the two reflections \tmark{17}}
+\begin{board}
+\textbf{Problem.} $N=2^n$ items; oracle marks a unique $x_0$ with $f(x_0)=1$, else
+$0$. Classically $\Omega(N)$ queries (an adversary answers $0$ until one candidate
+is left). Start state: uniform superposition
+$\ket{\psi_0}=H^{\otimes n}\ket{0^n}=\tfrac1{\sqrt N}\sum_x\ket x$.
+\end{board}
+
+\begin{board}
+\textbf{Two reflections.}
+\[
+  R_{x_0}=\id-2\proj{x_0}\quad(\text{phase-flip }\ket{x_0}),\qquad
+  R_{\psi_0}=2\proj{\psi_0}-\id\quad(\text{fix }\ket{\psi_0},\text{ flip }\perp).
+\]
+Each is Hermitian, unitary, and an involution ($R^2=\id$): for $R=\id-2\proj u$,
+$R\dg=R$ and $R^2=\id-4\proj u+4\proj u=\id$. \textbf{Grover iterate}
+$G=R_{\psi_0}R_{x_0}$. Circuit form of diffusion:
+\[
+  R_{\psi_0}=H^{\otimes n}\bigl(2\proj{0^n}-\id\bigr)H^{\otimes n}.
+\]
+\emph{Inversion about the mean:} $R_{\psi_0}\sum_x a_x\ket x=\sum_x(2\bar a-a_x)\ket x$,
+$\bar a=\tfrac1N\sum_x a_x$.
+\end{board}
+
+\noindent One Grover iterate as a circuit --- phase oracle $R_{x_0}$, then the
+diffusion sandwich $H^{\otimes n}$, reflect-about-$\ket{0^n}$, $H^{\otimes n}$:
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket{\psi}$} & \gate{R_{x_0}} & \gate{H^{\otimes n}} & \gate{2\proj{0^n}-\id} & \gate{H^{\otimes n}} & \rstick{$G\ket{\psi}$}\qw
+\end{quantikz}
+\end{center}
+Say aloud: $R_{x_0}$ is the one oracle call; everything else is cheap gates. In real
+uses $x_0$ is \emph{not} hardcoded---the oracle tests a predicate ``is this a
+solution?'' and marks whoever passes.
+
+\begin{board}
+\textbf{The invariant plane.} Let $\ket{\psi_0^\perp}=\tfrac1{\sqrt{N-1}}\sum_{x\neq x_0}\ket x$.
+Then
+\[
+  \ket{\psi_0}=\tfrac1{\sqrt N}\ket{x_0}+\tfrac{\sqrt{N-1}}{\sqrt N}\ket{\psi_0^\perp}
+  =\sin\tfrac\theta2\ket{x_0}+\cos\tfrac\theta2\ket{\psi_0^\perp},
+  \quad \sin\tfrac\theta2=\tfrac1{\sqrt N}.
+\]
+$\mathcal P=\operatorname{span}\{\ket{x_0},\ket{\psi_0^\perp}\}$. In the ordered basis
+$\{\ket{\psi_0^\perp},\ket{x_0}\}$:
+\[
+  R_{x_0}=\begin{pmatrix}1&0\\0&-1\end{pmatrix},\qquad
+  R_{\psi_0}=\begin{pmatrix}\cos\theta&\sin\theta\\ \sin\theta&-\cos\theta\end{pmatrix}
+  \ (\text{reflect about }\ket{\psi_0}\text{ at angle }\tfrac\theta2).
+\]
+\[
+  G=R_{\psi_0}R_{x_0}
+   =\begin{pmatrix}\cos\theta&-\sin\theta\\ \sin\theta&\cos\theta\end{pmatrix}
+   \ =\ \textbf{rotation by }\theta.
+\]
+\end{board}
+
+Derive the rotation angle live: $R_{x_0}$ is a reflection about the
+$\ket{\psi_0^\perp}$ axis; $R_{\psi_0}$ is a reflection about $\ket{\psi_0}$, which
+sits at angle $\theta/2$ from $\ket{\psi_0^\perp}$. Product of two reflections $=$
+rotation by \emph{twice} the angle between their mirror lines $=2\cdot\tfrac\theta2=\theta$.
+
+\sketch{The invariant plane. Horizontal axis $\ket{\psi_0^\perp}$ (``bad''),
+vertical axis $\ket{x_0}$ (``good''). Draw $\ket{\psi_0}$ close to horizontal at
+angle $\theta/2$ above the $\ket{\psi_0^\perp}$ axis (since $\sin\tfrac\theta2=1/\sqrt N$
+is small). Draw a curved arrow lifting the state by $\theta$ each iterate; after $k$
+iterates it sits at angle $(2k{+}1)\tfrac\theta2$ from horizontal. \emph{Say aloud:}
+each step tips the vector toward $\ket{x_0}$; we stop when it is nearly vertical.}
+
+\begin{board}
+\textbf{State after $k$ iterations.}
+\[
+  G^k\ket{\psi_0}=\sin\!\tfrac{(2k+1)\theta}{2}\,\ket{x_0}+\cos\!\tfrac{(2k+1)\theta}{2}\,\ket{\psi_0^\perp},
+  \qquad
+  p_k=\sin^2\!\tfrac{(2k+1)\theta}{2}.
+\]
+Stop when $(2k{+}1)\theta/2\approx\pi/2$: $k^\ast=\lfloor(\pi/4)\sqrt N\rfloor$,
+$p_{k^\ast}\ge1-1/N$. So $\bigo(\sqrt N)$ queries (quadratic speedup over $\bigo(N)$).
+\end{board}
+
+\begin{inclass}[Count Grover iterations]\label{ic:l3-count}
+For $N=2^{20}$, how many iterations $k^\ast$ maximize the success probability? How
+does this compare to classical search?
+\end{inclass}
+\begin{answer}
+$k^\ast=\lfloor(\pi/4)\sqrt{2^{20}}\rfloor=\lfloor(\pi/4)\cdot1024\rfloor
+=\lfloor 804.2\rfloor=804$ iterations (one oracle call each). Classical search needs
+$\bigo(N)=\bigo(2^{20})\approx10^6$ queries: about $2^{10}\approx1000\times$ more. \checkmark
+\end{answer}
+
+\subsection*{2. A fully worked run: $N=8$, $x_0=3$ \tmark{7}}
+Track two numbers: the common unmarked amplitude and the marked amplitude
+$g$. Oracle flips the sign of $g$; diffusion sends every $a_x\mapsto2\bar a-a_x$.
+Here $\sin(\theta/2)=1/\sqrt8\Rightarrow\theta\approx41.4^\circ$, and
+$k^\ast=\lfloor(\pi/4)\sqrt8\rfloor=\lfloor2.22\rfloor=2$.
+
+\begin{board}
+\[
+\begin{array}{lccc}
+\text{stage} & \text{unmarked} & \text{marked }\ket3 & p=\abs g^2\\[2pt]
+\text{start }\ket{\psi_0} & 1/\sqrt8 & 1/\sqrt8 & 1/8\\
+\text{after }R_{x_0}\ (\text{q1}) & 1/\sqrt8 & -1/\sqrt8 & -\\
+\text{after }R_{\psi_0}\ (\text{it.1}) & 1/(2\sqrt8) & 5/(2\sqrt8) & 25/32\approx0.781\\
+\text{after }R_{x_0}\ (\text{q2}) & 1/(2\sqrt8) & -5/(2\sqrt8) & -\\
+\text{after }R_{\psi_0}\ (\text{it.2}) & -1/(4\sqrt8) & 11/(4\sqrt8) & 121/128\approx0.945
+\end{array}
+\]
+\end{board}
+
+Do iteration~1 live: after the oracle $\bar a=(7\cdot\tfrac1{\sqrt8}-\tfrac1{\sqrt8})/8
+=\tfrac{3}{4\sqrt8}$; inversion gives unmarked $2\bar a-\tfrac1{\sqrt8}=\tfrac1{2\sqrt8}$,
+marked $2\bar a+\tfrac1{\sqrt8}=\tfrac5{2\sqrt8}$, so $p_1=25/32$. The negative
+unmarked sign after iteration~2 means we have rotated just \emph{past} $\ket{x_0}$: a
+third iterate would \emph{lose} probability (over-rotation).
+
+\begin{inclass}[Grover on $N=4$ is exact]\label{ic:l3-n4}
+For $N=4$, $M=1$, compute $\theta$ and show that a \emph{single} Grover iterate
+reaches $\ket{x_0}$ with certainty.
+\end{inclass}
+\begin{answer}
+$\sin(\theta/2)=1/\sqrt4=\tfrac12\Rightarrow\theta/2=\pi/6$, $\theta=\pi/3$. After
+$k=1$ the angle is $(2\cdot1+1)\theta/2=\tfrac{3}{2}\cdot\tfrac\pi3=\tfrac\pi2$, so
+$G\ket{\psi_0}=\sin\tfrac\pi2\ket{x_0}+\cos\tfrac\pi2\ket{\psi_0^\perp}=\ket{x_0}$:
+$p_1=1$, deterministic. \checkmark
+\end{answer}
+
+% =====================================================================
+\block{Block 3 --- Amplitude amplification, optimality, and applications}{45}
+% =====================================================================
+\noindent\emph{Objective:} $M$ solutions speed the search to $(\pi/4)\sqrt{N/M}$;
+the two-reflection trick generalizes to \emph{any} state preparation (amplitude
+amplification, $\bigo(1/\sqrt p)$); and a hybrid argument shows $\Omega(\sqrt N)$ is
+optimal.
+
+\medskip
+\noindent\textbf{Pacing:} multiple solutions \tmark{9}; in-class problem 1
+\tmark{5}; amplitude amplification (general trick) \tmark{11}; in-class problem 2
+\tmark{5}; the $\Omega(\sqrt N)$ lower bound \tmark{8}; applications \& wrap-up
+\tmark{7}.
+
+\subsection*{1. Multiple solutions \tmark{9}}
+\begin{board}
+\textbf{$M$ marked items.} Good/bad states
+$\ket{\mathrm{good}}=\tfrac1{\sqrt M}\sum_{x\in S}\ket x$,
+$\ket{\mathrm{bad}}=\tfrac1{\sqrt{N-M}}\sum_{x\notin S}\ket x$, so
+$\ket{\psi_0}=\sqrt{M/N}\,\ket{\mathrm{good}}+\sqrt{(N-M)/N}\,\ket{\mathrm{bad}}$.
+Same rotation with
+\[
+  \sin\tfrac\theta2=\sqrt{\tfrac MN},\qquad
+  k^\ast=\Big\lfloor\tfrac\pi4\sqrt{\tfrac NM}\Big\rfloor=\bigo\!\big(\sqrt{N/M}\big).
+\]
+More solutions $\Rightarrow$ faster search.
+\end{board}
+
+Warn (echo Block 2): if you \emph{overestimate} how many iterations to run, the
+state rotates past $\ket{\mathrm{good}}$ and $p_k$ falls---always stop at $k^\ast$.
+
+\begin{inclass}[Iterations with $M$ solutions]\label{ic:l3-M}
+For $N=1024$ with $M=4$ marked items, find $\sin(\theta/2)$ and $k^\ast$, and
+compare with the single-solution ($M=1$) count for the same $N$.
+\end{inclass}
+\begin{answer}
+$\sin(\theta/2)=\sqrt{4/1024}=\sqrt{1/256}=1/16$. Then
+$k^\ast=\lfloor(\pi/4)\sqrt{1024/4}\rfloor=\lfloor(\pi/4)\sqrt{256}\rfloor
+=\lfloor(\pi/4)\cdot16\rfloor=\lfloor12.57\rfloor=12$. For $M=1$:
+$k^\ast=\lfloor(\pi/4)\sqrt{1024}\rfloor=\lfloor(\pi/4)\cdot32\rfloor
+=\lfloor25.13\rfloor=25$. Four solutions halve the count ($\sqrt M=2\times$ fewer). \checkmark
+\end{answer}
+
+\subsection*{2. Amplitude amplification --- the general trick \tmark{11}}
+Grover is one instance of a reflection recipe that works for \emph{any} preparation
+$\mathcal A$. Replace $H^{\otimes n}$ by $\mathcal A$ and $\ket{x_0}$ by the good
+subspace.
+
+\begin{board}
+\textbf{Amplitude amplification.} Suppose
+$\mathcal A\ket0=\sqrt{p}\,\ket{\mathrm{good}}+\sqrt{1-p}\,\ket{\mathrm{bad}}$ and a
+projector $P$ recognizes the good part. Set
+\[
+  S_P=\id-2P,\qquad S_0=\mathcal A(2\proj0-\id)\mathcal A\dg,\qquad Q=S_0S_P.
+\]
+$Q$ rotates by $\theta$ with $\sin(\theta/2)=\sqrt p$ in
+$\operatorname{span}\{\ket{\mathrm{good}},\ket{\mathrm{bad}}\}$; after
+\[
+  k^\ast=\Big\lfloor\tfrac{\pi}{4\arcsin\sqrt p}\Big\rfloor=\bigo\!\big(1/\sqrt p\big)
+\]
+iterations we get $\ket{\mathrm{good}}$ with probability $\Omega(1)$.
+\end{board}
+
+Say aloud: the proof is \emph{verbatim} the Grover proof --- $S_P$ reflects about
+the bad axis, $S_0=\mathcal A(2\proj0-\id)\mathcal A\dg$ reflects about the axis
+$\mathcal A\ket0$, and two reflections make a rotation. The payoff: classical
+prepare-and-check needs $\bigo(1/p)$ tries to see the good outcome; amplitude
+amplification needs $\bigo(1/\sqrt p)$---a quadratic win on \emph{any} subroutine,
+not just search. Grover $=$ the case $\mathcal A=H^{\otimes n}$, $p=M/N$.
+
+\begin{inclass}[Amplitude-amplification iteration count]\label{ic:l3-aa}
+A preparation $\mathcal A$ succeeds with probability $p=1/100$ on a single shot. How
+many amplitude-amplification iterations $k^\ast$ are needed, and how does that
+compare with classical repetition?
+\end{inclass}
+\begin{answer}
+$\sin(\theta/2)=\sqrt p=1/10$, so $\theta/2=\arcsin(0.1)=0.10017$ rad and
+$k^\ast=\lfloor(\pi/4)/0.10017\rfloor=\lfloor7.84\rfloor=7$ iterations. Classical
+prepare-and-check needs $\bigo(1/p)=\bigo(100)$ shots to expect one success: about
+$1/\sqrt p=10\times$ fewer with amplification. \checkmark
+\end{answer}
+
+\subsection*{3. The $\Omega(\sqrt N)$ lower bound \tmark{8}}
+State it, sketch the idea; keep the argument statement-level.
+
+\begin{board}
+\textbf{Lower bound.} Any quantum algorithm that finds $x_0$ (or even decides
+whether \emph{a} marked item exists) with constant success probability needs
+$\Omega(\sqrt N)$ queries. Combined with $k^\ast=\bigo(\sqrt N)$: Grover is optimal,
+$\Theta(\sqrt N)$.
+\end{board}
+
+\begin{advanced}
+\textbf{Hybrid / progress argument (idea only).} Let $\ket{\phi_k}$ be the state
+after $k$ queries with the empty oracle $f\equiv0$, and $\ket{\phi_k^{x_0}}$ with
+$x_0$ marked. Track
+$D_k=\sum_{x_0}\norm{\ket{\phi_k^{x_0}}-\ket{\phi_k}}^2$. One query changes each
+term by a bounded amount, giving $D_k\le 4k^2$. But to \emph{identify} the marked
+item the branches must be nearly orthogonal, forcing $D_k=\Omega(N)$. Hence
+$\Omega(N)\le 4k^2\Rightarrow k=\Omega(\sqrt N)$. A super-polynomial speedup would
+require exploitable structure (Shor, phase estimation)---not available to an
+unstructured oracle. Mention only.
+\end{advanced}
+
+\begin{inclass}[Why not run longer?]\label{ic:l3-overrotate}
+Using $p_k=\sin^2((2k+1)\theta/2)$, explain what happens to the success probability
+if one runs $2k^\ast$ iterations instead of $k^\ast$ (take $N=2^{20}$).
+\end{inclass}
+\begin{answer}
+At $k^\ast$ the angle $(2k^\ast{+}1)\theta/2\approx\pi/2$ and $p\approx1$. Doubling
+to $2k^\ast$ roughly doubles the angle to $\approx\pi$, where
+$\sin^2(\pi)\approx0$: the state has rotated \emph{past} $\ket{x_0}$ and almost all
+the way back to $\ket{\psi_0^\perp}$, so success collapses to nearly $0$. Grover is
+periodic---more is \emph{not} better; stop at $k^\ast$. \checkmark
+\end{answer}
+
+\subsection*{4. Applications and wrap-up \tmark{7}}
+Close by tying the trick to real problems.
+\begin{itemize}[leftmargin=1.5em,itemsep=1pt,topsep=2pt]
+  \item \emph{Unstructured search / database lookup:} $\bigo(\sqrt N)$ vs.\ $\bigo(N)$.
+  \item \emph{NP-style brute force:} package ``is this assignment satisfying?'' as
+        the oracle; e.g.\ a SAT instance on $n=30$ vars with $M=2^{10}$ solutions
+        needs $\approx(\pi/4)\sqrt{2^{20}}\approx804$ queries vs.\ $\approx2^{20}$
+        classically.
+  \item \emph{Quantum counting:} apply phase estimation (next lecture) to the Grover
+        operator $G$ to \emph{estimate} $M$ from the rotation angle $\theta$.
+  \item \emph{Amplitude amplification as glue:} a quadratic boost wrapped around any
+        randomized quantum subroutine with success probability $p$.
+\end{itemize}
+\noindent\textbf{One-sentence takeaway (say aloud):} operate on \emph{amplitudes},
+not probabilities---the angle grows linearly in $k$, probability is its square, so a
+target hit in $\bigo(N)$ probability-steps is hit in $\bigo(\sqrt N)$ amplitude-steps.
+
+\begin{advanced}
+\textbf{Bridge to Lecture 4 --- phase estimation.} The Grover iterate $G$ has
+eigenvalues $\ee^{\pm\ii\theta}$ on the invariant plane; measuring that phase is
+exactly quantum phase estimation, which turns Grover into \emph{counting} (estimate
+$M$) and underlies the QFT-based algorithms next time. Mention only.
+\end{advanced}
+
+\end{document}
