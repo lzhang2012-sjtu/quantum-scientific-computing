@@ -237,6 +237,35 @@ $\tfrac{1}{\sqrt2}(-\ket0-\ket1)=-\ket{+}$, and $H(-\ket{+})=-\ket0$ returns $0$
 reporting ``constant.''
 \end{example}
 
+\begin{example}[Explicit circuits: the four one-bit oracles and Deutsch's circuit]
+\label{exa:lec03-deutsch-circuit}
+For $n=1$ there are exactly four functions $f:\{0,1\}\to\{0,1\}$, and each oracle
+$\Uf\ket{x}\ket{y}=\ket{x}\ket{y\oplus f(x)}$ is a small explicit circuit on the
+input qubit $x$ (top) and target qubit $y$ (bottom):
+\[
+  \begin{array}{llll}
+    f\equiv 0\ (\text{const}) : & \Uf=\id, &
+    f(x)=x\ (\text{bal}) : & \Uf=\CNOT_{x\to y},\\[2pt]
+    f\equiv 1\ (\text{const}) : & \Uf=\id\otimes X, &
+    f(x)=x\oplus1\ (\text{bal}) : & \Uf=(\id\otimes X)\,\CNOT_{x\to y}.
+  \end{array}
+\]
+Take the balanced $f(x)=x$, whose oracle is a single $\CNOT$. The full Deutsch
+circuit---$H$ on both qubits, the oracle, $H$ on the input, then measure the input---is
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket0$} & \gate{H} & \ctrl{1} & \gate{H} & \meter{} \\
+\lstick{$\ket1$} & \gate{H} & \targ{}  & \qw      & \qw
+\end{quantikz}
+\end{center}
+Tracing it through: $\ket0\ket1\xrightarrow{H\otimes H}\ket{+}\ket{-}
+\xrightarrow{\CNOT}\tfrac1{\sqrt2}(\ket0-\ket1)\ket{-}=\ket{-}\ket{-}
+\xrightarrow{H\otimes\id}\ket{1}\ket{-}$, so the input qubit is measured as $1$:
+``balanced,'' in one query. For the constant $f\equiv0$ the oracle is the identity,
+the input qubit stays $\ket{+}\xrightarrow{H}\ket0$, and the measurement returns $0$:
+``constant.''
+\end{example}
+
 \subsection{The Deutsch--Jozsa algorithm}
 
 We now generalize to $n$ qubits under the following \emph{promise}: $f$ is either
