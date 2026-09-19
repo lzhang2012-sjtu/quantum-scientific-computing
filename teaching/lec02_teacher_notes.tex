@@ -97,7 +97,15 @@ the check to the student notes.
 Stinespring dilation: \emph{every} channel is a unitary on system$+$environment
 followed by discarding the environment, $\mathcal E(\rho)=\Tr_R(V\rho V\dg)$ with
 $V\dg V=\id$. ``All evolution is unitary once the box is big enough.'' Mention only;
-full statement in the student notes.
+full statement in the student notes. The picture: run a joint unitary $U$ on the
+system $\rho$ together with a fresh environment $\ket0$, then throw the environment
+away (trace it out --- here a meter, since discarding is a measurement we ignore):
+\begin{center}
+\begin{quantikz}
+\lstick{$\rho$}   & \gate[2]{U} & \qw      & \rstick{$\mathcal E(\rho)$}\qw \\
+\lstick{$\ket0$}  &             & \meter{} &
+\end{quantikz}
+\end{center}
 \end{advanced}
 
 \subsection*{3. The example zoo (memorize these Kraus operators) \tmark{9}}
@@ -156,6 +164,34 @@ poles $\ket0,\ket1$ stay fixed. Under \emph{depolarizing}: the whole ball shrink
 uniformly, $\vec r\mapsto p\,\vec r$, toward the center $\tfrac12\id$. Say aloud:
 loss of coherence $=$ loss of Bloch-vector length $=$ the arrow retreating from the
 surface into the interior.}
+
+\noindent Reference picture to reproduce on the board --- the unit Bloch ball (solid
+circle) contracting to a smaller region (dashed) as coherence is lost: under
+\emph{depolarizing} it shrinks to a smaller ball $\vec r\mapsto p\,\vec r$; under
+\emph{dephasing} it squashes to an ellipse flattened in the equatorial ($x,y$)
+directions while the poles $\ket0,\ket1$ stay put:
+\begin{center}
+\begin{tikzpicture}[scale=1.7,>=Latex]
+  % unit Bloch ball
+  \draw[thick] (0,0) circle (1);
+  \draw[dashed,gray] (-1,0) arc (180:360:1 and 0.32);
+  \draw[gray] (1,0) arc (0:180:1 and 0.32);
+  % axes
+  \draw[->] (0,0) -- (0,1.25) node[above] {$z$};
+  \draw[->] (0,0) -- (1.3,0) node[right] {$x,y$};
+  \node[above right] at (0,1) {\small$\ket0$};
+  \node[below right] at (0,-1) {\small$\ket1$};
+  % depolarizing: smaller concentric ball
+  \draw[blue!70!black,thick,dashed] (0,0) circle (0.6);
+  \node[blue!70!black] at (0.42,0.42) {\small depol.};
+  % dephasing: ellipse squashed in x,y (narrow horizontally, poles fixed)
+  \draw[red!75!black,thick,dashed] (0,0) ellipse (0.28 and 1);
+  \node[red!75!black,align=left] at (0.95,-0.75) {\small dephasing};
+  % arrows showing contraction
+  \draw[->,red!75!black] (0.9,0) -- (0.34,0);
+  \draw[->,red!75!black] (-0.9,0) -- (-0.34,0);
+\end{tikzpicture}
+\end{center}
 
 \begin{inclass}[Depolarizing shrinks the Bloch vector]\label{ic:depol}
 Write a one-qubit state as $\rho=\tfrac12(\id+\vec r\cdot\vec\sigma)$. Show the
@@ -300,6 +336,23 @@ $N$ be so that $\abs{\bar X-\langle O\rangle}\le\varepsilon$ with confidence $1-
 \end{board}
 Frame the block: three inequalities, each stronger and needing more assumptions
 (nonneg $\to$ finite variance $\to$ bounded), then read the shot count off the last.
+
+\noindent A concrete example of ``a number read off from statistics'' is the
+\emph{Hadamard test}, the workhorse for estimating $\mathrm{Re}\braket{\psi|U|\psi}$:
+an ancilla in $\ket0$ is put in superposition by $H$, controls $U$ on the system
+$\ket\psi$, is closed by a second $H$, and measured. The measurement is Bernoulli,
+so its bias is exactly the quantity we want --- and the shot budget below fixes how
+many repetitions we need:
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket0$}    & \gate{H} & \ctrl{1} & \gate{H} & \meter{} & \cw \\
+\lstick{$\ket\psi$} & \qw      & \gate{U} & \qw      & \qw      &
+\end{quantikz}
+\end{center}
+\noindent Here $\Prob(0)=\tfrac12\big(1+\mathrm{Re}\braket{\psi|U|\psi}\big)$, so
+$\langle Z_{\mathrm{anc}}\rangle=\mathrm{Re}\braket{\psi|U|\psi}$: estimating a single
+Bernoulli bias to additive error $\varepsilon$ is exactly the shot-budget problem of
+this block.
 
 \subsection*{2. Markov, then Chebyshev \tmark{10}}
 \begin{board}
