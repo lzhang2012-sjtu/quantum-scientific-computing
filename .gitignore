@@ -47,3 +47,6 @@ teaching/*.pdf
 
 # Word lock/temp files
 ~$*.docx
+
+# Allow generated course slides (the *.pptx rule above excludes bulky decks in material/)
+!slides/*.pptx
