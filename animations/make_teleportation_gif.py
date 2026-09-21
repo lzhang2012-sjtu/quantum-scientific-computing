@@ -1,40 +1,63 @@
 #!/usr/bin/env python3
 """Animate the quantum teleportation protocol as a GIF:
 a time-cursor sweeps across the 3-wire circuit, highlighting each gate/step,
-with a running caption and the |psi> token transferred from Alice (q1) to Bob (q3)."""
+with a running caption and the |psi> token transferred from Penelope (q1) to Odysseus (q3)."""
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle, Circle, FancyArrowPatch
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from matplotlib.animation import FuncAnimation, PillowWriter
 import numpy as np
+import os
 
 # wire y-positions
 Y = {"q1": 3.0, "q2": 2.0, "q3": 1.0}
 BLUE="#1f3a8a"; GREY="#c9ccd4"; RED="#c0392b"; GREEN="#0b603b"; GOLD="#d4a017"
+
+# Optional character portraits from the 2026 film "The Odyssey" (dir. C. Nolan):
+# drop licensed stills at animations/img/penelope.{jpg,png} and odysseus.{jpg,png}.
+def _load_portrait(stem):
+    for ext in ("jpg", "jpeg", "png", "webp"):
+        p = os.path.join(os.path.dirname(__file__), "img", f"{stem}.{ext}")
+        if os.path.exists(p):
+            try:
+                return plt.imread(p)
+            except Exception:
+                return None
+    return None
+PEN_IMG = _load_portrait("penelope")   # Penelope — Anne Hathaway
+ODY_IMG = _load_portrait("odysseus")   # Odysseus — Matt Damon
+
+def _portrait(ax, img, xy):
+    if img is None:
+        return
+    ab = AnnotationBbox(OffsetImage(img, zoom=0.16), xy, frameon=True, pad=0.12,
+                        bboxprops=dict(edgecolor=GOLD, lw=1.5))
+    ax.add_artist(ab)
 
 # gate columns: (x, kind, payload)
 #   H:(wire,label) ; CX:(ctrl,targ) ; M:(wire) ; BOX:(wire,label)
 GATES = [
     (1.4, "H",  ("q2","H")),
     (2.3, "CX", ("q2","q3")),          # Bell pair prep
-    (3.7, "CX", ("q1","q2")),          # Alice entangles
-    (4.6, "H",  ("q1","H")),           # Alice H
+    (3.7, "CX", ("q1","q2")),          # Penelope entangles
+    (4.6, "H",  ("q1","H")),           # Penelope H
     (5.6, "M",  ("q1",)),              # measure q1
     (5.6, "M",  ("q2",)),              # measure q2
-    (7.4, "BOX",("q3","X^{m_2}")),     # Bob correction
-    (8.4, "BOX",("q3","Z^{m_1}")),     # Bob correction
+    (7.4, "BOX",("q3","X^{m_2}")),     # Odysseus correction
+    (8.4, "BOX",("q3","Z^{m_1}")),     # Odysseus correction
 ]
 XL, XR = 0.2, 9.6
 # stage captions keyed by cursor x-threshold
 STAGES = [
-    (1.3,  r"Initial: Alice holds the unknown $|\psi\rangle$ on q1; q2,q3 are a shared Bell pair."),
-    (2.7,  r"Bell pair $|\Phi^+\rangle$ on q2--q3 (prepared earlier, when Alice & Bob were together)."),
-    (4.1,  r"Alice applies CNOT (q1$\to$q2): she entangles her message with her Bell half."),
-    (5.2,  r"Alice applies H to q1."),
-    (6.6,  r"Alice measures q1,q2 $\to$ two classical bits $(m_1,m_2)$; each of 4 outcomes has prob $1/4$."),
-    (7.9,  r"The 2 classical bits travel to Bob over an ordinary channel (no faster than light)."),
-    (9.7,  r"Bob applies $X^{m_2}Z^{m_1}$ $\Rightarrow$ q3 becomes $|\psi\rangle$. Teleported! Source destroyed; no cloning."),
+    (1.3,  r"Initial: Penelope holds the unknown $|\psi\rangle$ on q1; q2,q3 are a shared Bell pair."),
+    (2.7,  r"Bell pair $|\Phi^+\rangle$ on q2--q3 (prepared earlier, when Penelope & Odysseus were together)."),
+    (4.1,  r"Penelope applies CNOT (q1$\to$q2): she entangles her message with her Bell half."),
+    (5.2,  r"Penelope applies H to q1."),
+    (6.6,  r"Penelope measures q1,q2 $\to$ two classical bits $(m_1,m_2)$; each of 4 outcomes has prob $1/4$."),
+    (7.9,  r"The 2 classical bits travel to Odysseus over an ordinary channel (no faster than light)."),
+    (9.7,  r"Odysseus applies $X^{m_2}Z^{m_1}$ $\Rightarrow$ q3 becomes $|\psi\rangle$. Teleported! Source destroyed; no cloning."),
 ]
 
 def caption_for(xc):
@@ -50,9 +73,12 @@ def draw(frame, ax, nframes):
     # wires
     for w,y in Y.items():
         ax.plot([XL, XR], [y,y], color="black", lw=1.4, zorder=1)
-    ax.text(-1.35, Y["q1"], r"q1  $|\psi\rangle$"+"\n(Alice)", va="center", ha="left", fontsize=9, color=BLUE)
-    ax.text(-1.35, Y["q2"], "q2\n(Alice)", va="center", ha="left", fontsize=9)
-    ax.text(-1.35, Y["q3"], "q3\n(Bob)",   va="center", ha="left", fontsize=9)
+    ax.text(-1.35, Y["q1"], r"q1  $|\psi\rangle$"+"\n(Penelope)", va="center", ha="left", fontsize=9, color=BLUE)
+    ax.text(-1.35, Y["q2"], "q2\n(Penelope)", va="center", ha="left", fontsize=9)
+    ax.text(-1.35, Y["q3"], "q3\n(Odysseus)",   va="center", ha="left", fontsize=9)
+    # optional film portraits (shown only if stills are present in animations/img/)
+    _portrait(ax, PEN_IMG, (9.55, 3.55))
+    _portrait(ax, ODY_IMG, (9.55, 1.0))
     # Bell-pair bracket q2-q3 at far left
     ax.annotate("", xy=(0.05,Y["q2"]), xytext=(0.05,Y["q3"]),
                 arrowprops=dict(arrowstyle="-", color=GOLD, lw=2))
@@ -83,7 +109,7 @@ def draw(frame, ax, nframes):
             w,lab=pl; y=Y[w]
             ax.add_patch(Rectangle((gx-0.34,y-0.28),0.68,0.56, fc="white", ec=col, lw=2, zorder=3))
             ax.text(gx,y,f"${lab}$", ha="center", va="center", fontsize=10, color=col, zorder=4)
-    # classical double lines from meters to Bob's corrections (appear once measured)
+    # classical double lines from meters to Odysseus's corrections (appear once measured)
     if xc >= 5.6:
         for yv, off in [(Y["q1"],0.04),(Y["q2"],0.04)]:
             ax.plot([5.6,8.9],[yv+off,yv+off], color=GREEN, lw=0.9, ls=(0,(4,2)), zorder=1)

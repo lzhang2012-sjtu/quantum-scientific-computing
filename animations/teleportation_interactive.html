@@ -39,6 +39,20 @@
   .outcome button{ background:#fff; color:var(--green); border-color:var(--green); padding:4px 9px;}
   .outcome button.on{ background:var(--green); color:#fff; }
   svg text{ font-family: ui-monospace,Menlo,Consolas,monospace; }
+  .cast{ display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+         margin:4px 0 12px; padding:10px 14px; background:#fff;
+         border:1px solid #e5e7eb; border-radius:10px; }
+  .cast figure{ margin:0; text-align:center; width:104px; }
+  .portrait{ width:96px; height:120px; object-fit:cover; border-radius:8px;
+             border:3px solid var(--grey); background:#eef1f6; display:block; }
+  .cast figure.active .portrait{ border-color:var(--gold);
+             box-shadow:0 0 0 3px rgba(212,160,23,.28); }
+  .cast figcaption{ font-size:11.5px; color:#374151; margin-top:4px; line-height:1.3; }
+  .psbadge{ display:inline-block; font-size:11px; color:#fff; background:var(--red);
+            border-radius:10px; padding:1px 8px; margin-top:3px; }
+  .castmid{ text-align:center; color:var(--blue); font-size:12px; min-width:118px; line-height:1.4; }
+  .castcredit{ font-size:10.5px; color:#6b7280; max-width:240px; line-height:1.4; }
+  .castcredit code{ background:#f1f5f9; padding:0 3px; border-radius:3px; font-size:10px; }
   #matpanel{ margin-top:16px; }
   .matwrap{ display:flex; gap:30px; flex-wrap:wrap; margin-top:6px; }
   .matbox h4{ margin:0 0 5px; font-size:13px; color:var(--blue); font-weight:600; }
@@ -55,8 +69,8 @@
 <body>
 <h1>Quantum teleportation — interactive walkthrough</h1>
 <div class="sub">Play / pause / step through the protocol and watch the exact three-qubit
-state (q1 = Alice's message, q2 = Alice's Bell half, q3 = Bob's Bell half). Set the
-unknown state |ψ⟩ = cos(θ/2)|0⟩ + e^{iφ} sin(θ/2)|1⟩ and choose Alice's measurement outcome.</div>
+state (q1 = Penelope's message, q2 = Penelope's Bell half, q3 = Odysseus's Bell half). Set the
+unknown state |ψ⟩ = cos(θ/2)|0⟩ + e^{iφ} sin(θ/2)|1⟩ and choose Penelope's measurement outcome.</div>
 
 <div class="controls">
   <button id="btnPlay">▶ Play</button>
@@ -72,10 +86,28 @@ unknown state |ψ⟩ = cos(θ/2)|0⟩ + e^{iφ} sin(θ/2)|1⟩ and choose Alice'
   <label>θ <input id="theta" type="range" min="0" max="180" value="60"/><span id="thv">60°</span></label>
   <label>φ <input id="phi" type="range" min="0" max="360" value="45"/><span id="phv">45°</span></label>
   <span>|ψ⟩ = <span id="psiket" style="font-family:ui-monospace,monospace;"></span></span>
-  <span class="outcome">Alice's outcome (m₁m₂):
+  <span class="outcome">Penelope's outcome (m₁m₂):
     <button data-o="0">auto</button>
     <button data-o="00">00</button><button data-o="01">01</button>
     <button data-o="10">10</button><button data-o="11">11</button></span>
+</div>
+
+<div class="cast" id="cast">
+  <figure id="figPen">
+    <img class="portrait" id="imgPen" src="img/penelope.jpg" alt="Penelope"/>
+    <figcaption><b>Penelope</b> — q1<br>sender, holds |ψ⟩
+      <div class="psbadge" id="badgePen">|ψ⟩</div></figcaption>
+  </figure>
+  <div class="castmid" id="castmid">share a Bell pair</div>
+  <figure id="figOdy">
+    <img class="portrait" id="imgOdy" src="img/odysseus.jpg" alt="Odysseus"/>
+    <figcaption><b>Odysseus</b> — q3<br>receiver
+      <div class="psbadge" id="badgeOdy" style="display:none">|ψ⟩</div></figcaption>
+  </figure>
+  <div class="castcredit"><i>The Odyssey</i> (2026), dir. Christopher Nolan —
+    Anne Hathaway as Penelope, Matt Damon as Odysseus. To show the film stills,
+    drop licensed images at <code>animations/img/penelope.jpg</code> and
+    <code>odysseus.jpg</code> (placeholder portraits shown until then).</div>
 </div>
 
 <div class="caption" id="caption"></div>
@@ -162,8 +194,8 @@ const MLBL=[
   "CNOT (q1→q2)",
   "H ⊗ I ⊗ I &nbsp; (Hadamard on q1)",
   "Π(m₁,m₂) &nbsp; projector — <b>not unitary</b>",
-  "I ⊗ I ⊗ X<sup>m₂</sup> &nbsp; (Bob's X correction)",
-  "I ⊗ I ⊗ Z<sup>m₁</sup> &nbsp; (Bob's Z correction)"
+  "I ⊗ I ⊗ X<sup>m₂</sup> &nbsp; (Odysseus's X correction)",
+  "I ⊗ I ⊗ Z<sup>m₁</sup> &nbsp; (Odysseus's Z correction)"
 ];
 
 // ---- build the state after each step ----
@@ -176,8 +208,8 @@ function computeStates(theta,phi,outcome){
   let s0=Array.from({length:8},()=>[0,0]); s0[0]=a.slice(); s0[Q1]=b.slice();
   const s1=H(s0,Q2);              // H on q2
   const s2=CNOT(s1,Q2,Q3);        // Bell pair q2->q3
-  const s3=CNOT(s2,Q1,Q2);        // Alice CNOT q1->q2
-  const s4=H(s3,Q1);              // Alice H on q1
+  const s3=CNOT(s2,Q1,Q2);        // Penelope CNOT q1->q2
+  const s4=H(s3,Q1);              // Penelope H on q1
   // choose outcome
   let m1,m2;
   if(outcome==="0"){ // auto: sample from probabilities of s4
@@ -188,22 +220,22 @@ function computeStates(theta,phi,outcome){
     m1=+chosen[0];m2=+chosen[1]; window.__auto=chosen;
   }else{m1=+outcome[0];m2=+outcome[1];}
   const s5=projectMeasure(s4,m1,m2);   // after measurement
-  const s6=(m2? X(s5,Q3):s5.map(x=>x.slice()));  // Bob applies X^{m2}
-  const s7=(m1? Z(s6,Q3):s6.map(x=>x.slice()));  // Bob applies Z^{m1}
+  const s6=(m2? X(s5,Q3):s5.map(x=>x.slice()));  // Odysseus applies X^{m2}
+  const s7=(m1? Z(s6,Q3):s6.map(x=>x.slice()));  // Odysseus applies Z^{m1}
   const {M,C}=stepMatrices(m1,m2);
   return {states:[s0,s1,s2,s3,s4,s5,s6,s7],m1,m2,Msteps:M,Csteps:C};
 }
 
 // ---- step metadata (captions + which gate is "active") ----
 const STEPS=[
- {cap:"Initial state. Alice holds the unknown |ψ⟩ on q1; q2 and q3 start in |0⟩.",act:null},
+ {cap:"Initial state. Penelope holds the unknown |ψ⟩ on q1; q2 and q3 start in |0⟩.",act:null},
  {cap:"Bell-pair prep: Hadamard on q2.",act:"H2"},
  {cap:"Bell-pair prep: CNOT (q2→q3). q2–q3 are now the entangled pair |Φ⁺⟩ (shared earlier).",act:"CX23"},
- {cap:"Alice applies CNOT (q1→q2): she entangles her message with her Bell half.",act:"CX12"},
- {cap:"Alice applies H to q1. (Each of the 4 outcomes m₁m₂ now has probability ¼.)",act:"H1"},
- {cap:"Alice measures q1,q2 → classical bits (m₁,m₂). Bob's q3 collapses to X^{m₂}Z^{m₁}|ψ⟩.",act:"M"},
- {cap:"Bob applies X^{m₂} (a bit-flip iff m₂=1), triggered by Alice's classical bit.",act:"BX"},
- {cap:"Bob applies Z^{m₁} (a phase-flip iff m₁=1). Now q3 = |ψ⟩ — teleported! Source destroyed; no cloning; 2 classical bits needed (no FTL).",act:"BZ"},
+ {cap:"Penelope applies CNOT (q1→q2): she entangles her message with her Bell half.",act:"CX12"},
+ {cap:"Penelope applies H to q1. (Each of the 4 outcomes m₁m₂ now has probability ¼.)",act:"H1"},
+ {cap:"Penelope measures q1,q2 → classical bits (m₁,m₂). Odysseus's q3 collapses to X^{m₂}Z^{m₁}|ψ⟩.",act:"M"},
+ {cap:"Odysseus applies X^{m₂} (a bit-flip iff m₂=1), triggered by Penelope's classical bit.",act:"BX"},
+ {cap:"Odysseus applies Z^{m₁} (a phase-flip iff m₁=1). Now q3 = |ψ⟩ — teleported! Source destroyed; no cloning; 2 classical bits needed (no FTL).",act:"BZ"},
 ];
 
 // ---- rendering ----
@@ -253,7 +285,7 @@ function renderMatrices(){
   else if(step===5)
     note="Measurement is <b>not a unitary</b>: the step operator is the projector Π onto q₁=m₁, q₂=m₂ (a diagonal 0/1 matrix). The physical step also renormalizes by 1/√P (P=¼, a state-dependent scalar not included in the matrix). The cumulative C now contains Π, so it is no longer unitary — C·(initial state) gives the un-renormalized projected state (norm √P).";
   else
-    note="Bob's correction is unitary, but it acts on the already-collapsed branch, so the cumulative C (which still carries the projector Π from step 5) is not a single global unitary. Each surviving amplitude equals the corresponding un-renormalized entry of C·(initial state), up to the 1/√P from measurement.";
+    note="Odysseus's correction is unitary, but it acts on the already-collapsed branch, so the cumulative C (which still carries the projector Π from step 5) is not a single global unitary. Each surviving amplitude equals the corresponding un-renormalized entry of C·(initial state), up to the 1/√P from measurement.";
   $("matnote").innerHTML=note;}
 function stepRule(){
   const act=STEPS[step].act;
@@ -296,11 +328,11 @@ function renderState(){
       <td class="barcell"><div class="bar" style="width:${Math.round(120*p/(maxp||1))}px;opacity:${zero?0:0.9}"></div></td>
       <td class="how ${zero&&step>0?'amp0':''}">${howStr(i)}</td>`;
     body.appendChild(tr);}
-  // note about Bob's qubit
+  // note about Odysseus's qubit
   let note="";
   if(step<2) note="q3 is still |0⟩ (Bell pair not yet formed).";
-  else if(step<5) note="q3 is entangled with Alice's qubits — it has no state of its own yet (its reduced state is the maximally mixed ½I).";
-  else if(step<7) note=`Measured (m₁,m₂)=(${cur.m1},${cur.m2}). Bob holds X^{${cur.m2}}Z^{${cur.m1}}|ψ⟩; corrections pending.`;
+  else if(step<5) note="q3 is entangled with Penelope's qubits — it has no state of its own yet (its reduced state is the maximally mixed ½I).";
+  else if(step<7) note=`Measured (m₁,m₂)=(${cur.m1},${cur.m2}). Odysseus holds X^{${cur.m2}}Z^{${cur.m1}}|ψ⟩; corrections pending.`;
   else note=`Done: q3 = |ψ⟩ = ${$("psiket").textContent} (independent of the outcome (m₁,m₂)=(${cur.m1},${cur.m2})).`;
   $("statenote").textContent=note;
 }
@@ -323,8 +355,8 @@ function drawCircuit(){
   E.push(`<text x='6' y='${yy.q1+4}' font-size='12' fill='var(--blue)'>q1 |ψ⟩</text>`);
   E.push(`<text x='6' y='${yy.q2+4}' font-size='12'>q2</text>`);
   E.push(`<text x='6' y='${yy.q3+4}' font-size='12'>q3</text>`);
-  E.push(`<text x='2' y='${yy.q1-16}' font-size='11' fill='#6b7280'>Alice</text>`);
-  E.push(`<text x='2' y='${yy.q3+30}' font-size='11' fill='#6b7280'>Bob</text>`);
+  E.push(`<text x='2' y='${yy.q1-16}' font-size='11' fill='#6b7280'>Penelope</text>`);
+  E.push(`<text x='2' y='${yy.q3+30}' font-size='11' fill='#6b7280'>Odysseus</text>`);
   const box=(x,y,t,c,w=22)=>`<rect x='${x-w/2}' y='${y-16}' width='${w}' height='32' rx='4' fill='white' stroke='${c}' stroke-width='2'/><text x='${x}' y='${y+5}' font-size='13' text-anchor='middle' fill='${c}'>${t}</text>`;
   const cnot=(x,yc,yt,c)=>`<line x1='${x}' y1='${yc}' x2='${x}' y2='${yt}' stroke='${c}' stroke-width='2'/>`+
       `<circle cx='${x}' cy='${yc}' r='5' fill='${c}'/>`+
@@ -365,7 +397,7 @@ function drawCircuit(){
 function render(){
   $("caption").textContent=STEPS[step].cap;
   $("stepno").textContent=`Step ${step} of ${STEPS.length-1}`;
-  drawCircuit(); renderState(); renderMatrices();
+  drawCircuit(); renderState(); renderMatrices(); updateCast();
   $("btnPrev").disabled=(step===0); $("btnNext").disabled=(step===STEPS.length-1);
 }
 function recompute(){cur=computeStates(theta,phi,outcome);
@@ -379,6 +411,36 @@ function play(){ if(timer) return; if(step===STEPS.length-1) goto(0);
   timer=setInterval(()=>{ if(step>=STEPS.length-1){pause();return;} goto(step+1); }, +$("speed").value); }
 function pause(){ if(timer){clearInterval(timer);timer=null;} }
 
+// ---- cast portraits (2026 "The Odyssey") ----
+function portraitSVG(name,actor,hex){
+  const s=`<svg xmlns='http://www.w3.org/2000/svg' width='96' height='120'>`+
+    `<defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'>`+
+    `<stop offset='0' stop-color='${hex}'/><stop offset='1' stop-color='#0b1020'/></linearGradient></defs>`+
+    `<rect width='96' height='120' rx='8' fill='url(#g)'/>`+
+    `<circle cx='48' cy='42' r='19' fill='#ffffff' opacity='0.92'/>`+
+    `<path d='M16 100 q32 -34 64 0 L80 100 Z' fill='#ffffff' opacity='0.92'/>`+
+    `<rect x='0' y='94' width='96' height='26' fill='#000000' opacity='0.38'/>`+
+    `<text x='48' y='107' text-anchor='middle' font-family='Georgia,serif' font-size='12' fill='#fff' font-weight='bold'>${name}</text>`+
+    `<text x='48' y='116' text-anchor='middle' font-family='sans-serif' font-size='6.5' fill='#e5e7eb'>${actor}</text>`+
+    `</svg>`;
+  return "data:image/svg+xml,"+encodeURIComponent(s);
+}
+function wirePortrait(id,name,actor,hex){const img=$(id);
+  img.onerror=()=>{img.onerror=null;img.src=portraitSVG(name,actor,hex);};
+  if(img.complete&&img.naturalWidth===0) img.onerror(); // fire now if the still is absent
+}
+function updateCast(){
+  $("figPen").classList.toggle("active", step<=5);
+  $("figOdy").classList.toggle("active", step>=5);
+  const arrived=(step>=7);
+  $("badgePen").style.display=arrived?"none":"inline-block";
+  $("badgeOdy").style.display=arrived?"inline-block":"none";
+  $("castmid").innerHTML = step<2 ? "share a Bell pair"
+    : step<5 ? "message entangled<br>across the pair"
+    : step<7 ? "2 classical bits<br>sent to Odysseus →"
+    : "|ψ⟩ delivered<br>to Odysseus ✓";
+}
+
 // ---- wire up controls ----
 $("btnPlay").onclick=play; $("btnPause").onclick=pause;
 $("btnNext").onclick=()=>{pause();goto(step+1);};
@@ -391,6 +453,8 @@ document.querySelectorAll(".outcome button").forEach(btn=>btn.onclick=()=>{
   document.querySelectorAll(".outcome button").forEach(b=>b.classList.toggle("on",b===btn));
   recompute();});
 document.querySelector('.outcome button[data-o="0"]').classList.add("on");
+wirePortrait("imgPen","Penelope","Anne Hathaway","#7c3aed");
+wirePortrait("imgOdy","Odysseus","Matt Damon","#1f3a8a");
 recompute();
 </script>
 </body>

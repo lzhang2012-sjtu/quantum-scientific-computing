@@ -115,16 +115,16 @@ $\tfrac12<1$ versus $1$ quantifies the entanglement of the Bell pair.
 (a) From the grouped expression \eqref{eq:lec01-tele-grouped}, the $(m_1,m_2)=(1,0)$
 branch carries qubit~$3$ in the state $a\ket{0}-b\ket{1}$. Since $Z\ket{0}=\ket{0}$ and
 $Z\ket{1}=-\ket{1}$, indeed $Z\ket{\psi}=Z(a\ket{0}+b\ket{1})=a\ket{0}-b\ket{1}$, so
-Bob holds $Z\ket{\psi}$.
+Odysseus holds $Z\ket{\psi}$.
 (b) The correction is $Z^{m_1}X^{m_2}=Z^{1}X^{0}=Z$. Applying it,
 $Z\,(Z\ket{\psi})=Z^2\ket{\psi}=\ket{\psi}$ because $Z^2=I$.
-(c) Averaging over the four outcomes, Bob's ensemble is
+(c) Averaging over the four outcomes, Odysseus's ensemble is
 $\{\tfrac14,\ket{\psi}\},\{\tfrac14,X\ket{\psi}\},\{\tfrac14,Z\ket{\psi}\},\{\tfrac14,XZ\ket{\psi}\}$,
 with density operator $\rho_3=\tfrac14\bigl(\proj{\psi}+X\proj{\psi}X\dg+Z\proj{\psi}Z\dg+XZ\proj{\psi}(XZ)\dg\bigr)$.
 Writing $\ket{\psi}\!\bra{\psi}=\tfrac12(\id+\vec r\cdot\vec\sigma)$ in the Pauli basis,
 the four Pauli conjugations flip the signs of the $\vec r\cdot\vec\sigma$ term so that
 the four Bloch vectors sum to zero, leaving $\rho_3=\tfrac12\id$. Because this is
-independent of $a,b$ and of any operation Alice performs, Bob's local statistics cannot
+independent of $a,b$ and of any operation Penelope performs, Odysseus's local statistics cannot
 convey information until the classical bits $(m_1,m_2)$ arrive over a light-speed-limited
 channel---hence no superluminal signaling.
 \end{solution}
@@ -136,7 +136,7 @@ $ZX\ket{0}=\ket{1}$ and $ZX\ket{1}=-\ket{0}$,
 \[
   (ZX\otimes I)\ket{\Phi^{+}}=\tfrac{1}{\sqrt2}\bigl(\ket{10}-\ket{01}\bigr).
 \]
-Now Bob applies $\CNOT_{1\to2}$ (flip qubit~$2$ when qubit~$1$ is $\ket{1}$):
+Now Odysseus applies $\CNOT_{1\to2}$ (flip qubit~$2$ when qubit~$1$ is $\ket{1}$):
 $\ket{10}\mapsto\ket{11}$, $\ket{01}\mapsto\ket{01}$, giving
 $\tfrac{1}{\sqrt2}(\ket{11}-\ket{01})=\tfrac{1}{\sqrt2}(\ket{1}-\ket{0})_1\otimes\ket{1}_2$.
 Applying $H$ to qubit~$1$ and using $H\tfrac{1}{\sqrt2}(\ket{1}-\ket{0})=H\bigl(-\ket{-}\bigr)=-\ket{1}$,
