@@ -30,6 +30,10 @@
   .barcell{ width:120px; }
   .bar{ height:11px; background:var(--blue); border-radius:3px; }
   .amp0{ color:#9aa0ac; }
+  td.how{ text-align:left; font-size:11px; color:#374151; font-family:ui-monospace,Menlo,Consolas,monospace; }
+  #steprule{ background:#f0fdf4; border-left:4px solid var(--green); padding:7px 11px;
+             border-radius:6px; font-size:12.5px; margin:2px 0 9px; line-height:1.5; }
+  #steprule b{ color:var(--green); }
   .note{ font-size:12px; color:#4b5563; margin-top:8px; line-height:1.45; }
   .stepno{ font-size:12px; color:#6b7280; }
   .outcome button{ background:#fff; color:var(--green); border-color:var(--green); padding:4px 9px;}
@@ -72,7 +76,8 @@ unknown state |ψ⟩ = cos(θ/2)|0⟩ + e^{iφ} sin(θ/2)|1⟩ and choose Alice'
   </div>
   <div class="panel" id="statepanel">
     <div style="color:var(--blue);font-weight:600;margin-bottom:6px;">Current quantum state (q1 q2 q3)</div>
-    <table id="statetbl"><thead><tr><th>|q₁q₂q₃⟩</th><th>amplitude</th><th>prob</th><th class="barcell"></th></tr></thead>
+    <div class="note" id="steprule"></div>
+    <table id="statetbl"><thead><tr><th>|q₁q₂q₃⟩</th><th>amplitude</th><th>prob</th><th class="barcell"></th><th style="text-align:left">how the amplitude is obtained</th></tr></thead>
       <tbody id="statebody"></tbody></table>
     <div class="note" id="statenote"></div>
   </div>
@@ -149,15 +154,47 @@ function fmtC(x){const re=x[0],im=x[1];const r=v=>Math.abs(v)<1e-9?"0":(Math.rou
   if(Math.abs(re)<1e-9) return r(im)+"i";
   return "("+r(re)+(im>=0?"+":"")+r(im)+"i)";}
 
+function lblOf(i){return ((i>>2)&1)+""+((i>>1)&1)+""+(i&1);}
+function stepRule(){
+  const act=STEPS[step].act;
+  const born=" &nbsp;•&nbsp; <b>probability = |amplitude|²</b> (Born rule).";
+  if(step===0) return "<b>Input.</b> |ψ⟩⊗|0⟩⊗|0⟩: the amplitude of |x00⟩ is the coefficient ⟨x|ψ⟩ of |ψ⟩ (a for x=0, b for x=1); every other basis state has amplitude 0."+born;
+  if(act==="H2"||act==="H1"){const q=(act==="H2")?"q2":"q1";
+    return `<b>Hadamard on ${q}.</b> H:|0⟩→(|0⟩+|1⟩)/√2, |1⟩→(|0⟩−|1⟩)/√2. Each new amplitude combines the two old amplitudes that differ only in ${q}: the ${q}=0 entry becomes (old₀+old₁)/√2, the ${q}=1 entry becomes (old₀−old₁)/√2.`+born;}
+  if(act==="CX23"||act==="CX12"){const c=(act==="CX23")?"q2":"q1",t=(act==="CX23")?"q3":"q2";
+    return `<b>CNOT (${c}→${t}).</b> Where the control ${c}=1 the target ${t} bit is flipped (the amplitude is carried to the partner basis state); where ${c}=0 the amplitude is unchanged. No factors of √2 — CNOT just permutes amplitudes.`+born;}
+  if(act==="M") return `<b>Measure q1,q2 → (m₁,m₂)=(${cur.m1},${cur.m2}).</b> Keep only basis states with q1=${cur.m1}, q2=${cur.m2}, set the rest to 0, then divide each surviving amplitude by √P where P=Σ|amplitude|² over the kept states (=¼ here). This renormalizes the collapsed state so its probabilities sum to 1.`+born;
+  if(act==="BX") return `<b>Correction X^{m₂} on q3 (m₂=${cur.m2}).</b> `+(cur.m2?"m₂=1 ⇒ swap the q3=0 and q3=1 amplitudes (bit-flip).":"m₂=0 ⇒ identity, amplitudes unchanged.")+born;
+  if(act==="BZ") return `<b>Correction Z^{m₁} on q3 (m₁=${cur.m1}).</b> `+(cur.m1?"m₁=1 ⇒ multiply every q3=1 amplitude by −1 (phase-flip).":"m₁=0 ⇒ identity, amplitudes unchanged.")+born;
+  return born;
+}
+function howStr(i){
+  const prev=step>0?cur.states[step-1]:null, act=STEPS[step].act;
+  const L=j=>"|"+lblOf(j)+"⟩";
+  if(step===0){ if(i===0) return "a = ⟨0|ψ⟩"; if(i===Q1) return "b = ⟨1|ψ⟩"; return "0 (q2,q3=|0⟩)"; }
+  if(act==="H2"||act==="H1"){const b=(act==="H2")?Q2:Q1;const i0=i&~b,i1=i|b;
+    const s=(i&b)?"−":"+"; return `(${fmtC(prev[i0])} ${s} ${fmtC(prev[i1])})/√2`;}
+  if(act==="CX23"||act==="CX12"){const c=(act==="CX23")?Q2:Q1,t=(act==="CX23")?Q3:Q2;
+    return (i&c)?`= amp ${L(i^t)} before (ctrl 1 ⇒ flip)`:`= amp ${L(i)} before (ctrl 0)`;}
+  if(act==="M"){const kept=(((i>>2)&1)===cur.m1&&((i>>1)&1)===cur.m2);
+    if(!kept) return "→ 0 (excluded by outcome)";
+    let P=0;for(let k=0;k<8;k++) if((((k>>2)&1)===cur.m1)&&(((k>>1)&1)===cur.m2))P+=abs2(prev[k]);
+    return `${fmtC(prev[i])} / √${Math.round(P*1000)/1000}`;}
+  if(act==="BX"){ if(!cur.m2) return "unchanged (m₂=0)"; return `= amp ${L(i^Q3)} before (X flips q3)`;}
+  if(act==="BZ"){ if(!cur.m1) return "unchanged (m₁=0)"; return (i&Q3)?"= −(previous amp) (q3=1)":"unchanged (q3=0)";}
+  return "";
+}
 function renderState(){
+  $("steprule").innerHTML=stepRule();
   const v=cur.states[step];const body=$("statebody");body.innerHTML="";
   let maxp=0; for(let i=0;i<8;i++) maxp=Math.max(maxp,abs2(v[i]));
-  for(let i=0;i<8;i++){const p=abs2(v[i]);const lbl=((i>>2)&1)+""+((i>>1)&1)+""+(i&1);
+  for(let i=0;i<8;i++){const p=abs2(v[i]);const lbl=lblOf(i);
     const tr=document.createElement("tr");const zero=p<1e-9;
     tr.innerHTML=`<td class="basis ${zero?'amp0':''}">|${lbl}⟩</td>
       <td class="${zero?'amp0':''}">${fmtC(v[i])}</td>
       <td class="${zero?'amp0':''}">${zero?'0':(Math.round(p*1000)/1000)}</td>
-      <td class="barcell"><div class="bar" style="width:${Math.round(120*p/(maxp||1))}px;opacity:${zero?0:0.9}"></div></td>`;
+      <td class="barcell"><div class="bar" style="width:${Math.round(120*p/(maxp||1))}px;opacity:${zero?0:0.9}"></div></td>
+      <td class="how ${zero&&step>0?'amp0':''}">${howStr(i)}</td>`;
     body.appendChild(tr);}
   // note about Bob's qubit
   let note="";
