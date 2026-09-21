@@ -39,6 +39,17 @@
   .outcome button{ background:#fff; color:var(--green); border-color:var(--green); padding:4px 9px;}
   .outcome button.on{ background:var(--green); color:#fff; }
   svg text{ font-family: ui-monospace,Menlo,Consolas,monospace; }
+  #matpanel{ margin-top:16px; }
+  .matwrap{ display:flex; gap:30px; flex-wrap:wrap; margin-top:6px; }
+  .matbox h4{ margin:0 0 5px; font-size:13px; color:var(--blue); font-weight:600; }
+  table.mat{ border-collapse:collapse; }
+  table.mat td{ width:40px; height:21px; text-align:center; padding:0;
+      font-size:10px; border:1px solid #eef0f4;
+      font-family:ui-monospace,Menlo,Consolas,monospace; }
+  table.mat td.hd{ color:#9aa0ac; font-size:9px; border:none; width:34px; }
+  table.mat td.nz{ background:#eef2ff; color:#111; }
+  table.mat td.im{ color:#0b603b; }
+  .matnote{ font-size:11.5px; color:#4b5563; margin-top:8px; max-width:820px; line-height:1.5; }
 </style>
 </head>
 <body>
@@ -83,6 +94,16 @@ unknown state |ψ⟩ = cos(θ/2)|0⟩ + e^{iφ} sin(θ/2)|1⟩ and choose Alice'
   </div>
 </div>
 
+<div class="panel" id="matpanel">
+  <div style="color:var(--blue);font-weight:600;margin-bottom:2px;">Unitary matrices &nbsp;
+    <span style="font-weight:400;font-size:12px;color:#6b7280;">(8×8, basis |q₁q₂q₃⟩ ordered 000, 001, …, 111; blank = 0, green = imaginary)</span></div>
+  <div class="matwrap">
+    <div class="matbox"><h4 id="mstep-cap"></h4><div id="mstep"></div></div>
+    <div class="matbox"><h4 id="mcum-cap"></h4><div id="mcum"></div></div>
+  </div>
+  <div class="matnote" id="matnote"></div>
+</div>
+
 <script>
 "use strict";
 const R2=Math.SQRT1_2;
@@ -91,6 +112,7 @@ const cx=(re,im)=>[re,im||0];
 const add=(a,b)=>[a[0]+b[0],a[1]+b[1]];
 const sub=(a,b)=>[a[0]-b[0],a[1]-b[1]];
 const scale=(a,s)=>[a[0]*s,a[1]*s];
+const cmul=(a,b)=>[a[0]*b[0]-a[1]*b[1], a[0]*b[1]+a[1]*b[0]];
 const abs2=a=>a[0]*a[0]+a[1]*a[1];
 const bit=(i,b)=>(i&b)?1:0;          // b in {4,2,1} for q1,q2,q3
 const Q1=4,Q2=2,Q3=1;
@@ -105,6 +127,44 @@ function projectMeasure(v,m1,m2){ // keep q1=m1,q2=m2, renormalize
   const o=v.map((x,i)=>((bit(i,Q1)===m1)&&(bit(i,Q2)===m2))?x.slice():[0,0]);
   let n=0;o.forEach(x=>n+=abs2(x));n=Math.sqrt(n);
   return n<1e-12?o:o.map(x=>scale(x,1/n));}
+
+// ---- 8x8 complex matrices (basis |q1q2q3>, index 0..7) ----
+function evec(j){const v=Array.from({length:8},()=>[0,0]);v[j]=[1,0];return v;}
+function matFromOp(op){ // build the matrix whose columns are op(e_j)
+  const M=Array.from({length:8},()=>Array.from({length:8},()=>[0,0]));
+  for(let j=0;j<8;j++){const col=op(evec(j));for(let r=0;r<8;r++)M[r][j]=col[r].slice();}
+  return M;}
+function I8(){return matFromOp(v=>v.map(x=>x.slice()));}
+function matmul(A,B){const C=Array.from({length:8},()=>Array.from({length:8},()=>[0,0]));
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){let s=[0,0];
+    for(let k=0;k<8;k++)s=add(s,cmul(A[r][k],B[k][c]));C[r][c]=s;}return C;}
+// step-operator descriptions (parallel to STEPS.act)
+function stepMatrices(m1,m2){
+  const proj=v=>v.map((x,i)=>((bit(i,Q1)===m1)&&(bit(i,Q2)===m2))?x.slice():[0,0]);
+  const M=[
+    I8(),                              // step0: state prepared (identity operator)
+    matFromOp(v=>H(v,Q2)),             // H2   = I⊗H⊗I
+    matFromOp(v=>CNOT(v,Q2,Q3)),       // CX23 = CNOT(q2→q3)
+    matFromOp(v=>CNOT(v,Q1,Q2)),       // CX12 = CNOT(q1→q2)
+    matFromOp(v=>H(v,Q1)),             // H1   = H⊗I⊗I
+    matFromOp(proj),                   // M    = Π(m1,m2) projector (NOT unitary)
+    (m2? matFromOp(v=>X(v,Q3)) : I8()),// BX   = I⊗I⊗X^{m2}
+    (m1? matFromOp(v=>Z(v,Q3)) : I8()) // BZ   = I⊗I⊗Z^{m1}
+  ];
+  const C=[M[0]];                      // cumulative product C_k = M_k·…·M_0
+  for(let k=1;k<8;k++)C[k]=matmul(M[k],C[k-1]);
+  return {M,C};
+}
+const MLBL=[
+  "I &nbsp; (initial state prepared)",
+  "I ⊗ H ⊗ I &nbsp; (Hadamard on q2)",
+  "CNOT (q2→q3)",
+  "CNOT (q1→q2)",
+  "H ⊗ I ⊗ I &nbsp; (Hadamard on q1)",
+  "Π(m₁,m₂) &nbsp; projector — <b>not unitary</b>",
+  "I ⊗ I ⊗ X<sup>m₂</sup> &nbsp; (Bob's X correction)",
+  "I ⊗ I ⊗ Z<sup>m₁</sup> &nbsp; (Bob's Z correction)"
+];
 
 // ---- build the state after each step ----
 function psiAmps(thetaDeg,phiDeg){const t=thetaDeg*Math.PI/180,p=phiDeg*Math.PI/180;
@@ -130,7 +190,8 @@ function computeStates(theta,phi,outcome){
   const s5=projectMeasure(s4,m1,m2);   // after measurement
   const s6=(m2? X(s5,Q3):s5.map(x=>x.slice()));  // Bob applies X^{m2}
   const s7=(m1? Z(s6,Q3):s6.map(x=>x.slice()));  // Bob applies Z^{m1}
-  return {states:[s0,s1,s2,s3,s4,s5,s6,s7],m1,m2};
+  const {M,C}=stepMatrices(m1,m2);
+  return {states:[s0,s1,s2,s3,s4,s5,s6,s7],m1,m2,Msteps:M,Csteps:C};
 }
 
 // ---- step metadata (captions + which gate is "active") ----
@@ -155,6 +216,45 @@ function fmtC(x){const re=x[0],im=x[1];const r=v=>Math.abs(v)<1e-9?"0":(Math.rou
   return "("+r(re)+(im>=0?"+":"")+r(im)+"i)";}
 
 function lblOf(i){return ((i>>2)&1)+""+((i>>1)&1)+""+(i&1);}
+// ---- matrix rendering ----
+function shortNum(v){v=Math.round(v*1000)/1000;
+  if(Math.abs(v)<1e-9)return "0";
+  if(Math.abs(Math.abs(v)-0.707)<2e-3)return (v<0?"-":"")+".707";
+  if(Math.abs(Math.abs(v)-0.354)<2e-3)return (v<0?"-":"")+".354";
+  if(Math.abs(Math.abs(v)-0.5)<2e-3)return (v<0?"-":"")+".5";
+  return (""+v).replace("0.",".").replace("-0.","-.");}
+function fmtM(x){const re=x[0],im=x[1];
+  const zr=Math.abs(re)<1e-9,zi=Math.abs(im)<1e-9;
+  if(zr&&zi)return {t:"",im:false};
+  if(zi)return {t:shortNum(re),im:false};
+  if(zr){const s=shortNum(im);return {t:(s==="1"?"i":s==="-1"?"−i":s+"i"),im:true};}
+  return {t:shortNum(re)+(im>=0?"+":"−")+shortNum(Math.abs(im))+"i",im:true};}
+function matHTML(M){
+  let h="<table class='mat'><tr><td class='hd'></td>";
+  for(let c=0;c<8;c++)h+=`<td class='hd'>${lblOf(c)}</td>`;h+="</tr>";
+  for(let r=0;r<8;r++){h+=`<tr><td class='hd'>${lblOf(r)}</td>`;
+    for(let c=0;c<8;c++){const f=fmtM(M[r][c]);
+      const cls=(f.t?"nz":"")+(f.im?" im":"");
+      h+=`<td class="${cls.trim()}">${f.t}</td>`;}
+    h+="</tr>";}
+  return h+"</table>";}
+function renderMatrices(){
+  $("mstep-cap").innerHTML=`Step ${step} operator&nbsp;=&nbsp;${MLBL[step]}`;
+  $("mstep").innerHTML=matHTML(cur.Msteps[step]);
+  $("mcum-cap").innerHTML=(step===0)
+    ? "Cumulative operator&nbsp;C&nbsp;=&nbsp;I"
+    : `Cumulative operator&nbsp;C&nbsp;=&nbsp;M<sub>${step}</sub>·…·M<sub>1</sub>`;
+  $("mcum").innerHTML=matHTML(cur.Csteps[step]);
+  let note;
+  if(step===0)
+    note="The initial state |ψ⟩⊗|0⟩⊗|0⟩ is just prepared, so the step operator is the identity.";
+  else if(step<=4)
+    note="Steps 1–4 are unitary. The cumulative product C is the coherent teleportation circuit U = (H⊗I⊗I)·CNOT₁₂·CNOT₂₃·(I⊗H⊗I); applying C to the initial state reproduces the state shown above exactly.";
+  else if(step===5)
+    note="Measurement is <b>not a unitary</b>: the step operator is the projector Π onto q₁=m₁, q₂=m₂ (a diagonal 0/1 matrix). The physical step also renormalizes by 1/√P (P=¼, a state-dependent scalar not included in the matrix). The cumulative C now contains Π, so it is no longer unitary — C·(initial state) gives the un-renormalized projected state (norm √P).";
+  else
+    note="Bob's correction is unitary, but it acts on the already-collapsed branch, so the cumulative C (which still carries the projector Π from step 5) is not a single global unitary. Each surviving amplitude equals the corresponding un-renormalized entry of C·(initial state), up to the 1/√P from measurement.";
+  $("matnote").innerHTML=note;}
 function stepRule(){
   const act=STEPS[step].act;
   const born=" &nbsp;•&nbsp; <b>probability = |amplitude|²</b> (Born rule).";
@@ -265,7 +365,7 @@ function drawCircuit(){
 function render(){
   $("caption").textContent=STEPS[step].cap;
   $("stepno").textContent=`Step ${step} of ${STEPS.length-1}`;
-  drawCircuit(); renderState();
+  drawCircuit(); renderState(); renderMatrices();
   $("btnPrev").disabled=(step===0); $("btnNext").disabled=(step===STEPS.length-1);
 }
 function recompute(){cur=computeStates(theta,phi,outcome);
