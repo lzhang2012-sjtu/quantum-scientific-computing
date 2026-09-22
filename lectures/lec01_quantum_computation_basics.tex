@@ -946,7 +946,23 @@ To add $A_1A_0$ and $B_1B_0$ we work column by column, exactly as in grade-schoo
 addition but in base two. The rightmost column produces a sum bit $S_0$ and a
 carry $C_1$; the next column adds $A_1$, $B_1$, and the incoming carry $C_1$ to
 produce $S_1$ and a final carry $C_2$; and the result is the three-bit number
-$C_2S_1S_0$ (for example, $2+3$ is $10+11=101=5$).
+$C_2S_1S_0$ (for example, $2+3$ is $10+11=101=5$). In the familiar columnar layout,
+with each carry written above the column it feeds:
+\[
+\begin{array}{r@{\;}c@{\;}c@{\;}c}
+    & C_2 & C_1 &     \\
+    &     & A_1 & A_0 \\
+  + &     & B_1 & B_0 \\ \hline
+    & C_2 & S_1 & S_0
+\end{array}
+\qquad\text{e.g.}\qquad
+\begin{array}{r@{\;}c@{\;}c@{\;}c}
+    & 1 & 0 &   \\
+    &   & 1 & 0 \\
+  + &   & 1 & 1 \\ \hline
+    & 1 & 0 & 1
+\end{array}
+\]
 
 \paragraph{Half adder.} The rightmost column has no incoming carry, so
 \[
@@ -981,6 +997,21 @@ and the carry $C_1=A_0\wedge B_0$.
   S_1=C_1\oplus A_1\oplus B_1,\qquad
   C_2=(A_1\wedge B_1)\oplus(C_1\wedge A_1)\oplus(C_1\wedge B_1).
 \]
+These rules are confirmed by the truth table over the three input bits $C_1,A_1,B_1$:
+\begin{center}
+\begin{tabular}{ccc@{\qquad}cc}
+\toprule
+$C_1$ & $A_1$ & $B_1$ & $C_2$ & $S_1$\\ \midrule
+0 & 0 & 0 & 0 & 0\\
+0 & 0 & 1 & 0 & 1\\
+0 & 1 & 0 & 0 & 1\\
+0 & 1 & 1 & 1 & 0\\
+1 & 0 & 0 & 0 & 1\\
+1 & 0 & 1 & 1 & 0\\
+1 & 1 & 0 & 1 & 0\\
+1 & 1 & 1 & 1 & 1\\ \bottomrule
+\end{tabular}
+\end{center}
 The carry $C_2$ is accumulated onto a $\ket{0}$ ancilla by three Toffolis, one for
 each product; the sum $S_1$ is then two $\CNOT$s targeting the $B_1$ wire (controls
 $C_1$ and $A_1$). As before we compute the carry first, since forming $S_1$
