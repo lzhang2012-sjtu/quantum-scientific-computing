@@ -920,6 +920,33 @@ algorithm. The overhead is thus only polylogarithmic in the inverse precision, w
 is why compiling ideal circuits to a fixed hardware gate set is practical.
 \end{remark}
 
+\begin{remark}[Why Solovay--Kitaev works (sketch)]\label{rem:lec01-sk-sketch}
+The polylogarithmic bound comes from a recursion that sharpens an approximation by
+representing its \emph{error} with ever-smaller gates. Assume $\mathcal{G}$ is closed
+under inverses.
+\emph{(i) Base net.} Density of $\langle\mathcal{G}\rangle$ together with compactness of
+$SU(2)$ gives a fixed accuracy $\varepsilon_0$ reachable by \emph{every} gate using
+words of bounded length.
+\emph{(ii) Commutator lemma.} Any $\Delta$ near the identity, $\norm{\Delta-\id}\le\delta$,
+factors as a group commutator $\Delta=VWV\dg W\dg$ up to $\bigo(\delta^{3/2})$, where
+$V,W$ are only $\bigo(\sqrt{\delta})$ from the identity---writing
+$V=\ee^{-\ii A}$, $W=\ee^{-\ii B}$ with $A,B=\bigo(\sqrt{\delta})$, one has
+$VWV\dg W\dg=\ee^{-[A,B]+\bigo(\delta^{3/2})}$ and $[A,B]=\bigo(\delta)$.
+\emph{(iii) Recursion.} Given a level-$(n{-}1)$ approximation $U_{n-1}$ of accuracy
+$\varepsilon_{n-1}$, decompose the residual $\Delta=U\,U_{n-1}\dg$ by the lemma,
+approximate $V,W$ at level $n{-}1$, and glue the commutator onto $U_{n-1}$:
+\[
+  \varepsilon_n=\bigo\!\big(\varepsilon_{n-1}^{3/2}\big),\qquad
+  \ell_n=5\,\ell_{n-1}+\bigo(1).
+\]
+The exponent $3/2$ makes the error fall doubly exponentially, so
+$n=\bigo(\log\log(1/\varepsilon))$ levels suffice; unrolling $\ell_n=5^{n}\ell_0$ then
+gives $\ell(\varepsilon)=\bigo\!\big((\log(1/\varepsilon))^{\log 5/\log(3/2)}\big)$,
+with exponent $\approx 3.97$. A single-qubit rotation is just the generic target
+$U\in SU(2)$, so the bound applies to it directly (Dawson \& Nielsen,
+\emph{The Solovay--Kitaev algorithm}, Quantum Inf.\ Comput.\ \textbf{6} (2006) 81).
+\end{remark}
+
 Running an abstract circuit on a real device requires \emph{compilation}:
 (i) rewriting logical gates such as $H$, $T$, $\CNOT$ into the machine's native gate
 set; and (ii) inserting \textsc{swap} gates to route qubits, because hardware qubits
