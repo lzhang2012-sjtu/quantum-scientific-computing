@@ -715,7 +715,81 @@ The four operators $\{I,X,Y,Z\}$ form a basis of the (complex) vector space of
 $2\times2$ matrices, so every single-qubit gate is a complex linear combination of
 Pauli matrices. Geometrically, a single-qubit pure state corresponds to a point on
 the Bloch sphere; the Pauli gates act as rotations by $\pi$ about the $x$, $y$, $z$
-axes (up to a global phase).
+axes (up to a global phase). These half-turns are the special cases of a
+one-parameter family, which we now work out from the Pauli algebra. For a unit axis
+$\hat n\in\R^{3}$ write $\hat n\cdot\vec\sigma\defeq n_xX+n_yY+n_zZ$.
+
+\begin{proposition}[Rotation gates and their Pauli generators]\label{prop:lec01-rot}
+The Pauli product identity
+$(\vec a\cdot\vec\sigma)(\vec b\cdot\vec\sigma)=(\vec a\cdot\vec b)\,I+\ii(\vec a\times\vec b)\cdot\vec\sigma$
+gives $(\hat n\cdot\vec\sigma)^{2}=I$, so the \emph{rotation gate} about $\hat n$ by
+angle $\theta$ has the closed form
+\[
+  R_{\hat n}(\theta)\defeq\exp\!\Big(-\tfrac{\ii\theta}{2}\,\hat n\cdot\vec\sigma\Big)
+  =\cos\tfrac{\theta}{2}\,I-\ii\sin\tfrac{\theta}{2}\,(\hat n\cdot\vec\sigma).
+\]
+With $\hat n=\hat x,\hat y,\hat z$ this yields
+\[
+  R_x(\theta)=\begin{pmatrix}\cos\tfrac{\theta}{2}&-\ii\sin\tfrac{\theta}{2}\\[2pt]
+      -\ii\sin\tfrac{\theta}{2}&\cos\tfrac{\theta}{2}\end{pmatrix},\quad
+  R_y(\theta)=\begin{pmatrix}\cos\tfrac{\theta}{2}&-\sin\tfrac{\theta}{2}\\[2pt]
+      \sin\tfrac{\theta}{2}&\cos\tfrac{\theta}{2}\end{pmatrix},\quad
+  R_z(\theta)=\begin{pmatrix}\ee^{-\ii\theta/2}&0\\0&\ee^{\ii\theta/2}\end{pmatrix},
+\]
+the gates used for state preparation in \eqref{eq:lec01-rotations}. The Pauli gates
+are the half-turns: $X=\ii R_x(\pi)$, $Y=\ii R_y(\pi)$, $Z=\ii R_z(\pi)$.
+\end{proposition}
+
+\begin{proof}
+Because $(\hat n\cdot\vec\sigma)^{2}=I$, in the series
+$\exp(-\ii\alpha\,\hat n\cdot\vec\sigma)=\sum_{k\ge0}\tfrac{(-\ii\alpha)^{k}}{k!}(\hat n\cdot\vec\sigma)^{k}$
+(with $\alpha=\theta/2$) the even powers reduce to $I$ and the odd powers to
+$\hat n\cdot\vec\sigma$, so they resum to $\cos\alpha\,I-\ii\sin\alpha\,(\hat n\cdot\vec\sigma)$.
+Substituting $X,Y,Z$ gives the three matrices; e.g.\
+$R_z(\theta)=\cos\tfrac{\theta}{2}I-\ii\sin\tfrac{\theta}{2}Z=\diag(\ee^{-\ii\theta/2},\ee^{\ii\theta/2})$.
+Finally $R_z(\pi)=\diag(\ee^{-\ii\pi/2},\ee^{\ii\pi/2})=-\ii Z$, so $Z=\ii R_z(\pi)$,
+and likewise for $X,Y$.
+\end{proof}
+
+\begin{proposition}[$R_{\hat n}(\theta)$ rotates the Bloch vector]\label{prop:lec01-rodrigues}
+Write a single-qubit state as $\rho=\tfrac12(I+\vec r\cdot\vec\sigma)$. Conjugation by
+$R_{\hat n}(\theta)$ sends the Bloch vector to its rotation by angle $\theta$ about
+$\hat n$:
+\[
+  R_{\hat n}(\theta)\,\rho\,R_{\hat n}(\theta)\dg=\tfrac12\big(I+\vec r\,'\cdot\vec\sigma\big),
+  \quad
+  \vec r\,'=\cos\theta\,\vec r+\sin\theta\,(\hat n\times\vec r)+(1-\cos\theta)(\hat n\cdot\vec r)\,\hat n .
+\]
+\end{proposition}
+
+\begin{proof}
+As $R\,I\,R\dg=I$, only the $\vec r\cdot\vec\sigma$ part moves, so it suffices to
+conjugate $M\defeq\vec m\cdot\vec\sigma$ for a generic $\vec m$. Put $c=\cos\tfrac{\theta}{2}$,
+$s=\sin\tfrac{\theta}{2}$, $N\defeq\hat n\cdot\vec\sigma$, so $R=cI-\ii sN$ and
+$R\dg=cI+\ii sN$; then
+\[
+  RMR\dg=c^{2}M+\ii cs\,[M,N]+s^{2}\,NMN .
+\]
+The product identity gives $[M,N]=2\ii(\vec m\times\hat n)\cdot\vec\sigma$ and, after a
+short computation, $NMN=\big(2(\hat n\cdot\vec m)\,\hat n-\vec m\big)\cdot\vec\sigma$.
+Hence $RMR\dg=\vec m\,'\cdot\vec\sigma$ with
+\[
+  \vec m\,'=c^{2}\vec m+2cs\,(\hat n\times\vec m)+s^{2}\big(2(\hat n\cdot\vec m)\,\hat n-\vec m\big),
+\]
+and the double-angle identities $c^{2}-s^{2}=\cos\theta$, $2cs=\sin\theta$,
+$2s^{2}=1-\cos\theta$ collapse this to Rodrigues' rotation formula. Setting
+$\vec m=\vec r$ proves the claim.
+\end{proof}
+
+\begin{remark}[Half-angle and the $SU(2)\to SO(3)$ double cover]\label{rem:lec01-doublecover}
+The state carries the half-angle $\theta/2$ while the Bloch vector turns by the full
+$\theta$. Thus $R_{\hat n}(2\pi)=\cos\pi\,I-\ii\sin\pi\,(\hat n\cdot\vec\sigma)=-I$: a
+$2\pi$ Bloch rotation returns the vector but leaves the state with a global phase
+$-1$, and only a $4\pi$ turn restores $I$. Equivalently, $R_{\hat n}(\theta)\mapsto
+\mathcal R(\hat n,\theta)$ is a two-to-one homomorphism $SU(2)\to SO(3)$, with $\pm
+R_{\hat n}(\theta)$ inducing the same (observable) rotation---which is why the Bloch
+picture faithfully represents single-qubit gates as ordinary $3$D rotations.
+\end{remark}
 
 \begin{lemma}[Hadamard conjugation]\label{lem:lec01-conj}
 $H X H = Z$ and $H Z H = X$.
