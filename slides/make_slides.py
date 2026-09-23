@@ -164,6 +164,10 @@ def section_header(slide, text, left, top, width):
 def pic(slide, path, top):
     slide.shapes.add_picture(path, Inches(7.9), Inches(top), width=Inches(5.0))
 
+def add_notes(slide, text):
+    """Attach Chinese speaker notes (备注) explaining the slide."""
+    slide.notes_slide.notes_text_frame.text = text
+
 # ------------------------------------------------------------ Slide 1
 s = prs.slides.add_slide(BLANK)
 add_title(s, "Implementing gates on superconducting qubits (transmons)",
@@ -183,6 +187,14 @@ add_bullets(s, [
 ], 0.5, 4.55, LW, 2.4)
 pic(s, FIGS["sc1"], 1.5)
 pic(s, FIGS["sc2"], 4.15)
+add_notes(s, """【超导量子比特（transmon 传输子）】
+· 量子比特是一个非谐振荡器：电容与约瑟夫森结并联。用频率 ω01 的微波脉冲驱动 |0⟩↔|1⟩。因为能级不等间距（ω12 ≠ ω01），可只驱动 |0⟩-|1⟩ 而不泄漏到 |2⟩。
+· 单比特门 X、Y：共振 π 脉冲产生拉比（Rabi）振荡；旋转轴由驱动相位（I/Q）决定，Y 即 X 相移 90°。
+· Z 门：常用“虚拟 Z”——对后续脉冲做零时长的软件相位平移；或用磁通短暂失谐。
+· Hadamard 非原生门，由 {R_z, √X} 编译，例如 H = R_z(π/2)·SX·R_z(π/2)。
+· 两比特 CZ：调节磁通/可调耦合器，使 |11⟩ 与 |02⟩ 到达“避免交叉”，得到的条件 π 相位即受控 Z；CNOT 可用交叉共振，或 H·CZ·H。
+· 典型门时间：单比特约 10–50 ns，两比特约 40–300 ns；主要受 T1/T2 退相干与向 |2⟩ 泄漏限制。
+· 左图：非谐势阱中的能级与微波驱动。右图：CZ 的避免交叉。""")
 
 # ------------------------------------------------------------ Slide 2
 s = prs.slides.add_slide(BLANK)
@@ -203,6 +215,13 @@ add_bullets(s, [
 ], 0.5, 4.55, LW, 2.4)
 pic(s, FIGS["na1"], 1.5)
 pic(s, FIGS["na2"], 4.15)
+add_notes(s, """【中性原子（里德堡阵列）】
+· 量子比特 = 光镊（optical tweezers）中原子的两个超精细基态 |0⟩、|1⟩。
+· 单比特门：用全局微波场或双光子拉曼（Raman）对驱动比特跃迁。X、Y 为共振 π 脉冲，轴由驱动相位决定（与超导相同）；Z 用失谐或光频移（可做成虚拟 Z）。
+· 位点选址：用紧聚焦的寻址（光频移）光束单独作用于目标原子，实现单比特寻址门。
+· 两比特 CZ：里德堡阻塞（Rydberg blockade）。用激光把 |1⟩ 激发到高里德堡态 |r⟩；阻塞半径 R_b 内两原子的范德瓦尔斯相互作用很强，禁止同时双激发（|rr⟩ 被移出共振），由此条件相移得到 CZ（如 Jaksch π–2π–π，或全局的 Levine–Pichler 方案）；CNOT = H·CZ·H。
+· 特点：比特全同、相干时间长、连接可重构（原子可移动）；门时间约数百 ns；里德堡态衰变是主要误差源。
+· 左图：光镊阵列与寻址光束。右图：里德堡阻塞。""")
 
 # ------------------------------------------------------------ Slide 3 (comparison table)
 s = prs.slides.add_slide(BLANK)
@@ -233,6 +252,11 @@ add_bullets(s, [
  (0, "Common thread — single-qubit: a resonant drive gives Rabi rotations; phase sets the axis (X vs Y), detuning/frame sets Z.", True),
  (0, "Common thread — two-qubit: a tunable interaction (avoided crossing, cross-resonance, or Rydberg blockade) imprints a conditional phase → CZ/CNOT.", True),
 ], 0.5, 5.4, 12.3, 1.7, size=14)
+add_notes(s, """【小结：同一原理，不同硬件“旋钮”】
+· 单比特门的共同点：一个共振驱动产生拉比旋转；相位设定旋转轴（X 对 Y），失谐/参考系设定 Z。
+· 两比特门的共同点：一个可调相互作用（避免交叉、交叉共振、或里德堡阻塞）施加条件相位，由此得到 CZ/CNOT。
+· 区别只在实现的“旋钮”不同：超导用磁通/可调耦合器/交叉共振；中性原子用里德堡阻塞。
+· 表格逐行对照 X/Y、Z、Hadamard、两比特门在两个平台上的实现方式。""")
 
 out = os.path.join(os.path.dirname(__file__), "gate_implementations.pptx")
 prs.save(out)
