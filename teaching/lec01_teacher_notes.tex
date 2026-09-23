@@ -208,6 +208,35 @@ which we prove cannot factor.
 $\CNOT$, Toffoli \& circuits \tmark{8}; Bell build + entanglement proof \tmark{9};
 reversible adder \tmark{9}; in-class problems interleaved \tmark{3}.
 
+\medskip
+\noindent\textbf{Warm-up teaser \tmark{3}} --- a bell-ringer to put on the board as
+students settle; it is a one-line hand computation from the rotation formula.
+\begin{board}
+A rotation about axis $\hat n$ by angle $\theta$ is
+$R_{\hat n}(\theta)=\cos\tfrac\theta2\,\id-\ii\sin\tfrac\theta2\,(\hat n\cdot\vec\sigma)$,
+where $\hat n\cdot\vec\sigma=n_xX+n_yY+n_zZ$ (derived in the student notes from
+$(\hat n\cdot\vec\sigma)^2=\id$).
+\end{board}
+\begin{inclass}[Does a full turn do nothing?]\label{ic:spinor}
+Evaluate $R_z(2\pi)$ by hand. A classical arrow is unchanged by a $360^\circ$ turn---is
+a qubit? What rotation angle actually restores the state, and can the difference ever
+be observed?
+\end{inclass}
+\begin{answer}
+Plug $\theta=2\pi$ into the formula: $R_z(2\pi)=\cos\pi\,\id-\ii\sin\pi\,Z=-\id$. A
+$2\pi$ rotation multiplies \emph{every} state by $-1$, not by the identity. The Bloch
+vector does return (it turned the full $2\pi$), but the state vector needs
+$\theta=4\pi$ to come back---qubits are \emph{spinors}, the $SU(2)\to SO(3)$ double
+cover. That lone $-1$ is a global phase, hence invisible on its own (Block~1); but
+\emph{relative} to an unrotated branch---a controlled rotation in an
+interferometer---it becomes a measurable phase, the seed of the phase-kickback trick
+behind later algorithms.
+\emph{(Bonus, also by hand.)} $H$ is a rotation by $\pi$ about $\hat
+n=(\hat x+\hat z)/\sqrt2$: since $\hat n\cdot\vec\sigma=(X+Z)/\sqrt2=H$, we get
+$R_{\hat n}(\pi)=-\ii\,(X+Z)/\sqrt2=-\ii H$, i.e.\ $H=\ii R_{\hat n}(\pi)$---which is
+exactly why $H$ swaps the $x$- and $z$-axes ($HXH=Z$).
+\end{answer}
+
 \subsection*{1. Tensor products and the $2^n$-dimensional space \tmark{10}}
 \begin{board}
 Composite system: $\Hilb_A\otimes\Hilb_B$, basis $\{\ket i_A\otimes\ket j_B\}$,
