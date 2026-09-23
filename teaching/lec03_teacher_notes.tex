@@ -232,6 +232,20 @@ uses $x_0$ is \emph{not} hardcoded---the oracle tests a predicate ``is this a
 solution?'' and marks whoever passes.
 
 \begin{board}
+\textbf{Compiling $R_{x_0}$ from a verifier} (never from $x_0$). For ``find $x$ with
+$g(x)=t$'': (1) \emph{compute} $\ket{x}\ket{0^m}\mapsto\ket{x}\ket{g(x)}$ with a
+reversible circuit $U_g$; (2) \emph{mark} the known target $t$ ($\Xgate$-conjugated
+multi-controlled $\Zgate$ on the output register); (3) \emph{uncompute} $U_g^{\dagger}$.
+Net: $\ket{x}\mapsto(-1)^{[\,g(x)=t\,]}\ket{x}=R_{x_0}$, with $x_0=g^{-1}(t)$ never
+found. \emph{Recognize, don't locate.}
+\end{board}
+\noindent\emph{Example oracles} (say aloud): key search $g(k)=\mathrm{Enc}_k(P_0)$,
+$t$ the ciphertext (AES-128: $2^{128}\!\to\!2^{64}$, why keys double);
+hash preimage $g=H$; satisfiability $g=\varphi,\ t=1$; unstructured table
+$g(x)=L[x]$. Grover wins only when $g$ is easy to \emph{check} but has no structure
+to exploit (else Shor/BV/convex methods beat it).
+
+\begin{board}
 \textbf{The invariant plane.} Let $\ket{\psi_0^\perp}=\tfrac1{\sqrt{N-1}}\sum_{x\neq x_0}\ket x$.
 Then
 \[
