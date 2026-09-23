@@ -189,7 +189,14 @@ $f(0)=f(1)$ and balanced iff $f(0)\neq f(1)$.
 \end{definition}
 
 Classically, deciding whether $f$ is constant or balanced for $n=1$ requires
-\emph{two} queries: knowing $f(0)$ alone tells us nothing about $f(1)$. Deutsch's
+\emph{two} queries: knowing $f(0)$ alone tells us nothing about $f(1)$. Deutsch's%
+\footnote{David Deutsch (b.\ 1953) is a physicist at the Centre for Quantum
+Computation, Clarendon Laboratory, University of Oxford. His 1985 paper
+\emph{Quantum theory, the Church--Turing principle and the universal quantum
+computer} introduced the universal quantum Turing machine and the first quantum
+algorithm; he also pioneered quantum logic gates and quantum error correction, and
+is a leading advocate of the Everett (``many-worlds'') interpretation and the
+founder of constructor theory.}
 algorithm decides it with a single query.
 
 \begin{theorem}[Correctness of the Deutsch algorithm]
@@ -273,7 +280,16 @@ constant or balanced (\cref{def:lec03-constbal}), and we are guaranteed that one
 of these holds. The task is to decide which. Classically, in the worst case one
 must query $2^{n-1}+1$ inputs: after seeing $2^{n-1}$ identical outputs the
 function could still be either constant or balanced, and one more query is needed.
-Deutsch--Jozsa decides it with a single quantum query.
+Deutsch--Jozsa%
+\footnote{Richard Jozsa (b.\ 1953) is the Leigh Trapnell Professor of Quantum
+Physics at the University of Cambridge (DAMTP), where he heads the Centre for
+Quantum Information and Foundations. With Deutsch he generalized the 1985 result to
+the Deutsch--Jozsa algorithm (\emph{Rapid solution of problems by quantum
+computation}, 1992)---the first quantum algorithm exponentially faster than any
+deterministic classical one---and he is one of the six co-authors of the 1993
+quantum-teleportation protocol, as well as a co-inventor of the state fidelity and
+the swap test.}
+decides it with a single quantum query.
 
 The circuit is the unifying pattern $H^{\otimes n}$--$\Uf$--$H^{\otimes n}$ on the
 $n$-qubit input register, with the target qubit held in $\ket{-}$.
@@ -315,7 +331,15 @@ suffices, and the two cases are distinguished with certainty.
 \subsection{The Bernstein--Vazirani algorithm}
 
 The Deutsch--Jozsa algorithm returns a single bit of information (constant vs.\
-balanced). The Bernstein--Vazirani algorithm uses the very same circuit to extract
+balanced). The Bernstein--Vazirani%
+\footnote{The algorithm is due to Ethan Bernstein and Umesh Vazirani. Vazirani is
+the Roger A.\ Strauch Professor of EECS at the University of California, Berkeley,
+and directs the Berkeley Quantum Computation Center; Bernstein was his doctoral
+student there. Their 1993 paper \emph{Quantum complexity theory} defined the
+quantum Turing machine and the class $\mathsf{BQP}$, and their algorithm---a special
+case of Deutsch--Jozsa---recovers an $n$-bit hidden string in a single query, the
+seed of the first oracle separation between $\mathsf{BPP}$ and $\mathsf{BQP}$.}
+algorithm uses the very same circuit to extract
 an entire hidden $n$-bit string in one query, provided $f$ has a special linear
 structure.
 
