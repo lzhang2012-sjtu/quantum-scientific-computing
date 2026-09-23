@@ -578,7 +578,19 @@ attaches the $-1$; the trailing NOTs restore $\ket{x_0}$. Every other basis stat
 either fails to become $\ket{1^n}$ (so it is untouched) or has its two NOT layers
 cancel, so it emerges unchanged. For $n=3$ and $x_0=\ket{011}$, for instance, one
 places an $\Xgate$ on the single $0$-qubit before and after a doubly controlled
-$\Zgate$.
+$\Zgate$, giving the circuit for $R_{x_0}$
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket{x_1}$} & \gate{X} & \ctrl{1} & \gate{X} & \qw \\
+\lstick{$\ket{x_2}$} & \qw      & \ctrl{1} & \qw      & \qw \\
+\lstick{$\ket{x_3}$} & \qw      & \gate{Z} & \qw      & \qw
+\end{quantikz}
+\end{center}
+Reading it through: the leading $\Xgate$ on $q_1$ sends $\ket{011}\mapsto\ket{111}$,
+the doubly-controlled $\Zgate$ multiplies $\ket{111}$ by $-1$, and the trailing
+$\Xgate$ restores $\ket{011}$; every other basis state either never reaches
+$\ket{111}$ or has its two $\Xgate$ layers cancel, so only $\ket{x_0}=\ket{011}$
+picks up the sign---exactly $R_{x_0}=\id-2\proj{011}$.
 
 \paragraph{Realizing the controlled-$\Zgate$ by kickback.}
 The doubly (or multiply) controlled $\Zgate$ is itself typically compiled from a
@@ -588,7 +600,15 @@ first $H$ in $\ket{-}$, the multi-controlled NOT kicks back a factor $-1$ exactl
 when all controls are $1$, and the second $H$ returns the target to its
 computational value. This is the same phase-kickback mechanism of
 \cref{lem:lec03-kickback}, now used to synthesize the diagonal phase gate rather
-than to query an external oracle.
+than to query an external oracle. Concretely the doubly-controlled $\Zgate$ above is
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket{x_1}$} & \qw      & \ctrl{1} & \qw      & \qw \\
+\lstick{$\ket{x_2}$} & \qw      & \ctrl{1} & \qw      & \qw \\
+\lstick{$\ket{x_3}$} & \gate{H} & \targ{}  & \gate{H} & \qw
+\end{quantikz}
+\end{center}
+a Toffoli conjugated by Hadamards on the target wire ($\Zgate=H\Xgate H$).
 
 \paragraph{The diffusion operator as a circuit.}
 The diffusion reflection admits the factorization already recorded in
