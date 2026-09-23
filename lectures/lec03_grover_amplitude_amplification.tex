@@ -610,6 +610,57 @@ than to query an external oracle. Concretely the doubly-controlled $\Zgate$ abov
 \end{center}
 a Toffoli conjugated by Hadamards on the target wire ($\Zgate=H\Xgate H$).
 
+\begin{remark}[We never build $R_{x_0}$ from $x_0$]
+\label{rem:lec03-oracle-from-f}
+The circuit above hard-codes the marked string---$\Xgate$ gates on the $0$-bits of a
+\emph{given} $x_0$---so it is illustrative only; if we already knew $x_0$ there would
+be nothing to search for. In a real search $R_{x_0}$ is the phase oracle compiled
+from the \emph{verifier} $f$ of \cref{def:lec03-search}, the reversible circuit that
+\emph{tests} whether a candidate is a solution. Building it needs only the ability to
+\emph{recognize} a solution, not to \emph{locate} one---the ``hard to find, easy to
+check'' structure of search. The marked string $x_0$ is whatever input makes $f$
+fire; Grover surfaces it at the final measurement, after which one classical
+evaluation of $f$ confirms it.
+\end{remark}
+
+\begin{example}[Compiling $R_{x_0}$ from a verifier]
+\label{ex:lec03-oracle-compile}
+Most searches take the form ``find $x$ with $g(x)=t$'' for an efficiently computable
+$g$ and a known target $t$ (satisfiability, function inversion, and database matching
+all fit this mold). The verifier is $f(x)=[\,g(x)=t\,]$, and $R_{x_0}$ is assembled in
+three stages that use only $g$ and $t$---never $x_0$:
+\begin{enumerate}[label=(\arabic*),leftmargin=1.9em,itemsep=1pt,topsep=2pt]
+  \item \emph{Compute.} A reversible circuit $U_g$ writes the result into a fresh
+        ancilla register: $\ket{x}\ket{0^m}\mapsto\ket{x}\ket{g(x)}$.
+  \item \emph{Mark.} Flip the phase iff the ancilla equals $t$---the
+        $\Xgate$-conjugated multiply-controlled $\Zgate$ of the previous figure, now
+        applied to the \emph{ancilla} register with $\Xgate$s on the bits where
+        $t_j=0$. Only the known target $t$ enters.
+  \item \emph{Uncompute.} Apply $U_g^{\dagger}$ to reset the ancilla to $\ket{0^m}$
+        (Bennett), disentangling it from the data.
+\end{enumerate}
+The net action on the data register is
+$\ket{x}\mapsto(-1)^{[\,g(x)=t\,]}\ket{x}=R_{x_0}\ket{x}$, with $x_0=g^{-1}(t)$ the
+solution we never had to find:
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket{x_1}$} & \gate[6]{U_g} & \qw & \gate[6]{U_g^{\dagger}} & \qw \\
+\lstick{$\ket{x_2}$} &               & \qw &                         & \qw \\
+\lstick{$\ket{x_3}$} &               & \qw &                         & \qw \\
+\lstick{$\ket{0}$}   &               & \gate[3]{{=}\,t\,?} &         & \qw \\
+\lstick{$\ket{0}$}   &               &     &                         & \qw \\
+\lstick{$\ket{0}$}   &               &     &                         & \qw
+\end{quantikz}
+\end{center}
+For instance take $g(x)=(x_1,\ x_1\oplus x_2,\ x_1x_2\oplus x_3)$---three
+$\CNOT$/Toffoli writes into the ancilla---and $t=101$. This oracle marks the unique
+$x_0=110$, since $g(110)=101$, yet its construction referred only to the circuit for
+$g$ and the target $t$. Here $g$ is small enough to invert by hand, but the identical
+recipe compiles the oracle for a thousand-variable \textsc{sat} instance or a
+cryptographic one-way $g$---in size proportional to the cost of evaluating $f$---while
+$x_0$ stays out of reach until amplitude amplification surfaces it.
+\end{example}
+
 \paragraph{The diffusion operator as a circuit.}
 The diffusion reflection admits the factorization already recorded in
 \cref{def:lec03-reflections},
