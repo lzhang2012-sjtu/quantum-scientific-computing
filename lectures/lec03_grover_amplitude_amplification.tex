@@ -661,6 +661,34 @@ cryptographic one-way $g$---in size proportional to the cost of evaluating $f$--
 $x_0$ stays out of reach until amplitude amplification surfaces it.
 \end{example}
 
+\begin{remark}[Examples of search oracles]
+\label{rem:lec03-oracle-examples}
+The verifier $g$ (equivalently $f=[\,g(x)=t\,]$) can be \emph{any} efficiently
+computable function---anything for which one can write a fast ``is $x$ a solution?''
+check. Grover is the generic tool when checking is easy but the problem is
+\emph{unstructured}. Representative oracles:
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt,topsep=2pt]
+  \item \emph{Symmetric-key search.} $x$ is a secret key $k$, $g(k)=\mathrm{Enc}_k(P_0)$
+        for a known plaintext $P_0$, and $t$ the observed ciphertext; $x_0$ is the key.
+        The quadratic speedup halves the effective key length (e.g.\ $2^{128}\!\to\!2^{64}$
+        for AES-128), the reason post-quantum guidance doubles symmetric key sizes.
+  \item \emph{Hash preimage.} $g=H$ a cryptographic hash and $t$ a target digest; find
+        $x$ with $H(x)=t$.
+  \item \emph{Satisfiability / constraint problems.} $g(x)=\varphi(x)$ with $t=1$:
+        ``does $x$ satisfy every clause?''---likewise Sudoku, graph coloring, and
+        scheduling.
+  \item \emph{Unstructured table.} $g(x)=L[x]$ for a fixed unsorted table $L$; find the
+        index matching $t$. E.g.\ $L=[5,2,7,4,1,6,0,3]$ and $t=4$ give $x_0=3$: with no
+        structure, trying entries is the only option---the purest Grover setting.
+  \item \emph{Optimization by thresholding.} $g(x)=[\,\mathrm{cost}(x)\le\theta\,]$;
+        binary-searching $\theta$ reduces minimization to a sequence of searches.
+\end{itemize}
+If instead $g$ has exploitable structure (periodicity for Shor, linearity for
+Bernstein--Vazirani, convexity for classical optimization), a tailored algorithm beats
+Grover; Grover is the universal fallback, giving a quadratic speedup over blind search
+whenever all one has is a checker.
+\end{remark}
+
 \paragraph{The diffusion operator as a circuit.}
 The diffusion reflection admits the factorization already recorded in
 \cref{def:lec03-reflections},
