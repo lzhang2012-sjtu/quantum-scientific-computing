@@ -329,6 +329,18 @@ $\omega=\ii$). The two agree only after the SWAP: reading the product's tensor
 factors in reverse order sends the amplitudes of $\ket{1}=\ket{01}$ and
 $\ket{2}=\ket{10}$ into each other, reconciling the two expressions. This
 bit-reversal bookkeeping is worked out in full for $n=3$ next.
+
+\emph{Factoring by inspection (Brody's route).} One can skip the circuit and read the
+single-qubit factors straight off the amplitudes. Writing $\QFT$ on the four basis
+states, a factor of $\ii$ appears exactly where the right-hand (least-significant) qubit
+is $\ket1$, and a minus sign exactly where the left-hand qubit is $\ket1$; for instance
+\[
+  \QFT\ket{01}=\tfrac12\bigl(\ket{00}+\ii\ket{01}-\ket{10}-\ii\ket{11}\bigr)
+  =\tfrac1{\sqrt2}(\ket0-\ket1)\otimes\tfrac1{\sqrt2}(\ket0+\ii\ket1).
+\]
+In this language the controlled-$R_2$ is a controlled phase gate $P(\pi/2)=\diag(1,\ii)$,
+writing the QFT with gates $P(\theta)=\diag(1,\ee^{\ii\theta})$ (Brody, \emph{The Joy of
+Quantum Computing}, Ch.~9).
 \end{example}
 
 \begin{example}[The $n=3$ QFT and the bit-reversal step, in full]
@@ -378,6 +390,20 @@ $\ket{3}\leftrightarrow\ket{6}$ (the strings that are not palindromes),
 carrying \cref{eq:lec04-n3prod} exactly onto \cref{eq:lec04-n3def}. In short,
 the product representation outputs the amplitudes in bit-reversed order, and the
 SWAP layer is exactly the permutation that undoes it.
+
+\emph{Factoring by inspection (Brody's route).} The product form can also be read off
+\cref{eq:lec04-n3def} directly, bypassing \cref{thm:lec04-product}: the amplitude of each
+single-$1$ string fixes one output qubit's relative phase. The coefficients of
+$\ket{100},\ket{010},\ket{001}$ are $-1,\ \ii,\ \ee^{\ii 5\pi/4}$, so
+\[
+  \QFT\ket{5}=\tfrac1{\sqrt2}(\ket0-\ket1)\otimes\tfrac1{\sqrt2}(\ket0+\ii\ket1)
+  \otimes\tfrac1{\sqrt2}(\ket0+\ee^{\ii 5\pi/4}\ket1),
+\]
+which is \cref{eq:lec04-n3prod} with its tensor factors reversed---exactly the bit
+reversal the SWAP performs. A multi-$1$ amplitude is then the product of the relevant
+single-$1$ phases: e.g.\ the coefficient of $\ket{011}$ is
+$\ee^{\ii\pi/2}\cdot\ee^{\ii 5\pi/4}=\ee^{\ii 7\pi/4}$, matching \cref{eq:lec04-n3def}---a
+quick consistency check (Brody, \emph{The Joy of Quantum Computing}, Ch.~9).
 \end{example}
 
 \begin{theorem}[Gate complexity of the QFT]
