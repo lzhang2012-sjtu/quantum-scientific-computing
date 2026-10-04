@@ -651,6 +651,32 @@ run therefore returns the best three-bit estimate with high---but no longer
 unit---probability, exactly the peaked distribution analyzed next.
 \end{remark}
 
+\begin{remark}[Reading the eigenvalue off the bits; superposed eigenstates]
+\label{rem:lec04-dictionary}
+Concretely, a $t=3$ measurement string $b_1b_2b_3$ is read as the binary fraction
+$\tilde\varphi=0.b_1b_2b_3$, and the eigenvalue is $\lambda=\ee^{\ii 2\pi\tilde\varphi}$:
+\begin{center}
+\begin{tabular}{ccc@{\qquad}ccc}
+\toprule
+$b_1b_2b_3$ & $\tilde\varphi$ & $\lambda$ & $b_1b_2b_3$ & $\tilde\varphi$ & $\lambda$\\ \midrule
+$000$ & $0$            & $1$                 & $100$ & $\tfrac12$ & $-1$\\
+$001$ & $\tfrac18$     & $\ee^{\ii\pi/4}$    & $101$ & $\tfrac58$ & $\ee^{\ii 5\pi/4}$\\
+$010$ & $\tfrac14$     & $\ii$               & $110$ & $\tfrac34$ & $-\ii$\\
+$011$ & $\tfrac38$     & $\ee^{\ii 3\pi/4}$  & $111$ & $\tfrac78$ & $\ee^{\ii 7\pi/4}$\\ \bottomrule
+\end{tabular}
+\end{center}
+So QPE turns $0/1$ outcomes into a point on the unit circle. If the input is \emph{not}
+an eigenstate but a superposition $\ket{\phi}=\sum_m c_m\ket{\psi_m}$ of eigenstates with
+phases $\varphi_m$, linearity carries each branch through independently: the measurement
+returns the estimate of $\varphi_m$ with probability $\abs{c_m}^2$ and collapses the
+system onto $\ket{\psi_m}$. One run thus \emph{samples} an eigenvalue weighted by
+overlap---for instance, an equal superposition of the two eigenstates of $P(\pi/4)$
+yields $000$ and $001$ with equal frequency. This is exactly what lets order finding
+begin in the easily prepared $\ket{1}$---a uniform superposition of the
+modular-multiplication eigenstates---and read a random $s/r$ (\cref{ch:lec05}). (Brody,
+\emph{The Joy of Quantum Computing}, Ch.~10, Table~10.1 and the superposed-eigenstate run.)
+\end{remark}
+
 \section{Analysis of phase estimation}
 \label{sec:lec04-4}
 
