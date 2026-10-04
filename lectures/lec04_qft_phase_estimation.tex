@@ -4,6 +4,7 @@
 \begin{objectives}
 \begin{itemize}[leftmargin=1.4em,nosep]
   \item Implement the quantum Fourier transform and analyze its gate cost.
+  \item Realize modular integer addition as an application of the QFT (Draper's adder).
   \item Build quantum phase estimation on top of the QFT.
   \item Use the Hadamard test to estimate expectation values.
   \item Analyze the accuracy and success probability of QPE.
@@ -407,6 +408,86 @@ $\bigo(N\log N)$ of the classical FFT, though (\cref{rem:lec04-dft}) this is not
 by itself an end-to-end speedup.
 \end{remark}
 
+\subsection*{Application: addition in the Fourier basis (the Draper adder)}
+\label{sec:lec04-qftadder}
+
+The QFT is not only the engine of phase estimation; it also turns integer
+\emph{addition} into a product of single-qubit phase rotations. Let the target
+register be $n$ qubits holding $j\in\{0,\dots,N-1\}$, and fix a classical
+constant $a$. We seek the \emph{constant adder}
+\[
+  \mathrm{ADD}_a:\ket{j}\longmapsto\ket{(j+a)\bmod N}.
+\]
+Because the QFT diagonalizes the cyclic shift---\cref{ex:lec04-5} is the case
+$a=1$, with $\mathrm{ADD}_1\ket{j}=\ket{(j+1)\bmod N}$---the operator
+$\mathrm{ADD}_a$ is diagonal in the Fourier basis, and the following identity
+makes this explicit.
+
+\begin{proposition}[Addition as Fourier-basis phases]
+\label{prop:lec04-draper}
+With $\omega=\ee^{\ii 2\pi/N}$ and the diagonal unitary
+$\Phi_a\defeq\diag\bigl(\omega^{ak}\bigr)_{k=0}^{N-1}$,
+\[
+  \mathrm{ADD}_a=\QFT\dg\,\Phi_a\,\QFT,
+  \qquad\text{equivalently}\qquad
+  \QFT\,\ket{(j+a)\bmod N}=\Phi_a\,\QFT\ket{j}.
+\]
+Moreover $\Phi_a$ factorizes into single-qubit phase gates: on qubit $l$
+(bit value $k_l$, most significant first) it acts as
+$P_l^{(a)}=\diag\bigl(1,\ee^{\ii 2\pi a\,2^{\,n-l}/N}\bigr)$, so
+$\Phi_a=\bigotimes_{l=1}^{n}P_l^{(a)}$.
+\end{proposition}
+
+\begin{proof}
+Using $\QFT\ket{j}=N^{-1/2}\sum_k\omega^{jk}\ket{k}$ and
+$\QFT\dg\ket{k}=N^{-1/2}\sum_m\omega^{-km}\ket{m}$,
+\[
+  \QFT\dg\Phi_a\QFT\ket{j}
+   =\frac1N\sum_{m}\Bigl(\sum_{k}\omega^{k(j+a-m)}\Bigr)\ket{m}
+   =\sum_m\delta_{m,\,(j+a)\bmod N}\,\ket{m}
+   =\ket{(j+a)\bmod N},
+\]
+since the inner geometric sum equals $N$ exactly when $m\equiv j+a\pmod N$ and
+vanishes otherwise (\cref{lem:lec04-geom}). For the factorization, write
+$k=\sum_{l=1}^n k_l\,2^{\,n-l}$; then
+$\omega^{ak}=\prod_l\bigl(\ee^{\ii 2\pi a2^{\,n-l}/N}\bigr)^{k_l}$, which is
+exactly $\bigotimes_l P_l^{(a)}$ acting on $\ket{k_1\cdots k_n}$.
+\end{proof}
+
+The circuit is therefore strikingly simple: \emph{apply the QFT, apply $n$
+single-qubit phase gates, apply the inverse QFT}. Adding a classical constant
+costs the two QFTs---$\bigo(n^2)$ gates, or $\bigo(n\log(n/\varepsilon))$ with the
+approximate QFT of \cref{rem:lec04-approx}---plus $n$ single-qubit rotations, and,
+remarkably, \emph{no entangling gates in between}. This is Draper's adder.
+
+To add one \emph{quantum} register to another,
+$\ket{a}\ket{j}\mapsto\ket{a}\ket{(j+a)\bmod N}$, promote each middle phase
+$P_l^{(a)}$ to a phase \emph{controlled} by the qubits of the first register:
+writing $a=\sum_r a_r 2^{\,n-r}$, the phase $\ee^{\ii 2\pi a2^{\,n-l}/N}$ is built
+bit by bit from the $a_r$ using controlled-$R_k$ gates, exactly the gate family of
+the QFT itself. The two-register adder then uses $\bigo(n^2)$ controlled-phase
+gates between the QFT pair and needs \emph{no carry ancillas}---in contrast to a
+ripple-carry adder, which propagates carries through Toffoli gates and requires an
+extra register.
+
+\begin{remark}[From adders to circulant matrices: a bridge to \cref{ch:lec07}]
+\label{rem:lec04-adder-lcu}
+The constant adders are the powers of the cyclic shift, $\mathrm{ADD}_a=V^{a}$
+with $V=\mathrm{ADD}_1$, and \cref{prop:lec04-draper} shows they are
+simultaneously diagonalized by the QFT with eigenvalues $\omega^{ak}$. Any
+\emph{circulant} matrix is a linear combination of these shifts,
+$C=\sum_{a}c_a V^{a}$, and is therefore diagonalized by the QFT,
+$C=\QFT\dg\,\diag\bigl(\textstyle\sum_a c_a\omega^{ak}\bigr)_{k}\,\QFT$.
+Restricting the sum to a few small $|a|$ yields a \emph{banded} operator such as a
+finite-difference Laplacian. This reappears later, twice over: the linear
+combination $\sum_a c_a(\cdot)$ is precisely what the LCU block-encoding calculus
+of \cref{ch:lec07} implements at the operator level---with each shift $V^a$
+supplied by the adder built here---and the QFT diagonalization is a workhorse
+behind the Hamiltonian simulation of such operators in \cref{ch:lec13}. The
+quantum adder is thus the elementary unitary from which circulant and
+finite-difference block encodings are assembled.
+\end{remark}
+
 \section{Quantum phase estimation via the QFT}
 \label{sec:lec04-3}
 
@@ -737,6 +818,15 @@ satisfies $V\ket{\psi_k}=\ee^{-\ii 2\pi k/N}\ket{\psi_k}$, so the QFT
 diagonalizes the cyclic shift.
 \end{exercise}
 
+\begin{exercise}\label{ex:lec04-draper}
+(Draper adder.) Take $n=3$, $N=8$, and the constant $a=3$. Write down the three
+single-qubit phase gates $P_l^{(3)}=\diag\bigl(1,\ee^{\ii 2\pi\cdot 3\cdot
+2^{\,3-l}/8}\bigr)$ of \cref{prop:lec04-draper}, and verify by direct computation
+that $\QFT\dg\bigl(\bigotimes_{l}P_l^{(3)}\bigr)\QFT$ sends
+$\ket{6}\mapsto\ket{1}$, consistent with $6+3=9\equiv1\pmod 8$. Identify where the
+modular wrap-around enters.
+\end{exercise}
+
 \begin{exercise}\label{ex:lec04-6}
 Verify the real Hadamard-test identity of \cref{thm:lec04-hadamard} for a
 diagonal single-qubit unitary $U=\diag(1,\ee^{\ii 2\pi\varphi})$ acting on the
@@ -800,4 +890,6 @@ omitted.
         Press, 2025, Ch.~9 (QFT and inverse QFT) and Ch.~10 (quantum phase
         estimation), for concrete small-qubit walkthroughs and the order-finding
         application.
+  \item T.~G.~Draper, \emph{Addition on a quantum computer},
+        arXiv:quant-ph/0008033 (2000), for the Fourier-basis (QFT) adder.
 \end{itemize}
