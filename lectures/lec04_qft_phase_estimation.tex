@@ -309,38 +309,54 @@ layer of SWAP gates (\emph{bit reversal}) restores the correct qubit order.
 
 \begin{example}[The $n=2$ QFT, worked in full]
 \label{ex-l4:n2}
-Take $n=2$, $N=4$, input $\ket{j_1 j_2}$. Applying $H\otimes\id$ gives
-$\tfrac{1}{\sqrt2}(\ket{0}+\ee^{\ii 2\pi\,0.j_1}\ket{1})\otimes\ket{j_2}$. A
-controlled-$R_2$ (control qubit $2$, target qubit $1$) multiplies the $\ket{1}$
-component of qubit $1$ by $\ee^{\ii 2\pi j_2/4}=\ee^{\ii 2\pi\,0.0j_2}$, upgrading
-the phase to $0.j_1 j_2$. Applying $\id\otimes H$ then turns qubit $2$ into
-$\tfrac{1}{\sqrt2}(\ket{0}+\ee^{\ii 2\pi\,0.j_2}\ket{1})$, giving
+Take $n=2$, so $N=4$ and $\omega=\ee^{\ii 2\pi/4}=\ii$. The definition
+$\QFT\ket{j}=\tfrac12\sum_{k=0}^{3}\ii^{\,jk}\ket{k}$ is the matrix
 \[
-  \tfrac12\bigl(\ket{0}+\ee^{\ii 2\pi\,0.j_1 j_2}\ket{1}\bigr)\otimes
-          \bigl(\ket{0}+\ee^{\ii 2\pi\,0.j_2}\ket{1}\bigr).
+  \QFT_4=\frac12\begin{pmatrix}
+    1 & 1 & 1 & 1\\
+    1 & \ii & -1 & -\ii\\
+    1 & -1 & 1 & -1\\
+    1 & -\ii & -1 & \ii
+  \end{pmatrix},
 \]
-A single SWAP then matches \cref{thm:lec04-product}. Concretely for $j=3=(11)_2$:
-$0.j_1 j_2=3/4$ and $0.j_2=1/2$, so the \emph{product} of the two single-qubit
-factors is
-$\tfrac12(\ket{0}-\ii\ket{1})\otimes(\ket{0}-\ket{1})
-=\tfrac12(\ket{0}-\ket{1}-\ii\ket{2}+\ii\ket{3})$, whereas the \emph{definition}
-gives $\QFT\ket{3}=\tfrac12(\ket{0}-\ii\ket{1}-\ket{2}+\ii\ket{3})$ (with
-$\omega=\ii$). The two agree only after the SWAP: reading the product's tensor
-factors in reverse order sends the amplitudes of $\ket{1}=\ket{01}$ and
-$\ket{2}=\ket{10}$ into each other, reconciling the two expressions. This
-bit-reversal bookkeeping is worked out in full for $n=3$ next.
+whose columns are $\QFT\ket{0},\dots,\QFT\ket{3}$. Writing the labels in binary
+($\ket0=\ket{00},\ \ket1=\ket{01},\ \ket2=\ket{10},\ \ket3=\ket{11}$) and factoring each
+column into (left qubit)\,$\otimes$\,(right qubit):
+\[
+\begin{aligned}
+  \QFT\ket{00}&=\tfrac12(\ket{00}+\ket{01}+\ket{10}+\ket{11})
+    &&=\tfrac1{\sqrt2}(\ket0+\ket1)\otimes\tfrac1{\sqrt2}(\ket0+\ket1),\\
+  \QFT\ket{01}&=\tfrac12(\ket{00}+\ii\ket{01}-\ket{10}-\ii\ket{11})
+    &&=\tfrac1{\sqrt2}(\ket0-\ket1)\otimes\tfrac1{\sqrt2}(\ket0+\ii\ket1),\\
+  \QFT\ket{10}&=\tfrac12(\ket{00}-\ket{01}+\ket{10}-\ket{11})
+    &&=\tfrac1{\sqrt2}(\ket0+\ket1)\otimes\tfrac1{\sqrt2}(\ket0-\ket1),\\
+  \QFT\ket{11}&=\tfrac12(\ket{00}-\ii\ket{01}-\ket{10}+\ii\ket{11})
+    &&=\tfrac1{\sqrt2}(\ket0-\ket1)\otimes\tfrac1{\sqrt2}(\ket0-\ii\ket1).
+\end{aligned}
+\]
+Each factorization is read off \emph{by inspection}: a minus sign sits wherever the
+\emph{left} qubit is $\ket1$ (so the left output factor is $\tfrac1{\sqrt2}(\ket0\pm\ket1)$),
+and a factor of $\ii$ wherever the \emph{right} qubit is $\ket1$ (fixing the right factor).
 
-\emph{Factoring by inspection (Brody's route).} One can skip the circuit and read the
-single-qubit factors straight off the amplitudes. Writing $\QFT$ on the four basis
-states, a factor of $\ii$ appears exactly where the right-hand (least-significant) qubit
-is $\ket1$, and a minus sign exactly where the left-hand qubit is $\ket1$; for instance
-\[
-  \QFT\ket{01}=\tfrac12\bigl(\ket{00}+\ii\ket{01}-\ket{10}-\ii\ket{11}\bigr)
-  =\tfrac1{\sqrt2}(\ket0-\ket1)\otimes\tfrac1{\sqrt2}(\ket0+\ii\ket1).
-\]
-In this language the controlled-$R_2$ is a controlled phase gate $P(\pi/2)=\diag(1,\ii)$,
-writing the QFT with gates $P(\theta)=\diag(1,\ee^{\ii\theta})$ (Brody, \emph{The Joy of
-Quantum Computing}, Ch.~9).
+\emph{The circuit.} Every output factor is a Hadamard carrying an extra phase, so three
+gates build the QFT:
+\begin{enumerate}[label=(\roman*),leftmargin=1.9em,itemsep=1pt,topsep=2pt]
+  \item $H$ on qubit~$1$ makes $\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_1}\ket1)$;
+  \item a controlled-$R_2$ (control qubit~$2$) folds in the next bit, upgrading the phase
+        to $0.j_1 j_2$---here $R_2=P(\pi/2)=\diag(1,\ii)$ with $P(\theta)=\diag(1,\ee^{\ii\theta})$;
+  \item $H$ on qubit~$2$ makes $\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_2}\ket1)$.
+\end{enumerate}
+This yields $\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_1 j_2}\ket1)\otimes
+\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_2}\ket1)$---the product of \cref{thm:lec04-product}
+\emph{before} bit reversal.
+
+\emph{The swap.} For $\ket{j_1 j_2}=\ket{01}$ the three gates give
+$\tfrac1{\sqrt2}(\ket0+\ii\ket1)\otimes\tfrac1{\sqrt2}(\ket0-\ket1)$, whereas the table
+above has $\QFT\ket{01}=\tfrac1{\sqrt2}(\ket0-\ket1)\otimes\tfrac1{\sqrt2}(\ket0+\ii\ket1)$
+---the \emph{same two factors in the opposite order}. A final SWAP of the two qubits
+reconciles them, and likewise for every input: the circuit outputs the factors
+bit-reversed, and the SWAP undoes it. (Brody, \emph{The Joy of Quantum Computing}, Ch.~9,
+tabulates these four cases; the full bit-reversal bookkeeping is worked out for $n=3$ next.)
 \end{example}
 
 \begin{example}[The $n=3$ QFT and the bit-reversal step, in full]
