@@ -488,6 +488,48 @@ quantum adder is thus the elementary unitary from which circulant and
 finite-difference block encodings are assembled.
 \end{remark}
 
+\subsection*{Application: revealing periodicity (toward period finding)}
+\label{sec:lec04-period}
+
+A classical Fourier transform turns a signal into its \emph{frequencies}; the QFT does
+the same for the amplitudes of a quantum state, and this is the property that powers
+Shor's algorithm. Suppose the amplitudes of $\ket{\psi}=\sum_x a_x\ket{x}$ are
+\emph{periodic} with period $r\mid N$---nonzero only on an evenly spaced comb
+$x\in\{x_0,\,x_0+r,\,x_0+2r,\dots\}$ of $N/r$ equal spikes. Then, by the same geometric
+sum that proved unitarity, the QFT is supported \emph{only} on the multiples of $N/r$:
+\[
+  \QFT\Big(\sqrt{\tfrac{r}{N}}\sum_{m=0}^{N/r-1}\ket{x_0+mr}\Big)
+  =\frac{1}{\sqrt{r}}\sum_{\ell=0}^{r-1}\ee^{\ii 2\pi \ell x_0/r}\,\Big|\,\ell\,\tfrac{N}{r}\,\Big\rangle .
+\]
+A comb of spacing $r$ in the computational basis becomes a comb of spacing $N/r$ after
+the transform; the offset $x_0$ hides in the phases $\ee^{\ii 2\pi\ell x_0/r}$, which a
+computational-basis measurement cannot see. Measuring therefore returns a multiple of
+$N/r$, from which the period $r$ is read off---this is the heart of period finding.
+
+\begin{example}[Reading a period off the QFT]
+\label{ex:lec04-period}
+Take $n=3$ ($N=8$) and $\ket{\psi}=\tfrac1{\sqrt2}(\ket{0}+\ket{4})$, whose amplitude
+sequence $\tfrac1{\sqrt2},0,0,0,\tfrac1{\sqrt2},0,0,0$ repeats with period $r=4$. Since
+$\QFT\ket{4}=\tfrac1{\sqrt8}\sum_k\ee^{\ii\pi k}\ket{k}=\tfrac1{\sqrt8}\sum_k(-1)^k\ket{k}$,
+\[
+  \QFT\ket{\psi}=\tfrac1{\sqrt2}\big(\QFT\ket0+\QFT\ket4\big)
+  =\tfrac12\big(\ket0+\ket2+\ket4+\ket6\big).
+\]
+The output lives on the multiples of $2=N/r$, so a measurement yields one of
+$\{0,2,4,6\}$ and we recover $r=N/2=4$. Dually, the period-$2$ state
+$\tfrac12(\ket0+\ket2+\ket4+\ket6)$ transforms to a state on multiples of $4$, giving
+$r=2$: the QFT trades a spacing of $r$ for a spacing of $N/r$.
+\end{example}
+
+\begin{remark}[When the period does not divide $N$]
+\label{rem:lec04-period}
+If $r\nmid N$ the comb no longer lands on exact grid points: the QFT output is
+\emph{peaked} near the multiples of $N/r$ rather than exactly on them, and the period is
+recovered from the measured value by continued fractions. This is precisely Shor's
+order-finding situation, developed in \cref{ch:lec05}. (Brody, \emph{The Joy of Quantum
+Computing}, Ch.~9, works these period examples out by hand on a small simulator.)
+\end{remark}
+
 \section{Quantum phase estimation via the QFT}
 \label{sec:lec04-3}
 
