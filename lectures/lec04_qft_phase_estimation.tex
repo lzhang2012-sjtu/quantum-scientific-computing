@@ -770,16 +770,11 @@ $010$ & $\tfrac14$     & $\ii$               & $110$ & $\tfrac34$ & $-\ii$\\
 $011$ & $\tfrac38$     & $\ee^{\ii 3\pi/4}$  & $111$ & $\tfrac78$ & $\ee^{\ii 7\pi/4}$\\ \bottomrule
 \end{tabular}
 \end{center}
-So QPE turns $0/1$ outcomes into a point on the unit circle. If the input is \emph{not}
-an eigenstate but a superposition $\ket{\phi}=\sum_m c_m\ket{\psi_m}$ of eigenstates with
-phases $\varphi_m$, linearity carries each branch through independently: the measurement
-returns the estimate of $\varphi_m$ with probability $\abs{c_m}^2$ and collapses the
-system onto $\ket{\psi_m}$. One run thus \emph{samples} an eigenvalue weighted by
-overlap---for instance, an equal superposition of the two eigenstates of $P(\pi/4)$
-yields $000$ and $001$ with equal frequency. This is exactly what lets order finding
-begin in the easily prepared $\ket{1}$---a uniform superposition of the
-modular-multiplication eigenstates---and read a random $s/r$ (\cref{ch:lec05}). (Brody,
-\emph{The Joy of Quantum Computing}, Ch.~10, Table~10.1 and the superposed-eigenstate run.)
+So QPE turns $0/1$ measurement outcomes into a point on the unit circle (Brody,
+\emph{The Joy of Quantum Computing}, Ch.~10, Table~10.1). When the input is a
+\emph{superposition} of eigenstates rather than a single one, QPE instead
+\emph{samples} the eigenvalues by overlap---the mechanism analyzed in
+\cref{sec:lec04-5}.
 \end{remark}
 
 \section{Analysis of phase estimation}
@@ -808,9 +803,9 @@ circle). Then
   \Prob\bigl(\abs{\varphi-\tilde\varphi_k}_1\ge\epsilon\bigr)
   \le\frac{1}{2T\epsilon}+\frac{1}{2(T\epsilon)^{2}}.
 \]
-Consequently, to obtain the leading $n$ bits of $\varphi$ with success
+Consequently, to obtain the leading $\ell$ bits of $\varphi$ with success
 probability at least $1-\epsilon$ it suffices to take
-$t=n+\lceil\log_2(2+1/(2\epsilon))\rceil$ ancilla qubits.
+$t=\ell+\lceil\log_2(2+1/(2\epsilon))\rceil$ ancilla qubits.
 \end{theorem}
 
 \begin{proof}[Proof sketch]
@@ -932,11 +927,11 @@ superposition,
 \]
 Running QPE with $\ket{1}$ in the system register therefore returns
 $\tilde\varphi_0=0$ (outcome $000$) or $\tilde\varphi_1=\tfrac12$ (outcome $100$
-for $t=3$), each with probability $\tfrac12$. Both are of the form $s/r$ with
-$r=2$, so a couple of runs plus the continued-fractions step of
-\cref{rem:lec04-target} recover the order $r=2$, from which the factors of $15$
-follow. No eigenstate preparation is needed---the phase-kickback and collapse of
-\cref{eq:lec04-collapse} do the work.
+for $t=3$), each with probability $\tfrac12$. No eigenstate preparation is
+needed---the phase-kickback and collapse of \cref{eq:lec04-collapse} do the work.
+The full order-finding algorithm---recovering $r$ from the measured $s/r$ by
+continued fractions, and thence the factors of $15$---is developed in
+\cref{ch:lec05}.
 \end{example}
 
 \paragraph{Iterative phase estimation and the Heisenberg limit.}

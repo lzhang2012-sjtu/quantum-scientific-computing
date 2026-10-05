@@ -562,23 +562,23 @@ $(-1)^{f(x)}$ is written onto the input register, leaving the ancilla in $\ket{-
 to be reused on the next query. For the single-solution predicate of
 \cref{def:lec03-search} this is exactly $R_{x_0}=\id-2\proj{x_0}$, the operator
 that flips the sign of $\ket{x_0}$ alone. It has a transparent gate-level
-implementation. Start from the multiply-controlled $\Zgate$ gate on $n$ qubits,
+implementation. Start from the multiply-controlled $Z$ gate on $n$ qubits,
 which multiplies $\ket{1^n}$ by $-1$ and fixes every other basis state, since
-$\Zgate\ket{1}=-\ket{1}$ fires only when all $n$ qubits are $1$. This is precisely
+$Z\ket{1}=-\ket{1}$ fires only when all $n$ qubits are $1$. This is precisely
 the phase oracle for the marked string $1^n$. To mark an \emph{arbitrary}
-$x_0\in\{0,1\}^n$ instead, conjugate the multiply-controlled $\Zgate$ by
-$\Xgate$ (NOT) gates placed on exactly those qubits where $x_0$ has a $0$:
+$x_0\in\{0,1\}^n$ instead, conjugate the multiply-controlled $Z$ by
+$X$ (NOT) gates placed on exactly those qubits where $x_0$ has a $0$:
 \[
-  R_{x_0}=\Bigl(\textstyle\bigotimes_{i:\,(x_0)_i=0}\Xgate_i\Bigr)\,
-          \bigl(\text{mult.\ ctrl-}\Zgate\bigr)\,
-          \Bigl(\textstyle\bigotimes_{i:\,(x_0)_i=0}\Xgate_i\Bigr).
+  R_{x_0}=\Bigl(\textstyle\bigotimes_{i:\,(x_0)_i=0}X_i\Bigr)\,
+          \bigl(\text{mult.\ ctrl-}Z\bigr)\,
+          \Bigl(\textstyle\bigotimes_{i:\,(x_0)_i=0}X_i\Bigr).
 \]
-The leading NOTs turn $\ket{x_0}$ into $\ket{1^n}$; the controlled-$\Zgate$
+The leading NOTs turn $\ket{x_0}$ into $\ket{1^n}$; the controlled-$Z$
 attaches the $-1$; the trailing NOTs restore $\ket{x_0}$. Every other basis state
 either fails to become $\ket{1^n}$ (so it is untouched) or has its two NOT layers
 cancel, so it emerges unchanged. For $n=3$ and $x_0=\ket{011}$, for instance, one
-places an $\Xgate$ on the single $0$-qubit before and after a doubly controlled
-$\Zgate$, giving the circuit for $R_{x_0}$
+places an $X$ on the single $0$-qubit before and after a doubly controlled
+$Z$, giving the circuit for $R_{x_0}$
 \begin{center}
 \begin{quantikz}
 \lstick{$\ket{x_1}$} & \gate{X} & \ctrl{1} & \gate{X} & \qw \\
@@ -586,21 +586,21 @@ $\Zgate$, giving the circuit for $R_{x_0}$
 \lstick{$\ket{x_3}$} & \qw      & \gate{Z} & \qw      & \qw
 \end{quantikz}
 \end{center}
-Reading it through: the leading $\Xgate$ on $q_1$ sends $\ket{011}\mapsto\ket{111}$,
-the doubly-controlled $\Zgate$ multiplies $\ket{111}$ by $-1$, and the trailing
-$\Xgate$ restores $\ket{011}$; every other basis state either never reaches
-$\ket{111}$ or has its two $\Xgate$ layers cancel, so only $\ket{x_0}=\ket{011}$
+Reading it through: the leading $X$ on $q_1$ sends $\ket{011}\mapsto\ket{111}$,
+the doubly-controlled $Z$ multiplies $\ket{111}$ by $-1$, and the trailing
+$X$ restores $\ket{011}$; every other basis state either never reaches
+$\ket{111}$ or has its two $X$ layers cancel, so only $\ket{x_0}=\ket{011}$
 picks up the sign---exactly $R_{x_0}=\id-2\proj{011}$.
 
-\paragraph{Realizing the controlled-$\Zgate$ by kickback.}
-The doubly (or multiply) controlled $\Zgate$ is itself typically compiled from a
-controlled-$\Xgate$ (Toffoli, for $n=3$) sandwiched between two Hadamards on the
-target, using the identity $\Zgate=H\Xgate H$: with the target prepared by the
+\paragraph{Realizing the controlled-$Z$ by kickback.}
+The doubly (or multiply) controlled $Z$ is itself typically compiled from a
+controlled-$X$ (Toffoli, for $n=3$) sandwiched between two Hadamards on the
+target, using the identity $Z=HX H$: with the target prepared by the
 first $H$ in $\ket{-}$, the multi-controlled NOT kicks back a factor $-1$ exactly
 when all controls are $1$, and the second $H$ returns the target to its
 computational value. This is the same phase-kickback mechanism of
 \cref{lem:lec03-kickback}, now used to synthesize the diagonal phase gate rather
-than to query an external oracle. Concretely the doubly-controlled $\Zgate$ above is
+than to query an external oracle. Concretely the doubly-controlled $Z$ above is
 \begin{center}
 \begin{quantikz}
 \lstick{$\ket{x_1}$} & \qw      & \ctrl{1} & \qw      & \qw \\
@@ -608,11 +608,11 @@ than to query an external oracle. Concretely the doubly-controlled $\Zgate$ abov
 \lstick{$\ket{x_3}$} & \gate{H} & \targ{}  & \gate{H} & \qw
 \end{quantikz}
 \end{center}
-a Toffoli conjugated by Hadamards on the target wire ($\Zgate=H\Xgate H$).
+a Toffoli conjugated by Hadamards on the target wire ($Z=HX H$).
 
 \begin{remark}[We never build $R_{x_0}$ from $x_0$]
 \label{rem:lec03-oracle-from-f}
-The circuit above hard-codes the marked string---$\Xgate$ gates on the $0$-bits of a
+The circuit above hard-codes the marked string---$X$ gates on the $0$-bits of a
 \emph{given} $x_0$---so it is illustrative only; if we already knew $x_0$ there would
 be nothing to search for. In a real search $R_{x_0}$ is the phase oracle compiled
 from the \emph{verifier} $f$ of \cref{def:lec03-search}, the reversible circuit that
@@ -633,8 +633,8 @@ three stages that use only $g$ and $t$---never $x_0$:
   \item \emph{Compute.} A reversible circuit $U_g$ writes the result into a fresh
         ancilla register: $\ket{x}\ket{0^m}\mapsto\ket{x}\ket{g(x)}$.
   \item \emph{Mark.} Flip the phase iff the ancilla equals $t$---the
-        $\Xgate$-conjugated multiply-controlled $\Zgate$ of the previous figure, now
-        applied to the \emph{ancilla} register with $\Xgate$s on the bits where
+        $X$-conjugated multiply-controlled $Z$ of the previous figure, now
+        applied to the \emph{ancilla} register with $X$s on the bits where
         $t_j=0$. Only the known target $t$ enters.
   \item \emph{Uncompute.} Apply $U_g^{\dagger}$ to reset the ancilla to $\ket{0^m}$
         (Bennett), disentangling it from the data.
@@ -698,7 +698,7 @@ The diffusion reflection admits the factorization already recorded in
 The inner operator $2\proj{0^n}-\id$ is a reflection about $\ket{0^n}$: it fixes
 $\ket{0^n}$ and negates everything else, which (up to a global $-1$) is the same
 multiply-controlled phase gate as above, now conditioned on the all-$0$ string and
-so obtained by wrapping the controlled-$\Zgate$ in NOTs on \emph{every} qubit. The
+so obtained by wrapping the controlled-$Z$ in NOTs on \emph{every} qubit. The
 flanking Hadamard layers map $\ket{\psi_0}\leftrightarrow\ket{0^n}$, so conjugation
 converts ``reflect about $\ket{0^n}$'' into ``reflect about $\ket{\psi_0}$''---the
 inversion about the mean. Thus a full Grover iterate $G=R_{\psi_0}R_{x_0}$ is: one
@@ -1161,8 +1161,8 @@ a rotation by $2\alpha$.
 \begin{exercise}\label{ex:lec03-8}
 Building the phase oracle. On three qubits, let $x_0=\ket{101}$ be the marked
 state. Following \cref{sec:lec03-circuits}, write the marking reflection
-$R_{x_0}=\id-2\proj{x_0}$ as a doubly controlled $\Zgate$ conjugated by $\Xgate$
-gates, specifying which qubits carry the $\Xgate$ gates. Verify by hand that your
+$R_{x_0}=\id-2\proj{x_0}$ as a doubly controlled $Z$ conjugated by $X$
+gates, specifying which qubits carry the $X$ gates. Verify by hand that your
 circuit multiplies $\ket{101}$ by $-1$ and leaves the other seven basis states
 fixed (it suffices to check $\ket{101}$, one basis state that becomes $\ket{111}$
 under the leading NOTs, and one that does not). Then run one Grover iterate on the
@@ -1185,7 +1185,7 @@ matches \cref{exa:lec03-n8}.
   \item D.~Brody, \emph{The Joy of Quantum Computing}, Princeton Univ.\ Press,
         2025, Ch.~2 (Deutsch's algorithm and the phase oracle) and Ch.~8
         (a concrete walkthrough of Grover's search: oracle construction from a
-        multiply-controlled $\Zgate$, the inversion-about-the-mean geometry, and
+        multiply-controlled $Z$, the inversion-about-the-mean geometry, and
         the worked $N=8$ example) ---
         \texttt{material/Brody\_The\ Joy\ of\ Quantum\ Computing\_Princeton\_2025.pdf}.
 \end{itemize}
