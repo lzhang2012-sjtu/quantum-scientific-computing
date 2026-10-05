@@ -188,6 +188,140 @@ $\omega^{jk}$. For $j=0$ every phase is $1$, so $\QFT\ket{0}=N^{-1/2}\sum_k\ket{
 =H^{\otimes n}\ket{0}^{\otimes n}$: on the all-zeros input the QFT is just a layer
 of Hadamards.
 
+
+We first compute the transform explicitly in the two smallest cases; its general
+properties---unitarity, a product (tensor) form, and an efficient circuit---then
+follow and are seen at work in these examples.
+
+\begin{example}[The $n=2$ QFT, worked in full]
+\label{ex-l4:n2}
+Take $n=2$, so $N=4$ and $\omega=\ee^{\ii 2\pi/4}=\ii$. The definition
+$\QFT\ket{j}=\tfrac12\sum_{k=0}^{3}\ii^{\,jk}\ket{k}$ is the matrix
+\[
+  \QFT_4=\frac12\begin{pmatrix}
+    1 & 1 & 1 & 1\\
+    1 & \ii & -1 & -\ii\\
+    1 & -1 & 1 & -1\\
+    1 & -\ii & -1 & \ii
+  \end{pmatrix},
+\]
+whose columns are $\QFT\ket{0},\dots,\QFT\ket{3}$. Writing the labels in binary
+($\ket0=\ket{00},\ \ket1=\ket{01},\ \ket2=\ket{10},\ \ket3=\ket{11}$) and factoring each
+column into (left qubit)\,$\otimes$\,(right qubit):
+\[
+\begin{aligned}
+  \QFT\ket{00}&=\tfrac12(\ket{00}+\ket{01}+\ket{10}+\ket{11})
+    &&=\tfrac1{\sqrt2}(\ket0+\ket1)\otimes\tfrac1{\sqrt2}(\ket0+\ket1),\\
+  \QFT\ket{01}&=\tfrac12(\ket{00}+\ii\ket{01}-\ket{10}-\ii\ket{11})
+    &&=\tfrac1{\sqrt2}(\ket0-\ket1)\otimes\tfrac1{\sqrt2}(\ket0+\ii\ket1),\\
+  \QFT\ket{10}&=\tfrac12(\ket{00}-\ket{01}+\ket{10}-\ket{11})
+    &&=\tfrac1{\sqrt2}(\ket0+\ket1)\otimes\tfrac1{\sqrt2}(\ket0-\ket1),\\
+  \QFT\ket{11}&=\tfrac12(\ket{00}-\ii\ket{01}-\ket{10}+\ii\ket{11})
+    &&=\tfrac1{\sqrt2}(\ket0-\ket1)\otimes\tfrac1{\sqrt2}(\ket0-\ii\ket1).
+\end{aligned}
+\]
+Each factorization is read off \emph{by inspection}: a minus sign sits wherever the
+\emph{left} qubit is $\ket1$ (so the left output factor is $\tfrac1{\sqrt2}(\ket0\pm\ket1)$),
+and a factor of $\ii$ wherever the \emph{right} qubit is $\ket1$ (fixing the right factor).
+
+\emph{The circuit.} Every output factor is a Hadamard carrying an extra phase, so three
+gates build the QFT:
+\begin{enumerate}[label=(\roman*),leftmargin=1.9em,itemsep=1pt,topsep=2pt]
+  \item $H$ on qubit~$1$ makes $\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_1}\ket1)$;
+  \item a controlled-$R_2$ (control qubit~$2$) folds in the next bit, upgrading the phase
+        to $0.j_1 j_2$---here $R_2=P(\pi/2)=\diag(1,\ii)$ with $P(\theta)=\diag(1,\ee^{\ii\theta})$;
+  \item $H$ on qubit~$2$ makes $\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_2}\ket1)$.
+\end{enumerate}
+This yields $\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_1 j_2}\ket1)\otimes
+\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_2}\ket1)$---the product (tensor) form proved in
+general below (\cref{thm:lec04-product}), \emph{before} bit reversal:
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket{j_1}$} & \gate{H} & \gate{R_2} & \qw      & \swap{1} & \qw \\
+\lstick{$\ket{j_2}$} & \qw      & \ctrl{-1}  & \gate{H} & \targX{} & \qw
+\end{quantikz}
+\end{center}
+
+\emph{The swap.} For $\ket{j_1 j_2}=\ket{01}$ the three gates give
+$\tfrac1{\sqrt2}(\ket0+\ii\ket1)\otimes\tfrac1{\sqrt2}(\ket0-\ket1)$, whereas the table
+above has $\QFT\ket{01}=\tfrac1{\sqrt2}(\ket0-\ket1)\otimes\tfrac1{\sqrt2}(\ket0+\ii\ket1)$
+---the \emph{same two factors in the opposite order}. A final SWAP of the two qubits
+reconciles them, and likewise for every input: the circuit outputs the factors
+bit-reversed, and the SWAP undoes it. (Brody, \emph{The Joy of Quantum Computing}, Ch.~9,
+tabulates these four cases; the full bit-reversal bookkeeping is worked out for $n=3$ next.)
+\end{example}
+
+\begin{example}[The $n=3$ QFT and the bit-reversal step, in full]
+\label{exa:lec04-n3}
+Take $n=3$, $N=8$, $\omega=\ee^{\ii 2\pi/8}=\ee^{\ii\pi/4}$, and compute
+$\QFT\ket{5}$ two ways. Here $j=5=(101)_2$, so $j_1=1$, $j_2=0$, $j_3=1$.
+
+\emph{From the definition.} \Cref{def:lec04-qft} gives the eight amplitudes
+$N^{-1/2}\omega^{5k}$ directly. Since $\omega^{5}=\ee^{\ii 5\pi/4}
+=(-1-\ii)/\sqrt2$, the successive powers $\omega^{5k}$ for $k=0,\dots,7$ are
+$1,\;\omega^{5},\;\omega^{10}=\omega^{2}=\ii,\;\omega^{15}=\omega^{7},\;
+\omega^{20}=\omega^{4}=-1,\;\omega^{25}=\omega,\;\omega^{30}=\omega^{6}=-\ii,\;
+\omega^{35}=\omega^{3}$, so
+\begin{equation}
+\label{eq:lec04-n3def}
+  \QFT\ket{5}=\frac{1}{2\sqrt2}\Bigl(
+    \ket{0}-\tfrac{1+\ii}{\sqrt2}\ket{1}+\ii\ket{2}+\tfrac{1-\ii}{\sqrt2}\ket{3}
+    -\ket{4}+\tfrac{1+\ii}{\sqrt2}\ket{5}-\ii\ket{6}
+    -\tfrac{1-\ii}{\sqrt2}\ket{7}\Bigr).
+\end{equation}
+
+\emph{From the factored (product) form.} Grouping the amplitudes qubit by qubit---the
+pattern proved in general below as \cref{thm:lec04-product}---assigns to the
+three output qubits the phases $0.j_1 j_2 j_3=0.101_2=\tfrac58$,
+$0.j_2 j_3=0.01_2=\tfrac14$, and $0.j_3=0.1_2=\tfrac12$, hence
+\begin{equation}
+\label{eq:lec04-n3prod}
+  \QFT\ket{5}=\frac{1}{\sqrt2}\bigl(\ket{0}+\ee^{\ii 2\pi\cdot 5/8}\ket{1}\bigr)
+  \otimes\frac{1}{\sqrt2}\bigl(\ket{0}+\ii\ket{1}\bigr)
+  \otimes\frac{1}{\sqrt2}\bigl(\ket{0}-\ket{1}\bigr),
+\end{equation}
+where $\ee^{\ii 2\pi\cdot 5/8}=\ee^{\ii 5\pi/4}=-(1+\ii)/\sqrt2$. The circuit
+realizes \cref{eq:lec04-n3prod} qubit by qubit: an $H$ on qubit $1$ writes the
+leading phase $0.j_1$, a controlled-$R_2$ from qubit $2$ and a controlled-$R_3$
+from qubit $3$ fold in the bits $j_2,j_3$ to complete $0.j_1 j_2 j_3$; an $H$ on
+qubit $2$ and a controlled-$R_2$ from qubit $3$ build $0.j_2 j_3$; and an $H$ on
+qubit $3$ builds $0.j_3$:
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket{j_1}$} & \gate{H} & \gate{R_2} & \gate{R_3} & \qw      & \qw        & \qw      & \swap{2} & \qw \\
+\lstick{$\ket{j_2}$} & \qw      & \ctrl{-1}  & \qw        & \gate{H} & \gate{R_2} & \qw      & \qw      & \qw \\
+\lstick{$\ket{j_3}$} & \qw      & \qw        & \ctrl{-2}  & \qw      & \ctrl{-1}  & \gate{H} & \targX{} & \qw
+\end{quantikz}
+\end{center}
+
+\emph{The bit-reversal reconciliation.} Expanding \cref{eq:lec04-n3prod} as a
+sum over basis states $\ket{k_1 k_2 k_3}$---keeping the tensor factors in their
+written order---gives amplitudes indexed by $k_1 k_2 k_3$ that do \emph{not}
+match \cref{eq:lec04-n3def} term by term; for instance the product assigns the
+factor $-(1+\ii)/\sqrt2$ to $\ket{100}=\ket{4}$, whereas the definition assigns
+it to $\ket{001}=\ket{1}$. The two agree precisely after \emph{bit reversal}
+$k_1 k_2 k_3\mapsto k_3 k_2 k_1$, implemented by the final SWAP of qubits $1$ and
+$3$: this exchanges $\ket{1}\leftrightarrow\ket{4}$ and
+$\ket{3}\leftrightarrow\ket{6}$ (the strings that are not palindromes),
+carrying \cref{eq:lec04-n3prod} exactly onto \cref{eq:lec04-n3def}. In short,
+the product representation outputs the amplitudes in bit-reversed order, and the
+SWAP layer is exactly the permutation that undoes it.
+
+\emph{Factoring by inspection (Brody's route).} The product form can also be read off
+\cref{eq:lec04-n3def} directly, bypassing \cref{thm:lec04-product}: the amplitude of each
+single-$1$ string fixes one output qubit's relative phase. The coefficients of
+$\ket{100},\ket{010},\ket{001}$ are $-1,\ \ii,\ \ee^{\ii 5\pi/4}$, so
+\[
+  \QFT\ket{5}=\tfrac1{\sqrt2}(\ket0-\ket1)\otimes\tfrac1{\sqrt2}(\ket0+\ii\ket1)
+  \otimes\tfrac1{\sqrt2}(\ket0+\ee^{\ii 5\pi/4}\ket1),
+\]
+which is \cref{eq:lec04-n3prod} with its tensor factors reversed---exactly the bit
+reversal the SWAP performs. A multi-$1$ amplitude is then the product of the relevant
+single-$1$ phases: e.g.\ the coefficient of $\ket{011}$ is
+$\ee^{\ii\pi/2}\cdot\ee^{\ii 5\pi/4}=\ee^{\ii 7\pi/4}$, matching \cref{eq:lec04-n3def}---a
+quick consistency check (Brody, \emph{The Joy of Quantum Computing}, Ch.~9).
+\end{example}
+
 \begin{remark}[Same kernel as the DFT, but no free lunch]
 \label{rem:lec04-dft}
 The kernel $N^{-1/2}\ee^{\ii 2\pi jk/N}$ is identical to that of the
@@ -320,7 +454,7 @@ full circuit processes qubits $1,2,\dots,n$: on qubit $m$ apply $H$, then for
 $k=2,\dots,n-m+1$ a controlled-$R_k$ with target $m$ and control $m+k-1$. A final
 layer of SWAP gates (\emph{bit reversal}) restores the correct qubit order; the
 general pattern is drawn in \cref{fig:lec04-qft}, and worked out concretely for $n=2$
-and $n=3$ in \cref{ex-l4:n2,exa:lec04-n3} below.
+and $n=3$ in \cref{ex-l4:n2,exa:lec04-n3} above.
 
 \begin{figure}[htbp]
 \centering
@@ -339,135 +473,6 @@ $\binom{n}{2}$ controlled phases, and $\lfloor n/2\rfloor$ SWAPs---$\bigo(n^2)$ 
 (\cref{thm:lec04-count}).}
 \label{fig:lec04-qft}
 \end{figure}
-
-\begin{example}[The $n=2$ QFT, worked in full]
-\label{ex-l4:n2}
-Take $n=2$, so $N=4$ and $\omega=\ee^{\ii 2\pi/4}=\ii$. The definition
-$\QFT\ket{j}=\tfrac12\sum_{k=0}^{3}\ii^{\,jk}\ket{k}$ is the matrix
-\[
-  \QFT_4=\frac12\begin{pmatrix}
-    1 & 1 & 1 & 1\\
-    1 & \ii & -1 & -\ii\\
-    1 & -1 & 1 & -1\\
-    1 & -\ii & -1 & \ii
-  \end{pmatrix},
-\]
-whose columns are $\QFT\ket{0},\dots,\QFT\ket{3}$. Writing the labels in binary
-($\ket0=\ket{00},\ \ket1=\ket{01},\ \ket2=\ket{10},\ \ket3=\ket{11}$) and factoring each
-column into (left qubit)\,$\otimes$\,(right qubit):
-\[
-\begin{aligned}
-  \QFT\ket{00}&=\tfrac12(\ket{00}+\ket{01}+\ket{10}+\ket{11})
-    &&=\tfrac1{\sqrt2}(\ket0+\ket1)\otimes\tfrac1{\sqrt2}(\ket0+\ket1),\\
-  \QFT\ket{01}&=\tfrac12(\ket{00}+\ii\ket{01}-\ket{10}-\ii\ket{11})
-    &&=\tfrac1{\sqrt2}(\ket0-\ket1)\otimes\tfrac1{\sqrt2}(\ket0+\ii\ket1),\\
-  \QFT\ket{10}&=\tfrac12(\ket{00}-\ket{01}+\ket{10}-\ket{11})
-    &&=\tfrac1{\sqrt2}(\ket0+\ket1)\otimes\tfrac1{\sqrt2}(\ket0-\ket1),\\
-  \QFT\ket{11}&=\tfrac12(\ket{00}-\ii\ket{01}-\ket{10}+\ii\ket{11})
-    &&=\tfrac1{\sqrt2}(\ket0-\ket1)\otimes\tfrac1{\sqrt2}(\ket0-\ii\ket1).
-\end{aligned}
-\]
-Each factorization is read off \emph{by inspection}: a minus sign sits wherever the
-\emph{left} qubit is $\ket1$ (so the left output factor is $\tfrac1{\sqrt2}(\ket0\pm\ket1)$),
-and a factor of $\ii$ wherever the \emph{right} qubit is $\ket1$ (fixing the right factor).
-
-\emph{The circuit.} Every output factor is a Hadamard carrying an extra phase, so three
-gates build the QFT:
-\begin{enumerate}[label=(\roman*),leftmargin=1.9em,itemsep=1pt,topsep=2pt]
-  \item $H$ on qubit~$1$ makes $\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_1}\ket1)$;
-  \item a controlled-$R_2$ (control qubit~$2$) folds in the next bit, upgrading the phase
-        to $0.j_1 j_2$---here $R_2=P(\pi/2)=\diag(1,\ii)$ with $P(\theta)=\diag(1,\ee^{\ii\theta})$;
-  \item $H$ on qubit~$2$ makes $\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_2}\ket1)$.
-\end{enumerate}
-This yields $\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_1 j_2}\ket1)\otimes
-\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_2}\ket1)$---the product of \cref{thm:lec04-product}
-\emph{before} bit reversal:
-\begin{center}
-\begin{quantikz}
-\lstick{$\ket{j_1}$} & \gate{H} & \gate{R_2} & \qw      & \swap{1} & \qw \\
-\lstick{$\ket{j_2}$} & \qw      & \ctrl{-1}  & \gate{H} & \targX{} & \qw
-\end{quantikz}
-\end{center}
-
-\emph{The swap.} For $\ket{j_1 j_2}=\ket{01}$ the three gates give
-$\tfrac1{\sqrt2}(\ket0+\ii\ket1)\otimes\tfrac1{\sqrt2}(\ket0-\ket1)$, whereas the table
-above has $\QFT\ket{01}=\tfrac1{\sqrt2}(\ket0-\ket1)\otimes\tfrac1{\sqrt2}(\ket0+\ii\ket1)$
----the \emph{same two factors in the opposite order}. A final SWAP of the two qubits
-reconciles them, and likewise for every input: the circuit outputs the factors
-bit-reversed, and the SWAP undoes it. (Brody, \emph{The Joy of Quantum Computing}, Ch.~9,
-tabulates these four cases; the full bit-reversal bookkeeping is worked out for $n=3$ next.)
-\end{example}
-
-\begin{example}[The $n=3$ QFT and the bit-reversal step, in full]
-\label{exa:lec04-n3}
-Take $n=3$, $N=8$, $\omega=\ee^{\ii 2\pi/8}=\ee^{\ii\pi/4}$, and compute
-$\QFT\ket{5}$ two ways. Here $j=5=(101)_2$, so $j_1=1$, $j_2=0$, $j_3=1$.
-
-\emph{From the definition.} \Cref{def:lec04-qft} gives the eight amplitudes
-$N^{-1/2}\omega^{5k}$ directly. Since $\omega^{5}=\ee^{\ii 5\pi/4}
-=(-1-\ii)/\sqrt2$, the successive powers $\omega^{5k}$ for $k=0,\dots,7$ are
-$1,\;\omega^{5},\;\omega^{10}=\omega^{2}=\ii,\;\omega^{15}=\omega^{7},\;
-\omega^{20}=\omega^{4}=-1,\;\omega^{25}=\omega,\;\omega^{30}=\omega^{6}=-\ii,\;
-\omega^{35}=\omega^{3}$, so
-\begin{equation}
-\label{eq:lec04-n3def}
-  \QFT\ket{5}=\frac{1}{2\sqrt2}\Bigl(
-    \ket{0}-\tfrac{1+\ii}{\sqrt2}\ket{1}+\ii\ket{2}+\tfrac{1-\ii}{\sqrt2}\ket{3}
-    -\ket{4}+\tfrac{1+\ii}{\sqrt2}\ket{5}-\ii\ket{6}
-    -\tfrac{1-\ii}{\sqrt2}\ket{7}\Bigr).
-\end{equation}
-
-\emph{From the product representation.} \Cref{thm:lec04-product} assigns to the
-three output qubits the phases $0.j_1 j_2 j_3=0.101_2=\tfrac58$,
-$0.j_2 j_3=0.01_2=\tfrac14$, and $0.j_3=0.1_2=\tfrac12$, hence
-\begin{equation}
-\label{eq:lec04-n3prod}
-  \QFT\ket{5}=\frac{1}{\sqrt2}\bigl(\ket{0}+\ee^{\ii 2\pi\cdot 5/8}\ket{1}\bigr)
-  \otimes\frac{1}{\sqrt2}\bigl(\ket{0}+\ii\ket{1}\bigr)
-  \otimes\frac{1}{\sqrt2}\bigl(\ket{0}-\ket{1}\bigr),
-\end{equation}
-where $\ee^{\ii 2\pi\cdot 5/8}=\ee^{\ii 5\pi/4}=-(1+\ii)/\sqrt2$. The circuit
-realizes \cref{eq:lec04-n3prod} qubit by qubit: an $H$ on qubit $1$ writes the
-leading phase $0.j_1$, a controlled-$R_2$ from qubit $2$ and a controlled-$R_3$
-from qubit $3$ fold in the bits $j_2,j_3$ to complete $0.j_1 j_2 j_3$; an $H$ on
-qubit $2$ and a controlled-$R_2$ from qubit $3$ build $0.j_2 j_3$; and an $H$ on
-qubit $3$ builds $0.j_3$:
-\begin{center}
-\begin{quantikz}
-\lstick{$\ket{j_1}$} & \gate{H} & \gate{R_2} & \gate{R_3} & \qw      & \qw        & \qw      & \swap{2} & \qw \\
-\lstick{$\ket{j_2}$} & \qw      & \ctrl{-1}  & \qw        & \gate{H} & \gate{R_2} & \qw      & \qw      & \qw \\
-\lstick{$\ket{j_3}$} & \qw      & \qw        & \ctrl{-2}  & \qw      & \ctrl{-1}  & \gate{H} & \targX{} & \qw
-\end{quantikz}
-\end{center}
-
-\emph{The bit-reversal reconciliation.} Expanding \cref{eq:lec04-n3prod} as a
-sum over basis states $\ket{k_1 k_2 k_3}$---keeping the tensor factors in their
-written order---gives amplitudes indexed by $k_1 k_2 k_3$ that do \emph{not}
-match \cref{eq:lec04-n3def} term by term; for instance the product assigns the
-factor $-(1+\ii)/\sqrt2$ to $\ket{100}=\ket{4}$, whereas the definition assigns
-it to $\ket{001}=\ket{1}$. The two agree precisely after \emph{bit reversal}
-$k_1 k_2 k_3\mapsto k_3 k_2 k_1$, implemented by the final SWAP of qubits $1$ and
-$3$: this exchanges $\ket{1}\leftrightarrow\ket{4}$ and
-$\ket{3}\leftrightarrow\ket{6}$ (the strings that are not palindromes),
-carrying \cref{eq:lec04-n3prod} exactly onto \cref{eq:lec04-n3def}. In short,
-the product representation outputs the amplitudes in bit-reversed order, and the
-SWAP layer is exactly the permutation that undoes it.
-
-\emph{Factoring by inspection (Brody's route).} The product form can also be read off
-\cref{eq:lec04-n3def} directly, bypassing \cref{thm:lec04-product}: the amplitude of each
-single-$1$ string fixes one output qubit's relative phase. The coefficients of
-$\ket{100},\ket{010},\ket{001}$ are $-1,\ \ii,\ \ee^{\ii 5\pi/4}$, so
-\[
-  \QFT\ket{5}=\tfrac1{\sqrt2}(\ket0-\ket1)\otimes\tfrac1{\sqrt2}(\ket0+\ii\ket1)
-  \otimes\tfrac1{\sqrt2}(\ket0+\ee^{\ii 5\pi/4}\ket1),
-\]
-which is \cref{eq:lec04-n3prod} with its tensor factors reversed---exactly the bit
-reversal the SWAP performs. A multi-$1$ amplitude is then the product of the relevant
-single-$1$ phases: e.g.\ the coefficient of $\ket{011}$ is
-$\ee^{\ii\pi/2}\cdot\ee^{\ii 5\pi/4}=\ee^{\ii 7\pi/4}$, matching \cref{eq:lec04-n3def}---a
-quick consistency check (Brody, \emph{The Joy of Quantum Computing}, Ch.~9).
-\end{example}
-
 \begin{theorem}[Gate complexity of the QFT]
 \label{thm:lec04-count}
 The circuit realizes the QFT on $n$ qubits using exactly $n$ Hadamard gates,
