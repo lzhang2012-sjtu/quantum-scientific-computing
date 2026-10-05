@@ -105,7 +105,24 @@ less than $1$. By linearity, QPE acts on each eigencomponent of $\ket{\phi}$
 independently (\cref{rem:lec04-target}): a single run returns an estimate of the
 eigenphase $\lambda_k$ with probability $p_k=\abs{c_k}^2$, collapsing the system
 to $\ket{\psi_k}$. In particular the ground-state energy $\lambda_0$ is returned
-with probability $p_0$ per run.
+with probability $p_0$ per run; the full circuit is \cref{fig:lec05-gse}.
+
+\begin{figure}[htbp]
+\centering
+\begin{quantikz}
+\lstick{$\ket0$}      & \gate{H} & \ctrl{3}     & \qw          & \qw      & \gate[3]{\QFT^{-1}} & \meter{} \\
+\lstick{$\ket0$}      & \gate{H} & \qw          & \ctrl{2}     & \qw      &                     & \meter{} \\
+\lstick{$\ket0$}      & \gate{H} & \qw          & \qw          & \ctrl{1} &                     & \meter{} \\
+\lstick{$\ket{\phi}$} & \qw      & \gate{U^{4}} & \gate{U^{2}} & \gate{U} & \qw                 & \qw
+\end{quantikz}
+\caption{Ground-state energy estimation: phase estimation on $U=\ee^{\ii 2\pi H}$
+(\cref{eq:lec05-Uexp}), fed the trial state $\ket{\phi}$ of ground-state overlap $p_0$
+(\cref{eq:lec05-initial}). The controlled powers $U^{2^{k}}$ are controlled Hamiltonian
+simulations; by linearity a single run returns an estimate of some eigen-energy
+$\lambda_k$ with probability $\abs{c_k}^2$, so the ground energy $\lambda_0$ appears with
+probability $p_0$. The system register (one wire here) carries all $n$ system qubits.}
+\label{fig:lec05-gse}
+\end{figure}
 
 \subsection*{The min-over-runs estimator}
 
@@ -266,6 +283,26 @@ $\ket{\phi_\pm}$ with probability $\tfrac12$ each and returns an estimate of the
 corresponding eigenphase $\pm\theta$. Since $P=\sin^2(\theta/2)$ is even in
 $\theta$, either outcome determines $P$.
 \end{proof}
+
+The resulting circuit---prepare $\ket{\phi_0}=U_{\phi}\ket{0^n}$, then phase-estimate the
+Grover iterate $G$---is shown in \cref{fig:lec05-ae}.
+
+\begin{figure}[htbp]
+\centering
+\begin{quantikz}
+\lstick{$\ket0$}     & \gate{H} & \qw           & \ctrl{3}     & \qw          & \qw      & \gate[3]{\QFT^{-1}} & \meter{} \\
+\lstick{$\ket0$}     & \gate{H} & \qw           & \qw          & \ctrl{2}     & \qw      &                     & \meter{} \\
+\lstick{$\ket0$}     & \gate{H} & \qw           & \qw          & \qw          & \ctrl{1} &                     & \meter{} \\
+\lstick{$\ket{0^n}$} & \qw      & \gate{U_\phi} & \gate{G^{4}} & \gate{G^{2}} & \gate{G} & \qw                 & \qw
+\end{quantikz}
+\caption{Amplitude estimation: prepare $\ket{\phi_0}=U_{\phi}\ket{0^n}$, then run phase
+estimation on the Grover iterate $G=R_{\phi_0}R_{\mathrm{good}}$, whose eigenvalues on the
+invariant plane are $\ee^{\pm\ii\theta}$ (\cref{thm:lec05-ae}). The measured $t$-bit
+estimate of $\theta$ yields $P=\sin^2(\theta/2)$ to additive error $\bigo(2^{-t})$, i.e.\
+$\bigo(1/\epsilon)$ queries to $G$---quadratically fewer than the $\bigo(1/\epsilon^2)$
+samples of classical Monte Carlo.}
+\label{fig:lec05-ae}
+\end{figure}
 
 \subsection*{Query count and the quadratic advantage}
 
@@ -697,6 +734,26 @@ eigenstates $\ket{u_s}$:
         $\bigo((\log N)^{2})$ gates per controlled power and $\bigo((\log N)^{3})$
         overall.
 \end{itemize}
+
+Assembling the two ingredients gives the \emph{order-finding circuit} of
+\cref{fig:lec05-shor}, the quantum core of Shor's algorithm.
+
+\begin{figure}[htbp]
+\centering
+\begin{quantikz}
+\lstick{$\ket0$} & \gate{H} & \ctrl{3}        & \qw             & \qw          & \gate[3]{\QFT^{-1}} & \meter{} \\
+\lstick{$\ket0$} & \gate{H} & \qw             & \ctrl{2}        & \qw          &                     & \meter{} \\
+\lstick{$\ket0$} & \gate{H} & \qw             & \qw             & \ctrl{1}     &                     & \meter{} \\
+\lstick{$\ket1$} & \qw      & \gate{U_a^{4}}  & \gate{U_a^{2}}  & \gate{U_a}   & \qw                 & \qw
+\end{quantikz}
+\caption{Order finding by phase estimation on the modular-multiplication unitary
+$U_a\ket{y}=\ket{ay\bmod N}$ (\cref{eq:lec05-Ua}). The work register is prepared in the
+trivially-available $\ket{1}=\tfrac{1}{\sqrt r}\sum_{s}\ket{u_s}$ (\cref{lem:lec05-Ua}),
+and each controlled $U_a^{2^{k}}$ is a modular multiplication by the precomputed constant
+$a^{2^{k}}\bmod N$ (modular exponentiation). A run returns a $t$-bit estimate of a random
+$s/r$; continued fractions then recover the order $r$.}
+\label{fig:lec05-shor}
+\end{figure}
 
 \subsection*{Recovering \texorpdfstring{$r$}{r} by continued fractions}
 

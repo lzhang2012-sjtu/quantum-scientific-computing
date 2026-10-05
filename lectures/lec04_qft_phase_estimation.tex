@@ -305,7 +305,23 @@ in by controlled-$R_k$ gates, since a controlled-$R_k$ applies exactly the phase
 $\ee^{\ii 2\pi j_{m+k-1}/2^{k}}$ when its control holds the bit $j_{m+k-1}$. The
 full circuit processes qubits $1,2,\dots,n$: on qubit $m$ apply $H$, then for
 $k=2,\dots,n-m+1$ a controlled-$R_k$ with target $m$ and control $m+k-1$. A final
-layer of SWAP gates (\emph{bit reversal}) restores the correct qubit order.
+layer of SWAP gates (\emph{bit reversal}) restores the correct qubit order; the
+full $n=3$ circuit is drawn in \cref{fig:lec04-qft}.
+
+\begin{figure}[htbp]
+\centering
+\begin{quantikz}
+\lstick{$\ket{j_1}$} & \gate{H} & \gate{R_2} & \gate{R_3} & \qw      & \qw        & \qw      & \swap{2} & \qw \\
+\lstick{$\ket{j_2}$} & \qw      & \ctrl{-1}  & \qw        & \gate{H} & \gate{R_2} & \qw      & \qw      & \qw \\
+\lstick{$\ket{j_3}$} & \qw      & \qw        & \ctrl{-2}  & \qw      & \ctrl{-1}  & \gate{H} & \targX{} & \qw
+\end{quantikz}
+\caption{The quantum Fourier transform on $n=3$ qubits: a Hadamard on each qubit,
+controlled phase rotations $R_k=\diag(1,\ee^{\ii 2\pi/2^{k}})$ folding the lower-order
+bits into each phase, and a final SWAP (bit reversal). On $n$ qubits this is $n$
+Hadamards, $\binom{n}{2}$ controlled phases, and $\lfloor n/2\rfloor$ SWAPs---$\bigo(n^2)$
+gates (\cref{thm:lec04-count}).}
+\label{fig:lec04-qft}
+\end{figure}
 
 \begin{example}[The $n=2$ QFT, worked in full]
 \label{ex-l4:n2}
@@ -615,6 +631,23 @@ three steps:
 
 We use the convention that $\QFT\ket{k}=2^{-t/2}\sum_{j}\ee^{\ii 2\pi jk/2^{t}}
 \ket{j}$, so $\QFT^{-1}\ket{j}=2^{-t/2}\sum_k\ee^{-\ii 2\pi jk/2^{t}}\ket{k}$.
+\Cref{fig:lec04-qpe} shows the circuit for $t=3$ ancillas.
+
+\begin{figure}[htbp]
+\centering
+\begin{quantikz}
+\lstick{$\ket0$}      & \gate{H} & \ctrl{3}     & \qw          & \qw      & \gate[3]{\QFT^{-1}} & \meter{} \\
+\lstick{$\ket0$}      & \gate{H} & \qw          & \ctrl{2}     & \qw      &                     & \meter{} \\
+\lstick{$\ket0$}      & \gate{H} & \qw          & \qw          & \ctrl{1} &                     & \meter{} \\
+\lstick{$\ket{\psi}$} & \qw      & \gate{U^{4}} & \gate{U^{2}} & \gate{U} & \qw                 & \qw
+\end{quantikz}
+\caption{Standard quantum phase estimation with $t=3$ ancillas on an eigenstate
+$U\ket{\psi}=\ee^{\ii 2\pi\varphi}\ket{\psi}$: Hadamards prepare the ancillas, ancilla
+$k$ controls $U^{2^{k}}$ (kicking the phase $\ee^{\ii 2\pi\varphi 2^{k}}$ onto it), an
+inverse QFT concentrates the amplitude, and measuring the ancillas returns the $t$-bit
+estimate $\tilde\varphi$ of $\varphi$. The eigenstate register is returned unchanged.}
+\label{fig:lec04-qpe}
+\end{figure}
 
 \begin{theorem}[Exact QPE]
 \label{thm:lec04-exact}
