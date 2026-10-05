@@ -73,8 +73,21 @@ The circuit applies a Hadamard gate $H$ to the ancilla, a controlled-$U$ (with
 the ancilla as control), and a second Hadamard to the ancilla, and then measures
 the ancilla in the computational basis. In the \emph{imaginary} variant, a phase
 gate $S\dg=\diag(1,-\ii)$ is applied to the ancilla between the controlled-$U$
-and the final Hadamard.
+and the final Hadamard. The circuit is drawn in \cref{fig:lec04-hadamard}.
 \end{definition}
+
+\begin{figure}[htbp]
+\centering
+\begin{quantikz}
+\lstick{$\ket0$}      & \gate{H} & \ctrl{1} & \gate{H} & \meter{} \\
+\lstick{$\ket{\psi}$} & \qw      & \gate{U} & \qw      & \qw
+\end{quantikz}
+\caption{The (real) Hadamard test: one ancilla, $H$--controlled-$U$--$H$, then measure,
+giving $\Prob(0)=\tfrac12\bigl(1+\Re\braket{\psi|U|\psi}\bigr)$. Inserting $S\dg$ on the
+ancilla just before the final $H$ (the imaginary variant) instead yields
+$\tfrac12\bigl(1+\Im\braket{\psi|U|\psi}\bigr)$.}
+\label{fig:lec04-hadamard}
+\end{figure}
 
 \begin{theorem}[Hadamard test]
 \label{thm:lec04-hadamard}
@@ -306,20 +319,24 @@ $\ee^{\ii 2\pi j_{m+k-1}/2^{k}}$ when its control holds the bit $j_{m+k-1}$. The
 full circuit processes qubits $1,2,\dots,n$: on qubit $m$ apply $H$, then for
 $k=2,\dots,n-m+1$ a controlled-$R_k$ with target $m$ and control $m+k-1$. A final
 layer of SWAP gates (\emph{bit reversal}) restores the correct qubit order; the
-full $n=3$ circuit is drawn in \cref{fig:lec04-qft}.
+general pattern is drawn in \cref{fig:lec04-qft}, and worked out concretely for $n=2$
+and $n=3$ in \cref{ex-l4:n2,exa:lec04-n3} below.
 
 \begin{figure}[htbp]
 \centering
 \begin{quantikz}
-\lstick{$\ket{j_1}$} & \gate{H} & \gate{R_2} & \gate{R_3} & \qw      & \qw        & \qw      & \swap{2} & \qw \\
-\lstick{$\ket{j_2}$} & \qw      & \ctrl{-1}  & \qw        & \gate{H} & \gate{R_2} & \qw      & \qw      & \qw \\
-\lstick{$\ket{j_3}$} & \qw      & \qw        & \ctrl{-2}  & \qw      & \ctrl{-1}  & \gate{H} & \targX{} & \qw
+\lstick{$\ket{j_1}$} & \gate{H} & \gate{R_2} & \gate{R_3} & \ \cdots\ & \gate{R_n} & \qw      & \qw        & \qw       & \qw            & \qw \\
+\lstick{$\ket{j_2}$} & \qw      & \ctrl{-1}  & \qw        & \qw       & \qw        & \gate{H} & \gate{R_2} & \ \cdots\ & \gate{R_{n-1}} & \qw \\
+\lstick{$\ket{j_3}$} & \qw      & \qw        & \ctrl{-2}  & \qw       & \qw        & \qw      & \ctrl{-1}  & \qw       & \qw            & \qw \\
+\lstick{$\vdots$}    & \qw      & \qw        & \qw        & \qw       & \qw        & \qw      & \qw        & \qw       & \qw            & \qw \\
+\lstick{$\ket{j_n}$} & \qw      & \qw        & \qw        & \qw       & \ctrl{-4}  & \qw      & \qw        & \qw       & \ctrl{-3}      & \gate{H}
 \end{quantikz}
-\caption{The quantum Fourier transform on $n=3$ qubits: a Hadamard on each qubit,
-controlled phase rotations $R_k=\diag(1,\ee^{\ii 2\pi/2^{k}})$ folding the lower-order
-bits into each phase, and a final SWAP (bit reversal). On $n$ qubits this is $n$
-Hadamards, $\binom{n}{2}$ controlled phases, and $\lfloor n/2\rfloor$ SWAPs---$\bigo(n^2)$
-gates (\cref{thm:lec04-count}).}
+\caption{The quantum Fourier transform on $n$ qubits. Qubit $m$ receives a Hadamard
+followed by controlled phase rotations $R_k=\diag(1,\ee^{\ii 2\pi/2^{k}})$ from the
+qubits below it, folding the lower-order bits into its phase. A final layer of SWAPs
+(bit reversal, omitted here) reverses the qubit order. The count is $n$ Hadamards,
+$\binom{n}{2}$ controlled phases, and $\lfloor n/2\rfloor$ SWAPs---$\bigo(n^2)$ gates
+(\cref{thm:lec04-count}).}
 \label{fig:lec04-qft}
 \end{figure}
 
@@ -364,7 +381,13 @@ gates build the QFT:
 \end{enumerate}
 This yields $\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_1 j_2}\ket1)\otimes
 \tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_2}\ket1)$---the product of \cref{thm:lec04-product}
-\emph{before} bit reversal.
+\emph{before} bit reversal:
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket{j_1}$} & \gate{H} & \gate{R_2} & \qw      & \swap{1} & \qw \\
+\lstick{$\ket{j_2}$} & \qw      & \ctrl{-1}  & \gate{H} & \targX{} & \qw
+\end{quantikz}
+\end{center}
 
 \emph{The swap.} For $\ket{j_1 j_2}=\ket{01}$ the three gates give
 $\tfrac1{\sqrt2}(\ket0+\ii\ket1)\otimes\tfrac1{\sqrt2}(\ket0-\ket1)$, whereas the table
@@ -408,7 +431,14 @@ realizes \cref{eq:lec04-n3prod} qubit by qubit: an $H$ on qubit $1$ writes the
 leading phase $0.j_1$, a controlled-$R_2$ from qubit $2$ and a controlled-$R_3$
 from qubit $3$ fold in the bits $j_2,j_3$ to complete $0.j_1 j_2 j_3$; an $H$ on
 qubit $2$ and a controlled-$R_2$ from qubit $3$ build $0.j_2 j_3$; and an $H$ on
-qubit $3$ builds $0.j_3$.
+qubit $3$ builds $0.j_3$:
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket{j_1}$} & \gate{H} & \gate{R_2} & \gate{R_3} & \qw      & \qw        & \qw      & \swap{2} & \qw \\
+\lstick{$\ket{j_2}$} & \qw      & \ctrl{-1}  & \qw        & \gate{H} & \gate{R_2} & \qw      & \qw      & \qw \\
+\lstick{$\ket{j_3}$} & \qw      & \qw        & \ctrl{-2}  & \qw      & \ctrl{-1}  & \gate{H} & \targX{} & \qw
+\end{quantikz}
+\end{center}
 
 \emph{The bit-reversal reconciliation.} Expanding \cref{eq:lec04-n3prod} as a
 sum over basis states $\ket{k_1 k_2 k_3}$---keeping the tensor factors in their
