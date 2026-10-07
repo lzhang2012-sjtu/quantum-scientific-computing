@@ -26,7 +26,7 @@
 </head>
 <body>
 <h1>Grover's search &mdash; interactive walkthrough</h1>
-<div class="sub">Three qubits, $N=8$, one marked item $\ket{x_0}=\ket{011}=\ket{3}$
+<div class="sub">Three qubits, N&nbsp;=&nbsp;8, one marked item |x&#8320;&rang;&nbsp;=&nbsp;|011&rang;&nbsp;=&nbsp;|3&rang;
 (Example&nbsp;3.24). Watch every amplitude move: the <b>oracle</b> flips the sign of the
 marked amplitude; the <b>diffusion</b> reflects every amplitude about the mean
 (&ldquo;inversion about the mean&rdquo;). Two iterations reach the optimum.</div>
@@ -84,15 +84,15 @@ for(let i=1;i<ops.length;i++){ cur = ops[i]==="oracle"?oracle(cur):diffuse(cur);
 
 const STEPS=[
  {name:"Start",   showMean:false,
-  cap:"<b>Start.</b> $H^{\\otimes3}\\ket{000}$ makes all eight amplitudes equal $1/\\sqrt8\\approx0.354$. Measuring now would find $\\ket{011}$ with probability $1/8=0.125$."},
+  cap:"<b>Start.</b> H<sup>&otimes;3</sup>|000&rang; makes all eight amplitudes equal 1/&radic;8 &approx; 0.354. Measuring now would find |011&rang; with probability 1/8 = 0.125."},
  {name:"Oracle 1", showMean:true,
-  cap:"<b>Oracle $R_{x_0}$.</b> Flip the sign of the marked amplitude: $1/\\sqrt8\\to-1/\\sqrt8$ on $\\ket{011}$; the other seven are unchanged. The dashed line is the new mean $\\bar a=3/(4\\sqrt8)\\approx0.265$."},
+  cap:"<b>Oracle R<sub>x&#8320;</sub>.</b> Flip the sign of the marked amplitude: 1/&radic;8 &rarr; &minus;1/&radic;8 on |011&rang;; the other seven are unchanged. The dashed line is the new mean &#257; = 3/(4&radic;8) &approx; 0.265."},
  {name:"Diffuse 1", showMean:false,
-  cap:"<b>Diffusion (inversion about the mean).</b> Reflect every amplitude about $\\bar a$: marked $\\to 5/(2\\sqrt8)\\approx0.884$, each unmarked $\\to 1/(2\\sqrt8)\\approx0.177$. Now $p=25/32\\approx0.781$."},
+  cap:"<b>Diffusion (inversion about the mean).</b> Reflect every amplitude about &#257;: marked &rarr; 5/(2&radic;8) &approx; 0.884, each unmarked &rarr; 1/(2&radic;8) &approx; 0.177. Now p = 25/32 &approx; 0.781."},
  {name:"Oracle 2", showMean:true,
-  cap:"<b>Oracle $R_{x_0}$.</b> Flip the marked amplitude again: $0.884\\to-0.884$. The new mean is $\\bar a=1/(8\\sqrt8)\\approx0.044$."},
+  cap:"<b>Oracle R<sub>x&#8320;</sub>.</b> Flip the marked amplitude again: 0.884 &rarr; &minus;0.884. The new mean is &#257; = 1/(8&radic;8) &approx; 0.044."},
  {name:"Diffuse 2", showMean:false,
-  cap:"<b>Diffusion.</b> Marked $\\to 11/(4\\sqrt8)\\approx0.972$, so $p=121/128\\approx0.945$; each unmarked $\\to -1/(4\\sqrt8)\\approx-0.088$ (negative $=$ rotated just <i>past</i> $\\ket{011}$). The optimum is $k^\\star=2$ &mdash; stop here."},
+  cap:"<b>Diffusion.</b> Marked &rarr; 11/(4&radic;8) &approx; 0.972, so p = 121/128 &approx; 0.945; each unmarked &rarr; &minus;1/(4&radic;8) &approx; &minus;0.088 (negative = rotated just <i>past</i> |011&rang;). The optimum is k = 2 &mdash; stop here."},
 ];
 
 let step=0, timer=null;
@@ -150,7 +150,6 @@ function render(){
   $("caption").innerHTML=STEPS[step].cap;
   drawBars(); drawRot();
   $("prev").disabled=(step===0); $("next").disabled=(step===STEPS.length-1);
-  if(window.MathJax&&MathJax.typesetPromise) MathJax.typesetPromise([$("caption"),$(".sub")]);
 }
 function goto(n){ step=Math.max(0,Math.min(STEPS.length-1,n)); render(); }
 function play(){ if(timer)return; if(step===STEPS.length-1)goto(0);
@@ -163,6 +162,5 @@ $("prev").onclick=()=>{pause();goto(step-1);};
 $("reset").onclick=()=>{pause();goto(0);};
 render();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
 </body>
 </html>
