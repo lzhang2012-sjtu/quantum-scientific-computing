@@ -328,6 +328,34 @@ $\alpha_{0^n}=0$: the outcome $0^n$ never occurs. In either case a single query
 suffices, and the two cases are distinguished with certainty.
 \end{proof}
 
+\begin{remark}[Gate complexity of the oracle, and the role of the promise]
+\label{rem:lec03-dj-gatecost}
+The ``one query'' of \cref{thm:lec03-dj} counts \emph{calls} to $\Uf$, which the query
+model (\cref{def:lec03-oracle}) treats as a unit-cost black box. The \emph{gate}
+complexity---the number of elementary gates needed to \emph{build} $\Uf$---is a separate
+question, and it depends on the particular function $f$, \emph{not} on whether $f$ is
+constant or balanced. The promise is a global property of $f$'s truth table; it says
+nothing about how hard $f$ is to compute.
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{Constant.} $f\equiv0$ gives $\Uf=\id$ (no gates); $f\equiv1$ flips the
+        target unconditionally, $\Uf=\id^{\otimes n}\otimes X$ (one gate). Constant
+        oracles are trivial.
+  \item \emph{Balanced.} The gate count spans the whole range: a single parity
+        $f(x)=x_i$ needs one $\CNOT$, and $f(x)=s\cdot x$ needs at most $n$ $\CNOT$s
+        (\cref{def:lec03-bv}), but a \emph{generic} balanced function is as hard as a
+        generic Boolean function---by a counting (Shannon) argument almost all $n$-bit
+        functions require $\Theta(2^n/n)$ gates.
+\end{itemize}
+So the constant/balanced classification does \emph{not} fix the gate cost: two balanced
+functions can differ by an exponential factor. The dramatic $1$-vs-$(2^{n-1}{+}1)$
+Deutsch--Jozsa separation is therefore a statement about \emph{query} complexity only. If
+$\Uf$ must be compiled from gates, that cost is paid once and is incurred by \emph{any}
+algorithm---classical or quantum---so it cannot be charged against the comparison; the
+quantum advantage is purely in the number of oracle calls. (Phase kickback reuses the
+same bit oracle $\Uf$ with the target held in $\ket{-}$, so reading $f$ as a phase adds
+no gates beyond the one-time $\ket{-}$ preparation.)
+\end{remark}
+
 \subsection{The Bernstein--Vazirani algorithm}
 
 The Deutsch--Jozsa algorithm returns a single bit of information (constant vs.\
