@@ -36,6 +36,9 @@ qasc_notes.pdf
 OVERLEAF.md
 README_OVERLEAF.md
 
+# Syllabus — kept local only, NOT published
+syllabus/
+
 # Python caches
 **/__pycache__/
 *.pyc
