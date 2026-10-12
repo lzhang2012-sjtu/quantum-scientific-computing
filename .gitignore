@@ -27,9 +27,14 @@ solutions.pdf
 
 # Large binary decks / handwritten sources (kept locally, not tracked)
 *.pptx
-material/SuzhouNotes/Zhang_Quantum Computing for PDEs.pdf
-material/SuzhouNotes/build/
-material/notes/main.pdf
+
+# Third-party reference material — kept local only, NOT published (copyright)
+material/
+qasc_notes.pdf
+
+# Python caches
+**/__pycache__/
+*.pyc
 
 # Jupyter
 .ipynb_checkpoints/
