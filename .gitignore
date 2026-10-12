@@ -32,6 +32,10 @@ solutions.pdf
 material/
 qasc_notes.pdf
 
+# Overleaf sync docs — contain an account-level git token; keep local only
+OVERLEAF.md
+README_OVERLEAF.md
+
 # Python caches
 **/__pycache__/
 *.pyc
