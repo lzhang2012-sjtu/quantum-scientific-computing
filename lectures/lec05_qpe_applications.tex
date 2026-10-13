@@ -65,16 +65,89 @@ classical diagonalization is intractable for large $n$.
 
 \begin{example}[Fermionic Hamiltonian in second quantization]
 \label{exa:lec05-fermion}
-An electronic-structure Hamiltonian written with creation and annihilation
-operators,
+The central Hamiltonian of quantum chemistry describes electrons occupying a fixed
+set of $n$ single-particle \emph{spin-orbitals} $\{\chi_1,\dots,\chi_n\}$. After the
+Born--Oppenheimer approximation freezes the nuclei, the electronic energy is
+governed by the \emph{second-quantized} Hamiltonian
 \[
   H=\sum_{i,j=1}^{n} T_{ij}\,\hat a_i\dg\hat a_j
    +\sum_{i,j,k,l=1}^{n} V_{ijkl}\,\hat a_i\dg\hat a_j\dg\hat a_l\hat a_k,
 \]
-is mapped to a qubit operator by the Jordan--Wigner transform
-$\hat a_i=Z^{\otimes(i-1)}\otimes\tfrac12(X+\ii Y)\otimes\id^{\otimes(n-i)}$.
-Estimating $\lambda_0$ is the central task of quantum chemistry on a quantum
-computer.
+whose ingredients we now unpack.
+
+\emph{Occupation-number states.} Instead of tracking electron \emph{positions},
+second quantization tracks which spin-orbitals are \emph{occupied}. A basis state is
+a bit string $\ket{f_1 f_2\cdots f_n}$ with $f_i\in\{0,1\}$ recording whether orbital
+$i$ is empty or filled; these span the $2^{n}$-dimensional Fock space. The Pauli
+exclusion principle---at most one electron per spin-orbital---is automatic, since
+$f_i\le1$.
+
+\emph{Creation and annihilation operators.} The operator $\hat a_i\dg$ \emph{adds} an
+electron to orbital $i$ and $\hat a_i$ \emph{removes} one,
+\[
+  \hat a_i\dg\ket{\dots f_i{=}0\dots}=(-1)^{s_i}\ket{\dots f_i{=}1\dots},\qquad
+  \hat a_i\ket{\dots f_i{=}1\dots}=(-1)^{s_i}\ket{\dots f_i{=}0\dots},
+\]
+while $\hat a_i\dg$ annihilates an already-filled orbital and $\hat a_i$ an empty one
+($\hat a_i\dg\ket{f_i{=}1}=0$, $\hat a_i\ket{f_i{=}0}=0$). Because electrons are
+\emph{fermions}, the wavefunction must change sign under exchange; this is carried by
+the factor $(-1)^{s_i}$ with $s_i=\sum_{p<i}f_p$ counting the electrons in earlier
+orbitals. Equivalently, the operators obey the \emph{canonical anticommutation
+relations}
+\[
+  \{\hat a_i,\hat a_j\dg\}=\delta_{ij}\,\id,\qquad
+  \{\hat a_i,\hat a_j\}=\{\hat a_i\dg,\hat a_j\dg\}=0,
+  \qquad \{A,B\}\defeq AB+BA.
+\]
+It is the \emph{anti}commutator---not the commutator of bosons---that is the
+algebraic fingerprint of fermionic statistics.
+
+\emph{The two terms.} The coefficients are molecular integrals precomputed classically
+from the chosen orbitals (in atomic units). The \emph{one-electron integrals}
+\[
+  T_{ij}=\int\chi_i^{*}(\mathbf r)\Bigl(-\tfrac12\nabla^{2}+V_{\mathrm{nuc}}(\mathbf r)\Bigr)
+          \chi_j(\mathbf r)\,d\mathbf r
+\]
+hold the kinetic energy and electron--nucleus attraction, and $\hat a_i\dg\hat a_j$
+moves one electron from orbital $j$ to orbital $i$. The \emph{two-electron integrals}
+$V_{ijkl}=\iint\chi_i^{*}(\mathbf r_1)\chi_j^{*}(\mathbf r_2)\,r_{12}^{-1}\,
+\chi_k(\mathbf r_1)\chi_l(\mathbf r_2)\,d\mathbf r_1 d\mathbf r_2$ encode the Coulomb
+repulsion between electrons, and $\hat a_i\dg\hat a_j\dg\hat a_l\hat a_k$ scatters a
+pair of them. The lowest eigenvalue $\lambda_0$ of $H$ is the molecular ground-state
+energy sought by electronic-structure theory.
+
+\emph{The Jordan--Wigner transform.} To run on a quantum computer we identify each
+spin-orbital with one qubit---occupied $\leftrightarrow\ket1$, empty
+$\leftrightarrow\ket0$---so a Fock basis state \emph{is} a computational basis state.
+The single-qubit operators
+\[
+  \tfrac12(X+\ii Y)=\ket0\!\bra1 \quad(\text{lowering, ``annihilate''}),\qquad
+  \tfrac12(X-\ii Y)=\ket1\!\bra0 \quad(\text{raising, ``create''})
+\]
+flip one qubit between filled and empty. On their own, however, operators on
+different sites \emph{commute}, whereas fermionic operators must \emph{anticommute}.
+The Jordan--Wigner transform fixes this by attaching a string of $Z$'s,
+\[
+  \hat a_i= Z^{\otimes(i-1)}\otimes\tfrac12(X+\ii Y)\otimes\id^{\otimes(n-i)},
+  \qquad
+  \hat a_i\dg= Z^{\otimes(i-1)}\otimes\tfrac12(X-\ii Y)\otimes\id^{\otimes(n-i)}.
+\]
+The leading $Z^{\otimes(i-1)}$ evaluates the parity $(-1)^{s_i}$ of the orbitals
+\emph{below} $i$ (recall $Z\ket1=-\ket1$, $Z\ket0=\ket0$), supplying precisely the
+fermionic sign; and because $Z$ anticommutes with $X\pm\ii Y$ on any shared qubit,
+two such operators on different modes acquire the required extra minus sign, so the
+anticommutation relations above are reproduced exactly. Substituting these
+expressions turns every $\hat a_i\dg\hat a_j$ and $\hat a_i\dg\hat a_j\dg\hat a_l\hat
+a_k$ into a sum of Pauli strings, yielding a qubit Hamiltonian
+$H=\sum_\alpha c_\alpha P_\alpha$ of exactly the form QPE and the simulation methods
+of Part~III can handle.
+
+\emph{Cost.} The price of the $Z$ string is \emph{locality}: a single $\hat a_i$ acts
+nontrivially on up to $i$ qubits, so Jordan--Wigner Hamiltonian terms can be
+$\bigo(n)$-local. Alternative encodings (Bravyi--Kitaev, parity) reduce this to
+$\bigo(\log n)$-local operators at the cost of a more intricate mapping. Estimating
+$\lambda_0$ of the resulting qubit Hamiltonian is the central task of quantum
+chemistry on a quantum computer.
 \end{example}
 
 \subsection*{From eigenphase to energy}
