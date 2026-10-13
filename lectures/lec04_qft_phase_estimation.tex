@@ -416,13 +416,31 @@ The exponent factorizes because the exponential of a sum is a product:
    =\prod_{l=1}^{n}\ee^{\ii 2\pi j k_l 2^{n-l}/2^{n}}
    =\prod_{l=1}^{n}\ee^{\ii 2\pi j k_l/2^{\,l}}.
 \]
-Substituting and interchanging the finite sums with the product turns the sum
-over strings $k$ into a product of single-qubit sums,
+Substitute this into the definition of the QFT and write the basis ket in binary,
+$\ket{k}=\ket{k_1}\otimes\cdots\otimes\ket{k_n}$. Each summand becomes a product of
+$n$ factors whose $l$-th factor depends only on the single bit $k_l$; the one sum
+over all $2^{n}$ strings $k$ therefore unfolds into $n$ independent bit-sums and
+distributes across the tensor product (``a sum of products is a product of sums''):
 \[
+\begin{aligned}
   \QFT\ket{j}
-   =\frac{1}{\sqrt N}\bigotimes_{l=1}^{n}
-     \Bigl(\ket{0}+\ee^{\ii 2\pi j/2^{\,l}}\ket{1}\Bigr).
+   &=\frac{1}{\sqrt N}\sum_{k=0}^{N-1}\ee^{\ii 2\pi jk/N}\ket{k}
+    =\frac{1}{\sqrt N}\sum_{k_1=0}^{1}\!\cdots\!\sum_{k_n=0}^{1}
+       \Bigl(\prod_{l=1}^{n}\ee^{\ii 2\pi j k_l/2^{\,l}}\Bigr)
+       \ket{k_1}\otimes\cdots\otimes\ket{k_n}\\[2pt]
+   &=\frac{1}{\sqrt N}\sum_{k_1=0}^{1}\!\cdots\!\sum_{k_n=0}^{1}\;
+       \bigotimes_{l=1}^{n}\ee^{\ii 2\pi j k_l/2^{\,l}}\ket{k_l}
+    =\frac{1}{\sqrt N}\bigotimes_{l=1}^{n}
+       \Bigl(\sum_{k_l=0}^{1}\ee^{\ii 2\pi j k_l/2^{\,l}}\ket{k_l}\Bigr)\\[2pt]
+   &=\frac{1}{\sqrt N}\bigotimes_{l=1}^{n}
+       \Bigl(\ket{0}+\ee^{\ii 2\pi j/2^{\,l}}\ket{1}\Bigr).
+\end{aligned}
 \]
+The first line is the factorization above regrouped so that factor $l$ carries the
+ket $\ket{k_l}$; the second line is the distributive law, pulling each independent
+bit-sum $\sum_{k_l}$ inside its own tensor slot; and the last line evaluates each
+two-term sum over $k_l\in\{0,1\}$ (the $k_l=0$ term is $\ket{0}$, the $k_l=1$ term is
+$\ee^{\ii 2\pi j/2^{\,l}}\ket{1}$).
 To simplify $\ee^{\ii 2\pi j/2^{l}}$, write $j/2^{l}=\sum_{s}j_s 2^{\,n-s-l}$ and
 split into the terms with $n-s\ge l$ (a nonnegative integer, contributing
 $\ee^{\ii 2\pi(\text{integer})}=1$) and those with $n-s<l$, i.e.\
