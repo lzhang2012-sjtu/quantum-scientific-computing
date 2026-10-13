@@ -233,8 +233,9 @@ gates build the QFT:
   \item $H$ on qubit~$2$ makes $\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_2}\ket1)$.
 \end{enumerate}
 This yields $\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_1 j_2}\ket1)\otimes
-\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_2}\ket1)$---the product (tensor) form proved in
-general below (\cref{thm:lec04-product}), \emph{before} bit reversal:
+\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_2}\ket1)$---the \emph{mirror image} of the QFT
+product form (\cref{thm:lec04-product}), i.e.\ the circuit's output \emph{before} the
+final bit-reversal SWAP:
 \begin{center}
 \begin{quantikz}
 \lstick{$\ket{j_1}$} & \gate{H} & \gate{R_2} & \qw      & \swap{1} & \qw \\
@@ -270,13 +271,14 @@ $1,\;\omega^{5},\;\omega^{10}=\omega^{2}=\ii,\;\omega^{15}=\omega^{7},\;
     -\tfrac{1-\ii}{\sqrt2}\ket{7}\Bigr).
 \end{equation}
 
-\emph{From the factored (product) form.} Grouping the amplitudes qubit by qubit---the
-pattern proved in general below as \cref{thm:lec04-product}---assigns to the
-three output qubits the phases $0.j_1 j_2 j_3=0.101_2=\tfrac58$,
-$0.j_2 j_3=0.01_2=\tfrac14$, and $0.j_3=0.1_2=\tfrac12$, hence
+\emph{From the circuit, before its final SWAP.} Built qubit by qubit, the
+Hadamard--controlled-phase network writes on qubits $1,2,3$ the phases
+$0.j_1 j_2 j_3=0.101_2=\tfrac58$, $0.j_2 j_3=0.01_2=\tfrac14$, and
+$0.j_3=0.1_2=\tfrac12$---the \emph{mirror image} of the QFT product form
+\cref{thm:lec04-product}. Its pre-SWAP output is therefore
 \begin{equation}
 \label{eq:lec04-n3prod}
-  \QFT\ket{5}=\frac{1}{\sqrt2}\bigl(\ket{0}+\ee^{\ii 2\pi\cdot 5/8}\ket{1}\bigr)
+  \ket{\psi_{\mathrm{circ}}}=\frac{1}{\sqrt2}\bigl(\ket{0}+\ee^{\ii 2\pi\cdot 5/8}\ket{1}\bigr)
   \otimes\frac{1}{\sqrt2}\bigl(\ket{0}+\ii\ket{1}\bigr)
   \otimes\frac{1}{\sqrt2}\bigl(\ket{0}-\ket{1}\bigr),
 \end{equation}
@@ -400,12 +402,18 @@ For every $j=j_1 j_2\cdots j_n$ (binary),
 \[
   \QFT\ket{j}
    =\bigotimes_{l=1}^{n}
-     \frac{1}{\sqrt2}\Bigl(\ket{0}+\ee^{\ii 2\pi\,0.j_l j_{l+1}\cdots j_n}\ket{1}\Bigr)
+     \frac{1}{\sqrt2}\Bigl(\ket{0}+\ee^{\ii 2\pi\,0.j_{n-l+1}\cdots j_n}\ket{1}\Bigr)
    =\frac{1}{2^{n/2}}
-     \bigl(\ket{0}+\ee^{\ii 2\pi\,0.j_1\cdots j_n}\ket{1}\bigr)\otimes\cdots\otimes
-     \bigl(\ket{0}+\ee^{\ii 2\pi\,0.j_n}\ket{1}\bigr).
+     \bigl(\ket{0}+\ee^{\ii 2\pi\,0.j_n}\ket{1}\bigr)\otimes\cdots\otimes
+     \bigl(\ket{0}+\ee^{\ii 2\pi\,0.j_1\cdots j_n}\ket{1}\bigr).
 \]
-In particular the $n$ output qubits are unentangled.
+That is, output qubit~$l$ carries the binary-fraction phase $0.j_{n-l+1}\cdots j_n$:
+the \emph{first} output qubit carries the shortest fraction $0.j_n$ and the
+\emph{last} carries the full $0.j_1\cdots j_n$. In particular the $n$ output qubits
+are unentangled. (The Hadamard--controlled-phase circuit of \cref{thm:lec04-count}
+naturally produces these factors in the \emph{opposite} qubit order---qubit $l$
+carrying $0.j_l\cdots j_n$---so a final layer of SWAP gates, \emph{bit reversal},
+reverses the register to realize $\QFT$.)
 \end{theorem}
 
 \begin{proof}
@@ -448,10 +456,10 @@ $s=n-l+1,\dots,n$, which give $0.j_{n-l+1}\cdots j_n$. Hence
 $\ee^{\ii 2\pi j/2^{l}}=\ee^{\ii 2\pi\,0.j_{n-l+1}\cdots j_n}$, and distributing
 $1/\sqrt N=\prod_l 2^{-1/2}$ gives
 $\QFT\ket{j}=\bigotimes_{l=1}^{n}\tfrac{1}{\sqrt2}(\ket{0}
-+\ee^{\ii 2\pi\,0.j_{n-l+1}\cdots j_n}\ket{1})$. Reindexing by $l'=n-l+1$ puts the
-factors in the stated order, with the first output qubit carrying
-$0.j_1\cdots j_n$ and the last carrying $0.j_n$. The output is a tensor product,
-hence unentangled.
++\ee^{\ii 2\pi\,0.j_{n-l+1}\cdots j_n}\ket{1})$---exactly the stated form, with output
+qubit $l$ carrying $0.j_{n-l+1}\cdots j_n$ (so qubit $1$ carries $0.j_n$ and qubit $n$
+carries the full $0.j_1\cdots j_n$). The output is a tensor product, hence
+unentangled.
 \end{proof}
 
 \subsection*{The circuit and its gate count}
@@ -644,27 +652,51 @@ Computing}, Ch.~9, works these period examples out by hand on a small simulator.
 \section{Quantum phase estimation via the QFT}
 \label{sec:lec04-3}
 
-Standard QPE parallelizes the idea of accessing powers of $U$, using a register
-of $t$ ancilla qubits to hold all exponents at once. Prepare the ancilla in a
-uniform superposition $H^{\otimes t}\ket{0^{t}}=2^{-t/2}\sum_{j=0}^{2^{t}-1}
-\ket{j}$, the ``readout canvas.'' We wish to realize the controlled matrix power
-$\sum_{j}\proj{j}\otimes U^{j}$. Writing $j=\sum_{k=0}^{t-1}j_k 2^{k}$ in binary,
-this factorizes as
+\emph{The goal.} We are handed a unitary $U$ together with one of its eigenstates
+$\ket{\psi}$, $U\ket{\psi}=\lambda\ket{\psi}$, and we want the eigenvalue $\lambda$.
+Every eigenvalue of a unitary has unit modulus, so $\lambda=\ee^{\ii\theta}$ for some
+angle $\theta$. A measurement returns only $0$s and $1$s, so rather than chase
+$\theta$ directly we chase the \emph{fraction}
+\begin{equation}
+  \varphi=\frac{\theta}{2\pi}\in[0,1),\qquad
+  \lambda=\ee^{\ii\theta}=\ee^{\ii 2\pi\varphi},
+  \label{eq:lec04-phasefrac}
+\end{equation}
+and record it in binary, $\varphi=0.\varphi_1\varphi_2\cdots=\sum_{\ell\ge1}\varphi_\ell
+2^{-\ell}$; with $t$ ancilla qubits a measurement returns $t$ fractional bits of
+$\varphi$. (This $\varphi$ is Brody's $j$. For $U=Z$ on $\ket{\psi}=\ket1$,
+$\lambda=-1=\ee^{\ii\pi}$ gives $\varphi=\tfrac12=0.1_2$---a far friendlier target than
+$\theta=\pi$, and one that three measured bits pin down exactly.)
+
+\emph{Phase kickback, one control qubit.} The engine of the algorithm is a single
+move. Put one control qubit on a controlled-$U$ whose target carries $\ket{\psi}$. If
+the control is $\ket0$ the gate does nothing; if it is $\ket1$ then $U$ acts and
+returns $U\ket{\psi}=\ee^{\ii 2\pi\varphi}\ket{\psi}$. By linearity a control in the
+superposition $\tfrac1{\sqrt2}(\ket0+\ket1)$ gives
 \[
-  \sum_{j=0}^{2^{t}-1}\proj{j}\otimes U^{j}
-  =\prod_{k=0}^{t-1}\bigl(\text{controlled-}U^{2^{k}}\bigr),
+  \text{c-}U\;\tfrac1{\sqrt2}\bigl(\ket0+\ket1\bigr)\ket{\psi}
+   =\tfrac1{\sqrt2}\bigl(\ket0+\ee^{\ii 2\pi\varphi}\ket1\bigr)\ket{\psi},
 \]
-where the $k$-th factor is controlled by the $k$-th ancilla qubit. Crucially,
-only the $t$ distinct powers $U,U^{2},\dots,U^{2^{t-1}}$ are needed, not all
-$2^{t}$. Acting on the eigenstate $\ket{\psi}$ and using
-$U^{j}\ket{\psi}=\ee^{\ii 2\pi\varphi j}\ket{\psi}$, the ancilla register is left
-in the \emph{phase-kickback} state
+so the eigenphase is \emph{kicked back} onto the \emph{control} while $\ket{\psi}$ is
+returned untouched (\cref{lem:lec03-kickback}). The eigenstate acts as a passive
+catalyst; all the information lands in the control's relative phase.
+
+\emph{From one control qubit to $t$.} Give each of $t$ ancillas its own power: ancilla
+$k$ (for $k=0,\dots,t-1$) controls $U^{2^{k}}$. Since
+$U^{2^{k}}\ket{\psi}=\ee^{\ii 2\pi\varphi 2^{k}}\ket{\psi}$, the same kickback writes
+the phase $\ee^{\ii 2\pi\varphi 2^{k}}$ onto ancilla $k$---and only the $t$ powers
+$U,U^{2},\dots,U^{2^{t-1}}$ are ever needed, not all $2^{t}$. Preparing the ancillas in
+$H^{\otimes t}\ket{0^{t}}=2^{-t/2}\sum_{j}\ket{j}$ and applying all $t$ controlled
+powers leaves them in the \emph{phase-kickback state}
 \[
   \frac{1}{\sqrt{2^{t}}}\sum_{j=0}^{2^{t}-1}\ee^{\ii 2\pi\varphi j}\ket{j}
-  \otimes\ket{\psi}.
+  \otimes\ket{\psi},
 \]
-The eigenstate is unchanged; the phase has been written into the ancilla
-amplitudes.
+with $\ket{\psi}$ unchanged and the eigenphase spread across the ancilla amplitudes as
+a pure ``frequency'' $\varphi$. The final step reads that frequency off: when $\varphi$
+has an exact $t$-bit expansion this register is \emph{precisely}
+$\QFT\ket{2^{t}\varphi}$ (\cref{thm:lec04-exact}), so an \emph{inverse} QFT turns it
+into the basis state $\ket{2^{t}\varphi}$ whose bits spell out $\varphi$.
 
 \begin{definition}[Standard QPE]
 \label{def:lec04-qpe}
@@ -1055,11 +1087,13 @@ Heisenberg versus shot-noise scaling of \cref{sec:lec04-5}.
 \end{exercise}
 
 \begin{exercise}\label{ex:lec04-11}
-Compute $\QFT\ket{5}$ for $n=3$ from \cref{def:lec04-qft}, and separately from
-the product representation \cref{thm:lec04-product}. Expand the product over
-basis states $\ket{k_1 k_2 k_3}$ and exhibit the explicit bit-reversal
-permutation (the final SWAP of qubits $1$ and $3$) that maps it onto the
-definition, identifying which basis states are exchanged and which are fixed.
+Compute $\QFT\ket{5}$ for $n=3$ from \cref{def:lec04-qft}. Separately, write the
+output of the QFT \emph{circuit before its final SWAP}---the mirror image of the
+product representation \cref{thm:lec04-product}, with qubit $1$ carrying the full
+fraction $0.j_1 j_2 j_3$. Expand both over basis states $\ket{k_1 k_2 k_3}$ and
+exhibit the explicit bit-reversal permutation (the final SWAP of qubits $1$ and $3$)
+that maps the pre-SWAP output onto $\QFT\ket5$, identifying which basis states are
+exchanged and which are fixed.
 \end{exercise}
 
 \begin{exercise}\label{ex:lec04-12}
