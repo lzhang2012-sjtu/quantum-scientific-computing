@@ -494,7 +494,7 @@ $\Uf\ket{x}\ket{-}=(-1)^{f(x)}\ket{x}\ket{-}$; the target factors out, and on th
 $n$-qubit register the oracle acts as $\ket{x}\mapsto(-1)^{f(x)}\ket{x}$, simply
 attaching a minus sign to the marked basis state $\ket{x_0}$.
 
-\section{The Grover iteration}
+\section{Grover's search algorithm}
 \label{sec:lec03-3}
 
 Two operators drive the algorithm. Both are \emph{reflections}, and their product
@@ -858,80 +858,98 @@ to the squared $\ket{x_0}$-amplitude, namely
 $p_k=\sin^{2}\bigl((2k+1)\theta/2\bigr)$.
 \end{proof}
 
-\begin{example}[A fully worked run: $N=8$, marked item $x_0=3$]
+\begin{example}[A fully worked run: $N=16$, marked item $x_0=5$]
 \label{exa:lec03-n8}
 It is worth watching every amplitude move once, on a case small enough to write
-out yet large enough that a single iteration does not suffice. Take three qubits,
-$N=8$, and mark the basis state $\ket{x_0}=\ket{3}=\ket{011}$. From
-\eqref{eq:lec03-theta}, $\sin(\theta/2)=1/\sqrt8$, so $\theta=2\arcsin(1/\sqrt8)
-\approx41.4^{\circ}$ and $(\pi/2\theta)-\tfrac12\approx1.67$; rounding gives
-$k^{\ast}=2$ iterations. Because the amplitudes stay uniform across the seven
-unmarked states throughout, it suffices to track two numbers per step: the common
-amplitude $a$ on the unmarked states and the amplitude $g$ on $\ket{x_0}$. Recall
-that the oracle $R_{x_0}$ flips the sign of $g$ and that the diffusion
-$R_{\psi_0}$ sends every amplitude $a_x\mapsto 2\bar a-a_x$, reflecting it about
-the mean $\bar a$ (Exercise~\ref{ex:lec03-1}).
+out yet large enough that several iterations are needed---and large enough to see
+what happens if one runs \emph{too} many. Take four qubits, $N=16$, and mark the
+basis state $\ket{x_0}=\ket{5}=\ket{0101}$. From \eqref{eq:lec03-theta},
+$\sin(\theta/2)=1/\sqrt{16}=1/4$, so $\theta=2\arcsin(1/4)\approx28.96^{\circ}$ and
+$(\pi/2\theta)-\tfrac12\approx2.64$; rounding gives $k^{\ast}=3$ iterations. Because
+the amplitudes stay uniform across the fifteen unmarked states throughout, it
+suffices to track two numbers per step: the common amplitude $a$ on the unmarked
+states and the amplitude $g$ on $\ket{x_0}$. Recall that the oracle $R_{x_0}$ flips
+the sign of $g$ and that the diffusion $R_{\psi_0}$ sends every amplitude
+$a_x\mapsto 2\bar a-a_x$, reflecting it about the mean $\bar a$
+(Exercise~\ref{ex:lec03-1}).
 
-\emph{Start.} $\ket{\psi_0}=H^{\otimes3}\ket{000}$ gives every amplitude equal to
-$1/\sqrt8$, so measuring now returns $\ket{x_0}$ with probability $1/8$.
+\emph{Start.} $\ket{\psi_0}=H^{\otimes4}\ket{0000}$ gives every amplitude equal to
+$1/4$, so measuring now returns $\ket{x_0}$ with probability $1/16$.
 
-\emph{Iteration~1.} The oracle sends $g\colon\ 1/\sqrt8\mapsto-1/\sqrt8$ while the
-seven unmarked amplitudes are unchanged. The mean is then
-$\bar a=\bigl(7\cdot\tfrac{1}{\sqrt8}-\tfrac{1}{\sqrt8}\bigr)/8=\tfrac{3}{4\sqrt8}$.
-Inversion about the mean gives, for an unmarked amplitude,
-$2\bar a-\tfrac1{\sqrt8}=\tfrac{3}{2\sqrt8}-\tfrac{1}{\sqrt8}=\tfrac{1}{2\sqrt8}$,
-and for the marked one
-$2\bar a-\bigl(-\tfrac1{\sqrt8}\bigr)=\tfrac{3}{2\sqrt8}+\tfrac{1}{\sqrt8}
-=\tfrac{5}{2\sqrt8}$. Thus
+\emph{Iteration~1.} The oracle sends $g\colon\ 1/4\mapsto-1/4$ while the fifteen
+unmarked amplitudes are unchanged. The mean is
+$\bar a=\bigl(15\cdot\tfrac14-\tfrac14\bigr)/16=\tfrac{7}{32}$. Inversion about the
+mean gives, for an unmarked amplitude, $2\bar a-\tfrac14=\tfrac{3}{16}$, and for the
+marked one $2\bar a+\tfrac14=\tfrac{11}{16}$, so
 \[
-  G\ket{\psi_0}
-  =\frac{1}{2\sqrt8}\!\!\sum_{x\neq 3}\ket{x}+\frac{5}{2\sqrt8}\ket{3},
+  G\ket{\psi_0}=\frac{3}{16}\!\!\sum_{x\neq 5}\ket{x}+\frac{11}{16}\ket{5},
   \qquad
-  p_1=\Bigl(\tfrac{5}{2\sqrt8}\Bigr)^{2}=\frac{25}{32}\approx0.781.
+  p_1=\Bigl(\tfrac{11}{16}\Bigr)^{2}=\frac{121}{256}\approx0.473.
 \]
 
-\emph{Iteration~2.} The oracle flips the marked amplitude to $-\tfrac{5}{2\sqrt8}$;
-the new mean is $\bar a=\bigl(7\cdot\tfrac1{2\sqrt8}-\tfrac5{2\sqrt8}\bigr)/8
-=\tfrac{1}{8\sqrt8}$. Inversion about the mean now yields, for an unmarked
-amplitude, $2\bar a-\tfrac1{2\sqrt8}=-\tfrac{1}{4\sqrt8}$, and for the marked one
-$2\bar a+\tfrac5{2\sqrt8}=\tfrac{11}{4\sqrt8}$, so
+\emph{Iteration~2.} The oracle flips the marked amplitude to $-\tfrac{11}{16}$; the
+new mean is $\bar a=\bigl(15\cdot\tfrac{3}{16}-\tfrac{11}{16}\bigr)/16
+=\tfrac{17}{128}$. Inversion yields unmarked $2\bar a-\tfrac{3}{16}=\tfrac{5}{64}$
+and marked $2\bar a+\tfrac{11}{16}=\tfrac{61}{64}$, so
 \[
-  G^{2}\ket{\psi_0}
-  =-\frac{1}{4\sqrt8}\!\!\sum_{x\neq3}\ket{x}+\frac{11}{4\sqrt8}\ket{3},
+  G^{2}\ket{\psi_0}=\frac{5}{64}\!\!\sum_{x\neq5}\ket{x}+\frac{61}{64}\ket{5},
   \qquad
-  p_2=\Bigl(\tfrac{11}{4\sqrt8}\Bigr)^{2}=\frac{121}{128}\approx0.945.
+  p_2=\Bigl(\tfrac{61}{64}\Bigr)^{2}=\frac{3721}{4096}\approx0.908.
 \]
-The amplitudes are collected in \cref{tab:lec03-n8}. The value $p_2=121/128$ agrees
-with the closed form $\sin^{2}\bigl(5\theta/2\bigr)$ of \cref{thm:lec03-afterk}.
-The negative sign on the unmarked amplitudes after the second iteration signals
-that the state has rotated just \emph{past} $\ket{x_0}$: a third iteration would
-begin to undo the gain, exactly the over-rotation warned of in
-\cref{rem:lec03-overrotate}.
+
+\emph{Iteration~3 (the optimum).} The oracle flips the marked amplitude to
+$-\tfrac{61}{64}$; the mean is
+$\bar a=\bigl(15\cdot\tfrac{5}{64}-\tfrac{61}{64}\bigr)/16=\tfrac{7}{512}$.
+Inversion yields unmarked $2\bar a-\tfrac{5}{64}=-\tfrac{13}{256}$ and marked
+$2\bar a+\tfrac{61}{64}=\tfrac{251}{256}$, so
+\[
+  G^{3}\ket{\psi_0}=-\frac{13}{256}\!\!\sum_{x\neq5}\ket{x}+\frac{251}{256}\ket{5},
+  \qquad
+  p_3=\Bigl(\tfrac{251}{256}\Bigr)^{2}=\frac{63001}{65536}\approx0.961.
+\]
+This is the maximum: $p_3\approx0.961$ already exceeds the guarantee $1-1/N=15/16$
+of \cref{thm:lec03-kstar}, and the small \emph{negative} amplitude on the unmarked
+states shows the state has just edged past $\ket{x_0}$.
+
+\emph{Iterations~4 and~5 (over-rotation).} Nothing stops us from continuing, but the
+geometry now works against us: each further $G$ rotates the state by another
+$\theta$, carrying it \emph{away} from $\ket{x_0}$. Running the same recurrence
+twice more gives marked amplitudes $\tfrac{781}{1024}$ and then $\tfrac{1451}{4096}$,
+\[
+  p_4=\Bigl(\tfrac{781}{1024}\Bigr)^{2}=\frac{609961}{1048576}\approx0.582,
+  \qquad
+  p_5=\Bigl(\tfrac{1451}{4096}\Bigr)^{2}=\frac{2105401}{16777216}\approx0.126.
+\]
+The success probability falls from $0.961$ back down toward its starting value---a
+concrete instance of the over-rotation warned of in \cref{rem:lec03-overrotate}.
+All six stages are collected in \cref{tab:lec03-n8}; the entries agree with the
+closed form $p_k=\sin^{2}\bigl((2k+1)\theta/2\bigr)$ of \cref{thm:lec03-afterk}.
 \end{example}
 
 \begin{table}[t]
 \centering
-\begin{tabular}{lccc}
+\begin{tabular}{ccccc}
 \toprule
-Stage & unmarked amplitude & marked amplitude ($\ket{3}$) & $p=\abs{g}^2$\\
+iteration $k$ & angle $\tfrac{(2k+1)\theta}{2}$ & unmarked amp. & marked amp. ($\ket5$) & $p_k=\abs{g}^2$\\
 \midrule
-$\ket{\psi_0}$ (start)      & $1/\sqrt8$        & $1/\sqrt8$        & $1/8$\\
-after $R_{x_0}$ (query 1)   & $1/\sqrt8$        & $-1/\sqrt8$       & ---\\
-after $R_{\psi_0}$ (iter.\ 1)& $1/(2\sqrt8)$     & $5/(2\sqrt8)$     & $25/32$\\
-after $R_{x_0}$ (query 2)   & $1/(2\sqrt8)$     & $-5/(2\sqrt8)$    & ---\\
-after $R_{\psi_0}$ (iter.\ 2)& $-1/(4\sqrt8)$    & $11/(4\sqrt8)$    & $121/128$\\
+$0$ (start)    & $14.5^{\circ}$  & $1/4$       & $1/4$       & $1/16\approx0.063$\\
+$1$            & $43.4^{\circ}$  & $3/16$      & $11/16$     & $121/256\approx0.473$\\
+$2$            & $72.4^{\circ}$  & $5/64$      & $61/64$     & $3721/4096\approx0.908$\\
+$3$ (optimum)  & $101.3^{\circ}$ & $-13/256$   & $251/256$   & $63001/65536\approx0.961$\\
+$4$            & $130.3^{\circ}$ & $-171/1024$ & $781/1024$  & $609961/1048576\approx0.582$\\
+$5$            & $159.3^{\circ}$ & $-989/4096$ & $1451/4096$ & $2105401/16777216\approx0.126$\\
 \bottomrule
 \end{tabular}
-\caption{Amplitudes through two Grover iterations for $N=8$, $x_0=3$
-(\cref{exa:lec03-n8}). All seven unmarked states share a common amplitude at
-every stage; the mean used by the diffusion step is
-$\bar a=\tfrac{3}{4\sqrt8}$ before iteration~1 and $\tfrac{1}{8\sqrt8}$ before
-iteration~2.}
+\caption{Amplitudes after each Grover iteration for $N=16$, $x_0=5$
+(\cref{exa:lec03-n8}). All fifteen unmarked states share a common amplitude at every
+stage. The success probability climbs to its peak at the optimum $k^{\ast}=3$ and
+then \emph{falls} as iterations~4 and~5 over-rotate the state past $\ket{x_0}$;
+each row matches the closed form $p_k=\sin^{2}\bigl((2k+1)\theta/2\bigr)$.}
 \label{tab:lec03-n8}
 \end{table}
 
-\section{Amplitude amplification}
-\label{sec:lec03-4}
+\subsection{Choosing the number of iterations}
+\label{sec:lec03-iterations}
 
 \cref{thm:lec03-afterk} shows the amplitude on $\ket{x_0}$ is maximized when the
 angle $(2k+1)\theta/2$ is as close as possible to $\pi/2$, i.e.\ when the state is
@@ -987,6 +1005,148 @@ If $N$ is unknown one can still succeed with $\bigo(\sqrt N)$ expected queries b
 trying geometrically increasing guesses for the number of iterations and choosing
 the number at random within each guess.
 \end{remark}
+
+\subsection{Running Grover in practice}
+
+The state-after-$k$ formula (\cref{thm:lec03-afterk}) and the optimal count
+$k^{\ast}$ (\cref{thm:lec03-kstar}) are all we need to search in earnest. The two
+examples below put them to work and make a point easily lost in the geometry: the
+algorithm never uses the \emph{value} of the marked string $x_0$, only the oracle
+that recognizes it.
+
+\begin{example}[Running Grover in practice: we never use $x_0$]
+\label{exa:lec03-practice}
+\cref{exa:lec03-n8} tracked the amplitude on $\ket{x_0}=\ket5$ for illustration, but
+the algorithm itself never knows $x_0$: the only access to $f$ is through the
+black-box oracle $R_{x_0}$, and the mark $\ket5$ was baked into that oracle by
+whoever posed the search, not by us. What, then, do we actually run?
+
+\emph{Where the oracle comes from.} We are not handed $x_0$; we are handed a way to
+\emph{recognize} it---a predicate $f$ with $f(x)=1$ exactly when $x=x_0$, supplied as
+the reversible \emph{bit} oracle $\Uf\colon\ket{x}\ket{y}\mapsto\ket{x}\ket{y\oplus
+f(x)}$ of \cref{def:lec03-oracle}, which writes the \emph{value} of $f$ into an extra
+qubit. Grover, on the other hand, needs the \emph{phase} oracle
+$R_{x_0}=\id-2\proj{x_0}$, which writes no bit but attaches a sign to $\ket{x_0}$. These
+are the same operator viewed through a single ancilla. Prepare that ancilla in
+$\ket-=\tfrac1{\sqrt2}(\ket0-\ket1)$; since the controlled flip $\ket y\mapsto\ket{y\oplus
+f(x)}$ either leaves $\ket-$ alone ($f(x)=0$) or sends it to $-\ket-$ ($f(x)=1$), phase
+kickback (\cref{lem:lec03-kickback}) gives
+\[
+  \Uf\bigl(\ket{x}\otimes\ket-\bigr)
+    =(-1)^{f(x)}\,\ket{x}\otimes\ket-
+    =\bigl(R_{x_0}\ket{x}\bigr)\otimes\ket-,
+  \qquad
+  R_{x_0}=\sum_{x}(-1)^{f(x)}\proj{x}=\id-2\proj{x_0},
+\]
+the last equality because $(-1)^{f(x)}=+1$ everywhere except at the single string
+$x=x_0$, where it is $-1$. In words: \emph{with the target held in $\ket-$, the bit
+oracle $\Uf$ acts on the data register exactly as the phase oracle $R_{x_0}$}---the
+ancilla emerges unchanged and factors off, carrying the sign back onto $\ket{x}$.
+Concretely,
+\begin{center}
+\begin{quantikz}[column sep=0.65cm,row sep=0.5cm]
+\lstick{$\ket{x}$ \,($n$ data qubits)} & \qwbundle{n} & \gate[2]{\Uf} & \qwbundle{n} & \rstick{$(-1)^{f(x)}\ket{x}$} \\
+\lstick{$\ket{1}$} & \gate{H} & & \gate{H} & \rstick{$\ket{1}$}
+\end{quantikz}
+\end{center}
+the ancilla's two $H$ gates turn $\ket1$ into $\ket-$ and back, so it returns to $\ket1$
+and may be reused or discarded; everything between them, read on the top register,
+\emph{is} $R_{x_0}$. Note what this circuit contains: the gates of $\Uf$ and one
+ancilla, and \emph{never $x_0$ itself}---the minus sign lands on whichever input
+satisfies $f$, wherever that happens to be. (If $\Uf$ allocates scratch qubits while
+evaluating $f$, uncompute them afterwards so they return to $\ket0$ and leave the data
+register unentangled.) This is the compilation of \cref{ex:lec03-oracle-compile}, and
+\cref{exa:lec03-unknown} below carries it out for a concrete, genuinely unknown $x_0$.
+
+The one quantity we \emph{do} know is the size of the search space, $N=16$ (and,
+here, that there is a single solution, $M=1$). That is enough, because by
+\cref{thm:lec03-kstar} the optimal iteration count depends only on $N$,
+\[
+  k^{\ast}=\Bigl\lfloor\tfrac{\pi}{4}\sqrt{N}\Bigr\rfloor
+         =\Bigl\lfloor\tfrac{\pi}{4}\cdot4\Bigr\rfloor=\lfloor\pi\rfloor=3,
+\]
+not on \emph{which} item is marked. So the procedure is:
+\begin{enumerate}[label=(\arabic*),leftmargin=1.9em,itemsep=1pt,topsep=2pt]
+  \item Prepare $\ket{\psi_0}=H^{\otimes4}\ket{0000}$ and apply the Grover iterate
+        $G=R_{\psi_0}R_{x_0}$ exactly $k^{\ast}=3$ times. Here $R_{x_0}$ is the oracle
+        we are \emph{handed}: we run it as a black box, and although its subscript
+        $x_0$ records that it marks a single item (so $R_{x_0}=\id-2\proj{x_0}$), the
+        value of that item is unknown to us---the circuit never reads it.
+  \item Measure the four qubits, obtaining a candidate string $y\in\{0,1\}^4$.
+  \item \emph{Verify}: evaluate the predicate once. If $f(y)=1$, output $y$;
+        otherwise discard it and repeat from~(1).
+\end{enumerate}
+The verification in step~(3) is a single classical evaluation of $f$, and it is what
+makes the algorithm trustworthy without ever referring to $x_0$: a wrong guess is
+detected and costs nothing but a repeat. By \cref{exa:lec03-n8} the measurement in
+step~(2) returns the true $x_0=5$ with probability $p_3=63001/65536\approx0.961$, so
+the expected number of attempts is $1/p_3\approx1.04$---almost always the first one.
+Each attempt uses $k^{\ast}=3$ oracle calls inside the Grover iterations plus one
+$f$-evaluation to verify, for an expected total of about four queries.
+
+Contrast this with brute force: testing items one at a time finds the marked string
+in $8$ queries on average and $15$ in the worst case. Even at $N=16$ Grover is
+already ahead, and the gap widens as $\sqrt N$ against $N$.
+
+One caveat: the recipe used $M=1$ to fix $k^{\ast}$. If the number of solutions $M$
+is \emph{unknown}, one cannot pin down $k^{\ast}$ in advance---too few iterations and
+the amplitude is still small, too many and it over-rotates
+(\cref{rem:lec03-overrotate}). The standard fix is to try exponentially growing
+guesses $k=1,2,4,8,\dots$, drawing the actual count at random below each guess and
+verifying after every run; this still finds a solution in $\bigo(\sqrt N)$ expected
+queries. The multi-solution case is treated below.
+\end{example}
+
+\begin{example}[A search whose solution we genuinely do not know: inverting a function]
+\label{exa:lec03-unknown}
+\cref{exa:lec03-practice} still \emph{named} the answer, $x_0=5$, so that we could
+watch the amplitudes move; in a real search we would not know it. Here is the same
+algorithm applied to a problem whose solution is \emph{not} available in advance.
+
+Let $g:\{0,1\}^{4}\to\{0,1\}^{4}$ be a function we can evaluate but not easily
+invert---think of a toy block cipher $g(x)=E_x(m_0)$ that encrypts a fixed, known
+plaintext $m_0$ under the $4$-bit key $x$. Somebody chose a secret key $x_0$ and
+published the ciphertext $t=g(x_0)$. Our task is to recover the key: find $x$ with
+$g(x)=t$. Assume the key is unique for this $t$, so there is a single marked item---but
+\emph{we have no idea which of the sixteen strings it is}, and no shortcut to find out
+short of search.
+
+\emph{Building the oracle without knowing $x_0$.} The predicate
+$f(x)=\mathbf 1[g(x)=t]$ is something we \emph{can} compute even though we cannot invert
+$g$: run the circuit for $g$ on $x$, compare the output to the published $t$, and set a
+flag bit. Turning this verifier into the phase oracle $R_{x_0}=\id-2\proj{x_0}$ is
+exactly the construction of \cref{ex:lec03-oracle-compile}---compute $f$ into an ancilla
+held in $\ket-$, which stamps a minus sign on precisely the satisfying input, then
+uncompute the scratch. At no point does this circuit contain $x_0$; it contains $g$ and
+$t$, and the mark \emph{emerges} at whatever input happens to satisfy $g(x)=t$.
+
+\emph{Running it.} The quantum circuit is now \emph{identical} to that of
+\cref{exa:lec03-n8}: prepare $\ket{\psi_0}=H^{\otimes4}\ket{0000}$, apply
+$G=R_{\psi_0}R_{x_0}$ for $k^{\ast}=\lfloor(\pi/4)\sqrt{16}\rfloor=3$ iterations, and
+measure. Because the amplitude analysis of \cref{exa:lec03-n8} never used the
+\emph{value} of $x_0$---only that there was one marked item among $N=16$---the state
+traces out the very same trajectory, and the measurement returns the hidden key with
+probability $p_3=63001/65536\approx0.961$, \emph{whatever that key turns out to be}. We
+then evaluate $g$ once on the measured string to confirm $g(y)=t$; on the rare miss we
+simply repeat. Only at this verification step do we learn the answer---the quantum part
+discovered it without ever being told.
+
+The contrast with classical key search is the whole point. Not knowing $x_0$, a
+classical attacker can only try keys one at a time, expecting $8$ and worst-case $15$
+evaluations of $g$; Grover needs $k^{\ast}=3$ queries to the $g$-based oracle plus one
+verification. This quadratic speedup for brute-force inversion---in effect halving the
+key length an adversary must contend with---is the standard reason symmetric-key sizes
+are doubled to stay secure against quantum attack.
+\end{example}
+
+\section{Multiple solutions and amplitude amplification}
+\label{sec:lec03-4}
+
+The single-solution analysis extends in two directions: to several marked items at
+once, and---more broadly---to amplifying the success amplitude of \emph{any} state
+preparation, not just the uniform superposition. Both reuse the two-reflection
+rotation of \cref{thm:lec03-rotation} verbatim, changing only what plays the role of
+the ``good'' subspace.
 
 \subsection{Multiple solutions}
 
