@@ -1,0 +1,145 @@
+\documentclass[11pt]{article}
+
+% ---- packages ----
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{braket}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
+
+% ---- macros (subset of the course preamble) ----
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\ii}{\mathrm{i}}
+\newcommand{\ee}{\mathrm{e}}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\Tr}{Tr}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\diag}{diag}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\abs}[1]{\left\lvert #1 \right\rvert}
+\newcommand{\bigo}{\mathcal{O}}
+\newcommand{\id}{\mathbb{I}}
+\newcommand{\dg}{^{\dagger}}
+\newcommand{\proj}[1]{\ket{#1}\!\bra{#1}}
+\newcommand{\CNOT}{\mathrm{CNOT}}
+\newcommand{\QFT}{\mathrm{QFT}}
+\newcommand{\defeq}{\vcentcolon=}
+
+% ---- problem environment ----
+\newlist{problems}{enumerate}{1}
+\setlist[problems]{label=\textbf{Problem \arabic*.},leftmargin=*,itemsep=1.1em,topsep=0.6em}
+\newcommand{\pts}[1]{\hfill{\normalfont\itshape(#1 pts)}}
+
+\title{\textbf{Quantum Scientific Computing (QSC2026)}\\[0.3em]\large Homework~1}
+\author{}
+\date{Assigned: \qquad\qquad Due: \rule{3cm}{0.4pt}}
+
+\begin{document}
+\maketitle
+\vspace{-2.2em}
+
+\noindent\textbf{Instructions.} Eight problems drawn from Lectures~1, 3, and~4
+(foundations; Grover search; the quantum Fourier transform and phase estimation).
+Each is worth $10$ points. Show your
+work: a correct number with no derivation earns little credit, and a clear
+argument with a small arithmetic slip earns most of it. You may use any result
+stated in the lecture notes, citing it by name. Collaboration is allowed on ideas,
+but write up your solutions independently.
+
+\bigskip
+\noindent\textsc{Part I --- Foundations (Lecture 1)}
+\begin{problems}
+
+\item \textbf{Entanglement and no-cloning.}\pts{10}
+Work entirely with pure states.
+\begin{enumerate}[label=(\alph*),nosep,leftmargin=2em]
+  \item Compute $\CNOT\ket{+}\ket{+}$ and decide whether the result is a product
+        state or entangled, justifying your answer.
+  \item Exhibit a unitary $U$ and a fixed ``blank'' state $\ket{s}$ for which
+        $U\ket{0}\ket{s}=\ket{0}\ket{0}$ and $U\ket{1}\ket{s}=\ket{1}\ket{1}$, and
+        explain why this does \emph{not} let you copy an unknown qubit
+        $\alpha\ket0+\beta\ket1$---that is, why it is consistent with the no-cloning
+        theorem.
+\end{enumerate}
+
+\item \textbf{Quantum teleportation.}\pts{10}
+In the teleportation protocol, suppose Penelope's Bell measurement yields
+$(m_1,m_2)=(1,0)$. Here the \emph{pre-correction state} means the state of
+Odysseus's qubit immediately after Penelope's measurement and the transmission of
+the two classical bits $(m_1,m_2)$, but \emph{before} Odysseus applies any
+correction gate.
+\begin{enumerate}[label=(\alph*),nosep,leftmargin=2em]
+  \item Write down Odysseus's pre-correction state and verify it equals $Z\ket{\psi}$.
+  \item State the correction Odysseus applies and confirm it restores $\ket{\psi}$.
+\end{enumerate}
+
+\item \textbf{The reversible two-bit adder.}\pts{10}
+Using the half- and full-adder circuits of \S1.3.6 of the notes (``Worked example:
+a reversible binary adder''):
+\begin{enumerate}[label=(\alph*),nosep,leftmargin=2em]
+  \item trace the two-bit adder on the input $1+2$ (that is, $A_1A_0=01$ and
+        $B_1B_0=10$) and confirm the measured output is $011_2=3$;
+  \item count the Toffoli and $\CNOT$ gates in the complete two-bit adder.
+\end{enumerate}
+\end{problems}
+
+\bigskip
+\noindent\textsc{Part II --- Query algorithms and Grover search (Lecture 3)}
+\begin{problems}\setcounter{problemsi}{3}
+
+\item \textbf{The four one-bit functions and Deutsch's algorithm.}\pts{10}
+List all four functions $f:\{0,1\}\to\{0,1\}$ and classify each as constant or
+balanced. For each, compute by hand the first-qubit measurement outcome produced
+by the Deutsch algorithm, and confirm that the outcome distinguishes the constant
+from the balanced functions in a single query.
+
+\item \textbf{Iteration count and over-rotation.}\pts{10}
+\begin{enumerate}[label=(\alph*),nosep,leftmargin=2em]
+  \item For $N=2^{20}$, approximately how many iterations $k^{\ast}$ maximize the
+        success probability? What happens qualitatively to the success probability
+        if one instead runs $2k^{\ast}$ iterations? Explain using
+        $p_k=\sin^2\!\bigl((2k+1)\theta/2\bigr)$.
+  \item For $M=4$ marked items among $N=1024$, find $\sin(\theta/2)$, the optimal
+        iteration count $k^{\ast}$, and compare it with the single-solution count
+        for the same $N$.
+\end{enumerate}
+
+\item \textbf{Building the phase oracle.}\pts{10}
+On three qubits, let the marked state be $x_0=\ket{101}$. Write the marking
+reflection $R_{x_0}=\id-2\proj{x_0}$ as a doubly controlled $Z$ conjugated by $X$
+gates, specifying which qubits carry the $X$ gates. Verify by hand that your
+circuit multiplies $\ket{101}$ by $-1$ and leaves the other seven basis states
+fixed (it suffices to check $\ket{101}$, one basis state that becomes $\ket{111}$
+under the leading NOTs, and one that does not). Then run \emph{one} Grover iterate
+on the uniform state $\ket{\psi_0}=H^{\otimes3}\ket{000}$ with this $x_0$ and report
+the resulting amplitudes.
+\end{problems}
+
+\bigskip
+\noindent\textsc{Part III --- Quantum Fourier transform and phase estimation (Lecture 4)}
+\begin{problems}\setcounter{problemsi}{6}
+
+\item \textbf{Exact phase estimation.}\pts{10}
+Let $\varphi=0.011_2=\tfrac38$ and take $t=3$ ancilla qubits. Write the ancilla
+state after the controlled powers in standard QPE, identify it as $\QFT\ket{k}$ for
+the correct $k$, and conclude the measurement outcome. Why is the readout exact in
+this case?
+
+\item \textbf{How many ancillas?}\pts{10}
+Using the precision/qubit-count relation of Lecture~4, determine how many ancilla
+qubits $t$ are needed to estimate a phase $\varphi$ to $n=6$ bits of precision with
+success probability at least $0.9$ (so $\epsilon=0.1$). State the general formula
+you use and then evaluate it.
+\end{problems}
+
+\vfill
+\noindent\footnotesize Problems adapted from the exercise sets of Lectures~1, 3,
+and~4 of the Quantum Scientific Computing course notes.
+\end{document}
