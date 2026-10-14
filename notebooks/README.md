@@ -1,5 +1,15 @@
 # Companion notebooks (UnitaryLab)
 
+This folder has two subfolders:
+
+- **`demo/`** — runnable numerical demos, one per lecture (`lecNN_slug.ipynb`),
+  using UnitaryLab (see the cheat sheet below).
+- **`note/`** — the lecture notes themselves auto-converted from LaTeX to Jupyter
+  (`lecNN.ipynb`), for reading; see `note/README.md` for its conventions and limits.
+
+The cheat sheet below documents the `demo/` notebooks.
+
+
 Install:
 ```bash
 pip install unitarylab unitarylab-algorithms
@@ -29,4 +39,4 @@ returns $(\langle X\rangle,\langle Y\rangle,\langle Z\rangle)$ for a single-qubi
 statevector, and `plot_bloch(vec, title)` renders a translucent unit sphere with
 the state as an arrow (headless via `matplotlib.use("Agg")`).
 
-One notebook per lecture: `lecNN_slug.ipynb`. Lecture 1 is executed; L2–L5 are outlines.
+One notebook per lecture: `demo/lecNN_slug.ipynb`. Lecture 1 is executed; L2–L5 are outlines.
