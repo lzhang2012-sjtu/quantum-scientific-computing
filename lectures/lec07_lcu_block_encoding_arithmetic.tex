@@ -222,6 +222,34 @@ be applied deterministically up to the $\ell^1$ overhead. We use this repeatedly
 the Taylor-series simulation method of \cref{ch:lec12}.
 \end{remark}
 
+\begin{example}[LCU block encoding of the transverse-field Ising Hamiltonian]
+\label{exa:lec07-tfim}
+The Hamiltonian of \cref{exa:lec05-tfim},
+\[
+  H=-\sum_{i=1}^{n-1}Z_iZ_{i+1}-g\sum_{i=1}^{n}X_i,
+\]
+is \emph{already} a linear combination of unitaries: each $Z_iZ_{i+1}$ and each
+$X_i$ is a Pauli string, hence unitary. There are $K=(n-1)+n=2n-1$ terms, with
+coefficients $c_j=1$ for the $n-1$ couplings and $c_j=g$ for the $n$ field terms
+(the minus signs are phases $-P=\ee^{\ii\pi}P$ absorbed into the unitaries, and $K$
+is padded up to a power of two with zero-weight terms). By \cref{thm:lec07-lcu},
+with $a=\lceil\log_2(2n-1)\rceil$ control qubits,
+$\mathrm{PREP}\ket{0^a}=\tfrac{1}{\sqrt{\norm{c}_1}}\sum_j\sqrt{c_j}\,\ket{j}$
+loading the weights (amplitude $1$ on each coupling label, $\sqrt g$ on each field
+label) and $\mathrm{SEL}=\sum_j\proj{j}\otimes P_j$ applying the Pauli string $P_j$,
+the circuit $W=(\mathrm{PREP}\dg\otimes\id)\,\mathrm{SEL}\,(\mathrm{PREP}\otimes\id)$
+is an exact block encoding of $H$ with subnormalization
+\[
+  \alpha=\norm{c}_1=(n-1)+gn=\bigo(n).
+\]
+This is the input model that feeds the ground-state-energy estimation of
+\cref{sec:lec05-1}: QPE on $\ee^{\ii 2\pi H/\alpha}$, or the eigenvalue filters built
+by QSVT in \cref{ch:lec09}, run on $W$, and their cost scales linearly in
+$\alpha$. The $\ell^1$ growth is the generic local-Hamiltonian story---an $n$-qubit
+Hamiltonian with $\bigo(n)$ terms of $\bigo(1)$ weight block-encodes with
+$\alpha=\bigo(n)$---exactly the overhead budgeted in \cref{sec:lec07-5}.
+\end{example}
+
 \section{Matrix and vector addition}
 \label{sec:lec07-2}
 

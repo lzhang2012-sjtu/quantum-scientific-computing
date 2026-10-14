@@ -7,6 +7,9 @@
         state when it can be implemented efficiently.
   \item Define block encoding as the \emph{matrix} input model, and read off the
         subnormalization factor $\alpha$, ancilla count $a$, and error $\epsilon$.
+  \item Apply a block encoding to a prepared state to perform
+        \emph{matrix--vector multiplication}, and read its cost off $\alpha$ and the
+        output norm.
   \item Construct block encodings of $1$-sparse and $s$-sparse matrices from
         entry and location oracles.
   \item Distinguish Hermitian from general block encodings and explain why the
@@ -277,6 +280,72 @@ $A\ket{b}/\norm{A\ket{b}}$ with probability $\norm{A\ket{b}}^2/\alpha^2$; had we
 wasteful and chosen $\alpha=10$, the same state would still emerge but the success
 probability---and hence the runtime---would drop by a factor $25$. This is the
 practical meaning of ``keep $\alpha$ close to $\norm{A}$.''
+\end{example}
+
+\section{Matrix--vector multiplication: the first primitive}
+\label{sec:lec06-matvec}
+
+With both input models in hand we can already perform the most basic
+quantum numerical-linear-algebra operation: given a matrix $A$ as a block encoding
+and a vector $b$ as a state-preparation oracle, produce the normalized
+matrix--vector product $A\ket{b}/\norm{A\ket{b}}$. This one primitive is the engine
+inside linear solvers, power iteration, and the read-out of a simulated state
+$\ee^{-\ii Ht}\ket{b}$.
+
+\begin{proposition}[Applying a block encoding to a state]
+\label{prop:lec06-matvec}
+Let $U_A\in\mathrm{BE}_{\alpha,a}(A)$ and let $O_b$ prepare $\ket{b}=O_b\ket{0^n}$.
+Then
+\[
+  U_A\,\bigl(\id_a\otimes O_b\bigr)\ket{0^a}\ket{0^n}
+  =\ket{0^a}\,\frac{A\ket{b}}{\alpha}+\ket{\Phi^{\perp}},
+  \qquad \bigl(\proj{0^a}\otimes\id\bigr)\ket{\Phi^{\perp}}=0,
+\]
+and measuring the $a$-qubit flag returns $\ket{0^a}$ with probability
+$p=\norm{A\ket{b}}^2/\alpha^2$, upon which the system register collapses to
+$A\ket{b}/\norm{A\ket{b}}$.
+\end{proposition}
+
+\begin{proof}
+$O_b$ produces $\ket{0^a}\ket{b}$; applying $U_A$ and using
+$(\bra{0^a}\otimes\id)U_A(\ket{0^a}\otimes\id)=A/\alpha$ (\cref{def:lec06-be}) gives
+the stated split, whose flag-$\ket{0^a}$ part is $\ket{0^a}(A/\alpha)\ket{b}$. Its
+squared norm $\norm{(A/\alpha)\ket{b}}^2=\norm{A\ket{b}}^2/\alpha^2$ is the
+probability of reading $\ket{0^a}$, and the post-measurement system state is the
+normalized $A\ket{b}/\norm{A\ket{b}}$.
+\end{proof}
+
+Three features make this the template for all of Part~II.
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{Input and output share one format.} The result is again an $n$-qubit
+        state, like the input $\ket{b}$. Block encoding is thus both an \emph{input}
+        and an \emph{output} model: the product feeds straight into another block
+        encoding, so matrix--vector products chain into $A_k\cdots A_1\ket{b}$ with no
+        read-out of intermediate vectors.
+  \item \emph{Cost is set by $\alpha$ and the output norm.} One run succeeds with
+        probability $p=\norm{A\ket{b}}^2/\alpha^2$, so naive repetition costs
+        $\bigo(\alpha^2/\norm{A\ket{b}}^2)$ queries. Amplitude amplification
+        (\cref{thm:lec03-aa}) removes the square and brings this to
+        $\bigo\!\bigl(\alpha/\norm{A\ket{b}}\bigr)$ queries to $U_A$ and $O_b$---the
+        quadratic gain that makes the primitive worthwhile, and the quantitative
+        reason to keep $\alpha$ small: every matrix--vector product pays for it
+        linearly.
+  \item \emph{Only the direction is produced.} The scalar $\norm{A\ket{b}}$ is not
+        carried by the output state; it is recovered from the success probability as
+        $\norm{A\ket{b}}=\alpha\sqrt p$, exactly as the norm of a prepared vector had
+        to be tracked classically in \cref{sec:lec06-1}.
+\end{itemize}
+
+\begin{example}[Matrix--vector product with the $2\times2$ encoding]
+\label{exa:lec06-matvec}
+Take $A=\left(\begin{smallmatrix}1&1\\0&1\end{smallmatrix}\right)$ with the
+$(2,1)$-block-encoding of \cref{exa:lec06-2x2} ($\alpha=2$). For $\ket{b}=\ket{0}$
+(so $O_b=\id$), $A\ket{0}=\ket{0}$ with $\norm{A\ket{0}}=1$, so the flag is read with
+probability $p=1/\alpha^2=1/4$ and the output is $\ket{0}$. For $\ket{b}=\ket{1}$,
+$A\ket{1}=\ket{0}+\ket{1}$ has $\norm{A\ket{1}}=\sqrt2$, giving $p=2/4=1/2$ and output
+$(\ket{0}+\ket{1})/\sqrt2$. The larger the output norm, the larger the success
+probability; and had we used the wasteful $\alpha=10$ of \cref{exa:lec06-2x2}, both
+probabilities would drop by a factor $25$.
 \end{example}
 
 \section{Block encoding of \texorpdfstring{$s$}{s}-sparse matrices}

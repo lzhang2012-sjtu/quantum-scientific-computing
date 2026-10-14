@@ -96,6 +96,30 @@ $\sin(k\theta)=\sin\theta\,U_{k-1}(\lambda)=\sqrt{1-\lambda^2}\,U_{k-1}(\lambda)
 from \eqref{eq:lec08-cheb}.
 \end{proof}
 
+\begin{example}[The rotation picture with numbers: $\lambda=\tfrac12$]
+\label{exa:lec08-cheb}
+Take $\lambda=\tfrac12$, so $\theta=\arccos\tfrac12=60^{\circ}$ and
+$\sqrt{1-\lambda^2}=\tfrac{\sqrt3}{2}$. Then
+\[
+  O(\tfrac12)=\begin{pmatrix}\tfrac12&-\tfrac{\sqrt3}{2}\\[2pt]
+    \tfrac{\sqrt3}{2}&\tfrac12\end{pmatrix}
+  \qquad(\text{rotation by }60^{\circ}),
+\]
+and its powers are rotations by $k\cdot60^{\circ}$, whose $(1,1)$-entries read off the
+Chebyshev values directly:
+\[
+  [O^2]_{11}=\cos120^{\circ}=-\tfrac12=T_2(\tfrac12),\quad
+  [O^3]_{11}=\cos180^{\circ}=-1=T_3(\tfrac12),\quad
+  [O^6]_{11}=\cos360^{\circ}=1=T_6(\tfrac12),
+\]
+each matching the recurrence \eqref{eq:lec08-chebrec}: $T_2(\tfrac12)=2(\tfrac12)^2-1
+=-\tfrac12$ and $T_3(\tfrac12)=2\cdot\tfrac12\cdot(-\tfrac12)-\tfrac12=-1$. Raising the
+single matrix $O=U(\lambda)Z$ to the $k$-th power \emph{is} evaluating the degree-$k$
+Chebyshev polynomial at $\lambda$---no polynomial arithmetic, just a rotation
+iterated. Qubitization replaces $\tfrac12$ by an eigenvalue $\lambda_j$ of $A$ and
+runs this one rotation on every eigenspace at once.
+\end{example}
+
 The content of \cref{lem:lec08-rot} is worth restating in plain terms: the
 $(1,1)$-entry of $O(\lambda)^k$ is exactly $T_k(\lambda)$. If we could somehow
 substitute a matrix $A$ for the scalar $\lambda$---replacing the $2\times2$ block by

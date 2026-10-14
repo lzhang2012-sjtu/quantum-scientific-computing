@@ -356,6 +356,26 @@ Jacobi--Anger polynomials on the singular values, or the QETU circuit of the
 reading, which applies $F(\cos(H/2))$ directly from the evolution oracle $\ee^{-\ii
 H}$.)
 
+\begin{example}[Degree of a Hamiltonian-simulation polynomial, with numbers]
+\label{exa:lec09-ham}
+Fix an evolution time $t=50$ (in units where $\norm H\le1$) and target error
+$\epsilon=10^{-6}$. The Jacobi--Anger coefficients $J_\nu(t)$ in
+\eqref{eq:lec09-jacobi} stay $\bigo(1)$ for $\nu\lesssim t$ and begin a
+super-exponential decay once $\nu\gtrsim\tfrac{\ee}{2}t\approx68$; a handful of
+further terms buys each additional digit. Truncating the series at
+\[
+  d\approx\tfrac{\ee}{2}\,t+\bigo\!\bigl(\log\tfrac1\epsilon\bigr)\approx 68+\text{(a
+  few)}\approx 90
+\]
+Chebyshev terms already gives $\norm{\cos(Ht)-P_{\cos}(H)}\le\epsilon$ (and likewise
+for $\sin$). So QSVT block-encodes $\ee^{-\ii Ht}$ at $t=50$ to six digits with only
+$\sim\!90$ queries to the block encoding of $H$---linear in $t$ and essentially
+independent of the dimension $2^n$. For contrast, a first-order product formula
+(\cref{ch:lec11}) needs $\bigo(t^2/\epsilon)$ steps to the same accuracy,
+astronomically more at these parameters; this gap is the practical payoff of the
+optimal $\bigo(t+\log(1/\epsilon))$ scaling \eqref{eq:lec09-ham-degree}.
+\end{example}
+
 \subsection*{Filtering: eigenstate and energy filters}
 
 Many algorithms need a \emph{spectral filter}: a matrix that is $\approx1$ on part of
