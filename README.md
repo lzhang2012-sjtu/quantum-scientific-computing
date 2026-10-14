@@ -51,7 +51,8 @@ To draft a single lecture faster, use the `\includeonly{...}` line in `main.tex`
 |---|---|
 | `main.tex`, `preamble.tex` | Master document and shared macros / theorem environments |
 | `lectures/` | One `\chapter` per lecture unit (`lec01`…`lec20`) |
-| `notebooks/` | Companion Jupyter notebooks (numerical demos) |
+| `demo/` | Companion Jupyter notebooks (runnable UnitaryLab numerical demos) |
+| `note/` | Lecture notes auto-converted from LaTeX to Jupyter (for reading) |
 | `animations/` | Interactive HTML / GIF visualizations (e.g. Grover's search) |
 | `slides/` | Supplementary slide decks |
 | `teaching/` | Teacher's notes (chalk-delivery plans) |

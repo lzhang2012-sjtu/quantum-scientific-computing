@@ -22,4 +22,4 @@ These notebooks are an automatic conversion of the LaTeX lecture notes
 - Lectures 1–5 are fully developed; later chapters are still scaffolds.
 
 For runnable numerical demos, see the companion notebooks in
-`notebooks/demo/lecNN_*.ipynb`.
+`../demo/lecNN_*.ipynb`.
