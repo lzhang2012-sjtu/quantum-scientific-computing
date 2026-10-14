@@ -77,7 +77,14 @@ off-diagonal entry equals $-g$ and connects two strings differing in a single bi
   \qquad \lambda=\pm g,\quad \text{ground state }\ket{+}.
 \]
 
-\emph{$n=2$.} $H=-Z_1Z_2-g(X_1+X_2)$; in the basis $\ket{00},\ket{01},\ket{10},\ket{11}$,
+\emph{$n=2$.} $H=-Z_1Z_2-g(X_1+X_2)$, where each single-site operator is a tensor
+product with the identity on the other qubit,
+\[
+  Z_1=Z\otimes I=\diag(1,1,-1,-1),\qquad Z_2=I\otimes Z=\diag(1,-1,1,-1),
+\]
+and $X_1=X\otimes I$, $X_2=I\otimes X$ (so $Z_i\ket{b_1b_2}=(-1)^{b_i}\ket{b_1b_2}$---the
+sign is set by the $i$-th bit---and hence $Z_1Z_2=\diag(1,-1,-1,1)$). In the basis
+$\ket{00},\ket{01},\ket{10},\ket{11}$,
 \[
   H=\begin{pmatrix}-1&-g&-g&0\\ -g&1&0&-g\\ -g&0&1&-g\\ 0&-g&-g&-1\end{pmatrix},
 \]
