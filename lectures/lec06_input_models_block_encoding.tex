@@ -142,8 +142,31 @@ $\ket{b}$, feed in the flagged state $\ket{0}\ket{b}$:
   U_A\ket{0}\ket{b}=\ket{0}\,A\ket{b}+\ket{1}\ket{\perp},
   \label{eq:lec06-apply1}
 \end{equation}
-for some (unnormalized) state $\ket{\perp}$, so that
-$(\bra{0}\otimes\id)\,U_A\,(\ket{0}\otimes\id)=A$. Measuring the ancilla and keeping
+for some (unnormalized) state $\ket{\perp}$. To see why, split every $(n+1)$-qubit
+vector by its ancilla bit into a \emph{top} block (ancilla $\ket0$) and a
+\emph{bottom} block (ancilla $\ket1$), each an $n$-qubit vector. (We order the ancilla
+as the \emph{leading} register, so $\ket0\ket b=\ket0\otimes\ket b
+=\left(\begin{smallmatrix}\ket b\\ 0\end{smallmatrix}\right)$ and
+$\ket1\ket b=\left(\begin{smallmatrix}0\\ \ket b\end{smallmatrix}\right)$: the
+ancilla's $\ket0$ versus $\ket1$ amplitude selects the top versus bottom block.) In
+this split the flagged input has vanishing bottom block,
+$\ket{0}\ket{b}=\left(\begin{smallmatrix}\ket b\\ 0\end{smallmatrix}\right)$, so,
+writing the lower-left block of $U_A$ as $C$,
+\[
+  U_A\ket{0}\ket{b}
+   =\begin{pmatrix}A&\ast\\ C&\ast\end{pmatrix}\!
+    \begin{pmatrix}\ket b\\ 0\end{pmatrix}
+   =\begin{pmatrix}A\ket b\\ C\ket b\end{pmatrix}
+   =\ket{0}\,A\ket{b}+\ket{1}\,\ket{\perp},
+   \qquad \ket{\perp}\defeq C\ket{b}.
+\]
+Because the input's bottom block is zero, only the first block-\emph{column} of
+$U_A$ is probed; of that column the top block $A$ produces the ancilla-$\ket0$ part
+$\ket0\,A\ket b$, while the lower-left block $C$ dumps the leftover amplitude into the
+ancilla-$\ket1$ ``junk'' state $\ket{\perp}$ (unnormalized, and irrelevant once we
+post-select). Equivalently
+$(\bra{0}\otimes\id)\,U_A\,(\ket{0}\otimes\id)=A$: sandwiching $U_A$ between the
+ancilla flags $\ket0$ extracts exactly its top-left block. Measuring the ancilla and keeping
 the outcome $0$ leaves the system in the normalized state $A\ket{b}/\norm{A\ket{b}}$,
 which is obtained with success probability
 \begin{equation}
