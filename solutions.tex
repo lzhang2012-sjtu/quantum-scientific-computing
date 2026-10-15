@@ -1,0 +1,35 @@
+% solutions.tex — Instructor solutions manual (build separately from main.tex).
+% Reuses the shared preamble; pulls exercise numbers from main.aux via xr.
+\documentclass[11pt,openany]{book}
+\input{preamble}
+\usepackage{xr}
+\externaldocument{main}   % requires main.aux to exist (compile main.tex first)
+
+\title{\textbf{Quantum Scientific Computing}\\[0.5em]\large Solutions Manual (Instructor)}
+\author{Course Instructor}
+\date{Fall 2026--2027}
+
+\begin{document}
+\frontmatter
+\maketitle
+\tableofcontents
+\mainmatter
+
+\include{solutions/sol01_quantum_computation_basics}
+\include{solutions/sol02_channels_distances_statistics}
+\include{solutions/sol03_grover_amplitude_amplification}
+\include{solutions/sol04_qft_phase_estimation}
+\include{solutions/sol05_qpe_applications}
+\include{solutions/sol06_input_models_block_encoding}
+\include{solutions/sol07_lcu_block_encoding_arithmetic}
+\include{solutions/sol08_qubitization_qsp}
+\include{solutions/sol09_qsvt_matrix_functions}
+\include{solutions/sol10_quantum_linear_systems}
+\include{solutions/sol11_hamiltonian_simulation_trotter}
+\include{solutions/sol12_hamiltonian_simulation_block_encoding}
+\include{solutions/sol13_linear_differential_equations}
+\include{solutions/sol14_open_systems_nonlinear}
+\include{solutions/sol15_tensor_network_states}
+% Task 2+ append: \include{solutions/solNN_slug}
+
+\end{document}

@@ -1,0 +1,699 @@
+\chapter{Quantum Linear Systems}
+\label{ch:lec10}
+
+\begin{objectives}
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item Formulate the quantum linear system problem (QLSP) and its parameters.
+  \item Solve QLSP with HHL and with QSVT.
+  \item Explain adiabatic and Zeno-based near-optimal solvers.
+  \item Compare the complexity landscape across methods.
+\end{itemize}
+\end{objectives}
+
+The quantum numerical linear algebra of the last four chapters culminates in the
+oldest and most-studied ``killer application'' of the whole program: solving a
+linear system $A\ket x\propto\ket b$ on a quantum computer. The input models of
+\cref{ch:lec06}, the LCU arithmetic of \cref{ch:lec07}, the qubitization of
+\cref{ch:lec08}, and above all the matrix-inversion polynomial $x\mapsto1/(\kappa x)$
+of \cref{ch:lec09} were each introduced with this target in mind. What makes the
+problem subtle is not implementing $A^{-1}$ on paper---that is a single QSVT sweep---but
+controlling the cost as a function of two adversarial parameters: the target error
+$\epsilon$ and, decisively, the \emph{condition number} $\kappa=\norm A\norm{A^{-1}}$,
+which measures how nearly singular $A$ is and which no generic quantum solver can
+escape (\cref{sec:lec10-1}). We tell the story historically and by increasing
+sophistication. The Harrow--Hassidim--Lloyd (HHL) algorithm (\cref{sec:lec10-2}) makes
+the mechanism transparent---phase-estimate the eigenvalues of $A$, rotate each by
+$1/\lambda$, uncompute, postselect---and exposes the two sources of inefficiency
+(precision-limited QPE and small success probability) that drive its
+$\bigo(\kappa^2/\epsilon)$ cost. QSVT (\cref{sec:lec10-3}) replaces the eigenvalue
+arithmetic by a direct degree-$\bigo(\kappa\log(1/\epsilon))$ polynomial, improving the
+$\epsilon$ dependence to logarithmic. Both, even after amplitude amplification, retain
+a quadratic $\kappa$ dependence in the worst case; the adiabatic and quantum Zeno
+solvers (\cref{sec:lec10-4}) recast QLSP as tracing a zero-eigenvalue eigenpath from
+$\ket b$ to $\ket x$ and reach the near-optimal and optimal $\bigo(\kappa\,\polylog)$
+and $\bigo(\kappa\log(1/\epsilon))$ scalings. We close (\cref{sec:lec10-5}) with the
+complexity landscape and with the practical fact that $\kappa$, not the exponential
+Hilbert-space dimension, governs everything---motivating preconditioning, whose
+quantum incarnation (block-encoding normalization, the $(A+B)$ pipeline, and
+multilevel BPX preconditioners) is where genuine speedups over classical iterative
+solvers are won or lost. Throughout, $A\in\C^{N\times N}$ with $N=2^n$ is accessed by a
+block encoding $U_A\in\mathrm{BE}_{\alpha,m}(A)$ and $\ket b$ by a state-preparation
+unitary $U_b$ with $U_b\ket{0^n}=\ket b$.
+
+\section{Problem setup: condition number and error}
+\label{sec:lec10-1}
+
+\paragraph{The problem and its output model.}
+Classically, given $A\in\C^{N\times N}$ and $b\in\C^N$, one seeks $x=A^{-1}b$. The
+\emph{quantum} linear system problem asks only for the \emph{direction} of the
+solution, encoded as a normalized state.
+
+\begin{definition}[Quantum linear system problem]
+\label{def:lec10-qlsp}
+Let $A\in\C^{N\times N}$ be invertible, accessed by a block encoding
+$U_A\in\mathrm{BE}_{\alpha,m}(A)$, and let $\ket b$ be a normalized state prepared by
+$U_b\ket{0^n}=\ket b$. Given a tolerance $\epsilon\in(0,1)$, the \emph{QLSP} is to
+prepare a state $\ket{\tilde x}$ with
+\begin{equation}
+  \norm{\ket{\tilde x}-\ket x}\le\epsilon,\qquad
+  \ket x=\frac{A^{-1}\ket b}{\norm{A^{-1}\ket b}}.
+  \label{eq:lec10-qlsp}
+\end{equation}
+The \emph{query complexity} is the number of calls to $U_A,U_A\dg$ and to $U_b,U_b\dg$.
+A solver may fail with probability bounded away from $1$, signaling failure through a
+flag qubit.
+\end{definition}
+
+Two normalizations are standard. First, we always rescale so that $\norm A\le1$; after
+the block-encoding subnormalization this places the singular values of $A$ in
+$[1/\kappa,1]$, where
+\begin{equation}
+  \kappa=\kappa(A)\defeq\norm A\,\norm{A^{-1}}
+        =\frac{\sigma_{\max}(A)}{\sigma_{\min}(A)}\ge1
+  \label{eq:lec10-kappa}
+\end{equation}
+is the condition number. Second, without loss of generality we may take $A$
+\emph{Hermitian positive definite}: a general $A$ is handled by the Hermitian dilation
+\begin{equation}
+  \widetilde A=\begin{pmatrix}0&A\\ A\dg&0\end{pmatrix},\qquad
+  \widetilde A\begin{pmatrix}0\\ x\end{pmatrix}=\begin{pmatrix}b\\ 0\end{pmatrix},
+  \label{eq:lec10-dilation}
+\end{equation}
+which has the same singular values (hence the same $\kappa$) and returns the solution
+$x$ in the lower block (\cref{ch:lec09}, \eqref{eq:lec09-dilation}). We freely use both
+viewpoints below.
+
+\paragraph{Why $\kappa$ and $\epsilon$ drive the cost.}
+The map $x\mapsto1/x$ must be resolved on the whole spectral interval $[1/\kappa,1]$.
+Near the small singular value $\sigma_{\min}=1/\kappa$ the inverse is as large as
+$\kappa$, so any device that outputs $A^{-1}$ at unit subnormalization can only encode
+$A^{-1}/\kappa$: the solution appears with amplitude $\sim1/\kappa$ inside a
+larger state, and \emph{postselecting} it succeeds with probability $\sim1/\kappa^2$
+in the worst case. This is the origin of every $\kappa$ (or $\kappa^2$) in the
+complexities below. The error $\epsilon$ enters because the inverse must be
+approximated; how gently it enters (as $1/\epsilon$ or $\log(1/\epsilon)$) is exactly
+what distinguishes the methods. That $\kappa$ cannot be removed is a theorem, not an
+artifact of any particular algorithm.
+
+\begin{proposition}[Condition-number lower bound]
+\label{prop:lec10-lb}
+Any quantum algorithm that solves the QLSP of \cref{def:lec10-qlsp} for all inputs with
+a given $\kappa$ must make $\Omega(\kappa)$ queries to the oracle for $A$.
+\end{proposition}
+
+\begin{proof}[Proof idea]
+One embeds a Hamiltonian-simulation instance into a linear system so that a
+sublinear-in-$\kappa$ QLSP solver would simulate $\ee^{-\ii Ht}$ for time $t\sim\kappa$
+with $o(\kappa)$ queries, violating the ``no fast-forwarding'' theorem of
+\cref{ch:lec12} for generic Hamiltonians. Thus the linear scaling in $\kappa$ of the
+optimal solvers (\cref{sec:lec10-4}) is best possible for generic $A$; special
+structure (e.g.\ positive definiteness, exploited classically by conjugate gradient to
+get $\sqrt\kappa$) can beat it only in restricted settings.
+\end{proof}
+
+\paragraph{Reading out the answer.}
+The QLSP outputs the \emph{normalized} state $\ket x$; the norm $\norm{A^{-1}\ket b}$ is
+recovered from the success probability of the flagged block encoding, since a QLSP
+solver realizes $\widetilde U\in\mathrm{BE}_{\gamma,m}(A^{-1},\epsilon)$ and the
+unflagged vector $\ket{\tilde x\!\succ}=\bra{0^m}\widetilde U\ket{0^m}\ket b$ satisfies
+$\norm{x-\gamma\ket{\tilde x\!\succ}}\le\epsilon$, so $\gamma\norm{\ket{\tilde
+x\!\succ}}\approx\norm x$. Downstream one typically wants an observable
+$\bra x O\ket x$, estimated by a Hadamard or swap test on $\ket x$, or an overlap
+$\braket{y}{x}$; these are the ``end-to-end'' tasks in which a QLSP solver is a
+subroutine. Crucially, the quantum solver never writes out the $N$ entries of $x$; the
+hoped-for exponential advantage lives entirely in the ability to prepare $\ket x$ and
+sample a \emph{scalar} functional of it in time $\poly(n)$ rather than $\poly(N)$.
+
+\section{Phase estimation and HHL}
+\label{sec:lec10-2}
+
+The Harrow--Hassidim--Lloyd algorithm was the first quantum QLSP solver. Take $A$
+Hermitian with eigendecomposition $A\ket{v_j}=\lambda_j\ket{v_j}$, accessed through the
+Hamiltonian-evolution oracle $U=\ee^{\ii2\pi A}$, and expand
+$\ket b=\sum_j c_j\ket{v_j}$. Then
+\begin{equation}
+  A^{-1}\ket b=\sum_j\frac{c_j}{\lambda_j}\ket{v_j},
+  \label{eq:lec10-hhl-target}
+\end{equation}
+so it suffices to multiply the $j$-th eigencomponent by $1/\lambda_j$. HHL does this in
+four steps, sketched in the circuit of \cref{fig:lec10-hhl}.
+
+\paragraph{The four steps.}
+Assume for the analysis that each $\lambda_j\in(0,1)$ has an exact $d$-bit binary
+expansion (this idealization isolates the mechanism; the finite-precision reality is
+the point of \cref{rem:lec10-mult}).
+\begin{enumerate}[leftmargin=1.6em,nosep]
+  \item \emph{Phase estimation} (\cref{ch:lec04}) writes each eigenphase into a
+    $d$-qubit register:
+    \begin{equation}
+      U_{\mathrm{QPE}}\ket{0^d}\ket b=\sum_j c_j\ket{\lambda_j}\ket{v_j}.
+      \label{eq:lec10-qpe}
+    \end{equation}
+  \item A \emph{controlled rotation} on a fresh ancilla, driven by the eigenvalue
+    register through coherent classical arithmetic $\lambda\mapsto\arcsin(C/\lambda)$,
+    produces
+    \begin{equation}
+      U_{\mathrm{CR}}\ket0\ket{\lambda_j}
+      =\Bigl(\sqrt{1-\tfrac{C^2}{\lambda_j^2}}\,\ket0+\tfrac{C}{\lambda_j}\ket1\Bigr)
+        \ket{\lambda_j},
+      \label{eq:lec10-cr}
+    \end{equation}
+    where $C\le\lambda_{\min}=1/\kappa$ is a normalization constant chosen so
+    $\abs{C/\lambda_j}\le1$.
+  \item \emph{Uncomputation} applies $U_{\mathrm{QPE}}\dg$, returning the eigenvalue
+    register to $\ket{0^d}$ and leaving
+    \begin{equation}
+      U_{\mathrm{HHL}}\ket0\ket b
+      =\sum_j c_j\Bigl(\sqrt{1-\tfrac{C^2}{\lambda_j^2}}\,\ket0
+        +\tfrac{C}{\lambda_j}\ket1\Bigr)\ket{v_j}.
+      \label{eq:lec10-hhl}
+    \end{equation}
+  \item \emph{Postselection} measures the ancilla; outcome $1$ yields the unnormalized
+    vector $\ket{\tilde x\!\succ}=\sum_j (C/\lambda_j)c_j\ket{v_j}=C\,A^{-1}\ket b$, i.e.\
+    the target solution up to the global factor $C$.
+\end{enumerate}
+
+\begin{figure}[t]
+\centering
+\begin{minipage}{0.92\textwidth}
+\centering
+\footnotesize
+\setlength{\fboxsep}{8pt}
+\fbox{\parbox{0.9\textwidth}{\centering
+ancilla: \quad$\ket0\to$ \hfill $U_{\mathrm{CR}}$ \hfill $\to$ measure ($1=$ success)\\[2pt]
+clock ($d$ qubits): \quad$\ket{0^d}\to U_{\mathrm{QPE}}\to\ \ket{\lambda_j}\ \to
+   U_{\mathrm{QPE}}\dg\to\ket{0^d}$\\[2pt]
+system: \quad$\ket b=\sum_j c_j\ket{v_j}$ carried through; output
+   $\propto\sum_j (c_j/\lambda_j)\ket{v_j}$.}}
+\end{minipage}
+\caption{The HHL circuit: QPE writes the eigenphases into the clock register, a
+controlled rotation attaches amplitude $C/\lambda_j$ to $\ket1$, uncomputation clears
+the clock, and postselecting $\ket1$ leaves $C\,A^{-1}\ket b$ in the system register.}
+\label{fig:lec10-hhl}
+\end{figure}
+
+\paragraph{Success probability and cost.}
+With $\norm A=1$ so that $\lambda_{\min}=1/\kappa$, the largest admissible constant is
+$C=1/\kappa$. The success probability is the squared norm of $\ket{\tilde x\!\succ}$,
+\begin{equation}
+  p(1)=\norm{\ket{\tilde x\!\succ}}^2=C^2\norm{A^{-1}\ket b}^2
+      =\frac{\xi^2}{\kappa^2},\qquad \xi\defeq\norm{A^{-1}\ket b}\in[1,\kappa],
+  \label{eq:lec10-hhl-prob}
+\end{equation}
+using $\norm{A^{-1}\ket b}\ge\norm{A^{-1}}^{-1}\cdots$; the trivial bound $\xi\ge1$
+gives $p(1)=\Omega(\kappa^{-2})$ (worst case), while an $\Omega(1)$ overlap of $\ket b$
+with the smallest-eigenvalue eigenvector gives $\xi=\Omega(\kappa)$ and $p(1)=\Omega(1)$
+(best case). A single run is dominated by QPE, whose cost to resolve $\lambda_{\min}
+=\Theta(1/\kappa)$ to the required precision is $\bigo(\kappa/\epsilon)$ (see
+\cref{rem:lec10-mult}). Repeating for success costs $1/p(1)=\bigo(\kappa^2/\xi^2)$
+rounds, so the total query complexity is
+\begin{equation}
+  \bigo\!\Bigl(\frac{\kappa}{\epsilon}\cdot\frac{\kappa^2}{\xi^2}\Bigr)
+  =\bigo\!\Bigl(\frac{\kappa^3}{\xi^2\epsilon}\Bigr),
+  \label{eq:lec10-hhl-cost}
+\end{equation}
+i.e.\ $\bigo(\kappa/\epsilon)$ in the best case and $\bigo(\kappa^3/\epsilon)$ in the
+worst case. \emph{Amplitude amplification} (\cref{ch:lec03}) replaces the
+$1/p(1)$-repetition overhead by its square root, boosting the worst case to
+$\bigo(\kappa^2/\epsilon)$; \emph{variable-time} amplitude amplification (a refinement
+that amplifies the many well-conditioned branches early and the few ill-conditioned
+ones late) further reduces the $\kappa^2$ to $\kappa$, at the cost of a more delicate
+analysis.
+
+\begin{remark}[Multiplicative accuracy and the $1/\epsilon$ in QPE]
+\label{rem:lec10-mult}
+Because the estimated eigenvalue $\tilde\lambda_j=\lambda_j(1+e_j)$ enters through
+$1/\tilde\lambda_j$, a \emph{multiplicative} error $\abs{e_j}\le\epsilon/4$ is needed to
+guarantee \eqref{eq:lec10-qlsp}: writing $\ket{\tilde x\!\succ}-C\,x
+=C\sum_j c_j(1/\tilde\lambda_j-1/\lambda_j)\ket{v_j}$ and bounding
+$\abs{1/\tilde\lambda_j-1/\lambda_j}=\abs{e_j}/(\lambda_j\abs{1+e_j})
+\le(\epsilon/2)/\lambda_j$ gives $\norm{\ket{\tilde x\!\succ}-C x}\le(C\epsilon/2)\norm x$,
+whence $\norm{\ket{\tilde x}-\ket x}\le\epsilon$. Since $\lambda_{\min}=\Theta(1/\kappa)$,
+resolving it to multiplicative precision $\epsilon$ means additive precision
+$\epsilon/\kappa$, so $T_{\mathrm{QPE}}=\Omega(\kappa/\epsilon)$. This inverse-linear
+dependence on $\epsilon$ is the chief weakness of HHL and the reason to prefer QSVT,
+which needs only $\log(1/\epsilon)$.
+\end{remark}
+
+\section{QSVT solver}
+\label{sec:lec10-3}
+
+QSVT (\cref{ch:lec09}) inverts $A$ without ever estimating an eigenvalue: it applies a
+single bounded polynomial directly to the singular values. From the SVD
+$A=W\Sigma V\dg$,
+\begin{equation}
+  A^{-1}=V\Sigma^{-1}W\dg=g^{(\mathrm{SV})}(A\dg),\qquad g(x)=\tfrac1x\ \text{(odd)},
+  \label{eq:lec10-qsvt-target}
+\end{equation}
+so we approximate the odd function $1/x$ on the spectral support $[1/\kappa,1]$ by a
+bounded odd polynomial.
+
+\begin{theorem}[QSVT linear-system solver]
+\label{thm:lec10-qsvt}
+Let $U_A\in\mathrm{BE}_{\alpha,m}(A)$ with condition number $\kappa$ (singular values in
+$[{1/\kappa},1]$ after normalization), let $U_b$ prepare $\ket b$, and set
+$\xi=\norm{A^{-1}\ket b}\in[1,\kappa]$. There is a QSVT solver producing $\ket{\tilde x}$
+with $\norm{\ket{\tilde x}-\ket x}\le\epsilon$ and constant success probability, using
+\begin{equation}
+  \bigo\!\Bigl(\frac{\kappa^2}{\xi}\log\tfrac\kappa\epsilon\Bigr)
+  \quad\text{queries to } U_A,U_A\dg,\qquad
+  \bigo\!\Bigl(\frac{\kappa}{\xi}\Bigr)\ \text{queries to } U_b.
+  \label{eq:lec10-qsvt-cost}
+\end{equation}
+In the worst case $\xi=1$ this is $\bigo(\kappa^2\log(\kappa/\epsilon))$; in the best
+case $\xi=\Theta(\kappa)$ it is $\bigo(\kappa\log(\kappa/\epsilon))$.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+By \cref{exa:lec09-inv} there is an odd polynomial $P$ of degree
+$d=\bigo(\kappa\log(1/\epsilon'))$ with $\abs{P(x)-1/(\eta\kappa x)}\le\epsilon'$ on
+$[1/\kappa,1]$ and $\abs P\le1$ on $[-1,1]$ (here $\eta=\Theta(1)$ enforces the global
+bound). \cref{thm:lec09-qsvt} block-encodes $P^{(\mathrm{SV})}(A\dg)=VP(\Sigma)V\dg
+\approx(\eta\kappa)^{-1}A^{-1}$ with $\bigo(d)$ queries. Applying it to $\ket{0^m}\ket b$
+and reading the flagged block yields the unnormalized
+$\ket{\tilde x\!\succ}\approx(\eta\kappa)^{-1}A^{-1}\ket b$, of norm
+$\approx\xi/(\eta\kappa)$, so the flag succeeds with probability $\approx(\xi/\eta\kappa)^2$.
+Amplitude amplification (\cref{ch:lec03}) boosts this to $\Omega(1)$ in
+$\bigo(\eta\kappa/\xi)$ rounds, each calling $U_A,U_A\dg$ order $d$ times and $U_b,U_b\dg$
+order once, giving \eqref{eq:lec10-qsvt-cost}. To meet the final tolerance $\epsilon$ in
+\eqref{eq:lec10-qlsp} one sets the polynomial precision $\epsilon'=\Theta(\xi\epsilon/\kappa)$,
+which only affects the logarithm; hence the $\log(\kappa/\epsilon)$.
+\end{proof}
+
+\paragraph{The inversion polynomial, made explicit.}
+The workhorse construction (Childs--Kothari--Somma) starts from the smooth odd extension
+\begin{equation}
+  g_b(x)=\frac{1-(1-x^2)^{b}}{x},
+  \label{eq:lec10-cks}
+\end{equation}
+an odd polynomial of degree $2b-1$ that agrees with $1/x$ up to
+$(1-x^2)^b/\abs x\le\ee^{-bx^2}/\abs x$; choosing $b=\bigo(\kappa^2\log(1/\epsilon))$
+makes the error $\epsilon$ on $[1/\kappa,1]$. Truncating the Chebyshev expansion of
+$g_b$ and discarding its negligible high-degree tail reduces the effective degree to
+$d=\bigo(\kappa\log(1/\epsilon))$; dividing by $\eta\kappa$ (with $\eta=4/3$) enforces
+$\abs P\le1$. The resulting phase factors come from a QSP solver
+(\cref{sec:lec09-5}); a convex-optimization construction yields the same degree with an
+equioscillating error and is what production code uses. The essential point is the
+\emph{linear-in-$\kappa$, logarithmic-in-$\epsilon$} degree---an exponential improvement
+in $\epsilon$ over HHL, and the reason QSVT is the default solver whenever the block
+encoding is available.
+
+\begin{example}[{Poisson's equation: $\kappa\sim N^{2/d}$}]
+\label{exa:lec10-poisson}
+Consider the one-dimensional Poisson problem $-u''(r)=b(r)$ on $[0,1]$ with $u(0)=u(1)=0$,
+discretized by central differences on a uniform grid $r_i=ih$, $h=1/(N+1)$. The
+Laplacian becomes the tridiagonal Toeplitz matrix
+\begin{equation}
+  A=\frac1{h^2}\,\mathrm{tridiag}(-1,\,2,\,-1)\in\R^{N\times N}.
+  \label{eq:lec10-lap}
+\end{equation}
+A Toeplitz tridiagonal matrix $\mathrm{tridiag}(b,a,b)$ has eigenvalues
+$\lambda_k=a+2\abs b\cos\!\bigl(\tfrac{k\pi}{N+1}\bigr)$; with $a=2/h^2$, $b=-1/h^2$ the
+extreme eigenvalues are $\lambda_{\max}\approx4/h^2$ and $\lambda_{\min}\approx\pi^2$,
+so
+\begin{equation}
+  \kappa(A)=\frac{\lambda_{\max}}{\lambda_{\min}}\approx\frac{4}{h^2\pi^2}=\bigo(N^2).
+  \label{eq:lec10-poisson-kappa}
+\end{equation}
+Thus even the QSVT solver costs $\widetilde{\bigo}(\kappa^2)=\widetilde{\bigo}(N^4)$
+(worst case) or $\widetilde{\bigo}(\kappa)=\widetilde{\bigo}(N^2)$, with only
+$\log(1/\epsilon)$ precision dependence---no advantage over classical sparse solvers for
+a fixed $1$D grid. The situation changes in \emph{high dimension}: the $d$-dimensional
+Laplacian is $A_d=\sum_{i=1}^{d}\id^{\otimes(i-1)}\otimes A\otimes\id^{\otimes(d-i)}$
+with $\norm{A_d}\approx4d/h^2$ and $\norm{A_d^{-1}}^{-1}\approx d\pi^2$, so
+$\kappa(A_d)\approx\kappa(A)=\bigo(N^2)$ is \emph{independent of $d$}. Since the total
+grid has $N^d$ points, a solver whose cost is $\poly(d)\cdot\widetilde{\bigo}(\kappa)$
+can outperform classical methods whose per-iteration cost $\bigo(N^d)$ is exponential
+in $d$---provided the evolution oracle and state preparation are efficient and one wants
+only a scalar functional of the solution. This dimensional scaling $\kappa\sim N^{2/d}$
+(here $N_{\mathrm{tot}}=N^d$, so $\kappa\sim N_{\mathrm{tot}}^{2/d}$) is the standard
+lens through which PDE-derived QLSP instances are judged.
+\end{example}
+
+\section{Adiabatic and quantum Zeno solvers}
+\label{sec:lec10-4}
+
+Both HHL and QSVT, even with amplitude amplification, retain a quadratic $\kappa$
+dependence in the worst case, because the solution norm $\norm{A^{-1}\ket b}$ can be as
+small as the subnormalization $1/\kappa$. The near-optimal and optimal solvers avoid
+postselection entirely by recasting QLSP as an \emph{eigenpath-tracing} problem: build a
+family of Hamiltonians whose zero-eigenstate deforms continuously from $\ket b$ to
+$\ket x$, and follow it either by slow (adiabatic) evolution or by repeated projective
+measurement (Zeno).
+
+\paragraph{QLSP as a zero-eigenvalue eigenpath.}
+Take $A$ Hermitian positive definite with spectrum in $[1/\kappa,1]$, and set
+$Q_b=\id-\proj b$. Define
+\begin{equation}
+  H_0=\begin{pmatrix}0&Q_b\\ Q_b&0\end{pmatrix},\qquad
+  H_1=\begin{pmatrix}0&A Q_b\\ Q_b A&0\end{pmatrix}.
+  \label{eq:lec10-H0H1}
+\end{equation}
+The null space of $H_1$ is spanned by $\ket0\ket x$ (with $A\ket x\propto\ket b$, since
+$Q_b A\ket x\propto Q_b\ket b=0$) and $\ket1\ket b$; the null space of $H_0$ is spanned
+by $\ket0\ket b$ and $\ket1\ket b$. Interpolating
+\begin{equation}
+  H(f)=(1-f)H_0+f H_1,\qquad f=f(s)\colon[0,1]\to[0,1],\ f(0)=0,\ f(1)=1,
+  \label{eq:lec10-Hf}
+\end{equation}
+with scheduling function $f$, the state $\ket0\ket b$ (a null vector of $H_0$) is
+deformed into $\ket0\ket x$ (a null vector of $H_1$), which encodes the solution. The
+key structural fact is that the relevant gap never closes and shrinks only near the
+end.
+
+\begin{lemma}[Gap of the interpolating Hamiltonian]
+\label{lem:lec10-gap}
+For $A\succeq\kappa^{-1}\id$ the spectral gap $\Delta(f)$ of $H(f)$ around its
+zero eigenvalue satisfies
+\begin{equation}
+  \Delta(f)\ge 1-f+f/\kappa\ \ge\ 1/\kappa.
+  \label{eq:lec10-gap}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Write $H(f)=\bigl(\begin{smallmatrix}0&M Q_b\\ Q_b M&0\end{smallmatrix}\bigr)$ with
+$M=(1-f)\id+fA$. An eigenvalue $\lambda$ of $H(f)$ satisfies
+$0=\det\!\bigl(\lambda^2\id-Q_b M^2 Q_b\bigr)$ (block elimination, using that $\lambda\id$
+commutes with the off-diagonal blocks). On the subspace orthogonal to $\ket b$,
+$Q_b M^2 Q_b$ acts as $M^2$, so the smallest nonzero $\lambda^2$ obeys
+\begin{equation}
+  \Delta^2(f)=\!\!\inf_{\braket{b}{\varphi}=0,\,\norm\varphi=1}\!\!
+    \bra\varphi M^2\ket\varphi
+    \ \ge\ \inf_{\norm\varphi=1}\bra\varphi M^2\ket\varphi
+    =\bigl((1-f)+f/\kappa\bigr)^2,
+  \label{eq:lec10-gap-pf}
+\end{equation}
+since the eigenvalues of $M=(1-f)\id+fA$ lie in $[(1-f)+f/\kappa,\ (1-f)+f]$. Taking
+square roots gives \eqref{eq:lec10-gap}; the minimum over $f\in[0,1]$ is $1/\kappa$ at
+$f=1$.
+\end{proof}
+
+\paragraph{Adiabatic solvers: $\mathrm{AQC}(p)$ and $\mathrm{AQC}(\exp)$.}
+Evolving $\tfrac{\ii}{T}\partial_s\ket{\psi_T(s)}=H(f(s))\ket{\psi_T(s)}$ from
+$\ket{\psi_T(0)}=\ket0\ket b$, the adiabatic theorem guarantees that
+$\ket{\psi_T(1)}$ lands in the null space of $H_1$---the solution---provided $T$ is
+large relative to the gap. The naive bound scales the runtime as
+$T=\bigo(\Delta_*^{-3}/\epsilon)=\bigo(\kappa^3/\epsilon)$, ruinous for small gaps. Two
+ideas fix this.
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{Gap-adapted schedule} $\mathrm{AQC}(p)$: choose $\dot f(s)\propto
+    \Delta^p(f(s))$ so the evolution slows exactly where the gap is small. For
+    $1<p<2$ this yields $T=\bigo(\kappa/\epsilon)$---linear in $\kappa$, but still
+    $1/\epsilon$.
+  \item \emph{Boundary-cancelling schedule} $\mathrm{AQC}(\exp)$: choose
+    \begin{equation}
+      f(s)=c_e^{-1}\!\int_0^s\!\exp\!\Bigl(-\tfrac1{\tau(1-\tau)}\Bigr)\dd\tau,\qquad
+      c_e=\!\int_0^1\!\exp\!\Bigl(-\tfrac1{\tau(1-\tau)}\Bigr)\dd\tau,
+      \label{eq:lec10-aqcexp}
+    \end{equation}
+    which makes \emph{all} derivatives $H^{(k)}(0)=H^{(k)}(1)=0$ vanish at the
+    endpoints. Integration by parts then suppresses the adiabatic error faster than any
+    polynomial in $1/T$, giving runtime
+    \begin{equation}
+      T=\bigo\!\Bigl(\kappa\,\polylog\tfrac\kappa\epsilon\Bigr)
+      \label{eq:lec10-aqcexp-cost}
+    \end{equation}
+    (near-optimal in $\kappa$, exponentially good in $\epsilon$). The continuous
+    evolution \eqref{eq:lec10-Hf} must still be discretized, e.g.\ by a truncated Dyson
+    series (\cref{ch:lec13}), contributing only polylogarithmic overhead.
+\end{itemize}
+
+\paragraph{The quantum Zeno / eigenstate-filtering solver.}
+A digital alternative discretizes the schedule at $f_j=f(j/M)$ and, instead of
+simulating a continuous evolution, \emph{projects} onto the successive zero-eigenspaces
+by block-encoded spectral projectors $P_{f_j}$. Frequent projection freezes the state
+on the eigenpath (the quantum Zeno effect: many measurements suppress transitions), and
+only the last projection determines the final accuracy. Two ingredients make this
+optimal.
+
+First, the schedule
+\begin{equation}
+  f(s)=\frac{1-\kappa^{-s}}{1-\kappa^{-1}}
+  \label{eq:lec10-zeno-schedule}
+\end{equation}
+equalizes the eigenpath length across steps: by perturbation theory
+$\norm{\partial_f\ket{x(f)}}\le2/\Delta_*(f)$ with $\Delta_*(f)=1-f+f/\kappa$, so the
+total path length is
+\begin{equation}
+  L(0,1)\le\int_0^1\frac{2}{1-f+f/\kappa}\,\dd f=\frac{2\log\kappa}{1-1/\kappa}
+  =\bigo(\log\kappa),
+  \label{eq:lec10-pathlen}
+\end{equation}
+and the schedule concentrates steps where the gap is small. With $M=\Theta(\log^2\kappa)$
+steps the consecutive overlaps satisfy $\abs{\braket{x(f_j)}{x(f_{j-1})}}\ge
+1-\tfrac12 L_*(f_{j-1},f_j)^2$, so all $M$ projections succeed with probability
+$\Omega(1)$.
+
+Second, each projector $P_{f_j}$ is realized by an \emph{eigenstate filter}: an even
+polynomial approximating the rectangle that is $\approx1$ at eigenvalue $0$ and
+$\approx0$ beyond the gap $\Delta_*(f_j)$, built by QSVT with degree
+$\bigo(\Delta_*(f_j)^{-1}\log(1/\epsilon_j))$ (\cref{sec:lec09-3}, the Lin--Tong
+filter). Summing the per-step costs along the schedule,
+\begin{equation}
+  \sum_{j=1}^{M-1}\frac{\log(1/\epsilon')}{1-f(s_j)+f(s_j)/\kappa}
+  \ \lesssim\ M\log\tfrac1{\epsilon'}\!\int_0^1\!\kappa^{s}\,\dd s
+  = M\log\tfrac1{\epsilon'}\,\frac{\kappa}{\log\kappa},
+  \label{eq:lec10-zeno-sum}
+\end{equation}
+and taking $M=\Theta(\log\kappa)$ (with fixed-point amplitude amplification to keep each
+step's success near $1$) plus a final projector of precision $\epsilon$ gives the
+following optimal scaling.
+
+\begin{theorem}[Quantum Zeno / eigenstate-filtering solver]
+\label{thm:lec10-zeno}
+Let $A$ have singular values in $[1/\kappa,1]$, accessed by
+$U_A\in\mathrm{BE}_{\alpha,m}(A)$, and let $U_b$ prepare $\ket b$. Then a QZE-based
+solver prepares $\ket{\tilde x}$ with $\abs{\braket{\tilde x}{x}}\ge1-\epsilon$ and
+constant success probability, using
+\begin{equation}
+  \bigo\!\bigl(\kappa\log(1/\epsilon)\bigr)
+  \label{eq:lec10-zeno-cost}
+\end{equation}
+queries to $U_A$ and $U_b$, up to $\log\log\kappa$ factors.
+\end{theorem}
+
+\begin{proof}[Proof idea]
+Combine \cref{lem:lec10-gap}, the equalized schedule \eqref{eq:lec10-zeno-schedule}, the
+path-length bound \eqref{eq:lec10-pathlen}, and the eigenstate-filter cost. The first
+$M-1$ projectors cost $\bigo(\kappa(\log\log\kappa)^2)$ in total by
+\eqref{eq:lec10-zeno-sum} with $M=\Theta(\log\kappa)$ and fixed-point amplification
+holding each step's fidelity at $1-1/M$; the final projector costs
+$\bigo(\kappa\log(1/\epsilon))$. Summing gives \eqref{eq:lec10-zeno-cost}. The matching
+lower bound $\Omega(\kappa)$ is \cref{prop:lec10-lb}, so the scaling is optimal in
+$\kappa$ and in $\epsilon$. A closely related \emph{discrete} adiabatic theorem
+(Costa et al.) achieves the same $\bigo(\kappa\log(1/\epsilon))$ without the extra
+$\log\log\kappa$.
+\end{proof}
+
+\section{Complexity landscape and preconditioning}
+\label{sec:lec10-5}
+
+\paragraph{The landscape.}
+The methods above form a clean progression in the two parameters $\kappa$ and
+$\epsilon$. The table below collects the query complexities to the oracle
+for $A$ (worst case, before/after amplitude amplification as noted).
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}lll@{}}
+\hline
+\textbf{Method} & \textbf{Queries to $A$} & \textbf{Precision dep.}\\
+\hline
+HHL & $\bigo(\kappa^2/\epsilon)$ (with AA) & $1/\epsilon$\\
+LCU (Fourier/Chebyshev) & $\bigo(\kappa^2\polylog(\kappa/\epsilon))$ & $\polylog$\\
+QSVT & $\bigo(\kappa^2\log(\kappa/\epsilon))$ & $\log(1/\epsilon)$\\
+$\mathrm{AQC}(p)$ & $\bigo((\kappa/\epsilon)\log(\kappa/\epsilon))$ & $1/\epsilon$\\
+$\mathrm{AQC}(\exp)$ & $\bigo(\kappa\,\polylog(\kappa/\epsilon))$ & $\polylog$\\
+QZE $+$ eigenfilter & $\bigo(\kappa\log(1/\epsilon))$ & $\log(1/\epsilon)$\\
+discrete AQC (optimal) & $\bigo(\kappa\log(1/\epsilon))$ & $\log(1/\epsilon)$\\
+\hline
+\end{tabular}
+\end{center}
+
+\noindent\emph{Table:} QLSP query complexity in the worst case
+$\xi=\norm{A^{-1}\ket b}=1$. Best case ($\xi=\Theta(\kappa)$) removes one factor of
+$\kappa$ from the postselection methods. The optimal $\bigo(\kappa\log(1/\epsilon))$
+matches the lower bound $\Omega(\kappa)$ of \cref{prop:lec10-lb}.
+
+Two lessons. First, the frontier moved from HHL's $\kappa^2/\epsilon$ to the optimal
+$\kappa\log(1/\epsilon)$ by two independent improvements---better \emph{$\epsilon$
+dependence} (QSVT's polynomial replacing QPE's arithmetic) and better \emph{$\kappa$
+dependence} (eigenpath methods replacing postselection). Second, even the optimal solver
+is $\Omega(\kappa)$: unlike classical conjugate gradient's $\bigo(\sqrt\kappa)$ for
+positive-definite systems, generic quantum solvers do not achieve $\sqrt\kappa$, and no
+amount of algorithmic cleverness removes the linear $\kappa$. Hence, whenever $\kappa$ is
+large, the decisive move is to \emph{reduce $\kappa$ itself}---preconditioning.
+
+\paragraph{Why $\kappa$, not $N$, is the enemy.}
+The comparison with classical iterative solvers is instructive. For a $d$-sparse
+Hermitian positive-definite $A$, one matrix--vector product costs $\bigo(dN)$ flops, and
+steepest descent needs $\bigo(\kappa\log(1/\epsilon))$ iterations, conjugate gradient
+$\bigo(\sqrt\kappa\log(1/\epsilon))$; total classical cost
+$\bigo(dN\sqrt\kappa\log(1/\epsilon))$. The quantum solver's cost is
+$\widetilde{\bigo}(\kappa)$ \emph{queries}, each of which may be a $\poly(n)$-gate
+circuit when $U_A$ is efficiently implementable---so the potential exponential advantage
+is in replacing the $\bigo(N)$ per-step cost by $\poly(\log N)$, \emph{not} in the
+$\kappa$ dependence, which is if anything worse than CG. The advantage is real only when
+(i) $U_A$ and $U_b$ are cheap, (ii) one wants a scalar functional of $\ket x$ rather than
+all of $x$, and (iii) $\kappa$ is controlled. The Poisson example
+(\cref{exa:lec10-poisson}) with $\kappa\sim N^{2/d}$ shows all three tensions at once.
+
+\paragraph{Preconditioning: classical and quantum.}
+Left-preconditioning replaces $Ax=b$ by $MAx=Mb$; it helps when $\kappa(MA)\ll\kappa(A)$.
+Classical choices---diagonal (Jacobi), incomplete factorizations, sparse approximate
+inverse (SPAI)---have quantum analogues (SPAI, circulant preconditioners), but a genuine
+obstacle appears: on a quantum computer every block-encoded matrix has spectral norm
+$\le1$, so multiplying by $M$ can only \emph{shrink} the state, and recovering the norm
+costs $\bigo(\kappa)$ amplitude-amplification rounds. Applying two preconditioners
+therefore incurs a \emph{subnormalization} $\kappa(M)\kappa(M_r)\propto\kappa(A)$, which
+can eat the very benefit sought. Concretely, the complexity of a quantum solve is
+governed not by $\kappa(S)$ alone but by $\tilde\gamma(U_S)\,\kappa(S)$, the product of
+the block-encoding subnormalization and the condition number. A clean pipeline where
+this works: if $A+B$ is the target with $A$ easily invertible and of large norm and
+$B,A^{-1},(A+B)^{-1}$ moderate, then $\kappa(\id+A^{-1}B)=\bigo(1)$, and one composes
+block encodings along
+\begin{equation}
+  A^{-1}\ \to\ A^{-1}B\ \to\ \id+A^{-1}B\ \to\ (\id+A^{-1}B)^{-1}
+  \ \to\ (\id+A^{-1}B)^{-1}A^{-1}=(A+B)^{-1},
+  \label{eq:lec10-precond-pipeline}
+\end{equation}
+requiring only matrix addition, multiplication (\cref{ch:lec07}), and fast inversion of
+the well-conditioned factor.
+
+\paragraph{Optimal multilevel (BPX) preconditioning.}
+For elliptic PDEs the sharpest tool is a \emph{multilevel} preconditioner. Discretizing
+$-\operatorname{div}(A\nabla u)=f$ by finite elements on a hierarchy of grids
+$G_1\subset\cdots\subset G_L$ with $h_\ell=2^{-\ell}$ gives a stiffness matrix $S$ with
+$\kappa(S)=\bigo(h^{-2})=\bigo(N^{2/d})$. The Bramble--Pasciak--Xu (BPX) preconditioner
+$P$ is a hierarchical decomposition across levels; under the standard Jackson (direct)
+and Bernstein (inverse) estimates,
+\begin{equation}
+  \inf_{v_\ell\in V_\ell}\norm{u-v_\ell}_{L^2}\le 2^{-\ell}C_1\norm{u}_{H^1},\qquad
+  \norm{v_\ell}_{H^1}\le 2^{\ell}C_2\norm{v_\ell}_{L^2},
+  \label{eq:lec10-jackson-bernstein}
+\end{equation}
+the symmetrically preconditioned matrix satisfies $\kappa(P^{1/2}SP^{1/2})=\bigo(1)$,
+\emph{independent of $L$}. Because the preconditioned system $PS$ itself need not be well
+conditioned as a product, one \emph{splits} $P=FF^{\mathsf T}$ over a multilevel
+generating system $\mathcal F=\{2^{-\ell(2-d)/2}\lambda_j^{(\ell)}\}$ and solves the
+frame system $F^{\mathsf T}SF\,y=F^{\mathsf T}r$, $c=Fy$. On Cartesian grids the
+resulting block encoding of $F^{\mathsf T}SF$ has subnormalization $\bigo(dL)$ and
+$\kappa=\bigo(1)$, so the quantum finite-element solve attains query complexity
+near-optimal in $\kappa$ and $\epsilon$---turning a $\kappa\sim N^{2/d}$ instance into an
+$\bigo(1)$-conditioned one and making the QLSP speedup accessible for elliptic PDEs. This
+is the state of the art for reconciling the $\Omega(\kappa)$ lower bound with practical
+PDE problems.
+
+\exercisesection
+
+\begin{exercise}\label{ex:lec10-1}
+\emph{Condition number and normalization.} Let $A\in\C^{N\times N}$ be invertible with
+$\norm A\le1$. Show that the singular values of $A$ lie in $[1/\kappa,1]$ where
+$\kappa=\norm A\norm{A^{-1}}$, and that the Hermitian dilation
+$\widetilde A=\bigl(\begin{smallmatrix}0&A\\ A\dg&0\end{smallmatrix}\bigr)$ has
+eigenvalues $\pm\sigma_i$ and the same condition number. Verify that
+$\widetilde A(0,x)^{\mathsf T}=(b,0)^{\mathsf T}$ is equivalent to $Ax=b$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec10-2}
+\emph{HHL success probability.} From \eqref{eq:lec10-hhl} with $C=1/\kappa$, show the
+postselection success probability is $p(1)=\norm{A^{-1}\ket b}^2/\kappa^2=\xi^2/\kappa^2$.
+Deduce $p(1)=\Omega(\kappa^{-2})$ using only $\xi\ge1$, and $p(1)=\Omega(1)$ if $\ket b$
+has $\Omega(1)$ overlap with the eigenvector of the smallest eigenvalue. Explain how
+amplitude amplification turns the $\kappa^2$ repetition overhead into $\kappa$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec10-3}
+\emph{Multiplicative precision in HHL.} Suppose the eigenvalue estimates satisfy
+$\tilde\lambda_j=\lambda_j(1+e_j)$ with $\abs{e_j}\le\epsilon/4$. Following
+\cref{rem:lec10-mult}, show $\norm{\ket{\tilde x}-\ket x}\le\epsilon$, and conclude that
+because $\lambda_{\min}=\Theta(1/\kappa)$ the QPE runtime must be $\Omega(\kappa/\epsilon)$.
+Contrast with the $\log(1/\epsilon)$ dependence of the QSVT solver.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec10-4}
+\emph{The QSVT inversion polynomial.} For $g_b(x)=(1-(1-x^2)^b)/x$ of
+\eqref{eq:lec10-cks}, show $g_b$ is an odd polynomial of degree $2b-1$ and that
+$\abs{g_b(x)-1/x}\le\ee^{-bx^2}/\abs x$ for $x\neq0$. Deduce that
+$b=\bigo(\kappa^2\log(1/\epsilon))$ gives error $\epsilon$ on $[1/\kappa,1]$, and explain
+why Chebyshev truncation reduces the effective QSVT degree to
+$\bigo(\kappa\log(1/\epsilon))$. Why must one divide by $\eta\kappa$ with $\eta>1$?
+\end{exercise}
+
+\begin{exercise}\label{ex:lec10-5}
+\emph{Gap of the interpolating Hamiltonian.} Prove \cref{lem:lec10-gap}: for
+$A\succeq\kappa^{-1}\id$, the gap of $H(f)=(1-f)H_0+fH_1$ around its zero eigenvalue is
+$\Delta(f)\ge1-f+f/\kappa$. (Use the block-elimination identity
+$\det(\lambda^2\id-Q_bM^2Q_b)=0$ with $M=(1-f)\id+fA$, and restrict to the subspace
+orthogonal to $\ket b$.) Where is the gap smallest, and what value does it take?
+\end{exercise}
+
+\begin{exercise}\label{ex:lec10-6}
+\emph{Eigenpath length and the Zeno schedule.} For the schedule
+$f(s)=(1-\kappa^{-s})/(1-\kappa^{-1})$ of \eqref{eq:lec10-zeno-schedule} and the bound
+$\norm{\partial_f\ket{x(f)}}\le2/(1-f+f/\kappa)$, show that the total eigenpath length is
+$L(0,1)\le 2\log\kappa/(1-1/\kappa)=\bigo(\log\kappa)$. Explain why this schedule
+allocates roughly equal path length per step, and why that yields the
+$\bigo(\kappa\log(1/\epsilon))$ query complexity of \cref{thm:lec10-zeno}.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec10-7}
+\emph{Poisson condition number.} Using the eigenvalues
+$\lambda_k=a+2\abs b\cos(k\pi/(N+1))$ of a Toeplitz tridiagonal matrix, derive
+$\kappa(A)\approx4/(h^2\pi^2)=\bigo(N^2)$ for the $1$D Laplacian
+\eqref{eq:lec10-lap}. Show that the $d$-dimensional Laplacian
+$A_d=\sum_i\id^{\otimes(i-1)}\otimes A\otimes\id^{\otimes(d-i)}$ has
+$\kappa(A_d)\approx\kappa(A)$ independent of $d$, and explain why this makes
+high-dimensional Poisson a candidate for quantum advantage while the $1$D case is not.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec10-8}
+\emph{The $(A+B)$ preconditioner.} Suppose $A$ is easily invertible with large
+$\norm A$, and $B,\norm{A^{-1}},\norm{(A+B)^{-1}}$ are moderate. Show
+$\kappa(\id+A^{-1}B)=\bigo(1)$ and verify the identity
+$(\id+A^{-1}B)^{-1}A^{-1}=(A+B)^{-1}$. Using the block-encoding arithmetic of
+\cref{ch:lec07}, describe the pipeline \eqref{eq:lec10-precond-pipeline} and identify at
+which step the well-conditioned inversion (cheap) versus the ill-conditioned one
+(expensive) occurs. Why does naive left-preconditioning $M A$ incur a subnormalization
+$\propto\kappa(M)$?
+\end{exercise}
+
+\readingsection
+\begin{itemize}[leftmargin=1.4em]
+  \item Lin Lin, \emph{live notes}, Ch.~19 (QLSP problem setup and output model; the HHL
+        algorithm via QPE and controlled rotation, its success probability and
+        multiplicative-accuracy requirement; the QSVT solver and
+        \cref{thm:lec10-qsvt}; Poisson's equation and fermionic Green's functions; the
+        quantum adiabatic near-optimal solver $\mathrm{AQC}(\exp)$; and the quantum Zeno
+        / eigenstate-filtering optimal solver, \cref{thm:lec10-zeno}).
+  \item Dong An, \emph{Quantum Numerical Linear Algebra} tutorial talk (the QLSP
+        definition and parameters $\epsilon,\kappa$; QSVT for $f(x)=1/(\kappa x)$ with
+        degree $\bigo(\kappa\log(1/\epsilon))$; HHL as QPE $+$ controlled rotation with
+        cost $\bigo(\kappa^2/\epsilon)$; the LCU Fourier/Chebyshev approaches; the
+        $\mathrm{AQC}(p)$/$\mathrm{AQC}(\exp)$ schedules and their
+        $\bigo(\kappa/\epsilon)$ and $\bigo(\kappa\,\polylog)$ costs; the complexities
+        comparison table; and preconditioning, including SPAI and the $(A+B)$ pipeline).
+  \item A.~W.~Harrow, A.~Hassidim, and S.~Lloyd, \emph{Quantum algorithm for linear
+        systems of equations}, Phys.\ Rev.\ Lett.\ \textbf{103}, 150502 (2009)
+        (arXiv:0811.3171), the original HHL algorithm.
+  \item A.~M.~Childs, R.~Kothari, and R.~D.~Somma, \emph{Quantum algorithm for systems
+        of linear equations with exponentially improved dependence on precision}, SIAM
+        J.\ Comput.\ \textbf{46}, 1920--1950 (2017) (arXiv:1511.02306), for the LCU
+        solver and the explicit $1/x$ polynomial; D.~An and L.~Lin, \emph{Quantum linear
+        system solver based on time-optimal adiabatic quantum computing and quantum
+        approximate optimization algorithm}, ACM Trans.\ Quantum Comput.\ \textbf{3}, 5
+        (2022) (arXiv:1909.05500), for $\mathrm{AQC}(p)$ and $\mathrm{AQC}(\exp)$;
+        L.~Lin and Y.~Tong, \emph{Optimal polynomial based quantum eigenstate filtering
+        with application to solving quantum linear systems}, Quantum \textbf{4}, 361
+        (2020) (arXiv:1910.14596), for the QZE/eigenstate-filtering optimal solver; and
+        P.~C.~S.~Costa et al., \emph{Optimal scaling quantum linear-systems solver via
+        discrete adiabatic theorem}, PRX Quantum \textbf{3}, 040303 (2022)
+        (arXiv:2111.08152).
+  \item Quantum preconditioning notes (SuzhouNotes, ``Quantum preconditioning'') for the
+        block-encoding normalization/subnormalization accounting, the QLSP definition in
+        terms of $\tilde\gamma\cdot\kappa$, and the optimal multilevel (BPX)
+        preconditioner following J.~H.~Bramble, J.~E.~Pasciak, and J.~Xu,
+        \emph{Parallel multilevel preconditioners}, Math.\ Comp.\ \textbf{55}, 1--22
+        (1990).
+\end{itemize}

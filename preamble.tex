@@ -1,0 +1,102 @@
+% preamble.tex — shared packages, macros, and theorem environments
+% for the Quantum Scientific Computing lecture notes.
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{braket}          % Dirac notation: \ket, \bra, \braket, \bra{}\ket{}
+\usepackage{bm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{quantikz}
+\usepackage[most]{tcolorbox}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage[capitalize,noabbrev]{cleveref}
+
+% ---------------------------------------------------------------------------
+% Draft helpers (remove or disable before a "clean" build)
+% ---------------------------------------------------------------------------
+\newcommand{\todo}[1]{{\color{red}\textbf{[TODO: #1]}}}
+\newcommand{\note}[1]{{\color{purple}\small(#1)}}
+% Term-coverage note (which sections are taught this term); placed after a chapter's objectives box.
+\newcommand{\coverage}[1]{%
+  \par\smallskip\noindent
+  \textcolor{teal}{\textbf{Covered this term (Fall 2026--2027).}}\enspace
+  {\small #1}\par\smallskip}
+
+% ---------------------------------------------------------------------------
+% Notation macros (kept consistent across all lectures)
+% ---------------------------------------------------------------------------
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\Hilb}{\mathcal{H}}
+\newcommand{\ii}{\mathrm{i}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\ee}{\mathrm{e}}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\Tr}{Tr}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\Cov}{Cov}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\poly}{poly}
+\DeclareMathOperator{\polylog}{polylog}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\abs}[1]{\left\lvert #1 \right\rvert}
+\newcommand{\bigo}{\mathcal{O}}
+\newcommand{\id}{\mathbb{I}}
+\newcommand{\dg}{^{\dagger}}
+% quantikz also defines \proj (a circuit element we do not use); override with our projector.
+\let\proj\relax
+\newcommand{\proj}[1]{\ket{#1}\!\bra{#1}}   % |x><x|
+
+% Pauli / common gates
+\newcommand{\Xgate}{\mathsf{X}}
+\newcommand{\Ygate}{\mathsf{Y}}
+\newcommand{\Zgate}{\mathsf{Z}}
+\newcommand{\Hgate}{\mathsf{H}}
+\newcommand{\CNOT}{\mathrm{CNOT}}   % controlled-NOT gate
+\newcommand{\Uf}{U_{f}}             % standard oracle unitary
+\newcommand{\QFT}{\mathrm{QFT}}     % quantum Fourier transform
+\newcommand{\defeq}{\vcentcolon=}   % ":=" definition symbol
+
+% ---------------------------------------------------------------------------
+% Theorem environments
+% ---------------------------------------------------------------------------
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{exercise}{Exercise}[chapter]
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% Solution environment (unnumbered, italic "Solution." lead-in) — used only in solutions.tex.
+\newenvironment{solution}{\begin{proof}[\normalfont\itshape Solution.]}{\end{proof}}
+
+% ---------------------------------------------------------------------------
+% Per-lecture structural helpers
+% ---------------------------------------------------------------------------
+% Learning-objectives box at the top of each lecture.
+\newtcolorbox{objectives}{
+  colback=blue!4, colframe=blue!45!black, title={Learning objectives},
+  fonttitle=\bfseries, boxrule=0.5pt, arc=2pt, left=6pt, right=6pt, top=4pt, bottom=4pt}
+
+% Uniform names for the closing sections of every lecture.
+\newcommand{\exercisesection}{\section*{Exercises}\addcontentsline{toc}{section}{Exercises}}
+\newcommand{\readingsection}{\section*{Further reading}\addcontentsline{toc}{section}{Further reading}}

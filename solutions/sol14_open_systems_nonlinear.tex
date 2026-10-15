@@ -1,0 +1,168 @@
+\chapter{Open Quantum Systems and Nonlinear PDEs}
+% Solutions to the exercises of \cref{ch:lec14}.
+
+\begin{solution}[Exercise~\ref{ex:lec14-1}]
+(a) Taking the trace of \eqref{eq:lec14-lindblad} and using $\Tr[H\rho]=\Tr[\rho H]$ (cyclicity),
+$\Tr[-\ii[H,\rho]]=-\ii(\Tr[H\rho]-\Tr[\rho H])=0$. For each dissipative term,
+$\Tr[L_j\rho L_j\dg]=\Tr[L_j\dg L_j\rho]$ by cyclicity, while
+$\Tr[\tfrac12\{L_j\dg L_j,\rho\}]=\tfrac12(\Tr[L_j\dg L_j\rho]+\Tr[\rho L_j\dg L_j])
+=\Tr[L_j\dg L_j\rho]$. The two cancel, so $\Tr[\mathcal L(\rho)]=0$. Hence
+$\tfrac{\dd}{\dd t}\Tr[\rho(t)]=\Tr[\mathcal L(\rho)]=0$: the trace is conserved.
+
+(b) Under $\braket{X|Y}=\Tr[X\dg Y]$ we move each factor onto $Y$ by cyclicity. For the coherent
+part, $\Tr[(-\ii[H,X])\dg Y]=\Tr[\ii(X\dg H-H X\dg)Y]=\Tr[X\dg(\ii H Y-\ii Y H)]
+=\Tr[X\dg(\ii[H,Y])]$, giving $\mathcal L_H\dg(Y)=\ii[H,Y]$. For a dissipative term,
+$\Tr[(L_j X L_j\dg-\tfrac12\{L_j\dg L_j,X\})\dg Y]=\Tr[X\dg(L_j\dg Y L_j-\tfrac12\{L_j\dg L_j,Y\})]$
+after moving operators across the trace, which is exactly the $j$-th term of
+\eqref{eq:lec14-adjoint}. Summing gives $\Tr[\mathcal L(X)\dg Y]=\Tr[X\dg\mathcal L\dg(Y)]$.
+Finally $\mathcal L\dg(\id)=\ii[H,\id]+\sum_j(L_j\dg\id L_j-\tfrac12\{L_j\dg L_j,\id\})
+=0+\sum_j(L_j\dg L_j-L_j\dg L_j)=0$, so the Heisenberg dynamics is unital (it fixes the identity
+observable), the dual statement of trace preservation in (a).
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec14-2}]
+With $H=0$ the Lindbladian is purely dissipative. For $\rho=\sum_j p_j\proj j$ and
+$L_{ij}=\sqrt{q_{ij}}\ket i\!\bra j$ we compute
+\[
+  L_{ij}\rho L_{ij}\dg=q_{ij}\ket i\!\bra j\Bigl(\sum_k p_k\proj k\Bigr)\ket j\!\bra i
+    =q_{ij}p_j\proj i,\qquad
+  L_{ij}\dg L_{ij}=q_{ij}\proj j,
+\]
+so $\tfrac12\{L_{ij}\dg L_{ij},\rho\}=q_{ij}p_j\proj j$ (both $L_{ij}\dg L_{ij}$ and $\rho$ are
+diagonal, hence commute). Summing over $i\ne j$,
+\[
+  \frac{\dd\rho}{\dd t}=\sum_{i\ne j}q_{ij}p_j\proj i-\sum_{j}\Bigl(\sum_{i\ne j}q_{ij}\Bigr)p_j
+  \proj j,
+\]
+which is diagonal, so $\rho$ stays diagonal and the populations obey
+$\dot p_i=\sum_{j\ne i}q_{ij}p_j-(\sum_{k\ne i}q_{ki})p_i$. This is $\dot p=Qp$ with $Q_{ij}=q_{ij}$
+for $i\ne j$ and $Q_{ii}=-\sum_{k\ne i}q_{ki}$. Each column sums to
+$\sum_i Q_{ij}=Q_{jj}+\sum_{i\ne j}q_{ij}=-\sum_{i\ne j}q_{ij}+\sum_{i\ne j}q_{ij}=0$, so
+$\mathbf 1\dg Q=0$ and $\mathbf 1\dg\ee^{Qt}=\mathbf1\dg$: $\ee^{Qt}$ preserves total probability
+and, having nonnegative entries (off-diagonal rates are nonnegative), is column-stochastic.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec14-3}]
+With one jump operator, $\widetilde H=\proj0\otimes H/\sqrt{\Delta t}+(\ket1\!\bra0\otimes L_1
++\ket0\!\bra1\otimes L_1\dg)$. Write $U=\ee^{-\ii\widetilde H\sqrt{\Delta t}}=\id-\ii\widetilde H
+\sqrt{\Delta t}-\tfrac12\widetilde H^2\Delta t+\mathcal O(\Delta t^{3/2})$. The ancilla starts in
+$\ket0$, so we need the action on $\ket0\otimes\rho\otimes\bra0$ followed by $\Tr_a$. Group the
+terms of $U$ by the power of $\sqrt{\Delta t}$:
+\[
+  U(\ket0\otimes\cdot)=\ket0\otimes\bigl(\id-\ii H\Delta t^{1/2}\!/\!\sqrt{\Delta t}\ \cdots\bigr)
+  \ \text{(order 0,1)}\ +\ \ket1\otimes(-\ii L_1\sqrt{\Delta t})\ +\ \cdots.
+\]
+Concretely, acting on $\ket0\otimes\ket\psi$: the $\proj0\otimes H/\sqrt{\Delta t}$ term
+contributes $-\ii\sqrt{\Delta t}\cdot H/\sqrt{\Delta t}=-\ii H\Delta t^0\cdot\Delta t$ once the
+overall $\sqrt{\Delta t}$ multiplies (net order $\Delta t$ after two such factors or one first-order
+factor times $\sqrt{\Delta t}$), while $\ket1\!\bra0\otimes L_1$ sends $\ket0\to\ket1$ with weight
+$-\ii\sqrt{\Delta t}\,L_1$. Forming $\Tr_a(U(\proj0\otimes\rho)U\dg)$, the $\ket0$ and $\ket1$
+ancilla sectors do not interfere after the trace, so
+\[
+  \Tr_a(U(\proj0\otimes\rho)U\dg)
+  =\underbrace{(\id-\ii H\Delta t-\tfrac12 L_1\dg L_1\Delta t)\rho(\id+\ii H\Delta t-\tfrac12
+    L_1\dg L_1\Delta t)}_{\text{ancilla }\ket0}
+  +\underbrace{\Delta t\,L_1\rho L_1\dg}_{\text{ancilla }\ket1}+\mathcal O(\Delta t^2).
+\]
+The $\ket0$ sector expands to $\rho-\ii[H,\rho]\Delta t-\tfrac12\{L_1\dg L_1,\rho\}\Delta t
++\mathcal O(\Delta t^2)$, where the anticommutator arises from the two $-\tfrac12 L_1\dg L_1
+\Delta t$ insertions (the $H/\sqrt{\Delta t}$ factor, multiplied by the overall $\sqrt{\Delta t}$
+in $\widetilde H\sqrt{\Delta t}$, is what makes the coherent commutator appear at exactly order
+$\Delta t$ rather than $\sqrt{\Delta t}$). Adding the $\ket1$ sector $\Delta t\,L_1\rho L_1\dg$
+gives $\rho+\Delta t\,\mathcal L(\rho)+\mathcal O(\Delta t^2)$. Odd powers of $\sqrt{\Delta t}$
+carry an odd number of off-diagonal ancilla operators $\ket1\!\bra0$ (or $\ket0\!\bra1$); after
+$\Tr_a$ these map $\ket0$-population to $\ket1$-population and cannot return to a diagonal ancilla
+matrix element, so they vanish. Hence the expansion is even in $\sqrt{\Delta t}$ and matches
+$\ee^{\mathcal L\Delta t}(\rho)=\rho+\Delta t\mathcal L(\rho)+\mathcal O(\Delta t^2)$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec14-4}]
+Using \eqref{eq:lec14-adjoint} with the single jump operator $L=\sqrt\kappa\,a$ and $H=\omega a\dg
+a=\omega n$: for the number operator $n=a\dg a$, the coherent term is $\ii[H,n]=\ii\omega[n,n]=0$,
+and the dissipative term is $\kappa(a\dg n a-\tfrac12\{a\dg a,n\})=\kappa(a\dg a\dg a a-n^2)$.
+With $a\dg a\dg a a=a\dg(a\dg a)a=a\dg(n)a$ and the identity $a\dg a\dg aa=n(n-1)$ (normal
+ordering, $[a,a\dg]=\id$), this equals $\kappa(n(n-1)-n^2)=-\kappa n$. Hence
+$\tfrac{\dd}{\dd t}\langle n\rangle=\Tr[\rho\mathcal L\dg(n)]=-\kappa\langle n\rangle$, giving
+$\langle n\rangle(t)=\langle n\rangle(0)\ee^{-\kappa t}$.
+
+For the coherence, take $O=a$. The coherent term is $\ii[\omega n,a]=\ii\omega(na-an)
+=\ii\omega(-a)=-\ii\omega a$ (using $[n,a]=-a$). The dissipative term is
+$\kappa(a\dg a a-\tfrac12\{a\dg a,a\})=\kappa(a\dg a a-\tfrac12 a\dg a a-\tfrac12 a a\dg a)
+=\tfrac\kappa2(a\dg a a-a a\dg a)=\tfrac\kappa2([a\dg,a]a)=-\tfrac\kappa2 a$. Therefore
+$\mathcal L\dg(a)=(-\ii\omega-\tfrac\kappa2)a$ and $\langle a\rangle(t)=\langle a\rangle(0)
+\ee^{-(\ii\omega+\kappa/2)t}$: the coherence oscillates at frequency $\omega$ and decays at half
+the population rate, $\ee^{-\kappa t/2}$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec14-5}]
+The filter obeys $\hat f(\nu)=0$ for $\nu\ge0$, so in $L=\sum_{i,k}\hat f(\lambda_i-\lambda_k)
+\braket{\psi_i|A|\psi_k}\ket{\psi_i}\!\bra{\psi_k}$ only terms with $\lambda_i-\lambda_k\le-\Delta
+<0$ survive, i.e.\ $\lambda_i<\lambda_k$: $L$ maps each eigenstate strictly downward in energy.
+Acting on the ground state $\ket{\psi_0}$ (the lowest eigenstate, $k=0$) there is no lower state
+to map to, so every coefficient $\hat f(\lambda_i-\lambda_0)$ with $\lambda_i\le\lambda_0-\Delta$
+vanishes (no such $\lambda_i$ exists); hence $L\ket{\psi_0}=0$. Then $L\proj{\psi_0}L\dg=0$ and
+$L\dg L\ket{\psi_0}=0$, so $\{L\dg L,\proj{\psi_0}\}=0$; and $[H,\proj{\psi_0}]=0$ since
+$\ket{\psi_0}$ is an eigenstate. Every term of \eqref{eq:lec14-lindblad} therefore annihilates
+$\proj{\psi_0}$, giving $\mathcal L(\proj{\psi_0})=0$: $\ket{\psi_0}$ is a dark (fixed) state.
+
+For \emph{uniqueness}, the dissipation must connect every excited state to a lower one so that no
+other invariant subspace exists: it suffices that for each $\lambda_j>\lambda_0$ there is some
+$\lambda_i\le\lambda_j-\Delta$ with $\braket{\psi_i|A|\psi_k}\ne0$ along a chain reaching
+$\ket{\psi_0}$ (an irreducibility/accessibility condition on $A$). Under such ergodicity the
+unique stationary state is $\proj{\psi_0}$ and $\ee^{\mathcal L t}(\rho_0)\to\proj{\psi_0}$ for all
+$\rho_0$; the convergence speed is quantified by the mixing time $\tau_{\mathrm{mix}}(\eta)$ of
+\eqref{eq:lec14-mixing}, i.e.\ the time after which the trace distance to $\proj{\psi_0}$ drops
+below $\eta$ uniformly in $\rho_0$. The total preparation cost is $\tau_{\mathrm{mix}}$ times the
+per-time simulation cost.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec14-6}]
+Differentiate $y_k=z^{\otimes k}$ with the product (Leibniz) rule, letting $\dot z$ occupy each of
+the $k$ slots in turn:
+\[
+  \dot y_k=\sum_{\ell=1}^{k}z^{\otimes(\ell-1)}\otimes\dot z\otimes z^{\otimes(k-\ell)}.
+\]
+Substituting $\dot z=F_1 z+F_2(z\otimes z)$ splits each slot into a linear piece and a quadratic
+piece. The linear piece $z^{\otimes(\ell-1)}\otimes F_1 z\otimes z^{\otimes(k-\ell)}
+=(\id^{\otimes(\ell-1)}\otimes F_1\otimes\id^{\otimes(k-\ell)})z^{\otimes k}$ keeps the total
+tensor degree at $k$, so it contributes to the diagonal block $A_k^k$ of
+\eqref{eq:lec14-carleman-coeffs}. The quadratic piece $z^{\otimes(\ell-1)}\otimes F_2(z\otimes z)
+\otimes z^{\otimes(k-\ell)}=(\id^{\otimes(\ell-1)}\otimes F_2\otimes\id^{\otimes(k-\ell)})
+z^{\otimes(k+1)}$ raises the degree to $k+1$, so it multiplies $y_{k+1}$ and contributes to the
+super-diagonal block $A_k^{k+1}$. Summing over $\ell$ gives exactly
+\eqref{eq:lec14-carleman-block}--\eqref{eq:lec14-carleman-coeffs}. Because level $k$ couples only to
+$k$ (via $A_k^k$) and $k+1$ (via $A_k^{k+1}$)---never to $k-1$ or lower---the infinite generator is
+block upper-bidiagonal in the level index $k$. Truncating at $N$ by dropping the term
+$A_N^{N+1}y_{N+1}$ closes the system into a finite linear ODE $\dot{\hat y}=\mathcal A\hat y$ of
+dimension $\sum_{k\le N}d^k$, which is exactly the form solved in \cref{ch:lec13}. The truncation
+error is controlled by $R=\norm{z_0}\norm{F_2}/\abs{\mathrm{Re}\,\lambda_1}$
+(\cref{thm:lec14-carleman}): when $R<1$ the linear decay outpaces the nonlinear cascade and the
+error decays as $R^N$, so $N=\mathcal O(\log(1/\epsilon)/\log(1/R))$ levels suffice.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec14-7}]
+(a) Set $u=\psi_x$. Then Burgers reads $\psi_{xt}+\psi_x\psi_{xx}=\nu\psi_{xxx}$, i.e.\
+$\partial_x(\psi_t+\tfrac12\psi_x^2-\nu\psi_{xx})=0$, so up to an additive function of $t$ alone
+(absorbable into $\psi$) we have the Hamilton--Jacobi equation $\psi_t+\tfrac12\psi_x^2
+=\nu\psi_{xx}$. Substitute $\psi=-2\nu\ln\phi$, so $\psi_t=-2\nu\phi_t/\phi$,
+$\psi_x=-2\nu\phi_x/\phi$, and $\psi_{xx}=-2\nu(\phi_{xx}/\phi-\phi_x^2/\phi^2)$. Then
+\[
+  \psi_t+\tfrac12\psi_x^2-\nu\psi_{xx}
+  =-2\nu\frac{\phi_t}\phi+\tfrac12\cdot4\nu^2\frac{\phi_x^2}{\phi^2}
+   +2\nu^2\Bigl(\frac{\phi_{xx}}\phi-\frac{\phi_x^2}{\phi^2}\Bigr)
+  =-2\nu\frac{\phi_t}\phi+2\nu^2\frac{\phi_{xx}}\phi,
+\]
+where the two $\phi_x^2/\phi^2$ terms ($+2\nu^2$ and $-2\nu^2$) cancel exactly---this is why the
+exponential substitution linearizes the equation. Setting the result to zero and multiplying by
+$-\phi/(2\nu)$ gives $\phi_t=\nu\phi_{xx}$, the heat equation. Recovering
+$u=\psi_x=-2\nu\phi_x/\phi$ reproduces \eqref{eq:lec14-colehopf}, confirming
+\cref{thm:lec14-colehopf}.
+
+(b) At $t=0$, $-2\nu\partial_x\ln\phi(x,0)=-2\nu\cdot\bigl(-\tfrac1{2\nu}u_0(x)\bigr)=u_0(x)$ by
+the fundamental theorem of calculus applied to $\ln\phi(x,0)=-\tfrac1{2\nu}\int_0^x u_0$, so the
+transform inverts \eqref{eq:lec14-colehopf} and matches the given initial data. Positivity is
+preserved: $\phi(x,0)=\exp(\cdots)>0$, and the heat semigroup $\ee^{\nu t\partial_{xx}}$ has a
+strictly positive Gaussian kernel, so $\phi(x,t)=\int G_{\nu t}(x-x')\phi(x',0)\,\dd x'>0$ for all
+$t>0$ (maximum principle). Since $\phi$ never vanishes, the quotient $u=-2\nu\phi_x/\phi$ is a
+smooth, well-defined function for all $t\ge0$, so the recovery step is numerically stable.
+\end{solution}

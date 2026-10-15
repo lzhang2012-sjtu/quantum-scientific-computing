@@ -1,0 +1,178 @@
+\chapter{Hamiltonian Simulation I: Product Formulas}
+% Solutions to the exercises of \cref{ch:lec11}.
+
+\begin{solution}[Exercise~\ref{ex:lec11-1}]
+Expand each exponential. With $H=H_1+H_2$,
+\[
+  \ee^{-\ii\Delta t\,H}=\id-\ii\Delta t\,H-\tfrac12\Delta t^2 H^2+\bigo(\Delta t^3),
+\]
+while
+\begin{align*}
+  S_1(\Delta t)&=\bigl(\id-\ii\Delta t\,H_1-\tfrac12\Delta t^2H_1^2\bigr)
+    \bigl(\id-\ii\Delta t\,H_2-\tfrac12\Delta t^2H_2^2\bigr)+\bigo(\Delta t^3)\\
+  &=\id-\ii\Delta t(H_1+H_2)-\tfrac12\Delta t^2\bigl(H_1^2+2H_1H_2+H_2^2\bigr)
+    +\bigo(\Delta t^3).
+\end{align*}
+Subtracting, the $\bigo(1)$ and $\bigo(\Delta t)$ terms cancel and the difference of the
+quadratic terms is $-\tfrac12\Delta t^2(H^2-H_1^2-2H_1H_2-H_2^2)
+=-\tfrac12\Delta t^2(H_1H_2+H_2H_1-2H_1H_2)=\tfrac12\Delta t^2(H_1H_2-H_2H_1)$, i.e.
+\[
+  \ee^{-\ii\Delta t\,H}-S_1(\Delta t)=\tfrac12(\Delta t)^2[H_1,H_2]+\bigo(\Delta t^3),
+\]
+so $\norm{\ee^{-\ii\Delta t\,H}-S_1(\Delta t)}\le\tfrac12\Delta t^2\norm{[H_1,H_2]}
+=\bigo(\Delta t^2)$. Applying \cref{lem:lec11-telescope} with $U_j=\ee^{-\ii\Delta t\,H}$,
+$V_j=S_1(\Delta t)$ (both unitary) and $\delta_j=\bigo(\Delta t^2)$ for each of the $L$
+steps gives $\norm{\ee^{-\ii Ht}-S_1(\Delta t)^L}\le L\cdot\bigo(\Delta t^2)
+=\bigo(L\,\Delta t^2)=\bigo(t^2/L)$. Setting this $\le\epsilon$ yields
+$L=\bigo(t^2/\epsilon)$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec11-2}]
+\emph{Self-inverse.} Reading $S_2(\Delta t)=\ee^{-\ii\frac{\Delta t}{2}H_2}
+\ee^{-\ii\Delta t\,H_1}\ee^{-\ii\frac{\Delta t}{2}H_2}$ and replacing $\Delta t\to-\Delta
+t$,
+\[
+  S_2(-\Delta t)=\ee^{+\ii\frac{\Delta t}{2}H_2}\ee^{+\ii\Delta t\,H_1}
+     \ee^{+\ii\frac{\Delta t}{2}H_2},
+\]
+which is exactly the inverse of $S_2(\Delta t)$ (each factor is the inverse of the
+corresponding factor, in reversed order), so $S_2(\Delta t)S_2(-\Delta t)=\id$.
+\emph{Even orders vanish.} Write $S_2(\Delta t)=\exp\bigl(A(\Delta t)\bigr)$ with
+$A(\Delta t)=-\ii\Delta t\,H+\sum_{k\ge2}(\Delta t)^kE_k$. From $S_2(\Delta t)^{-1}
+=S_2(-\Delta t)$ we get $\ee^{-A(\Delta t)}=\ee^{A(-\Delta t)}$, hence
+$A(-\Delta t)=-A(\Delta t)$: the exponent is an \emph{odd} function of $\Delta t$.
+Expanding, $A(-\Delta t)=+\ii\Delta t\,H+\sum_k(-\Delta t)^kE_k$, and $-A(\Delta t)
+=+\ii\Delta t\,H-\sum_k(\Delta t)^kE_k$. Matching powers of $\Delta t$ forces
+$(-1)^kE_k=-E_k$ for $k\ge2$, i.e.\ $E_k=0$ whenever $k$ is even. The first surviving
+correction is $E_3(\Delta t)^3$, so
+$S_2(\Delta t)=\ee^{-\ii\Delta t\,H}\bigl(\id+\bigo(\Delta t^3)\bigr)$ and the local error
+is $\bigo(\Delta t^3)$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec11-3}]
+Concatenate two symmetric steps:
+\[
+  S_2(\Delta t)^2=\ee^{-\ii\frac{\Delta t}{2}H_2}\ee^{-\ii\Delta t H_1}
+    \underbrace{\ee^{-\ii\frac{\Delta t}{2}H_2}\ee^{-\ii\frac{\Delta t}{2}H_2}}
+    _{=\,\ee^{-\ii\Delta t H_2}}\ee^{-\ii\Delta t H_1}\ee^{-\ii\frac{\Delta t}{2}H_2}.
+\]
+The two interior half-steps of $H_2$ merge into one full step. Iterating over $L$ steps,
+\[
+  S_2(\Delta t)^L=\ee^{-\ii\frac{\Delta t}{2}H_2}
+    \Bigl(\ee^{-\ii\Delta t H_1}\ee^{-\ii\Delta t H_2}\Bigr)^{L-1}
+    \ee^{-\ii\Delta t H_1}\,\ee^{-\ii\frac{\Delta t}{2}H_2}.
+\]
+Counting elementary exponentials: the first-order run $S_1(\Delta t)^L$ uses $2L$
+exponentials ($L$ of each of $H_1,H_2$). The merged symmetric run uses $L$ full $H_1$
+exponentials, $L-1$ full interior $H_2$ exponentials, and $2$ boundary half-$H_2$
+exponentials---$2L+1$ in total, i.e.\ exactly one more than the first-order run. Thus the
+second-order accuracy of $S_2$ comes essentially for free in gate count.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec11-4}]
+\emph{Substep lengths.} By definition the five substeps of \eqref{eq:lec11-suzuki} have
+signed lengths $p_k,p_k,(1-4p_k),p_k,p_k$, which sum to
+$4p_k+(1-4p_k)=1$: the composite formula advances by exactly $\Delta t$.
+\emph{Sign of the middle substep.} Since $2k+1\ge3$, $4^{1/(2k+1)}\in(1,4)$, so
+$4-4^{1/(2k+1)}\in(0,3)$ and $p_k=1/(4-4^{1/(2k+1)})>1/3>1/4$; hence $1-4p_k<0$, so the
+central substep runs \emph{backward} in time. (This is the negative coefficient of
+\cref{rem:lec11-negative}.) \emph{Step count.} By \eqref{eq:lec11-suzuki-local} the local
+error is $\bigo(\Delta t^{2k+1})$, so the $L$-step global error is
+$\bigo(L\Delta t^{2k+1})=\bigo(t^{2k+1}/L^{2k})$. Setting this $\le\epsilon$ gives
+$L^{2k}\gtrsim t^{2k+1}/\epsilon$, i.e.\
+$L=\bigo\bigl(t^{(2k+1)/(2k)}\epsilon^{-1/(2k)}\bigr)
+=\bigo(t^{1+1/(2k)}\epsilon^{-1/(2k)})$. \emph{Per-step cost.} The recursion writes
+$S_{2k+2}$ as five copies of $S_{2k}$; since $S_2$ is one ``unit,'' unrolling gives
+$5^{k-1}$ copies of $S_2$ per half, and because $S_{2k}$ is applied as
+$S_{2k}(p)^2\,S_{2k}(1-4p)\,S_{2k}(p)^2$ the count is $2\cdot5^{k-1}$ elementary
+$S_2$-blocks per $S_{2k}$ step, matching the stated exponential-in-$k$ prefactor.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec11-5}]
+\emph{ODE for the split flow.} With $\tilde u(t)=\ee^{-\ii H_1 t}\ee^{-\ii H_2 t}$,
+\[
+  \ii\partial_t\tilde u
+  =H_1\ee^{-\ii H_1 t}\ee^{-\ii H_2 t}+\ee^{-\ii H_1 t}H_2\ee^{-\ii H_2 t}.
+\]
+Add and subtract $H_2\tilde u=H_2\ee^{-\ii H_1 t}\ee^{-\ii H_2 t}$ to write the second
+term as $H_2\tilde u+[\ee^{-\ii H_1 t},H_2]\ee^{-\ii H_2 t}$; combining with the first
+term $H_1\tilde u$ gives \eqref{eq:lec11-duhamel-ode}:
+$\ii\partial_t\tilde u=(H_1+H_2)\tilde u+[\ee^{-\ii H_1 t},H_2]\ee^{-\ii H_2 t}$,
+$\tilde u(0)=\id$. \emph{Duhamel.} The homogeneous solution is $u(t)=\ee^{-\ii Ht}$;
+variation of constants gives
+$\tilde u(t)=u(t)-\ii\int_0^t\ee^{-\ii H(t-s)}[\ee^{-\ii H_1 s},H_2]\ee^{-\ii H_2 s}\dd s$,
+which is \eqref{eq:lec11-duhamel}. Taking norms and using unitary invariance,
+$\norm{\tilde u(t)-u(t)}\le\int_0^t\norm{[\ee^{-\ii H_1 s},H_2]}\dd s$.
+\emph{Inner commutator.} Let $G(s)=\ee^{-\ii H_1 s}H_2\ee^{\ii H_1 s}-H_2
+=[\ee^{-\ii H_1 s},H_2]\ee^{\ii H_1 s}$, so $\norm{G(s)}=\norm{[\ee^{-\ii H_1 s},H_2]}$
+(right factor is unitary). Then $G(0)=0$ and
+$\ii\partial_s G=\ee^{-\ii H_1 s}[H_1,H_2]\ee^{\ii H_1 s}$, whence
+$\norm{\partial_s G}=\norm{[H_1,H_2]}$ and $\norm{G(s)}\le s\norm{[H_1,H_2]}$.
+\emph{Conclusion.} With $t=\Delta t$,
+\[
+  \norm{\ee^{-\ii\Delta t H_1}\ee^{-\ii\Delta t H_2}-\ee^{-\ii\Delta t H}}
+  \le\int_0^{\Delta t}s\norm{[H_1,H_2]}\dd s=\tfrac12(\Delta t)^2\norm{[H_1,H_2]}.
+\]
+Finally $\norm{[H_1,H_2]}\le\norm{H_1H_2}+\norm{H_2H_1}\le2\norm{H_1}\norm{H_2}\le2\nu^2$
+with $\nu=\max\{\norm{H_1},\norm{H_2}\}$, giving the operator-norm bound
+$\le\tfrac12\Delta t^2\cdot2\nu^2=\Delta t^2\nu^2$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec11-6}]
+\emph{Operator norms.} $H_1=-\sum_{i=1}^{n-1}Z_iZ_{i+1}$ is a sum of $n-1$ commuting Pauli
+strings each of norm $1$; on the simultaneous eigenbasis its extreme eigenvalue is
+$\pm(n-1)$, so $\norm{H_1}=n-1=\bigo(n)$, and likewise $\norm{H_2}=\norm{g\sum_iX_i}
+=g\,n=\bigo(n)$. Hence $\nu^2=\bigo(n^2)$ and the operator-norm first-order bound is
+$L=\bigo(\nu^2 t^2/\epsilon)=\bigo(n^2t^2/\epsilon)$. \emph{Commutator norm.}
+$[H_1,H_2]=g\sum_{i=1}^{n-1}\sum_{k=1}^{n}[Z_iZ_{i+1},X_k]$, and $[Z_iZ_{i+1},X_k]=0$
+unless $k\in\{i,i+1\}$. So only $\bigo(n)$ of the $\bigo(n^2)$ pairs contribute, each a
+sum of Pauli strings of norm $\bigo(1)$; since the surviving terms act on disjoint or
+overlapping but bounded supports, $\norm{[H_1,H_2]}=\bigo(n)$. The commutator bound
+\eqref{eq:lec11-commutator-bound} then gives $L=\bigo(\norm{[H_1,H_2]}t^2/\epsilon)
+=\bigo(nt^2/\epsilon)$, a factor $n$ smaller. \emph{Genericity.} For any geometrically
+local Hamiltonian each term overlaps only $\bigo(1)$ others, so of the $\bigo(\Gamma^2)$
+term-pairs only $\bigo(\Gamma)$ fail to commute; since $\Gamma=\bigo(n)$ for a local
+model, the commutator sum is extensive ($\bigo(n)$) rather than $\bigo(n^2)$, and Trotter
+cost scales linearly in system size.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec11-7}]
+In qDRIFT each elementary step draws a single term $H_\gamma$ with probability
+$h_\gamma/\lambda$ and evolves it for the fixed angle $\tau=\lambda t/N_{\mathrm q}$. The
+mixed channel $\E_\gamma\ee^{-\ii\tau H_\gamma}(\cdot)\ee^{\ii\tau H_\gamma}$ reproduces
+the exact one-step channel $\ee^{-\ii(t/N_{\mathrm q})H}(\cdot)\ee^{+\cdots}$ to first
+order because $\E_\gamma[h_\gamma H_\gamma\cdot\lambda/(\lambda h_\gamma)]=\sum_\gamma
+h_\gamma H_\gamma=H$; the per-step \emph{diamond}-norm error is $\bigo(\tau^2\lambda^2)$,
+so over $N_{\mathrm q}$ steps the total error is $\bigo(N_{\mathrm q}\tau^2\lambda^2)
+=\bigo(\lambda^2t^2/N_{\mathrm q})$, giving $N_{\mathrm q}=\bigo(\lambda^2t^2/\epsilon)$.
+This depends only on $\lambda=\sum_\gamma h_\gamma$ (the coefficient $1$-norm) and
+\emph{not} on the number of terms $\Gamma$ nor on any commutator, because the error is
+controlled by the second moment of the random single-term step, which involves only the
+weights. By contrast the deterministic first-order bound is
+$L=\bigo(\Gamma\alpha_{\mathrm{comm}}t^2/\epsilon)$ with $\alpha_{\mathrm{comm}}
+=\sum\norm{[H_\gamma,H_{\gamma'}]}$. \emph{Who wins:} for geometrically local models
+$\alpha_{\mathrm{comm}}=\bigo(\Gamma)=\bigo(n)$ is small and deterministic Trotter (with
+its commutator gain) wins; for dense, many-term Hamiltonians with $\Gamma=\bigo(n^4)$ but
+a $1$-norm $\lambda$ dominated by a few large weights (electronic structure), qDRIFT's
+$\Gamma$-independence wins; qDRIFT's weakness is its first-order $t^2/\epsilon$ scaling, so
+for large $t$ or tiny $\epsilon$ a high-order deterministic (or a block-encoding) method is
+preferable.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec11-8}]
+\emph{Second order} ($S_2$, $k=1$): $L_2=\bigo(t^{3/2}\epsilon^{-1/2})$. With $t=100$,
+$\epsilon=10^{-6}$: $t^{3/2}=10^3$ and $\epsilon^{-1/2}=10^3$, so $L_2\sim10^{6}$ steps.
+At $1$ block-of-$S_2$ per step this is $\sim10^{6}$ elementary $S_2$-units.
+\emph{Fourth order} ($S_4$, $k=2$): $L_4=\bigo(t^{5/4}\epsilon^{-1/4})$. Here
+$t^{5/4}=100^{1.25}=10^{2.5}\approx316$ and $\epsilon^{-1/4}=(10^6)^{1/4}=10^{1.5}\approx
+31.6$, so $L_4\sim316\times31.6\approx10^{4}$ steps. Each $S_4$ step costs
+$2\cdot5^{1}=10$ times an $S_2$ block, so the effective $S_2$-unit count is
+$\sim10\times10^{4}=10^{5}$. \emph{Comparison.} $S_4$ uses about $10^{5}$ units versus
+$S_2$'s $10^{6}$---roughly $10\times$ fewer, so fourth order wins at this
+$(t,\epsilon)$. \emph{Crossover.} The precision factors are $\epsilon^{-1/2}$ ($S_2$)
+versus $10\,\epsilon^{-1/4}$ ($S_4$); their ratio $\epsilon^{-1/4}/10$ exceeds $1$ once
+$\epsilon<10^{-4}$, and grows as $\epsilon\to0$, so higher order becomes increasingly
+favorable at small $\epsilon$ (and at large $t$, where the $t^{1+1/(2k)}$ exponent likewise
+favors larger $k$)---until the $5^{k}$ prefactor eventually dominates, which is why one
+tunes $k=\Theta(\sqrt{\log(1/\epsilon)})$ as in \eqref{eq:lec11-suzuki-opt}.
+\end{solution}

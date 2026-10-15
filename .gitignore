@@ -1,0 +1,63 @@
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.nav
+*.snm
+*.bbl
+*.blg
+*.idx
+*.ilg
+*.ind
+main.pdf
+solutions.pdf
+
+# SDD scratch workspace
+.superpowers/
+
+# OS
+.DS_Store
+**/.DS_Store
+
+# Large binary decks / handwritten sources (kept locally, not tracked)
+*.pptx
+
+# Third-party reference material — kept local only, NOT published (copyright)
+material/
+qasc_notes.pdf
+
+# Overleaf sync docs — contain an account-level git token; keep local only
+OVERLEAF.md
+README_OVERLEAF.md
+
+# Syllabus — kept local only, NOT published
+syllabus/
+
+# Python caches
+**/__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+.vscode/
+
+# UnitaryLab algorithm run artifacts (circuit SVGs, result txt)
+results/
+
+# Syllabus build PDF
+syllabus/syllabus.pdf
+
+# Teaching build PDFs
+teaching/*.pdf
+
+# Word lock/temp files
+~$*.docx
+
+# Allow generated course slides (the *.pptx rule above excludes bulky decks in material/)
+!slides/*.pptx

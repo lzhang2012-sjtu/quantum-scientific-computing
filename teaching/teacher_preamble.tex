@@ -1,0 +1,87 @@
+% teacher_preamble.tex — shared preamble for the chalk-teaching TEACHER'S NOTES.
+% These are standalone, instructor-facing lesson plans (article class), separate
+% from the student lecture notes.  Compile each teaching/lecNN_teacher_notes.tex
+% directly with pdfLaTeX.
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{braket}
+\usepackage{bm}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta}
+\usepackage{quantikz}
+\usepackage[most]{tcolorbox}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
+
+% ---- Notation macros (consistent with the course preamble.tex) ----
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\Hilb}{\mathcal{H}}
+\newcommand{\ii}{\mathrm{i}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\ee}{\mathrm{e}}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\Tr}{Tr}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\diag}{diag}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\abs}[1]{\left\lvert #1 \right\rvert}
+\newcommand{\bigo}{\mathcal{O}}
+\newcommand{\id}{\mathbb{I}}
+\newcommand{\dg}{^{\dagger}}
+% quantikz also defines \proj (a circuit element we do not use); override it with our projector.
+\let\proj\relax
+\newcommand{\proj}[1]{\ket{#1}\!\bra{#1}}
+\newcommand{\Xgate}{\mathsf{X}}
+\newcommand{\Ygate}{\mathsf{Y}}
+\newcommand{\Zgate}{\mathsf{Z}}
+\newcommand{\Hgate}{\mathsf{H}}
+\newcommand{\CNOT}{\mathrm{CNOT}}
+\newcommand{\Uf}{U_f}
+
+% ---- Theorem-like environments (numbered per section, article style) ----
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{example}[definition]{Example}
+\theoremstyle{plain}
+\newtheorem{theorem}[definition]{Theorem}
+\newtheorem{lemma}[definition]{Lemma}
+\newtheorem{proposition}[definition]{Proposition}
+\theoremstyle{remark}
+\newtheorem{remark}[definition]{Remark}
+
+% ---- Teaching-specific structure ----
+% Session block header with a time budget, e.g. \block{Qubits and the Bloch sphere}{45}
+\newcommand{\block}[2]{%
+  \bigskip\noindent
+  \begin{tcolorbox}[colback=blue!6,colframe=blue!55!black,boxrule=0.6pt,arc=2pt,
+    left=8pt,right=8pt,top=5pt,bottom=5pt]
+  \textbf{\large #1}\hfill\textbf{[\,#2\,min]}
+  \end{tcolorbox}}
+
+% Board-plan cue: what to write/draw on the board.
+\newtcolorbox{board}{colback=gray!8,colframe=gray!55!black,title={On the board},
+  fonttitle=\bfseries\small,boxrule=0.5pt,arc=2pt,left=6pt,right=6pt,top=3pt,bottom=3pt}
+
+% Graphic-demonstration cue (what to sketch).
+\newcommand{\sketch}[1]{\par\smallskip\noindent{\color{teal}\textbf{Sketch:}} #1\par\smallskip}
+
+% Optional / advanced material that may be skipped (but indicated).
+\newtcolorbox{advanced}{colback=orange!7,colframe=orange!65!black,
+  title={Advanced --- may be skipped (mention only)},
+  fonttitle=\bfseries\small,boxrule=0.5pt,arc=2pt,left=6pt,right=6pt,top=3pt,bottom=3pt}
+
+% Timing hint inline, e.g. \tmark{10} for a ~10-minute chunk.
+\newcommand{\tmark}[1]{{\small\color{blue!55!black}(\,$\approx$#1\,min)}}
+
+% In-class problem (numbered per section) and a teacher-facing answer.
+\newtheorem{inclass}[definition]{In-class problem}
+\newenvironment{answer}{\par\smallskip\noindent\textit{Answer.}\ }{\par\smallskip}

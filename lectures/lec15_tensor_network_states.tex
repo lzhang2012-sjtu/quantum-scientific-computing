@@ -1,0 +1,756 @@
+\chapter{Tensor-Network States}
+\label{ch:lec15}
+
+\begin{objectives}
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item Read and manipulate tensor-network diagrams.
+  \item Derive matrix product states (MPS) from sequential Schmidt decompositions.
+  \item Put an MPS into canonical form and bound its contraction cost.
+  \item Relate bond dimension to entanglement and the area law.
+\end{itemize}
+\end{objectives}
+
+The state of $n$ qubits lives in a space of dimension $2^{n}$, so a generic state
+needs exponentially many amplitudes to write down---a wall that blocks any naive
+classical simulation past a few dozen qubits. Yet the states that occur in
+physics are far from generic: the ground states of local Hamiltonians, and the
+states reached by shallow circuits, are only \emph{lightly entangled}, and a
+lightly entangled state can be compressed. \emph{Tensor networks} are the data
+structure that performs this compression. This lecture develops the most
+important one-dimensional example, the \emph{matrix product state} (MPS). We
+start with a graphical calculus that turns index bookkeeping into pictures, use
+the singular value decomposition (SVD) to read off the entanglement across any
+cut of a bipartite state (the Schmidt decomposition first met in
+\cref{ch:lec01}), and then chain $n-1$ such decompositions together to factor an
+arbitrary state into a line of small tensors. The single number controlling the
+whole construction is the \emph{bond dimension} $\chi$: it measures entanglement,
+it sets the storage cost $n\,d\,\chi^{2}$ and the contraction cost, and---through
+the \emph{area law} for gapped one-dimensional systems---it stays bounded exactly
+when the state is physically relevant. The MPS machinery here is the foundation
+for the DMRG ground-state algorithm of \cref{ch:lec16} and the time-evolution
+methods of \cref{ch:lec17}.
+
+\section{Tensors and diagrammatic notation}
+\label{sec:lec15-1}
+
+\begin{definition}[Tensor]\label{def:lec15-tensor}
+A \emph{tensor} of \emph{rank} (or \emph{order}) $r$ is a multi-index array of
+complex numbers
+\[
+  T_{i_1 i_2\cdots i_r}\in\C,\qquad i_k\in\{1,\dots,d_k\},
+\]
+with one index per \emph{leg}. A rank-$0$ tensor is a scalar, a rank-$1$ tensor is
+a vector, and a rank-$2$ tensor is a matrix. The number of independent entries is
+$\prod_{k=1}^{r}d_k$, which grows exponentially in the rank when the leg
+dimensions are comparable.
+\end{definition}
+
+An $n$-qubit state $\ket{\psi}=\sum_{s_1\cdots s_n}\psi_{s_1\cdots s_n}\ket{s_1\cdots s_n}$
+is exactly a rank-$n$ tensor $\psi_{s_1\cdots s_n}$ with each $s_k\in\{0,1\}$ (leg
+dimension $d=2$). The exponential cost of \cref{def:lec15-tensor} is the cost of
+storing a generic state; the rest of the lecture is about avoiding it.
+
+\subsection{Diagrammatic (Penrose) notation}
+
+Tensor-network diagrams replace indices by pictures. The rule is simple:
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item a tensor is a \emph{box} (or node);
+  \item each \emph{leg} (line) sticking out of the box is one index;
+  \item a leg joining two boxes is a \emph{contracted} (summed) index, shared by
+        the two tensors.
+\end{itemize}
+Thus a vector $v_i$ has one leg, a matrix $M_{ij}$ has two, and a rank-$3$ tensor
+$A_{ijk}$ has three. Contraction---summation over a shared index---is drawn by
+connecting the corresponding legs.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[>=stealth,baseline]
+  % vector
+  \node[draw,minimum size=15pt] (v) at (0,0) {$v$};
+  \draw (v.east) -- +(0.7,0);
+  \node at (0,-1) {\small rank $1$};
+  % matrix
+  \node[draw,minimum size=15pt] (M) at (3,0) {$M$};
+  \draw (M.west) -- +(-0.7,0);
+  \draw (M.east) -- +(0.7,0);
+  \node at (3,-1) {\small rank $2$};
+  % rank-3 tensor
+  \node[draw,minimum size=15pt] (A) at (6,0) {$A$};
+  \draw (A.west) -- +(-0.7,0);
+  \draw (A.east) -- +(0.7,0);
+  \draw (A.south) -- +(0,-0.7);
+  \node at (6,-1.1) {\small rank $3$};
+  % matrix-vector product = contraction
+  \node[draw,minimum size=15pt] (M2) at (9.6,0) {$M$};
+  \node[draw,minimum size=15pt] (v2) at (10.8,0) {$v$};
+  \draw (M2.west) -- +(-0.7,0);
+  \draw (M2.east) -- (v2.west);
+  \node at (10.2,-1) {\small $\sum_j M_{ij}v_j$};
+\end{tikzpicture}
+\caption{Penrose notation. Boxes are tensors, legs are indices, and a leg joining
+two boxes is a summed (contracted) index. The rightmost picture is the
+matrix--vector product $(Mv)_i=\sum_j M_{ij}v_j$.}
+\label{fig:lec15-penrose}
+\end{figure}
+
+For example, matrix multiplication $C_{ik}=\sum_j A_{ij}B_{jk}$ is two boxes
+$A,B$ joined by the leg $j$, leaving external legs $i$ and $k$; the trace
+$\Tr[A]=\sum_i A_{ii}$ is a single box with its two legs joined into a loop, and
+the inner product $\braket{u|v}=\sum_i \overline{u_i}\,v_i$ is two vectors joined
+along their only leg. A \emph{tensor network} is a collection of tensors with
+some legs contracted (internal) and some free (external); contracting all
+internal legs produces one tensor whose legs are the external ones.
+
+\subsection{The cost of contracting a network}
+
+The order in which we contract legs does not change the answer, but it changes
+the cost dramatically. The cost of a single pairwise contraction is easy to
+count.
+
+\begin{proposition}[Cost of a pairwise contraction]\label{prop:lec15-cost}
+Let $A$ and $B$ share a set of legs whose dimensions multiply to $D_{\mathrm c}$
+(the contracted dimension), and let their free legs have dimensions multiplying
+to $D_A$ and $D_B$ respectively. Forming
+\[
+  C_{\alpha\beta}=\sum_{\gamma} A_{\alpha\gamma}B_{\gamma\beta}
+\]
+costs $\bigo(D_A D_B D_{\mathrm c})$ scalar multiply--adds, since each of the
+$D_A D_B$ entries of $C$ is a sum over $D_{\mathrm c}$ products.
+\end{proposition}
+
+\begin{proof}
+Group the free legs of $A$ into a single index $\alpha$ of size $D_A$, those of
+$B$ into $\beta$ of size $D_B$, and the shared legs into $\gamma$ of size
+$D_{\mathrm c}$. Then $A$ is a $D_A\times D_{\mathrm c}$ matrix, $B$ is
+$D_{\mathrm c}\times D_B$, and $C=AB$ is an ordinary matrix product, which costs
+$D_A D_{\mathrm c}D_B$ multiply--adds.
+\end{proof}
+
+\begin{example}[Contraction order matters]\label{exa:lec15-order}
+Consider three matrices of size $d\times d$ contracted along a chain,
+$T_{il}=\sum_{j,k}A_{ij}B_{jk}C_{kl}$. Contracting $(AB)$ first, then $\cdot\,C$,
+costs $d^{3}+d^{3}=2d^{3}$; the same holds for $A\,(BC)$. But for the network
+$\sum_{jk}A_{ij}B_{jk}C_{ik}$ (a triangle with external legs on each node) the
+contraction cost depends on which pair is contracted first, and choosing the pair
+that leaves the smallest intermediate tensor is essential. Finding the optimal
+contraction order of a general network is NP-hard, but for the chain-like
+networks of an MPS the left-to-right order is optimal and gives the linear
+scaling we derive in \cref{sec:lec15-5}.
+\end{example}
+
+The moral of \cref{exa:lec15-order}: a tensor network is efficient to contract
+only when it has favorable structure. Matrix product states are the structure
+that makes one-dimensional quantum states tractable.
+
+\section{Schmidt decomposition and the SVD}
+\label{sec:lec15-2}
+
+The engine behind every MPS is the singular value decomposition applied to a
+bipartition of the state. We first recall the SVD, then translate it into the
+language of quantum states.
+
+\begin{theorem}[Singular value decomposition]\label{thm:lec15-svd}
+Every matrix $M\in\C^{m\times n}$ factors as
+\[
+  M=U\Sigma V\dg,
+\]
+where $U\in\C^{m\times m}$ and $V\in\C^{n\times n}$ are unitary and
+$\Sigma\in\R^{m\times n}$ is diagonal with nonnegative entries
+$\sigma_1\ge\sigma_2\ge\cdots\ge0$ (the \emph{singular values}). The number of
+nonzero singular values equals $\rank M$.
+\end{theorem}
+
+We take the SVD as known from numerical linear algebra. Its use here is the
+following restatement of the decomposition of a bipartite pure state, already
+previewed for the Bell pair in \cref{ch:lec01}.
+
+\begin{theorem}[Schmidt decomposition]\label{thm:lec15-schmidt}
+Let $\ket{\psi}\in\Hilb_A\otimes\Hilb_B$ be a pure state, with
+$\dim\Hilb_A=d_A$, $\dim\Hilb_B=d_B$. There exist orthonormal sets
+$\{\ket{a_k}\}\subset\Hilb_A$ and $\{\ket{b_k}\}\subset\Hilb_B$ and real numbers
+$\lambda_k>0$ such that
+\begin{equation}\label{eq:lec15-schmidt}
+  \ket{\psi}=\sum_{k=1}^{\chi}\lambda_k\,\ket{a_k}\otimes\ket{b_k},
+  \qquad \sum_{k=1}^{\chi}\lambda_k^{2}=1 .
+\end{equation}
+The number $\chi\le\min(d_A,d_B)$ of terms is the \emph{Schmidt rank}, and the
+$\lambda_k$ are the \emph{Schmidt coefficients}. The decomposition is unique up
+to the ordering of terms and phases within any degenerate block.
+\end{theorem}
+
+\begin{proof}
+Expand $\ket{\psi}=\sum_{i,j}\psi_{ij}\ket{i}_A\ket{j}_B$ in product bases and
+read the coefficients as a $d_A\times d_B$ matrix $\psi=(\psi_{ij})$. By
+\cref{thm:lec15-svd} write $\psi=U\Sigma V\dg$, i.e.
+$\psi_{ij}=\sum_k U_{ik}\sigma_k \overline{V_{jk}}$. Define
+$\ket{a_k}=\sum_i U_{ik}\ket{i}_A$ and $\ket{b_k}=\sum_j \overline{V_{jk}}\ket{j}_B$.
+Because $U$ and $V$ are unitary, $\{\ket{a_k}\}$ and $\{\ket{b_k}\}$ are
+orthonormal:
+$\braket{a_k|a_{k'}}=\sum_i\overline{U_{ik}}U_{ik'}=(U\dg U)_{kk'}=\delta_{kk'}$,
+and likewise for the $\ket{b_k}$. Substituting,
+\[
+  \ket{\psi}=\sum_{i,j}\Bigl(\sum_k U_{ik}\sigma_k\overline{V_{jk}}\Bigr)\ket{i}_A\ket{j}_B
+    =\sum_k\sigma_k\ket{a_k}\otimes\ket{b_k}.
+\]
+Keep only the $\chi=\rank\psi$ terms with $\sigma_k>0$ and set $\lambda_k=\sigma_k$.
+Normalization of $\ket{\psi}$ gives $1=\braket{\psi|\psi}=\sum_k\lambda_k^{2}$ by
+orthonormality. Since $\rank\psi\le\min(d_A,d_B)$ we have $\chi\le\min(d_A,d_B)$.
+\end{proof}
+
+The Schmidt decomposition is a bipartition diagonalization: it simultaneously
+diagonalizes \emph{both} reduced density operators.
+
+\begin{corollary}[Reduced states and entanglement entropy]\label{cor:lec15-reduced}
+With the notation of \cref{thm:lec15-schmidt}, the reduced density operators are
+\[
+  \rho_A=\Tr_B\proj{\psi}=\sum_{k}\lambda_k^{2}\,\proj{a_k},
+  \qquad
+  \rho_B=\Tr_A\proj{\psi}=\sum_{k}\lambda_k^{2}\,\proj{b_k}.
+\]
+They share the spectrum $\{\lambda_k^{2}\}$, so the \emph{entanglement entropy}
+of the cut,
+\begin{equation}\label{eq:lec15-entropy}
+  S(\rho_A)=-\Tr[\rho_A\log_2\rho_A]=-\sum_{k=1}^{\chi}\lambda_k^{2}\log_2\lambda_k^{2},
+\end{equation}
+equals $S(\rho_B)$ and satisfies $0\le S\le\log_2\chi$. In particular $S=0$ iff
+$\chi=1$ (a product state), and $S=\log_2\chi$ iff all $\lambda_k^{2}=1/\chi$
+(a maximally entangled cut).
+\end{corollary}
+
+\begin{proof}
+Compute $\Tr_B\proj{\psi}$ using \eqref{eq:lec15-schmidt} and
+$\Tr_B[\ket{b_k}\!\bra{b_{k'}}]=\braket{b_{k'}|b_k}=\delta_{kk'}$:
+\[
+  \rho_A=\sum_{k,k'}\lambda_k\lambda_{k'}\ket{a_k}\!\bra{a_{k'}}\,\braket{b_{k'}|b_k}
+        =\sum_k\lambda_k^{2}\proj{a_k},
+\]
+and symmetrically for $\rho_B$; the two operators have the same nonzero
+eigenvalues $\lambda_k^{2}$. Formula \eqref{eq:lec15-entropy} is the von Neumann
+entropy evaluated on this spectrum. The probability vector $p_k=\lambda_k^{2}$ has
+Shannon entropy in $[0,\log_2\chi]$ by concavity, with the stated equality cases.
+\end{proof}
+
+\begin{remark}[Schmidt rank certifies entanglement]
+\Cref{cor:lec15-reduced} recovers the criterion of \cref{ch:lec01}: a pure state
+is a product state across a cut iff its Schmidt rank there is $\chi=1$, and it is
+entangled iff $\chi\ge2$. The entanglement entropy \eqref{eq:lec15-entropy}
+quantifies \emph{how} entangled the cut is. Because $\rho_A$ and $\rho_B$ share a
+spectrum, the entanglement of a pure state is a property of the \emph{cut}, not
+of either side; this symmetry is why a single number $\chi$ will suffice to label
+each bond of an MPS.
+\end{remark}
+
+\subsection{Truncation error}
+
+The point of the SVD for compression is that discarding the smallest singular
+values is the \emph{optimal} low-rank approximation, and the error it incurs is
+exactly the tail of the squared Schmidt coefficients.
+
+\begin{theorem}[Optimal truncation]\label{thm:lec15-trunc}
+Let $\ket{\psi}$ have Schmidt decomposition \eqref{eq:lec15-schmidt} with
+$\lambda_1\ge\lambda_2\ge\cdots\ge\lambda_\chi>0$. For a target rank
+$\chi'<\chi$, the truncated (unnormalized) state
+$\ket{\tilde\psi}=\sum_{k=1}^{\chi'}\lambda_k\ket{a_k}\otimes\ket{b_k}$ minimizes
+$\norm{\ket{\psi}-\ket{\phi}}$ over all states $\ket{\phi}$ of Schmidt rank
+$\le\chi'$, and the minimal error is
+\begin{equation}\label{eq:lec15-truncerr}
+  \norm{\ket{\psi}-\ket{\tilde\psi}}^{2}
+    =\sum_{k=\chi'+1}^{\chi}\lambda_k^{2}
+    \;=\;\varepsilon_{\chi'}
+    \qquad(\text{the discarded weight}).
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+By orthonormality of the Schmidt vectors,
+$\norm{\ket{\psi}-\ket{\tilde\psi}}^{2}=\sum_{k>\chi'}\lambda_k^{2}$, giving the
+right-hand side. Optimality is the Eckart--Young theorem: for the coefficient
+matrix $\psi$ the best rank-$\chi'$ approximation in Frobenius norm is obtained by
+keeping the $\chi'$ largest singular values, and the Frobenius norm of the
+coefficient matrix equals the vector norm $\norm{\cdot}$ of the state. Any Schmidt
+rank-$\le\chi'$ state $\ket{\phi}$ corresponds to a rank-$\le\chi'$ coefficient
+matrix, so no such $\ket{\phi}$ beats the truncated SVD.
+\end{proof}
+
+Equation \eqref{eq:lec15-truncerr} is the workhorse of the whole subject: to
+compress a state we throw away the smallest Schmidt coefficients, and the squared
+error is simply their summed squares. If the coefficients decay quickly---as they
+do for lightly entangled states---then a modest $\chi'$ already captures the state
+to high fidelity.
+
+\section{Matrix product states}
+\label{sec:lec15-3}
+
+We now factor an arbitrary $n$-body state into a chain of small tensors by
+applying the Schmidt decomposition, equivalently the SVD, across each of the
+$n-1$ bonds in turn.
+
+\begin{theorem}[Existence of the MPS form]\label{thm:lec15-mps}
+Every state $\ket{\psi}=\sum_{s_1\cdots s_n}\psi_{s_1\cdots s_n}\ket{s_1\cdots s_n}$
+of $n$ subsystems of local dimension $d$ can be written as a \emph{matrix product
+state}
+\begin{equation}\label{eq:lec15-mps}
+  \psi_{s_1 s_2\cdots s_n}
+   =\sum_{\alpha_1,\dots,\alpha_{n-1}}
+     A^{[1]s_1}_{\;\alpha_1}\,A^{[2]s_2}_{\alpha_1\alpha_2}\cdots
+     A^{[n]s_n}_{\alpha_{n-1}},
+\end{equation}
+i.e. each amplitude is a product of matrices $A^{[k]s_k}$ (one $\chi_{k-1}\times\chi_k$
+matrix for each value of the physical index $s_k$), with $\chi_0=\chi_n=1$. The
+\emph{bond dimension} $\chi_k$ across the cut between sites $k$ and $k+1$ can be
+taken equal to the Schmidt rank there, and $\chi=\max_k\chi_k$.
+\end{theorem}
+
+\begin{proof}
+Reshape $\psi$ into a matrix $\Psi^{(1)}$ with row index $s_1$ (size $d$) and
+column index $(s_2\cdots s_n)$ (size $d^{n-1}$). Its SVD gives
+$\Psi^{(1)}=U^{(1)}\Sigma^{(1)}(V^{(1)})\dg$ with inner dimension $\chi_1=\rank\Psi^{(1)}$.
+Absorb $U^{(1)}$ into the first tensor, $A^{[1]s_1}_{\alpha_1}=U^{(1)}_{s_1\alpha_1}$,
+and carry the rest forward as $M^{(1)}_{\alpha_1,(s_2\cdots s_n)}
+=\sum(\Sigma^{(1)}(V^{(1)})\dg)_{\alpha_1,(s_2\cdots s_n)}$, so that
+\[
+  \psi_{s_1\cdots s_n}=\sum_{\alpha_1}A^{[1]s_1}_{\alpha_1}\,M^{(1)}_{\alpha_1,(s_2\cdots s_n)} .
+\]
+Now regroup $M^{(1)}$ into a matrix with rows $(\alpha_1 s_2)$ (size $\chi_1 d$)
+and columns $(s_3\cdots s_n)$, take its SVD with inner dimension $\chi_2$, set
+$A^{[2]s_2}_{\alpha_1\alpha_2}=U^{(2)}_{(\alpha_1 s_2),\alpha_2}$, and carry the
+remainder $M^{(2)}$ forward. Iterating this SVD ``sweep'' across all $n-1$ bonds
+peels off one tensor $A^{[k]s_k}$ at a time and terminates with a final vector
+$A^{[n]s_n}_{\alpha_{n-1}}$. Multiplying the pieces back together reproduces
+\eqref{eq:lec15-mps}. Because the $k$-th SVD is exactly the Schmidt decomposition
+across the cut between the first $k$ and last $n-k$ sites, its inner dimension is
+the Schmidt rank $\chi_k$ there.
+\end{proof}
+
+Diagrammatically an MPS is a line of rank-$3$ tensors (rank-$2$ at the ends), one
+per site: each has a physical leg $s_k$ pointing out and \emph{virtual} (bond)
+legs $\alpha_{k-1},\alpha_k$ joining it to its neighbors.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[>=stealth,baseline]
+  \foreach \x/\lab in {0/1,2/2,4/3,6/4} {
+    \node[draw,minimum size=16pt] (A\x) at (\x,0) {$A^{[\lab]}$};
+    \draw (A\x.south) -- +(0,-0.7);   % physical leg
+  }
+  \draw (A0.east) -- (A2.west);
+  \draw (A2.east) -- (A4.west);
+  \draw (A4.east) -- (A6.west);
+  \node at (0,-1.0) {\small $s_1$};
+  \node at (2,-1.0) {\small $s_2$};
+  \node at (4,-1.0) {\small $s_3$};
+  \node at (6,-1.0) {\small $s_4$};
+  \node at (1,0.32) {\small $\alpha_1$};
+  \node at (3,0.32) {\small $\alpha_2$};
+  \node at (5,0.32) {\small $\alpha_3$};
+\end{tikzpicture}
+\caption{A matrix product state on $n=4$ sites. Downward legs $s_k$ are physical
+indices; horizontal legs $\alpha_k$ are virtual bonds of dimension $\chi_k$.
+Contracting the network yields the amplitude $\psi_{s_1 s_2 s_3 s_4}$.}
+\label{fig:lec15-mps}
+\end{figure}
+
+\subsection{Exponential-to-linear compression}
+
+\begin{proposition}[Storage cost]\label{prop:lec15-storage}
+An MPS on $n$ sites of local dimension $d$ and bond dimension bounded by $\chi$
+stores at most $n\,d\,\chi^{2}$ complex numbers.
+\end{proposition}
+
+\begin{proof}
+Each site tensor $A^{[k]}$ holds $d$ matrices of size at most $\chi\times\chi$,
+hence at most $d\chi^{2}$ entries; the two boundary tensors hold only $d\chi$
+each. Summing over $n$ sites gives the bound $n\,d\,\chi^{2}$.
+\end{proof}
+
+This is the central win: the $d^{n}$ amplitudes of a generic state are replaced
+by $\bigo(n\,d\,\chi^{2})$ parameters---linear in $n$ whenever $\chi$ is bounded.
+The representation is \emph{exact} when every Schmidt rank $\chi_k$ is at most
+$\chi$; it is a faithful \emph{approximation}, with error controlled by
+\eqref{eq:lec15-truncerr} summed over the truncated bonds, when the discarded
+Schmidt weight is small. As we make precise in \cref{sec:lec15-5}, this is
+exactly the regime of low (area-law) entanglement.
+
+\begin{example}[MPS of a product state has $\chi=1$]\label{exa:lec15-product}
+A product state $\ket{\psi}=\bigotimes_{k=1}^{n}\ket{\phi_k}$ with
+$\ket{\phi_k}=\sum_{s}c^{[k]}_{s}\ket{s}$ has amplitude
+$\psi_{s_1\cdots s_n}=\prod_k c^{[k]}_{s_k}$, which is already an MPS
+\eqref{eq:lec15-mps} with all bond dimensions $\chi_k=1$: each tensor
+$A^{[k]s_k}=c^{[k]}_{s_k}$ is a $1\times1$ ``matrix.'' Every Schmidt rank is $1$,
+consistent with the state having no entanglement across any cut, and the storage
+is $nd$ numbers.
+\end{example}
+
+\begin{example}[A three-qubit MPS by explicit SVD]\label{exa:lec15-threequbit}
+Consider the (unnormalized before we fix it) three-qubit state
+\[
+  \ket{\psi}=\tfrac12\bigl(\ket{000}+\ket{011}+\ket{100}+\ket{111}\bigr),
+\]
+which is normalized ($4\cdot\tfrac14=1$). \emph{First bond.} Reshape the
+amplitudes into the $2\times4$ matrix $\Psi^{(1)}$ with row $s_1$ and columns
+$(s_2 s_3)$ ordered $00,01,10,11$:
+\[
+  \Psi^{(1)}=\tfrac12\begin{pmatrix}1&0&0&1\\ 1&0&0&1\end{pmatrix}.
+\]
+Both rows are equal, so $\rank\Psi^{(1)}=1$ and $\chi_1=1$. Its SVD has one
+singular value $\sigma_1=\norm{\Psi^{(1)}}_F=\tfrac12\sqrt{1+1+1+1}=1$, with
+$U^{(1)}=\tfrac1{\sqrt2}\binom{1}{1}$ and row vector
+$(V^{(1)})\dg=\tfrac1{\sqrt2}(1,0,0,1)$. Thus $A^{[1]s_1}=\tfrac1{\sqrt2}$ for
+$s_1\in\{0,1\}$ (a $1\times1$ block), i.e. $\ket{a_1}=\tfrac1{\sqrt2}(\ket0+\ket1)=\ket{+}$,
+and the state factors as $\ket{\psi}=\ket{+}_1\otimes\ket{\phi}_{23}$ with
+$\ket{\phi}=\tfrac1{\sqrt2}(\ket{00}+\ket{11})$. So qubit $1$ is unentangled from
+$\{2,3\}$: $S=0$, $\chi_1=1$.
+
+\emph{Second bond.} The carried remainder is the Bell state
+$\ket{\phi}=\tfrac1{\sqrt2}(\ket{00}+\ket{11})_{23}$ (see
+\cref{exa:lec15-bell}), whose coefficient matrix across $2\mid3$ is
+$\tfrac1{\sqrt2}\bigl(\begin{smallmatrix}1&0\\0&1\end{smallmatrix}\bigr)$ with two
+equal singular values $\tfrac1{\sqrt2}$; hence $\chi_2=2$ and $S=1$. Reading off
+the site tensors, $A^{[1]0}=A^{[1]1}=\tfrac1{\sqrt2}$ (scalars),
+\[
+  A^{[2]0}=\begin{pmatrix}\tfrac1{\sqrt2}&0\end{pmatrix},\quad
+  A^{[2]1}=\begin{pmatrix}0&\tfrac1{\sqrt2}\end{pmatrix},\qquad
+  A^{[3]0}=\begin{pmatrix}1\\0\end{pmatrix},\quad
+  A^{[3]1}=\begin{pmatrix}0\\1\end{pmatrix}.
+\]
+One checks the product reproduces the amplitudes: e.g. for $000$,
+$A^{[1]0}A^{[2]0}A^{[3]0}=\tfrac1{\sqrt2}\cdot\tfrac1{\sqrt2}\cdot1=\tfrac12$, and
+for $011$, $\tfrac1{\sqrt2}\cdot\tfrac1{\sqrt2}\cdot1=\tfrac12$, while forbidden
+strings such as $001$ give $\tfrac1{\sqrt2}\cdot\tfrac1{\sqrt2}\cdot0=0$. The
+maximum bond dimension is $\chi=2$.
+\end{example}
+
+\section{Canonical forms and gauge freedom}
+\label{sec:lec15-4}
+
+The MPS representation \eqref{eq:lec15-mps} is not unique: the bond indices carry
+a \emph{gauge freedom} that we now describe and then fix by choosing a canonical
+form.
+
+\begin{proposition}[Bond gauge freedom]\label{prop:lec15-gauge}
+Let $G$ be any invertible $\chi_k\times\chi_k$ matrix acting on bond $k$. The
+replacement
+\begin{equation}\label{eq:lec15-gauge}
+  A^{[k]s_k}\longmapsto A^{[k]s_k}G,\qquad
+  A^{[k+1]s_{k+1}}\longmapsto G^{-1}A^{[k+1]s_{k+1}}
+\end{equation}
+leaves the physical state \eqref{eq:lec15-mps} unchanged.
+\end{proposition}
+
+\begin{proof}
+In the matrix product \eqref{eq:lec15-mps} the two altered factors appear
+adjacently as $\cdots A^{[k]s_k}A^{[k+1]s_{k+1}}\cdots$. After the substitution
+this becomes $\cdots (A^{[k]s_k}G)(G^{-1}A^{[k+1]s_{k+1}})\cdots
+=\cdots A^{[k]s_k}(GG^{-1})A^{[k+1]s_{k+1}}\cdots$, and $GG^{-1}=\id$ restores the
+original product. All other amplitudes are untouched.
+\end{proof}
+
+This freedom---one invertible matrix per bond---is exactly enough to impose
+orthonormality conditions on the tensors.
+
+\begin{definition}[Left- and right-canonical tensors]\label{def:lec15-canonical}
+A site tensor is \emph{left-canonical} if, viewing $A^{[k]s_k}_{\alpha\beta}$ as a
+matrix $A$ with combined row index $(\alpha,s_k)$ and column index $\beta$, it is
+left-isometric:
+\begin{equation}\label{eq:lec15-left}
+  \sum_{s_k}\bigl(A^{[k]s_k}\bigr)\dg A^{[k]s_k}=\id_{\chi_k}.
+\end{equation}
+It is \emph{right-canonical} if, with row index $\alpha$ and column index
+$(s_k,\beta)$, it is right-isometric:
+\begin{equation}\label{eq:lec15-right}
+  \sum_{s_k}A^{[k]s_k}\bigl(A^{[k]s_k}\bigr)\dg=\id_{\chi_{k-1}}.
+\end{equation}
+An MPS is in \emph{left- (right-) canonical form} if every tensor is left-
+(right-) canonical.
+\end{definition}
+
+The left-canonical tensors are precisely the $U$ factors produced by the
+left-to-right SVD sweep in the proof of \cref{thm:lec15-mps}: an SVD factor $U$
+is an isometry, $U\dg U=\id$, which is exactly \eqref{eq:lec15-left}. Sweeping
+from the right with the $V\dg$ factors gives the right-canonical form.
+
+\begin{proposition}[Diagrammatic meaning of canonical form]\label{prop:lec15-triangle}
+If sites $1,\dots,k$ are left-canonical, then contracting the tensor network of
+$\braket{\psi|\psi}$ from the left collapses those sites to the identity on bond
+$k$: the left environment is $\id_{\chi_k}$. Symmetrically, right-canonical sites
+$k+1,\dots,n$ collapse from the right.
+\end{proposition}
+
+\begin{proof}
+Contract site $1$: $\sum_{s_1}(A^{[1]s_1})\dg A^{[1]s_1}=\id_{\chi_1}$ by
+\eqref{eq:lec15-left}. Feed this identity into site $2$:
+$\sum_{s_2}(A^{[2]s_2})\dg\id\,A^{[2]s_2}=\id_{\chi_2}$, again by
+\eqref{eq:lec15-left}. Induction on $k$ propagates the identity rightward to bond
+$k$; the right-canonical case is the mirror image.
+\end{proof}
+
+\subsection{Mixed-canonical form and the orthogonality center}
+
+Combining the two one-sided forms gives the representation used by essentially
+every MPS algorithm.
+
+\begin{definition}[Mixed-canonical form]\label{def:lec15-mixed}
+An MPS is in \emph{mixed-canonical form with orthogonality center at site $c$} if
+sites $1,\dots,c-1$ are left-canonical, sites $c+1,\dots,n$ are right-canonical,
+and the center tensor at site $c$ carries the state's norm. Equivalently one
+writes
+\begin{equation}\label{eq:lec15-mixed}
+  \psi_{s_1\cdots s_n}=A^{[1]s_1}\cdots A^{[c-1]s_{c-1}}\,
+    M^{[c]s_c}\,B^{[c+1]s_{c+1}}\cdots B^{[n]s_n},
+\end{equation}
+with $A$-tensors left-canonical and $B$-tensors right-canonical.
+\end{definition}
+
+\begin{theorem}[Reduced state from the center]\label{thm:lec15-center}
+For a normalized MPS in mixed-canonical form \eqref{eq:lec15-mixed} with center
+at site $c$, the Schmidt coefficients across the bond $(c\mid c+1)$ are the
+singular values of the center tensor reshaped across that bond, and
+\[
+  \braket{\psi|\psi}=\sum_{s_c}\Tr\!\bigl[(M^{[c]s_c})\dg M^{[c]s_c}\bigr]=1 .
+\]
+Consequently expectation values of an operator supported near site $c$ are
+computed by contracting only the center tensor against $\id$ environments on both
+sides.
+\end{theorem}
+
+\begin{proof}
+By \cref{prop:lec15-triangle} the left ($1,\dots,c-1$) and right
+($c+1,\dots,n$) blocks each contract to the identity in $\braket{\psi|\psi}$,
+leaving only $\sum_{s_c}\Tr[(M^{[c]s_c})\dg M^{[c]s_c}]$, which normalization sets
+to $1$. Grouping the center as a matrix across the bond and taking its SVD
+exhibits the Schmidt decomposition of the cut $(c\mid c+1)$ directly, since the
+left block is an isometry into $\Hilb_{1\cdots c}$ and the right block an isometry
+into $\Hilb_{c+1\cdots n}$; the singular values are the $\lambda_k$ of
+\cref{thm:lec15-schmidt}. An operator supported at site $c$ then contracts against
+the identity environments on both sides.
+\end{proof}
+
+\begin{remark}[Why canonical forms matter]
+The gauge freedom of \cref{prop:lec15-gauge} is spent to make the environments
+trivial. This has three payoffs used throughout \cref{ch:lec16,ch:lec17}: (i)
+expectation values and norms are read off \emph{locally} at the center, without
+contracting the whole chain; (ii) the Schmidt spectrum at any bond is available
+directly as singular values, so \emph{truncation} to bond dimension $\chi$ by
+\cref{thm:lec15-trunc} is a local SVD; and (iii) numerical stability is improved
+because the isometric tensors have unit-norm columns. Moving the orthogonality
+center from site $c$ to $c+1$ is one local SVD (or QR), so the center can be swept
+back and forth cheaply---the basic move of the DMRG algorithm.
+\end{remark}
+
+\section{Contraction cost, bond dimension, and the area law}
+\label{sec:lec15-5}
+
+We close by quantifying when MPS are efficient and explaining, via the area law,
+why the physically important states fall in that regime.
+
+\begin{proposition}[Cost of MPS operations]\label{prop:lec15-mpscost}
+For an MPS on $n$ sites with local dimension $d$ and bond dimension $\le\chi$:
+\begin{enumerate}[label=\textup{(\alph*)}]
+  \item the norm $\braket{\psi|\psi}$ and any local expectation value cost
+        $\bigo(n\,d\,\chi^{3})$ to evaluate;
+  \item the overlap $\braket{\phi|\psi}$ of two such MPS costs
+        $\bigo(n\,d\,\chi^{3})$;
+  \item bringing the state to canonical form, or truncating each bond to
+        dimension $\chi$, costs $\bigo(n\,d\,\chi^{3})$ dominated by the per-site
+        SVDs.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+(a),(b) Contract left to right, carrying a $\chi\times\chi$ ``transfer'' matrix.
+At each site one contracts this matrix with the bra tensor
+(cost $\bigo(\chi^{2}\cdot\chi\cdot d)=\bigo(d\chi^{3})$, by
+\cref{prop:lec15-cost} with contracted dimension $\chi$ and free dimensions
+$\chi,d\chi$) and then with the ket tensor (another $\bigo(d\chi^{3})$). Repeating
+for $n$ sites gives $\bigo(n\,d\,\chi^{3})$; a local operator inserts one extra
+$\bigo(d^{2}\chi^{2})$ factor at its site, which is subleading. (c) Each bond
+requires the SVD of a $d\chi\times\chi$ (or $\chi\times d\chi$) matrix, costing
+$\bigo(d\chi^{3})$; over $n$ bonds this is $\bigo(n\,d\,\chi^{3})$. The
+left-to-right sweep is the optimal contraction order for this chain topology, so
+no reordering improves the exponent.
+\end{proof}
+
+Thus \emph{every} basic MPS manipulation is linear in the system size $n$ and
+polynomial ($\chi^{3}$) in the bond dimension. The entire cost of simulating a
+one-dimensional quantum system with tensor networks therefore hinges on a single
+question: \emph{how large must $\chi$ be?} By \cref{cor:lec15-reduced} and
+\cref{thm:lec15-trunc}, a bond can be truncated to dimension $\chi$ with small
+error precisely when the entanglement entropy across that bond is small---roughly,
+$\chi\gtrsim 2^{S}$. So the efficiency of an MPS is governed by how entanglement
+entropy scales with system size.
+
+\subsection{The area law}
+
+\begin{definition}[Area law vs. volume law]\label{def:lec15-arealaw}
+Consider a family of states on regions of growing size and the entanglement
+entropy $S(\ell)$ of a contiguous block of $\ell$ sites (with the rest of the
+system). The family obeys an \emph{area law} in one dimension if $S(\ell)=\bigo(1)$
+(bounded, independent of $\ell$), and a \emph{volume law} if $S(\ell)$ grows
+proportionally to $\ell$. (In $D$ dimensions ``area law'' means $S$ scales with
+the size of the boundary of the block, hence the name.)
+\end{definition}
+
+\begin{proposition}[Area law implies an efficient MPS]\label{prop:lec15-eff}
+If a one-dimensional state obeys an area law $S(\ell)\le S_{\max}$ across every
+cut with, in addition, a Schmidt spectrum whose truncation error
+\eqref{eq:lec15-truncerr} decays as $\varepsilon_{\chi'}\le C\,\eta^{\chi'}$ for
+some $\eta<1$ (a rapidly decaying spectrum, typical of gapped systems), then a
+bond dimension
+\[
+  \chi=\bigo\!\bigl(\polylog(n/\epsilon)\bigr)
+\]
+suffices to represent the state to global error $\epsilon$; the total MPS cost is
+then $\poly(n)$.
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+Truncating bond $k$ to dimension $\chi'$ incurs squared error
+$\varepsilon^{(k)}_{\chi'}\le C\eta^{\chi'}$ by hypothesis. Truncating all $n-1$
+bonds and using the subadditivity of MPS truncation errors (the global squared
+error is bounded by the sum of per-bond discarded weights), the total error is at
+most $(n-1)C\eta^{\chi'}$. Setting this $\le\epsilon^{2}$ gives
+$\chi'=\bigo(\log(n/\epsilon)/\log(1/\eta))=\bigo(\polylog(n/\epsilon))$.
+Substituting into \cref{prop:lec15-mpscost} makes every operation $\poly(n)$.
+\end{proof}
+
+The physics that guarantees the hypothesis of \cref{prop:lec15-eff} is the
+following landmark theorem, which we quote (a full proof uses Lieb--Robinson
+bounds and is beyond our scope).
+
+\begin{theorem}[Area law for gapped 1D ground states, Hastings]\label{thm:lec15-hastings}
+Let $H=\sum_j h_j$ be a local Hamiltonian on a one-dimensional chain with a
+unique ground state and a spectral gap $\Delta>0$ above it. Then the entanglement
+entropy of any contiguous block in the ground state is bounded,
+\[
+  S(\ell)\le S_{\max}=\bigo(1),
+\]
+independent of the block size $\ell$ and of $n$.
+\end{theorem}
+
+\begin{remark}[Why gapped ground states are efficiently representable]
+\Cref{thm:lec15-hastings} says the ground state of a gapped local 1D Hamiltonian
+has $\bigo(1)$ entanglement across every cut, so by \cref{prop:lec15-eff} it
+admits an MPS of bounded bond dimension---this is the theoretical justification
+for the spectacular success of DMRG (\cref{ch:lec16}). Intuitively, a nonzero gap
+gives a finite correlation length $\xi\sim1/\Delta$, so correlations (and hence
+the entanglement that can be built across a cut) decay exponentially and saturate
+at a length-independent value. \emph{Volume-law} states---generic states, or the
+highly excited states reached by long-time chaotic evolution---have
+$S(\ell)\propto\ell$, forcing $\chi\sim 2^{\ell}$ and destroying the efficiency;
+these are exactly the states an MPS \emph{cannot} compress, and are the frontier
+that quantum computers aim to reach. In two and higher dimensions, even gapped
+ground states obey only a boundary-area law $S\sim\ell^{D-1}$, which is why MPS
+give way to higher-dimensional tensor networks (PEPS) there.
+\end{remark}
+
+\begin{example}[Bell state: Schmidt data and entropy]\label{exa:lec15-bell}
+For $\ket{\Phi^{+}}=\tfrac1{\sqrt2}(\ket{00}+\ket{11})$ the coefficient matrix
+across the single cut is $\psi=\tfrac1{\sqrt2}\bigl(\begin{smallmatrix}1&0\\0&1\end{smallmatrix}\bigr)$,
+already diagonal, so the Schmidt coefficients are $\lambda_1=\lambda_2=\tfrac1{\sqrt2}$
+with $\lambda_1^{2}=\lambda_2^{2}=\tfrac12$ and Schmidt rank $\chi=2$. The
+entanglement entropy is
+\[
+  S=-\tfrac12\log_2\tfrac12-\tfrac12\log_2\tfrac12=\log_2 2=1\ \text{bit},
+\]
+the maximum for a single qubit---consistent with the maximally mixed reduced state
+$\rho_A=\tfrac12\id$ found in \cref{ch:lec01}.
+\end{example}
+
+\begin{example}[GHZ and W states: $\chi=2$ everywhere]\label{exa:lec15-ghzw}
+Both the $n$-qubit \emph{GHZ} state
+$\ket{\mathrm{GHZ}}=\tfrac1{\sqrt2}(\ket{0}^{\otimes n}+\ket{1}^{\otimes n})$ and
+the \emph{W} state $\ket{W}=\tfrac1{\sqrt n}(\ket{10\cdots0}+\ket{01\cdots0}+\cdots+\ket{0\cdots01})$
+have Schmidt rank $2$ across \emph{every} bipartition, so each has an exact MPS
+with $\chi=2$---linear storage $\bigo(n)$ despite being globally entangled.
+
+For GHZ, cutting after any site $k$ gives
+$\ket{\mathrm{GHZ}}=\tfrac1{\sqrt2}(\ket{0}^{\otimes k}\ket{0}^{\otimes(n-k)}
++\ket{1}^{\otimes k}\ket{1}^{\otimes(n-k)})$, already in Schmidt form with
+$\lambda_1^{2}=\lambda_2^{2}=\tfrac12$, so $S=1$ bit at every cut.
+
+For the W state, cut the first site from the rest: the reduced state on the
+remaining $n-1$ qubits has the single ``excitation'' either on qubit $1$ (weight
+$1/n$) or among qubits $2,\dots,n$ (weight $(n-1)/n$), giving Schmidt squares
+$\{1/n,\,(n-1)/n\}$ and
+\[
+  S=-\tfrac1n\log_2\tfrac1n-\tfrac{n-1}{n}\log_2\tfrac{n-1}{n}
+   =\log_2 n-\tfrac{n-1}{n}\log_2(n-1).
+\]
+For $n=2$ this is $1$ bit (the W state on two qubits is a Bell state); as
+$n\to\infty$ it decays as $S\approx\tfrac{\log_2 n}{n}\to0$. In both cases the
+\emph{rank} is $2$, so a bond dimension $\chi=2$ suffices exactly, independent of
+$n$.
+\end{example}
+
+\exercisesection
+\begin{exercise}\label{ex:lec15-1}
+Using Penrose notation, draw the diagrams for (a) the trace $\Tr[AB]$ of a product
+of two matrices, and (b) the contraction
+$C_{i\ell}=\sum_{j,k}A_{ijk}B_{jk\ell}$ of two rank-$3$ tensors. In each case give
+the arithmetic cost in terms of the leg dimensions (take all legs of dimension
+$d$), and identify the contracted and free legs.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec15-2}
+Let $\ket{\psi}=\tfrac{1}{\sqrt3}\ket{00}+\tfrac{1}{\sqrt3}\ket{01}+\tfrac{1}{\sqrt3}\ket{11}$
+be a two-qubit state. (a) Write its $2\times2$ coefficient matrix and compute its
+singular values. (b) Give the Schmidt rank, the Schmidt coefficients, and the
+entanglement entropy $S$. (c) Is the state entangled?
+\end{exercise}
+
+\begin{exercise}\label{ex:lec15-3}
+Prove that a bipartite pure state $\ket{\psi}\in\Hilb_A\otimes\Hilb_B$ is a product
+state if and only if its reduced density operator $\rho_A$ is a pure state
+(rank-one projector). \emph{Hint:} use \cref{cor:lec15-reduced}.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec15-4}
+For the three-qubit state $\ket{\psi}$ of \cref{exa:lec15-threequbit}, verify by
+direct matrix multiplication that the MPS tensors $A^{[1]},A^{[2]},A^{[3]}$ given
+there reproduce all eight amplitudes $\psi_{s_1 s_2 s_3}$ (four nonzero, four
+zero). Then check that $A^{[2]}$ is left-canonical, i.e. satisfies
+\eqref{eq:lec15-left}.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec15-5}
+Consider the GHZ state on $n$ qubits. (a) Write an explicit MPS with bond
+dimension $\chi=2$: give the boundary vectors and the two bulk matrices
+$A^{[k]0},A^{[k]1}$ (independent of $k$ in the bulk). (b) Verify that your MPS
+reproduces exactly the two nonzero amplitudes $\psi_{0\cdots0}=\psi_{1\cdots1}=\tfrac1{\sqrt2}$
+and vanishes on all other strings.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec15-6}
+Let $\ket{\psi}$ have Schmidt coefficients (across some cut)
+$\lambda_1^{2}=1-3\delta$, $\lambda_2^{2}=\lambda_3^{2}=\lambda_4^{2}=\delta$ for a
+small $\delta>0$. (a) Compute the truncation error \eqref{eq:lec15-truncerr} if we
+keep only $\chi'=1$ Schmidt value, and if we keep $\chi'=2$. (b) For a target
+squared error $\epsilon^{2}=10^{-3}$ and $\delta=10^{-4}$, what is the smallest
+$\chi'$ that suffices? (c) Compute the exact entanglement entropy $S$ as a function
+of $\delta$ and its limit as $\delta\to0$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec15-7}
+Explain, in terms of the area law, why the ground state of a gapped local
+one-dimensional Hamiltonian admits an efficient MPS while a Haar-random state of
+$n$ qubits does not. Specifically: (a) quote the entanglement scaling $S(\ell)$ in
+each case (for the random state, use the Page value $S\approx \tfrac{n}{2}$ across
+a half-chain cut); (b) deduce the bond dimension $\chi$ required in each case; and
+(c) state the resulting storage cost and say which is efficient.
+\end{exercise}
+
+\readingsection
+\begin{itemize}[leftmargin=1.4em]
+  \item U.~Schollw\"ock, \emph{The density-matrix renormalization group in the age
+        of matrix product states}, Ann.~Phys.\ \textbf{326}, 96 (2011);
+        arXiv:1008.3477. The canonical reference for MPS, canonical forms, and
+        DMRG.
+  \item R.~Or\'us, \emph{A practical introduction to tensor networks: matrix
+        product states and projected entangled pair states}, Ann.~Phys.\
+        \textbf{349}, 117 (2014); arXiv:1306.2164. Diagrammatic notation,
+        contraction, and higher-dimensional networks.
+  \item J.~Eisert, M.~Cramer, and M.~B.~Plenio, \emph{Colloquium: Area laws for
+        the entanglement entropy}, Rev.~Mod.~Phys.\ \textbf{82}, 277 (2010);
+        arXiv:0808.3773. The area law and its consequences for simulability.
+\end{itemize}

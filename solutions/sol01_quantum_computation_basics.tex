@@ -1,0 +1,224 @@
+\chapter{Quantum Computation Basics}
+% Solutions to the exercises of \cref{ch:lec01}.
+
+\begin{solution}[Exercise~\ref{ex:lec01-1}]
+$\norm{\psi}^{2}=\abs{2\ii}^{2}+\abs{-1}^{2}=4+1=5$, so $\norm{\psi}=\sqrt5$. The
+normalized state is $\ket{\hat\psi}=\tfrac{1}{\sqrt5}(2\ii\ket{0}-\ket{1})$. The
+probabilities are $\abs{2\ii/\sqrt5}^{2}=4/5$ for outcome $0$ and
+$\abs{-1/\sqrt5}^{2}=1/5$ for outcome $1$; they sum to $1$ as required.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-2}]
+$\braket{+|+}=\tfrac12(1+1)=1$ and $\braket{-|-}=\tfrac12(1+1)=1$, so both are unit
+vectors. $\braket{+|-}=\tfrac12(\braket{0|0}-\braket{0|1}+\braket{1|0}-\braket{1|1})=\tfrac12(1-0+0-1)=0$,
+so they are orthogonal; two orthonormal vectors in a $2$-dimensional space form a
+basis. Adding and subtracting, $\ket{0}=\tfrac{1}{\sqrt2}(\ket{+}+\ket{-})$ and
+$\ket{1}=\tfrac{1}{\sqrt2}(\ket{+}-\ket{-})$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-3}]
+For unit vectors, $\norm{u}=\norm{v}=1$, so Cauchy--Schwarz gives
+$\abs{\braket{u|v}}\le1$ with equality iff $\ket{u},\ket{v}$ are linearly dependent,
+i.e. $\ket{v}=\lambda\ket{u}$ for some $\lambda\in\C$. Taking norms,
+$1=\norm{v}=\abs{\lambda}\norm{u}=\abs{\lambda}$, so $\lambda=\ee^{\ii\gamma}$ for some
+real $\gamma$. Conversely, if $\ket{v}=\ee^{\ii\gamma}\ket{u}$ then
+$\braket{u|v}=\ee^{\ii\gamma}$ and $\abs{\braket{u|v}}=1$. By the invariance of
+physical states under a global phase, the two are the same physical state.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-4}]
+$P^{2}=\ket{u}\braket{u|u}\bra{u}=\proj{u}=P$ since $\braket{u|u}=1$. Taking the
+adjoint, $P\dg=(\proj{u})\dg=\proj{u}=P$. For the trace, using the identity
+$\Tr(\ket{u}\!\bra{v})=\braket{v|u}$ we get $\Tr(P)=\braket{u|u}=1$ (a rank-one
+projector has trace equal to its rank).
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-5}]
+Compare with the Bloch form
+$\ket{\psi}=\cos\tfrac{\theta}{2}\ket{0}+\ee^{\ii\varphi}\sin\tfrac{\theta}{2}\ket{1}$.
+The $\ket{0}$ amplitude is real and nonnegative, $\cos\tfrac{\theta}{2}=\tfrac12$,
+giving $\theta/2=\pi/3$, so $\theta=2\pi/3$. Then
+$\sin\tfrac{\theta}{2}=\sin\tfrac{\pi}{3}=\tfrac{\sqrt3}{2}$, matching the modulus of
+the $\ket{1}$ amplitude, and its phase is $\varphi=\pi/3$. Hence
+$(\theta,\varphi)=(2\pi/3,\ \pi/3)$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-6}]
+Factor out the first qubit:
+$\ket{\psi}=\tfrac{1}{\sqrt2}\ket{0}\otimes(\ket{0}+\ket{1})
+=\ket{0}\otimes\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})=\ket{0}\otimes\ket{+}$.
+This is an explicit product of single-qubit states, so $\ket{\psi}$ is separable (a
+product state), not entangled.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-7}]
+$H$ has real symmetric entries, so $H\dg=H^{\top}=H$. Then
+$H^{2}=\tfrac12\left(\begin{smallmatrix}1&1\\1&-1\end{smallmatrix}\right)
+\left(\begin{smallmatrix}1&1\\1&-1\end{smallmatrix}\right)
+=\tfrac12\left(\begin{smallmatrix}2&0\\0&2\end{smallmatrix}\right)=I$, which shows
+$H\dg H=H^{2}=I$, so $H$ is unitary and self-inverse. For $HYH$, use $Y=\ii XZ$
+(\cref{prop:lec01-yxz}) and $H^{2}=I$:
+\[
+  HYH=\ii\,H X Z H = \ii(HXH)(HZH)=\ii\,Z\,X
+     = \ii\begin{pmatrix}1&0\\0&-1\end{pmatrix}
+       \begin{pmatrix}0&1\\1&0\end{pmatrix}
+     = \ii\begin{pmatrix}0&1\\-1&0\end{pmatrix}
+     = \begin{pmatrix}0&\ii\\-\ii&0\end{pmatrix}=-Y.
+\]
+So $HYH=-Y$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-8}]
+Write $\ket{+}\ket{+}=\tfrac12(\ket{00}+\ket{01}+\ket{10}+\ket{11})$. Apply $\CNOT$
+(control $0$) term by term: $\ket{00}\to\ket{00}$, $\ket{01}\to\ket{01}$,
+$\ket{10}\to\ket{11}$, $\ket{11}\to\ket{10}$. The sum is invariant, so
+$\CNOT\ket{+}\ket{+}=\tfrac12(\ket{00}+\ket{01}+\ket{11}+\ket{10})=\ket{+}\ket{+}$.
+The result is a product state, hence \emph{not} entangled: $\ket{+}\ket{+}$ is a
+$+1$ eigenstate of this $\CNOT$.
+
+For the cloning of orthogonal states, take $\ket{s}=\ket{0}$ and $U=\CNOT$ with
+control $0$, target $1$. Then $\CNOT\ket{0}\ket{0}=\ket{0}\ket{0}$ and
+$\CNOT\ket{1}\ket{0}=\ket{1}\ket{1}$, so both orthogonal basis states are copied.
+This does not contradict \cref{thm:lec01-nocloning}: the theorem only forbids a
+\emph{single} gate that copies \emph{every} state. This $\CNOT$ copies
+$\ket{0},\ket{1}$ but fails to copy a superposition $a\ket{0}+b\ket{1}$, producing the
+entangled $a\ket{00}+b\ket{11}$ instead. Cloning a fixed orthonormal set is exactly
+the classical copy the theorem permits.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-9}]
+(a) With $\rho=\proj{\psi}=\tfrac12(\proj{00}+\ket{00}\!\bra{11}+\ket{11}\!\bra{00}+\proj{11})$,
+tracing out the second qubit and keeping only terms whose second-qubit bra and ket
+labels agree gives
+\[
+  \rho_A=\Tr_B[\rho]=\tfrac12\big(\proj{0}\braket{0|0}+\proj{1}\braket{1|1}\big)
+        =\tfrac12(\proj{0}+\proj{1})=\tfrac12\id.
+\]
+Its purity is $\Tr[\rho_A^{2}]=\Tr[\tfrac14\id]=\tfrac14\cdot2=\tfrac12<1$, so the
+reduced state is maximally mixed.
+
+(b) The projector for outcome $0$ on the first qubit is $\proj{0}\otimes\id$. The
+outcome probability equals the squared norm of the unnormalized post-measurement
+vector $(\proj{0}\otimes\id)\ket{\psi}=\tfrac{1}{\sqrt2}\ket{00}$, namely
+$\bigl\|\tfrac{1}{\sqrt2}\ket{00}\bigr\|^{2}=\tfrac12$. Equivalently
+$p(0)=\Tr[(\proj{0}\otimes\id)\rho]=\tfrac12$, consistent with $\rho_A=\tfrac12\id$.
+After normalization the state is $\ket{0}\otimes\ket{0}$, so the second qubit is left
+in $\ket{0}$---perfectly correlated with the first outcome.
+
+For comparison, the product state $\ket{+}\ket{+}$ has reduced first-qubit state
+$\rho_A'=\proj{+}$, a \emph{pure} state with purity $\Tr[\rho_A'^{2}]=1$: no
+information is hidden in correlations because the state is separable. The contrast
+$\tfrac12<1$ versus $1$ quantifies the entanglement of the Bell pair.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-10}]
+(a) From the grouped expression \eqref{eq:lec01-tele-grouped}, the $(m_1,m_2)=(1,0)$
+branch carries qubit~$3$ in the state $a\ket{0}-b\ket{1}$. Since $Z\ket{0}=\ket{0}$ and
+$Z\ket{1}=-\ket{1}$, indeed $Z\ket{\psi}=Z(a\ket{0}+b\ket{1})=a\ket{0}-b\ket{1}$, so
+Odysseus holds $Z\ket{\psi}$.
+(b) The correction is $Z^{m_1}X^{m_2}=Z^{1}X^{0}=Z$. Applying it,
+$Z\,(Z\ket{\psi})=Z^2\ket{\psi}=\ket{\psi}$ because $Z^2=I$.
+(c) Averaging over the four outcomes, Odysseus's ensemble is
+$\{\tfrac14,\ket{\psi}\},\{\tfrac14,X\ket{\psi}\},\{\tfrac14,Z\ket{\psi}\},\{\tfrac14,XZ\ket{\psi}\}$,
+with density operator $\rho_3=\tfrac14\bigl(\proj{\psi}+X\proj{\psi}X\dg+Z\proj{\psi}Z\dg+XZ\proj{\psi}(XZ)\dg\bigr)$.
+Writing $\ket{\psi}\!\bra{\psi}=\tfrac12(\id+\vec r\cdot\vec\sigma)$ in the Pauli basis,
+the four Pauli conjugations flip the signs of the $\vec r\cdot\vec\sigma$ term so that
+the four Bloch vectors sum to zero, leaving $\rho_3=\tfrac12\id$. Because this is
+independent of $a,b$ and of any operation Penelope performs, Odysseus's local statistics cannot
+convey information until the classical bits $(m_1,m_2)$ arrive over a light-speed-limited
+channel---hence no superluminal signaling.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-11}]
+Encoding $(x,y)=(1,1)$: apply $ZX$ to qubit~$1$ of
+$\ket{\Phi^{+}}=\tfrac{1}{\sqrt2}(\ket{00}+\ket{11})$. With the stated convention
+$ZX\ket{0}=\ket{1}$ and $ZX\ket{1}=-\ket{0}$,
+\[
+  (ZX\otimes I)\ket{\Phi^{+}}=\tfrac{1}{\sqrt2}\bigl(\ket{10}-\ket{01}\bigr).
+\]
+Now Odysseus applies $\CNOT_{1\to2}$ (flip qubit~$2$ when qubit~$1$ is $\ket{1}$):
+$\ket{10}\mapsto\ket{11}$, $\ket{01}\mapsto\ket{01}$, giving
+$\tfrac{1}{\sqrt2}(\ket{11}-\ket{01})=\tfrac{1}{\sqrt2}(\ket{1}-\ket{0})_1\otimes\ket{1}_2$.
+Applying $H$ to qubit~$1$ and using $H\tfrac{1}{\sqrt2}(\ket{1}-\ket{0})=H\bigl(-\ket{-}\bigr)=-\ket{1}$,
+the state becomes $-\ket{11}$. A computational-basis measurement therefore returns
+$11$ with probability $1$ (the global sign $-1$ is unobservable), recovering
+$(x,y)=(1,1)$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-12}]
+(a) The four differences are $\alpha_1-\beta_1=-\tfrac{\pi}{4}$,
+$\alpha_1-\beta_2=-\tfrac{3\pi}{4}$, $\alpha_2-\beta_1=\tfrac{\pi}{4}$,
+$\alpha_2-\beta_2=-\tfrac{\pi}{4}$. Hence
+$\E[S]=\cos(-\tfrac{\pi}{4})-\cos(-\tfrac{3\pi}{4})+\cos(\tfrac{\pi}{4})+\cos(-\tfrac{\pi}{4})
+=\tfrac{1}{\sqrt2}+\tfrac{1}{\sqrt2}+\tfrac{1}{\sqrt2}+\tfrac{1}{\sqrt2}=2\sqrt2$.
+(b) Fix $\beta_1,\beta_2$ and group the $\alpha_1$- and $\alpha_2$-dependent terms:
+\[
+  f=\bigl[\cos(\alpha_1-\beta_1)-\cos(\alpha_1-\beta_2)\bigr]
+    +\bigl[\cos(\alpha_2-\beta_1)+\cos(\alpha_2-\beta_2)\bigr].
+\]
+Each bracket has the form $R\cos(\alpha-\phi)$ for suitable $R\ge0,\phi$: writing
+$c\cos\alpha+s\sin\alpha=R\cos(\alpha-\phi)$ with $R=\sqrt{c^2+s^2}$, the first bracket
+has amplitude $R_1=\sqrt{2-2\cos(\beta_1-\beta_2)}$ and the second
+$R_2=\sqrt{2+2\cos(\beta_1-\beta_2)}$. Optimizing over $\alpha_1,\alpha_2$ independently
+sets each cosine to $1$, giving $\max_{\alpha_1,\alpha_2}f=R_1+R_2$. Then
+\[
+  (R_1+R_2)^2=R_1^2+R_2^2+2R_1R_2=4+2\sqrt{(2-2c)(2+2c)}=4+4\sqrt{1-c^2}\le 8,
+\]
+where $c=\cos(\beta_1-\beta_2)\in[-1,1]$, with equality iff $c=0$, i.e.
+$\beta_1-\beta_2=\pm\tfrac{\pi}{2}$. Thus $\max f=\sqrt8=2\sqrt2$, so
+$\abs{\E[S]}\le 2\sqrt2$ for this state and the chosen settings attain it.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-13}]
+Match $\ket{\psi}=\tfrac12\ket{0}+\tfrac{\sqrt3}{2}\ee^{\ii\pi/2}\ket{1}$ to the Bloch
+form $\cos\tfrac{\theta}{2}\ket{0}+\ee^{\ii\varphi}\sin\tfrac{\theta}{2}\ket{1}$. The
+$\ket{0}$ amplitude fixes $\cos\tfrac{\theta}{2}=\tfrac12$, so $\theta/2=\pi/3$ and
+$\theta=2\pi/3$; then $\sin\tfrac{\theta}{2}=\tfrac{\sqrt3}{2}$ matches the $\ket{1}$
+modulus, and the relative phase gives $\varphi=\pi/2$. By \cref{prop:lec01-1qprep},
+\[
+  R_{z}(\tfrac{\pi}{2})R_{y}(\tfrac{2\pi}{3})\ket{0}
+    =\ee^{-\ii\pi/4}\Bigl(\tfrac12\ket{0}+\ee^{\ii\pi/2}\tfrac{\sqrt3}{2}\ket{1}\Bigr)
+    =\ee^{-\ii\pi/4}\ket{\psi},
+\]
+which is $\ket{\psi}$ up to the global phase $\ee^{-\ii\pi/4}$. Hence
+$(\theta,\varphi)=(2\pi/3,\ \pi/2)$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-14}]
+(a) With $\ket{\vartheta}=\cos\tfrac{\vartheta}{2}\ket{0}+\sin\tfrac{\vartheta}{2}\ket{1}$
+and orthogonal partner
+$\ket{\vartheta_{\perp}}=-\sin\tfrac{\vartheta}{2}\ket{0}+\cos\tfrac{\vartheta}{2}\ket{1}$,
+the projectors are $P_{+1}=\proj{\vartheta}$ and $P_{-1}=\proj{\vartheta_{\perp}}$.
+(b) For $\vartheta=\tfrac{\pi}{4}$ and
+$\ket{\psi}=\cos\tfrac{\pi}{8}\ket{0}+\sin\tfrac{\pi}{8}\ket{1}$, the overlap is
+$\braket{\vartheta|\psi}=\cos\tfrac{\pi}{8}\cos\tfrac{\pi}{8}+\sin\tfrac{\pi}{8}\sin\tfrac{\pi}{8}
+=\cos\bigl(\tfrac{\pi}{8}-\tfrac{\pi}{8}\bigr)=1$, since $\vartheta/2=\pi/8$ equals the
+polar angle of $\ket{\psi}$. Thus $\ket{\psi}=\ket{\vartheta}$ exactly: $p_{+1}=1$,
+$p_{-1}=0$, and $\langle O\rangle=(+1)\cdot1+(-1)\cdot0=1$. The state is an eigenstate
+of this observable.
+(c) The basis-change unitary sends $\ket{\vartheta}\mapsto\ket{0}$ and
+$\ket{\vartheta_{\perp}}\mapsto\ket{1}$, namely
+$V=\ket{0}\!\bra{\vartheta}+\ket{1}\!\bra{\vartheta_{\perp}}=R_{y}(-\vartheta)=R_{y}(-\tfrac{\pi}{4})$;
+applying it gives $V\ket{\psi}=\ket{0}$, so a computational-basis measurement returns
+$0$ (outcome $+1$) with certainty, matching part~(b).
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec01-15}]
+(a) Each effect is Hermitian and positive semidefinite: $E_{0}=\tfrac12\proj{0}$ and
+$E_{1}=\tfrac12\proj{1}$ are $\tfrac12$ times rank-one projectors (eigenvalues
+$\tfrac12,0\ge0$), and $E_{2}=\tfrac12\id$ has eigenvalues $\tfrac12,\tfrac12\ge0$.
+Their sum is
+$E_{0}+E_{1}+E_{2}=\tfrac12(\proj{0}+\proj{1})+\tfrac12\id=\tfrac12\id+\tfrac12\id=\id$,
+so \eqref{eq:lec01-povm} holds and $\{E_{0},E_{1},E_{2}\}$ is a valid POVM.
+(b) On $\ket{0}$: $p_{0}=\bra{0}E_{0}\ket{0}=\tfrac12$, $p_{1}=\bra{0}E_{1}\ket{0}=0$,
+$p_{2}=\bra{0}E_{2}\ket{0}=\tfrac12$. On $\ket{+}$:
+$p_{0}=\tfrac12\abs{\braket{0|+}}^{2}=\tfrac14$, likewise $p_{1}=\tfrac14$, and
+$p_{2}=\tfrac12\braket{+|+}=\tfrac12$. Each triple sums to $1$.
+(c) It is not projective because the effects are not orthogonal idempotents: e.g.
+$E_{0}^{2}=\tfrac14\proj{0}\neq E_{0}$, and there are three outcomes on a
+two-dimensional space, more than any orthogonal resolution of $\id$ can provide.
+Because $E_{2}=\tfrac12\id$ is proportional to the identity,
+$p_{2}=\tfrac12\braket{\psi|\psi}=\tfrac12$ for \emph{every} input state, so obtaining
+outcome $2$ is equally likely regardless of $\ket{\psi}$ and therefore conveys no
+information about the qubit (an ``inconclusive'' result).
+\end{solution}

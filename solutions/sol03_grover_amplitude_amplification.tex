@@ -1,0 +1,185 @@
+\chapter{Grover's Algorithm and Amplitude Amplification}
+% Solutions to the exercises of \cref{ch:lec03}.
+
+\begin{solution}[Exercise~\ref{ex:lec03-1}]
+Write $R_{\psi_0}=2\proj{\psi_0}-\id$ and let $\ket{\phi}=\sum_x a_x\ket{x}$. Since
+$\ket{\psi_0}=\tfrac1{\sqrt N}\sum_x\ket{x}$, we have
+$\braket{\psi_0|\phi}=\tfrac1{\sqrt N}\sum_x a_x=\sqrt N\,\bar a$. Therefore
+\[
+  2\proj{\psi_0}\ket{\phi}
+    =2\sqrt N\,\bar a\,\ket{\psi_0}
+    =2\sqrt N\,\bar a\cdot\frac1{\sqrt N}\sum_x\ket{x}
+    =\sum_x 2\bar a\,\ket{x}.
+\]
+Subtracting $\id\ket{\phi}=\sum_x a_x\ket{x}$ gives
+$R_{\psi_0}\ket{\phi}=\sum_x(2\bar a-a_x)\ket{x}$, i.e.\ each amplitude is reflected
+about the mean $\bar a$. This is why $R_{\psi_0}$ is often called ``inversion about
+the mean.''
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec03-2}]
+The four functions are: $f\equiv0$ (constant), $f\equiv1$ (constant), $f(a)=a$
+(balanced, $f(0)=0,f(1)=1$), and $f(a)=a\oplus1$ (balanced, $f(0)=1,f(1)=0$). By
+\cref{thm:lec03-deutsch} the outcome is $0$ for the two constant functions and $1$
+for the two balanced ones. Concretely, after the query and phase kickback the first
+register is $\tfrac1{\sqrt2}\bigl((-1)^{f(0)}\ket0+(-1)^{f(1)}\ket1\bigr)$; applying
+$H$ and reading off:
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item $f\equiv0$: register $\ket{+}\to H\ket{+}=\ket0$ (outcome $0$);
+  \item $f\equiv1$: register $-\ket{+}\to-\ket0$ (outcome $0$);
+  \item $f(a)=a$: register $\tfrac1{\sqrt2}(\ket0-\ket1)=\ket{-}\to\ket1$ (outcome $1$);
+  \item $f(a)=a\oplus1$: register $-\ket{-}\to-\ket1$ (outcome $1$).
+\end{itemize}
+The two constant functions give $0$, the two balanced functions give $1$, exactly
+as the theorem predicts.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec03-3}]
+\emph{Hermiticity and eigenvalues.} In the computational basis $\Uf$ is a real
+permutation matrix ($\ket{x}\ket{y}\mapsto\ket{x}\ket{y\oplus f(x)}$). Because the
+permutation is an involution (\cref{lem:lec03-unitary}), the matrix equals its own
+transpose, hence is symmetric; being real and symmetric it is Hermitian,
+$\Uf\dg=\Uf$. (Alternatively, from $\Uf\dg\Uf=\id$ and $\Uf^2=\id$ we get
+$\Uf\dg=\Uf^{-1}=\Uf$.) If $\Uf\ket{\psi}=\lambda\ket{\psi}$ then
+$\ket{\psi}=\Uf^2\ket{\psi}=\lambda^2\ket{\psi}$, so $\lambda^2=1$ and
+$\lambda\in\{+1,-1\}$.
+
+\emph{No kickback from $\ket{+}$.} Expanding as in \cref{lem:lec03-kickback},
+\[
+  \Uf\ket{x}\ket{+}
+  =\tfrac{1}{\sqrt2}\big(\ket{x}\ket{f(x)}+\ket{x}\ket{1\oplus f(x)}\big)
+  =\tfrac{1}{\sqrt2}\ket{x}\big(\ket{f(x)}+\ket{1\oplus f(x)}\big).
+\]
+Whether $f(x)=0$ or $f(x)=1$, the set $\{f(x),\,1\oplus f(x)\}$ equals $\{0,1\}$, so
+the target factor is always $\tfrac{1}{\sqrt2}(\ket0+\ket1)=\ket{+}$ with a $+$
+sign. Thus $\Uf\ket{x}\ket{+}=\ket{x}\ket{+}$ and no phase depends on $f(x)$:
+$\ket{+}$ is the $+1$ eigenstate of the target's bit-flip action. The state
+$\ket{-}$ is the $-1$ eigenstate, so flipping (which happens exactly when $f(x)=1$)
+multiplies it by $-1$; that sign is what encodes $f$. Hence $\ket{-}$ is the useful
+choice.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec03-4}]
+\emph{Deutsch--Jozsa on $f(x_1x_2)=x_1\oplus x_2$.} Here $f(00)=0,\ f(01)=1,\
+f(10)=1,\ f(11)=0$: two zeros and two ones, so $f$ is balanced. Starting from
+$\ket{00}$, $H^{\otimes2}$ gives
+$\tfrac12(\ket{00}+\ket{01}+\ket{10}+\ket{11})$. Phase kickback multiplies each
+$\ket{x}$ by $(-1)^{f(x)}$:
+$\tfrac12(\ket{00}-\ket{01}-\ket{10}+\ket{11})$. This factors as
+$\tfrac12(\ket0-\ket1)(\ket0-\ket1)=\ket{-}\ket{-}$. Applying $H^{\otimes2}$ gives
+$H\ket{-}\otimes H\ket{-}=\ket1\ket1=\ket{11}$. The amplitude of $\ket{00}$ is $0$,
+consistent with \cref{thm:lec03-dj}; indeed
+$\alpha_{00}=\tfrac14\sum_x(-1)^{f(x)}=\tfrac14(1-1-1+1)=0$.
+
+\emph{Affine Bernstein--Vazirani.} With $g(x)=s\cdot x\oplus c$, phase kickback gives
+each branch the sign $(-1)^{g(x)}=(-1)^{c}(-1)^{s\cdot x}$. The factor $(-1)^c$ is a
+\emph{global} phase independent of $x$, so it can be pulled out of the sum:
+\[
+  \tfrac{1}{\sqrt N}\sum_x(-1)^{g(x)}\ket{x}
+  =(-1)^{c}\,\tfrac{1}{\sqrt N}\sum_x(-1)^{s\cdot x}\ket{x}.
+\]
+Applying $H^{\otimes n}$ yields $(-1)^{c}\ket{s}$ by \cref{thm:lec03-bv}. A global
+phase is physically undetectable and does not affect measurement probabilities, so
+the outcome is $s$ with certainty. The constant $c$ is invisible to this algorithm;
+recovering $c$ would require an additional query, e.g.\ evaluating $g(0^n)=c$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec03-5}]
+\emph{The case $N=2$.} For $N=2$, $\sin(\theta/2)=1/\sqrt2$, so $\theta/2=\pi/4$ and
+$\theta=\pi/2$. The initial state is
+$\ket{\psi_0}=\tfrac1{\sqrt2}(\ket{x_0}+\ket{\psi_0^{\perp}})$, at angle
+$\theta/2=\pi/4$ from the $\ket{\psi_0^{\perp}}$ axis. One iterate rotates by
+$\theta=\pi/2$, bringing the angle to $\pi/4+\pi/2=3\pi/4$; equivalently
+$(2\cdot1+1)\theta/2=3\pi/4$, and $p_1=\sin^2(3\pi/4)=1/2$. So a single iterate does
+\emph{not} give certainty, and indeed
+$\lfloor(\pi/4)\sqrt2\rfloor=\lfloor1.11\rfloor=1$ while the best achievable
+probability for $N=2$ is $1/2$, no better than a random guess. The case is special
+because with only two items the initial angle $\pi/4$ is already large and the
+rotation overshoots; unstructured search offers no advantage when $N=2$.
+
+\emph{The bound $p_{k^{\ast}}\ge1-1/N$.} Pick $k^{\ast}$ so that the angle
+$(2k^{\ast}+1)\theta/2$ is within $\theta/2$ of $\pi/2$; this is possible because
+consecutive angles differ by $\theta$. Writing the residual
+$\delta=\pi/2-(2k^{\ast}+1)\theta/2$ with $\abs{\delta}\le\theta/2$,
+\[
+  p_{k^{\ast}}=\sin^2\!\Bigl(\tfrac\pi2-\delta\Bigr)=\cos^2\delta\ge\cos^2\tfrac\theta2
+   =1-\sin^2\tfrac\theta2=1-\tfrac1N,
+\]
+using $\sin(\theta/2)=1/\sqrt N$. Hence the success probability is at least
+$1-1/N\to1$, so one run essentially always succeeds; if it fails one verifies with a
+single extra oracle call and repeats.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec03-6}]
+\emph{Over-rotation for $N=2^{20}$.} For $N=2^{20}=1{,}048{,}576$, $\sqrt N=1024$, so
+$k^{\ast}=\lfloor(\pi/4)\cdot1024\rfloor=\lfloor804.2\rfloor=804$. At $k^{\ast}$ the
+angle $(2k^{\ast}+1)\theta/2\approx\pi/2$ and $p_{k^{\ast}}\approx1$. Running instead
+$2k^{\ast}\approx1608$ iterations roughly doubles the angle to about
+$(2\cdot2k^{\ast}+1)\theta/2\approx3\pi/2$; since $p_k$ oscillates as $\sin^2$, the
+state has rotated well past $\ket{x_0}$ and the success probability has fallen back
+toward small values. The lesson: the probability oscillates in $k$, so over-rotating
+destroys the amplitude gained---stop at $k^{\ast}$.
+
+\emph{Multiple solutions, $M=4$, $N=1024$.} Here
+$\sin(\theta/2)=\sqrt{M/N}=\sqrt{4/1024}=\sqrt{1/256}=1/16$. The optimal count is
+\[
+  k^{\ast}=\lfloor(\pi/4)\sqrt{N/M}\rfloor=\lfloor(\pi/4)\sqrt{256}\rfloor
+   =\lfloor(\pi/4)\cdot16\rfloor=\lfloor12.57\rfloor=12.
+\]
+For a single solution ($M=1$) with the same $N$ one would need
+$\lfloor(\pi/4)\sqrt{1024}\rfloor=\lfloor(\pi/4)\cdot32\rfloor=\lfloor25.13\rfloor=25$
+iterations. So having $M=4$ solutions roughly halves the query count (from $25$ to
+$12$), consistent with the $\bigo(\sqrt{N/M})$ scaling: a factor of $2$ speedup for a
+factor of $4$ more solutions.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec03-7}]
+Place coordinates so that $\ell_1$ is the $x$-axis and $\ell_2$ makes angle $\alpha$
+with it. Reflection about a line at angle $\beta$ has matrix
+$M(\beta)=\begin{psmallmatrix}\cos2\beta&\sin2\beta\\\sin2\beta&-\cos2\beta\end{psmallmatrix}$.
+Thus reflection about $\ell_1$ is
+$M(0)=\begin{psmallmatrix}1&0\\0&-1\end{psmallmatrix}$ and about $\ell_2$ is
+$M(\alpha)$. Their product is
+\[
+  M(\alpha)M(0)
+   =\begin{pmatrix}\cos2\alpha&\sin2\alpha\\ \sin2\alpha&-\cos2\alpha\end{pmatrix}
+    \begin{pmatrix}1&0\\0&-1\end{pmatrix}
+   =\begin{pmatrix}\cos2\alpha&-\sin2\alpha\\ \sin2\alpha&\cos2\alpha\end{pmatrix},
+\]
+which is the rotation matrix by angle $2\alpha$. Hence composing the two reflections
+gives a rotation by twice the angle between the mirror lines. In
+\cref{thm:lec03-rotation} the two mirror axes are $\ket{\psi_0^{\perp}}$ and
+$\ket{\psi_0}$, separated by $\theta/2$, giving rotation by $\theta$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec03-8}]
+\emph{The circuit.} With $x_0=\ket{101}$, the qubits carrying a $0$ form the single
+position in the middle (reading the string left to right as qubits $2,1,0$). So we
+place an $\Xgate$ on that one qubit before and after a doubly controlled $\Zgate$:
+\[
+  R_{x_0}=(\id\otimes\Xgate\otimes\id)\,(\text{ctrl-ctrl-}\Zgate)\,
+          (\id\otimes\Xgate\otimes\id).
+\]
+The leading $\Xgate$ maps $\ket{101}\mapsto\ket{111}$; the doubly controlled
+$\Zgate$ multiplies $\ket{111}$ by $-1$ (all three qubits are $1$); the trailing
+$\Xgate$ maps $\ket{111}\mapsto\ket{101}$. Net effect: $\ket{101}\mapsto-\ket{101}$.
+
+\emph{Checking the other basis states.} Take $\ket{111}$: the leading $\Xgate$
+sends it to $\ket{101}$, which is not $\ket{111}$, so the controlled $\Zgate$ does
+nothing, and the trailing $\Xgate$ returns $\ket{111}$ unchanged---no phase. Take
+$\ket{000}$: the leading $\Xgate$ sends it to $\ket{010}$, again not $\ket{111}$,
+so no phase is applied and the two $\Xgate$ gates cancel, leaving $\ket{000}$. Only
+$\ket{101}$ is the one string mapped to $\ket{111}$ by the leading NOT, so only it
+picks up the $-1$; all seven others are fixed, confirming
+$R_{x_0}=\id-2\proj{101}$.
+
+\emph{One Grover iterate.} Starting from $\ket{\psi_0}$ (every amplitude
+$1/\sqrt8$), the oracle sends the amplitude on $\ket{101}$ to $-1/\sqrt8$ and fixes
+the rest. The mean is $\bar a=\bigl(7\cdot\tfrac1{\sqrt8}-\tfrac1{\sqrt8}\bigr)/8
+=\tfrac{3}{4\sqrt8}$, and inversion about the mean gives an unmarked amplitude
+$2\bar a-\tfrac1{\sqrt8}=\tfrac{1}{2\sqrt8}$ and marked amplitude
+$2\bar a+\tfrac1{\sqrt8}=\tfrac{5}{2\sqrt8}$. Hence the amplitude on $\ket{x_0}$ is
+$5/(2\sqrt8)$ and $p_1=(5/(2\sqrt8))^2=25/32\approx0.781$, identical to the first
+iteration of \cref{exa:lec03-n8}: the numbers depend only on $N$ and the number of
+marked items, not on \emph{which} item is marked.
+\end{solution}

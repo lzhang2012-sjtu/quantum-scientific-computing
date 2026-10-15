@@ -1,0 +1,257 @@
+\documentclass[11pt]{article}
+\input{teacher_preamble}
+\providecommand{\QFT}{\mathrm{QFT}}
+\title{\textbf{Lecture 4 --- Quantum Fourier Transform and Phase Estimation}\\[0.3em]\large Teacher's Notes (chalk, one 3$\times$45\,min meeting)}
+\author{Course Instructor}
+\date{}
+\begin{document}
+\maketitle
+
+\noindent\textbf{How to use these notes.} A chalk-delivery plan for one three-hour
+meeting in three 45-minute blocks. Boxed \textsf{On the board} panels give the exact
+equations to write; \textcolor{teal}{\textbf{Sketch}} cues say what to draw; \tmark{n}
+markers pace each chunk. Derive the QFT product form and the QPE read-out \emph{live};
+each block has in-class problems with teacher-facing answers (post, give 3--6 min, then
+walk the solution). Orange \emph{Advanced} boxes are optional.
+
+\medskip
+\noindent\textbf{Learning goals (by the end a student can):}
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item Read $\braket{\psi|U|\psi}$ with a one-ancilla Hadamard test.
+  \item Write the QFT, prove it unitary, derive its product form, and count its $\bigo(n^2)$ gates.
+  \item Assemble quantum phase estimation from controlled powers of $U$ and an inverse QFT, and read off an eigenphase.
+  \item State the precision/qubit-count trade-off and contrast standard QPE with Kitaev's bit-by-bit and iterative variants.
+\end{itemize}
+
+\medskip
+\noindent\textbf{Prerequisites.} Lectures 1--3 (qubits, gates, circuits, oracles);
+complex roots of unity and geometric sums; binary fractions.
+
+\medskip
+\noindent\textbf{Materials.} A persistent ``cheat strip'' with $\omega=\ee^{\ii2\pi/N}$,
+$N=2^n$, and the binary-fraction notation $0.j_1j_2\cdots=\sum_\ell j_\ell 2^{-\ell}$;
+colored chalk (one color for phases, one for the ancilla/estimate register).
+
+% =====================================================================
+\block{Block 1 --- The Hadamard test and the quantum Fourier transform}{45}
+% =====================================================================
+\noindent\emph{Objective:} one ancilla reads out $\mathrm{Re}\braket{\psi|U|\psi}$;
+the QFT is a unitary change of basis realizable with $\bigo(n^2)$ gates.
+
+\medskip
+\noindent\textbf{Pacing:} Hadamard test (derive) \tmark{12}; QFT definition \&
+unitarity \tmark{10}; product representation (derive) \tmark{12}; circuit \& gate
+count \tmark{8}; in-class \tmark{3}.
+
+\subsection*{1. The Hadamard test \tmark{12}}
+\begin{board}
+One ancilla (top), the state $\ket{\psi}$ (bottom); $H$, controlled-$U$, $H$, measure:
+\[
+  \tfrac12\big(\ket0+\ket1\big)\ket\psi\xrightarrow{\ c\text{-}U\ }
+  \tfrac1{\sqrt2}\big(\ket0\ket\psi+\ket1 U\ket\psi\big)
+  \xrightarrow{\ H\ }\ \cdots
+\]
+\[
+  \Prob(0)=\tfrac12\big(1+\mathrm{Re}\braket{\psi|U|\psi}\big),\qquad
+  \Prob(1)=\tfrac12\big(1-\mathrm{Re}\braket{\psi|U|\psi}\big).
+\]
+Insert $S^\dagger$ on the ancilla before the final $H$ to read $\mathrm{Im}\braket{\psi|U|\psi}$.
+\end{board}
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket0$} & \gate{H} & \ctrl{1} & \gate{H} & \meter{} \\
+\lstick{$\ket\psi$} & \qw & \gate{U} & \qw & \qw
+\end{quantikz}
+\end{center}
+Moral to say aloud: an \emph{eigenphase} already shows up here---if $U\ket\psi=\ee^{\ii2\pi\varphi}\ket\psi$
+then $\mathrm{Re}\braket{\psi|U|\psi}=\cos2\pi\varphi$. QPE will sharpen this one-bit
+diagnostic into a full $t$-bit readout.
+
+\begin{inclass}[Hadamard test on a known phase]\label{ic:l4-had}
+Take $U=\diag(1,\ee^{\ii2\pi\varphi})$ and $\ket\psi=\ket1$. Compute $\Prob(0)$ for the
+real test, and explain why it cannot distinguish $\varphi$ from $1-\varphi$.
+\end{inclass}
+\begin{answer}
+$\braket{\psi|U|\psi}=\ee^{\ii2\pi\varphi}$, so $\Prob(0)=\tfrac12(1+\cos2\pi\varphi)$.
+Since $\cos$ is even, $\varphi\mapsto1-\varphi$ (i.e.\ $-\varphi$) gives the same value;
+the imaginary test ($\Im=\sin2\pi\varphi$) breaks the tie.
+\end{answer}
+
+\subsection*{2. The QFT and its unitarity \tmark{10}}
+\begin{board}
+\textbf{Definition.} With $\omega=\ee^{\ii2\pi/N}$, $N=2^n$,
+\[
+  \QFT\ket{j}=\frac1{\sqrt N}\sum_{k=0}^{N-1}\omega^{jk}\ket{k}.
+\]
+\textbf{Unitary.} $\braket{k'|\QFT^\dagger\QFT|k}=\tfrac1N\sum_j\omega^{j(k-k')}
+=\delta_{k k'}$ by the geometric sum ($\sum_j\omega^{jm}=N$ if $m\equiv0$, else $0$).
+\end{board}
+Note for $n=1$ ($N=2$, $\omega=-1$) the QFT \emph{is} the Hadamard gate---a good anchor.
+\emph{Delivery (matches the notes).} Right after the definition, \textbf{demonstrate it
+first} on the smallest cases---do In-class~\ref{ic:l4-qft2} ($n=2$) at the board, and
+sketch the $n=3$ output---\emph{then} state the general unitarity, product form, and
+circuit below. Concrete before general.
+
+\subsection*{3. Product representation --- derive it \tmark{12}}
+\begin{board}
+Write $k=\sum_\ell k_\ell 2^{\,n-\ell}$ and factor $\omega^{jk}=\prod_\ell\ee^{\ii2\pi j k_\ell 2^{-\ell}}$:
+\[
+  \QFT\ket{j}=\bigotimes_{\ell=1}^{n}\frac1{\sqrt2}\Big(\ket0+\ee^{\ii2\pi\,0.j_{n-\ell+1}\cdots j_n}\ket1\Big).
+\]
+Each output qubit carries a \emph{binary-fraction phase} of the input bits; a Hadamard
+writes the leading bit and controlled phases fold in the rest.
+\end{board}
+\sketch{The $n=3$ output as three single-qubit ``clocks'' on the Bloch equator at angles
+$2\pi(0.j_1j_2j_3)$, $2\pi(0.j_2j_3)$, $2\pi(0.j_3)$; stress the bit-reversed order.}
+
+\subsection*{4. The circuit and its $\bigo(n^2)$ gate count \tmark{8}}
+\begin{board}
+Gates: Hadamard $H$ and controlled phases $R_k=\diag(1,\ee^{\ii2\pi/2^k})$. On qubit
+$m$: one $H$, then controlled-$R_2,\dots,R_{n-m+1}$; a final SWAP layer (bit reversal).
+Count $=n+\binom n2+\lfloor n/2\rfloor=\bigo(n^2)=\bigo((\log N)^2)$. Dropping phases with
+$k>\bigo(\log(n/\varepsilon))$ gives the \emph{approximate QFT} in $\bigo(n\log(n/\varepsilon))$ gates.
+\end{board}
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket{j_1}$} & \gate{H} & \gate{R_2} & \gate{R_3} & \qw & \ \cdots\ & \qw \\
+\lstick{$\ket{j_2}$} & \qw & \ctrl{-1} & \qw & \gate{H} & \ \cdots\ & \qw \\
+\lstick{$\ket{j_3}$} & \qw & \qw & \ctrl{-2} & \qw & \ \cdots\ & \qw
+\end{quantikz}
+\end{center}
+
+\begin{inclass}[The $n=2$ QFT by hand]\label{ic:l4-qft2}
+For $N=4$ compute $\QFT\ket{1}$ from the definition, and verify it matches the product
+form $\tfrac12(\ket0+\ii\ket1)\otimes$(bit-reversed) after the SWAP.
+\end{inclass}
+\begin{answer}
+$\QFT\ket1=\tfrac12(\ket0+\ii\ket1-\ket2-\ii\ket3)$ (using $\omega=\ii$). The product
+form gives $\tfrac12(\ket0+\ii\ket1)\otimes(\ket0-\ket1)$; expanding and SWAPping the two
+qubits reproduces the definition term by term.
+\end{answer}
+
+% =====================================================================
+\block{Block 2 --- Quantum phase estimation}{45}
+% =====================================================================
+\noindent\emph{Objective:} controlled powers of $U$ write the eigenphase into the
+ancilla register in the Fourier basis; an inverse QFT reads it out.
+
+\medskip
+\noindent\textbf{Pacing:} assemble QPE \tmark{14}; why it works (exact case) \tmark{12};
+worked example \tmark{10}; the Draper adder as a QFT application \tmark{6}; in-class \tmark{3}.
+
+\subsection*{1. Assembling standard QPE \tmark{14}}
+\begin{board}
+Given $U\ket{u}=\ee^{\ii2\pi\varphi}\ket u$. Use $t$ ancillas $+$ the eigenstate register:
+\begin{enumerate}[label=(\arabic*),leftmargin=1.8em,itemsep=1pt,topsep=2pt]
+  \item $H^{\otimes t}$ on the ancillas.
+  \item Controlled-$U^{2^{s}}$ from ancilla $s$ ($s=0,\dots,t-1$): ancilla $\to
+        \tfrac1{\sqrt T}\sum_{k=0}^{T-1}\ee^{\ii2\pi\varphi k}\ket k$, $T=2^t$.
+  \item Inverse QFT on the ancillas, then measure.
+\end{enumerate}
+\end{board}
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket0^{\otimes t}$} & \gate{H^{\otimes t}} & \ctrl{1} & \gate{\QFT^\dagger} & \meter{} \\
+\lstick{$\ket u$} & \qw & \gate{U^{2^s}} & \qw & \qw
+\end{quantikz}
+\end{center}
+
+\subsection*{2. Why it works --- the exact case \tmark{12}}
+\begin{board}
+If $\varphi=0.\varphi_1\cdots\varphi_t$ is a $t$-bit fraction, step (2) leaves the ancilla
+in exactly $\QFT\ket{T\varphi}$, so step (3) gives $\ket{T\varphi}$ and the measurement
+reads the bits of $\varphi$ \emph{with certainty}. Otherwise the readout is the nearest
+$t$-bit grid value with high probability (Block 3).
+\end{board}
+Say aloud: QPE is ``run the controlled-$U$ clock, then \emph{un-QFT} to collapse the clock
+hand onto a definite dial reading.''
+
+\subsection*{3. Worked example \tmark{10}}
+\begin{board}
+$\varphi=0.101_2=\tfrac58$, $t=3$. After the controlled powers the ancilla is
+$\QFT\ket5$; the inverse QFT returns $\ket5=\ket{101}$; measurement $\Rightarrow 101$,
+i.e.\ $\varphi=5/8$. Exact because $\varphi$ has a 3-bit expansion.
+\end{board}
+
+\begin{inclass}[One ancilla bit]\label{ic:l4-qpe}
+With $t=1$ and $U\ket u=\ee^{\ii2\pi\varphi}\ket u$, show the single-ancilla QPE is exactly
+the Hadamard test on $U$, and that it returns $\varphi$'s first bit when $\varphi\in\{0,\tfrac12\}$.
+\end{inclass}
+\begin{answer}
+$t=1$: $H$, controlled-$U$, inverse-QFT$=H$, measure --- the \S1 Hadamard-test circuit.
+$\Prob(0)=\tfrac12(1+\cos2\pi\varphi)$ is $1$ at $\varphi=0$ and $0$ at $\varphi=\tfrac12$,
+so the outcome is the leading bit in those exact cases.
+\end{answer}
+
+\subsection*{4. Addition in the Fourier basis (the Draper adder) \tmark{6}}
+\begin{board}
+Since $(\hat\cdot)$: $\QFT$ turns \emph{addition into phases}. Constant adder
+$\mathrm{ADD}_a=\QFT^\dagger\,\mathrm{diag}(\omega^{ak})\,\QFT$, and the diagonal factors
+into $n$ single-qubit phase gates. ``$\QFT$, $n$ phase rotations, inverse $\QFT$'' $=$ add
+$a$ --- no carries, no entangling gates in the middle.
+\end{board}
+Tie-forward (say aloud): the shift $\mathrm{ADD}_1$ is QFT-diagonal; circulant/banded
+matrices are sums of shifts, previewing the LCU block-encodings of Part~II.
+
+% =====================================================================
+\block{Block 3 --- Accuracy, Kitaev, and iterative variants}{45}
+% =====================================================================
+\noindent\emph{Objective:} how many ancillas buy $n$ good bits; a one-ancilla
+alternative; the metrological limit and classical feedback.
+
+\medskip
+\noindent\textbf{Pacing:} precision \& qubit count \tmark{14}; Kitaev bit-by-bit \tmark{12};
+iterative QPE \& Heisenberg limit \tmark{12}; eigenstate caveat \tmark{4}; in-class \tmark{3}.
+
+\subsection*{1. Precision and the qubit count \tmark{14}}
+\begin{board}
+To read the first $n$ bits of $\varphi$ with probability $\ge1-\varepsilon$, use
+\[
+  t=n+\Big\lceil\log_2\!\Big(2+\tfrac1{2\varepsilon}\Big)\Big\rceil
+\]
+ancillas. The error comes from the Dirichlet-kernel tail of the inverse QFT when $\varphi$
+is off-grid: amplitude concentrates on the nearest dial value, with $\bigo(1/\text{distance}^2)$
+leakage to the rest.
+\end{board}
+
+\subsection*{2. Kitaev's bit-by-bit method \tmark{12}}
+\begin{board}
+Measure one eigenphase bit at a time with a \emph{single} ancilla: a Hadamard test on
+$U^{2^s}$ estimates $\mathrm{Re}\,\ee^{\ii2\pi 2^{s}\varphi}$; repeat/average and combine
+across $s$ to pin the bits. Trades the $t$-qubit register for more repetitions.
+\end{board}
+Contrast aloud: standard QPE $=$ coherent (one shot, $t$ ancillas); Kitaev $=$ fewer
+qubits, more measurements. Same information, different resource split.
+
+\subsection*{3. Iterative QPE and the Heisenberg limit \tmark{12}}
+\begin{board}
+\textbf{Iterative QPE}: one ancilla, estimate bits from least to most significant,
+feeding each measured bit \emph{classically} into the phase of the next round's gate.
+\textbf{Heisenberg limit}: total ``query budget'' $N_U$ calls to $U$ buys precision
+$\sim1/N_U$ (vs the $1/\sqrt{N_U}$ of independent sampling)---the quantum metrology gain.
+\end{board}
+
+\subsection*{4. The eigenstate caveat \tmark{4}}
+\sketch{Input $\ket\phi=\sum_j c_j\ket{u_j}$ (bars of height $|c_j|^2$). QPE measures
+eigenphase $\varphi_j$ with probability $|c_j|^2$ and \emph{collapses} onto $\ket{u_j}$.}
+Say aloud: QPE needs an eigenstate (or good overlap with one); a generic input returns a
+\emph{random} eigenphase sampled by overlap. Preparing good inputs is the subject of
+Lecture~5.
+
+\begin{inclass}[How many ancillas?]\label{ic:l4-count}
+You want the first $8$ bits of $\varphi$ correct with probability at least $90\%$. How many
+ancilla qubits does standard QPE need?
+\end{inclass}
+\begin{answer}
+$t=8+\lceil\log_2(2+1/(2\cdot0.1))\rceil=8+\lceil\log_2 7\rceil=8+3=11$ ancillas.
+\end{answer}
+
+\begin{advanced}
+\textbf{Why the inverse QFT, concretely.} The controlled powers prepare the ``frequency''
+state $\tfrac1{\sqrt T}\sum_k\ee^{\ii2\pi\varphi k}\ket k$; the inverse QFT is precisely the
+matched filter that maps a pure frequency to its index. Off-grid $\varphi$ gives the
+Dirichlet kernel $\tfrac1T\big|\sum_k\ee^{\ii2\pi(\varphi-m/T)k}\big|^2$, whose peak at the
+nearest $m$ furnishes the precision bound of \S1. Full derivation in the student notes.
+\end{advanced}
+
+\end{document}

@@ -1,0 +1,175 @@
+\chapter{Tensor-Network States}
+% Solutions to the exercises of \cref{ch:lec15}.
+
+\begin{solution}[Exercise~\ref{ex:lec15-1}]
+(a) $\Tr[AB]=\sum_{i,j}A_{ij}B_{ji}$ is drawn as two boxes $A,B$ with the right leg
+of $A$ joined to the left leg of $B$ ($j$) \emph{and} the right leg of $B$ joined
+back to the left leg of $A$ ($i$), forming a closed loop with no free legs (the
+result is a scalar). Both indices $i,j$ are contracted; there are no free legs.
+Forming $AB$ costs $\bigo(d^{3})$ (\cref{prop:lec15-cost} with all dimensions $d$),
+and the final trace adds $\bigo(d)$, so the cost is $\bigo(d^{3})$; alternatively
+$\sum_{ij}A_{ij}B_{ji}$ is a direct double sum of $d^{2}$ products, $\bigo(d^{2})$,
+which is the cheaper order.
+
+(b) $C_{i\ell}=\sum_{j,k}A_{ijk}B_{jk\ell}$ is two rank-$3$ boxes joined along
+\emph{two} legs $j$ and $k$; the free legs are $i$ (on $A$) and $\ell$ (on $B$),
+so $C$ is a matrix. The contracted dimension is $D_{\mathrm c}=d^{2}$ (legs $j,k$)
+and the free dimensions are $D_A=d$, $D_B=d$, so by \cref{prop:lec15-cost} the cost
+is $\bigo(D_A D_B D_{\mathrm c})=\bigo(d\cdot d\cdot d^{2})=\bigo(d^{4})$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec15-2}]
+(a) With rows indexed by $s_1$ and columns by $s_2$ (order $0,1$), the coefficient
+matrix is
+\[
+  \psi=\frac{1}{\sqrt3}\begin{pmatrix}1&1\\0&1\end{pmatrix}.
+\]
+Then
+$\psi\dg\psi=\tfrac13\begin{pmatrix}1&0\\1&1\end{pmatrix}\begin{pmatrix}1&1\\0&1\end{pmatrix}
+=\tfrac13\begin{pmatrix}1&1\\1&2\end{pmatrix}$, whose eigenvalues solve
+$\mu^{2}-\mu+\tfrac19\cdot(2-1)=0$ after scaling; concretely the matrix
+$\bigl(\begin{smallmatrix}1&1\\1&2\end{smallmatrix}\bigr)$ has trace $3$ and
+determinant $1$, so its eigenvalues are $\tfrac{3\pm\sqrt5}{2}$. Dividing by $3$,
+the squared singular values are
+\[
+  \lambda_1^{2}=\frac{3+\sqrt5}{6}\approx0.8727,\qquad
+  \lambda_2^{2}=\frac{3-\sqrt5}{6}\approx0.1273,
+\]
+which sum to $1$ as required; the singular values are their square roots,
+$\sigma_1\approx0.9342$, $\sigma_2\approx0.3568$.
+
+(b) The Schmidt rank is $\chi=2$ (both singular values nonzero); the Schmidt
+coefficients are $\lambda_1\approx0.9342$, $\lambda_2\approx0.3568$; the
+entanglement entropy is
+\[
+  S=-\lambda_1^{2}\log_2\lambda_1^{2}-\lambda_2^{2}\log_2\lambda_2^{2}
+   \approx-0.8727\log_2 0.8727-0.1273\log_2 0.1273\approx0.552\ \text{bits}.
+\]
+
+(c) Since $\chi=2>1$, the state is entangled (equivalently, $\rho_A$ is mixed,
+$S>0$).
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec15-3}]
+By \cref{cor:lec15-reduced}, if $\ket{\psi}=\sum_k\lambda_k\ket{a_k}\otimes\ket{b_k}$
+is the Schmidt decomposition, then $\rho_A=\sum_k\lambda_k^{2}\proj{a_k}$ has
+eigenvalues exactly the squared Schmidt coefficients $\{\lambda_k^{2}\}$.
+
+($\Rightarrow$) If $\ket{\psi}=\ket{\alpha}_A\otimes\ket{\beta}_B$ is a product
+state, its Schmidt rank is $1$ (a single term $\lambda_1=1$), so
+$\rho_A=\proj{\alpha}$ is a rank-one projector, i.e. a pure state.
+
+($\Leftarrow$) If $\rho_A$ is a rank-one projector, its spectrum is a single
+eigenvalue $1$ and the rest $0$, so exactly one $\lambda_k^{2}=1$ and the others
+vanish; the Schmidt rank is $\chi=1$. Then \eqref{eq:lec15-schmidt} has a single
+term $\ket{\psi}=\ket{a_1}\otimes\ket{b_1}$, a product state. (Equivalently,
+purity $\Tr[\rho_A^{2}]=\sum_k\lambda_k^{4}=1$ with $\sum_k\lambda_k^{2}=1$ forces
+one $\lambda_k^{2}=1$.)
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec15-4}]
+The tensors are $A^{[1]0}=A^{[1]1}=\tfrac1{\sqrt2}$ (scalars),
+$A^{[2]0}=(\tfrac1{\sqrt2},0)$, $A^{[2]1}=(0,\tfrac1{\sqrt2})$,
+$A^{[3]0}=\binom{1}{0}$, $A^{[3]1}=\binom{0}{1}$. The product for a string
+$s_1s_2s_3$ is $A^{[1]s_1}A^{[2]s_2}A^{[3]s_3}$ (a scalar times a $1\times2$ times
+a $2\times1$). The row vector $A^{[2]s_2}$ has its single nonzero entry in column
+$s_2$, and $A^{[3]s_3}$ has its single nonzero entry in row $s_3$, so
+$A^{[2]s_2}A^{[3]s_3}=\tfrac1{\sqrt2}\,\delta_{s_2 s_3}$. Hence
+\[
+  \psi_{s_1 s_2 s_3}=\tfrac1{\sqrt2}\cdot\tfrac1{\sqrt2}\,\delta_{s_2 s_3}
+    =\tfrac12\,\delta_{s_2 s_3},
+\]
+independent of $s_1$. This gives $\tfrac12$ on the four strings with $s_2=s_3$
+($000,011,100,111$) and $0$ on the four with $s_2\neq s_3$ ($001,010,101,110$),
+matching $\ket{\psi}=\tfrac12(\ket{000}+\ket{011}+\ket{100}+\ket{111})$ exactly.
+
+Left-canonical check for $A^{[2]}$: viewing $A^{[2]s}_{\alpha\beta}$ as the matrix
+with combined row index $(\alpha,s)$ and column $\beta$, condition
+\eqref{eq:lec15-left} reads $\sum_s (A^{[2]s})\dg A^{[2]s}=\id_2$. Compute
+\[
+  \sum_{s}(A^{[2]s})\dg A^{[2]s}
+   =(A^{[2]0})\dg A^{[2]0}+(A^{[2]1})\dg A^{[2]1}
+   =\begin{pmatrix}\tfrac12&0\\0&0\end{pmatrix}
+    +\begin{pmatrix}0&0\\0&\tfrac12\end{pmatrix}
+   =\tfrac12\id_2 .
+\]
+This equals $\tfrac12\id_2$, not $\id_2$: the tensor as written is
+\emph{proportional} to left-canonical. The factor $\tfrac12$ is precisely the
+squared norm carried on bond $1$ (recall $A^{[1]}$ contributed the
+$\tfrac1{\sqrt2}$ factors); rescaling $A^{[2]s}\mapsto\sqrt2\,A^{[2]s}$ and
+$A^{[1]s}\mapsto\tfrac1{\sqrt2}A^{[1]s}=\tfrac12$ (a bond gauge,
+\cref{prop:lec15-gauge}) makes $A^{[2]}$ exactly left-canonical while leaving the
+physical state unchanged. Thus $A^{[2]}$ is left-canonical up to the bond-$1$ gauge.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec15-5}]
+(a) Take boundary row vector $L=(1,1)$ scaled and bulk matrices that ``lock'' the
+value of every qubit to a shared virtual index. A clean choice is: left boundary
+$A^{[1]0}=\tfrac1{\sqrt2}(1,0)$, $A^{[1]1}=\tfrac1{\sqrt2}(0,1)$ (a $1\times2$
+tensor); bulk matrices for $1<k<n$,
+\[
+  A^{[k]0}=\begin{pmatrix}1&0\\0&0\end{pmatrix},\qquad
+  A^{[k]1}=\begin{pmatrix}0&0\\0&1\end{pmatrix};
+\]
+right boundary $A^{[n]0}=\binom{1}{0}$, $A^{[n]1}=\binom{0}{1}$ (a $2\times1$
+tensor). The virtual index takes value $0$ or $1$ and each site's physical index
+must match it, so the network is nonzero only when all physical indices agree.
+
+(b) A matrix $A^{[k]s}$ is the projector onto virtual state $s$: $A^{[k]0}$ keeps
+the virtual index at $0$ and $A^{[k]1}$ keeps it at $1$, and either annihilates the
+other virtual value. For a string $s_1 s_2\cdots s_n$, the product
+$A^{[1]s_1}A^{[2]s_2}\cdots A^{[n]s_n}$ is nonzero only if all bulk projectors
+select the \emph{same} virtual value, i.e. $s_1=s_2=\cdots=s_n$. For the all-zeros
+string, $A^{[1]0}=\tfrac1{\sqrt2}(1,0)$ then $A^{[k]0}$ keeps component $0$, and
+$A^{[n]0}=\binom10$ closes it, giving $\tfrac1{\sqrt2}$; identically the all-ones
+string gives $\tfrac1{\sqrt2}$ through the $(1,1)$ virtual channel. Every mixed
+string contains at least one mismatch $s_k\neq s_{k+1}$, which multiplies a
+$0$-column against a $1$-row (or vice versa) and yields $0$. Hence the MPS equals
+$\tfrac1{\sqrt2}(\ket{0\cdots0}+\ket{1\cdots1})=\ket{\mathrm{GHZ}}$, with bond
+dimension $\chi=2$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec15-6}]
+(a) The discarded weight \eqref{eq:lec15-truncerr} is the sum of the dropped
+squared Schmidt coefficients. Keeping $\chi'=1$ (dropping $\lambda_2^2,\lambda_3^2,
+\lambda_4^2$) gives error $3\delta$. Keeping $\chi'=2$ (dropping $\lambda_3^2,
+\lambda_4^2$) gives error $2\delta$.
+
+(b) With $\delta=10^{-4}$: $\chi'=1$ already gives error $3\delta=3\times10^{-4}
+\le\epsilon^{2}=10^{-3}$. So the smallest sufficient bond dimension is $\chi'=1$.
+(Keeping the single dominant Schmidt value approximates the state by a product
+state to within squared error $3\times10^{-4}$.)
+
+(c) With $p_1=1-3\delta$ and $p_2=p_3=p_4=\delta$,
+\[
+  S=-(1-3\delta)\log_2(1-3\delta)-3\delta\log_2\delta .
+\]
+As $\delta\to0$, $(1-3\delta)\log_2(1-3\delta)\to0$ and $3\delta\log_2\delta\to0$
+(since $x\log_2 x\to0$), so $S\to0$: the state approaches a product state, exactly
+the regime in which the $\chi'=1$ truncation of part (b) is nearly exact. (For
+concreteness, at $\delta=10^{-4}$, $S\approx-0.9997\log_2 0.9997
+-3\cdot10^{-4}\log_2 10^{-4}\approx 0.00043+0.00398\approx0.0044$ bits.)
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec15-7}]
+(a) For the gapped-1D ground state, \cref{thm:lec15-hastings} gives an area law:
+$S(\ell)\le S_{\max}=\bigo(1)$, bounded independently of the block size and of $n$.
+For a Haar-random state of $n$ qubits, the reduced state of a half-chain block of
+$\ell=n/2$ qubits is nearly maximally mixed, and the average entanglement is the
+Page value $S\approx\tfrac{n}{2}$ (up to an $\bigo(1)$ correction), i.e. it grows
+\emph{linearly} in $n$---a volume law.
+
+(b) A cut of entropy $S$ requires bond dimension $\chi\gtrsim 2^{S}$ (the Schmidt
+rank must be able to support $2^{S}$ significant Schmidt values, and truncating
+below that incurs $\bigo(1)$ error). For the gapped ground state $S=\bigo(1)$, so
+$\chi=\bigo(1)$ (more precisely $\chi=\bigo(\polylog(n/\epsilon))$ once a target
+accuracy $\epsilon$ is fixed, \cref{prop:lec15-eff}). For the random state
+$S\approx n/2$, so $\chi\gtrsim 2^{n/2}$: exponentially large.
+
+(c) By \cref{prop:lec15-storage} the MPS storage is $\bigo(n\,d\,\chi^{2})$. For
+the gapped ground state this is $\bigo(n\,d\,\polylog(n/\epsilon)^2)=\poly(n)$:
+\emph{efficient}. For the Haar-random state it is $\bigo(n\,d\,2^{n})$, no better
+than storing all $d^{n}$ amplitudes: \emph{not} efficient. This is the precise
+sense in which MPS compress the physically relevant (low-entanglement) states but
+cannot compress generic (volume-law) ones.
+\end{solution}

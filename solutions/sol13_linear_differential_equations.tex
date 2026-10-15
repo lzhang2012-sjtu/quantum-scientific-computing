@@ -1,0 +1,159 @@
+\chapter{Quantum Algorithms for Linear Differential Equations}
+% Solutions to the exercises of \cref{ch:lec13}.
+
+\begin{solution}[Exercise~\ref{ex:lec13-1}]
+(a) Let $R(t)=U(t,0)x_0+\int_0^t U(t,s)b(s)\,\dd s$. Differentiating, and using
+$\partial_t U(t,s)=A(t)U(t,s)$ together with $U(t,t)=\id$ from the fundamental theorem of
+calculus applied to the integral,
+\[
+  R'(t)=A(t)U(t,0)x_0+U(t,t)b(t)+\int_0^t A(t)U(t,s)b(s)\,\dd s
+       =A(t)\Bigl[U(t,0)x_0+\int_0^t U(t,s)b(s)\,\dd s\Bigr]+b(t),
+\]
+i.e.\ $R'(t)=A(t)R(t)+b(t)$. Since $R(0)=U(0,0)x_0=x_0$, the vector $R$ solves the same
+initial value problem \eqref{eq:lec13-ode} as $x$. Because $A,b$ are Lipschitz, the
+Picard--Lindel\"of theorem guarantees a unique solution, so $R\equiv x$, which is
+\eqref{eq:lec13-duhamel}.
+
+(b) With $\tilde x=(x;1)$ and $\tilde A=\begin{psmallmatrix}A&b\\0&0\end{psmallmatrix}$, the
+bottom row gives $\tfrac{\dd}{\dd t}(1)=0$, consistent with the constant last component, and the
+top block gives $\dot x=Ax+b\cdot1=Ax+b$, reproducing \eqref{eq:lec13-ode}. Thus any
+inhomogeneous problem embeds as a homogeneous one in dimension $d+1$; equivalently, by (a) the
+inhomogeneous contribution is a quadrature of propagators $U(t,s)$ applied to $b(s)$, which LCU
+assembles from a block encoding of $U$. Either way it suffices to build (a block encoding of) the
+homogeneous propagator, so the algorithms of the chapter treat only $\dot x=A(t)x$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec13-2}]
+Since $-Z=\diag(-1,+1)$, the equation decouples: $x(t)=(a\,\ee^{-t},\,b\,\ee^{t})$. Its norm is
+$\norm{x(t)}=\sqrt{\abs a^2\ee^{-2t}+\abs b^2\ee^{2t}}$, and the normalized state is
+\[
+  \ket{x(t)}=\frac{1}{\sqrt{\abs a^2\ee^{-2t}+\abs b^2\ee^{2t}}}
+  \begin{psmallmatrix}a\,\ee^{-t}\\ b\,\ee^{t}\end{psmallmatrix}.
+\]
+For $b\ne0$ the growing branch dominates for large $t$, so $\norm{x(T)}\approx\abs b\ee^{T}$,
+while over $[0,T]$ the maximum norm is attained at $t=T$ as well (the norm is increasing once
+$\abs b\ee^{t}$ dominates); more precisely $\max_{t\in[0,T]}\norm{x(t)}=\norm{x(T)}$ when the
+growing term dominates throughout, giving $q=\bigo(1)$ there. The interesting regime is when the
+\emph{target} component is the decaying one: if we instead track the decaying component (e.g.\
+$b=0$, project onto the first coordinate), the surviving amplitude is $a\ee^{-T}$ while the
+maximum over $[0,T]$ is $\abs a$, so $q=\ee^{T}$ grows exponentially---the algorithm must fight
+the decay of the target relative to the initial state. In the anti-Hermitian case
+$\dot x=-\ii Zx$ we get $x(t)=(a\,\ee^{-\ii t},b\,\ee^{\ii t})$ with $\norm{x(t)}=\sqrt{\abs a^2
++\abs b^2}$ constant, so $q=1$: there is no norm growth, which is exactly why Hamiltonian
+simulation avoids these factors.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec13-3}]
+The forward-Euler recursion $x_{k+1}-x_k=\Delta t\,A_k x_k$ rearranges to
+$-(\id+\Delta t\,A_k)x_k+x_{k+1}=0$ for $k=1,\dots,N_t-1$, with the $k=0$ relation folded into
+the right-hand side. Stacking $(x_1,\dots,x_{N_t})$ produces exactly the block lower-bidiagonal
+matrix \eqref{eq:lec13-bigmatrix}: identity on the diagonal, $-(\id+\Delta t\,A_k)$ on the
+subdiagonal, and the first block row carrying $(\id+\Delta t\,A_0)x_0$. Writing the subdiagonal
+shift $\ket{t_{k+1}}\!\bra{t_k}$ separately from the identity gives the compact form
+\eqref{eq:lec13-bigmatrix-compact},
+\[
+  \mathcal A=\id_t\otimes\id_s-\sum_{k=1}^{N_t-1}\ket{t_{k+1}}\!\bra{t_k}\otimes(\id_s+\Delta t\,A_k).
+\]
+A block encoding is assembled by LCU from three pieces: $\id_t\otimes\id_s$ (subnormalization
+$1$), the shift tensored with $\id_s$ (subnormalization $1$, the shift being the adder circuit
+$\mathrm{ADD}$ which is unitary), and the shift tensored with $\Delta t\,A_k$ (subnormalization
+$\alpha_A\Delta t$, using one query to $U_A$ from \eqref{eq:lec13-UA}). The LCU $1$-norm is
+therefore $\le1+1+\alpha_A\Delta t=2+\alpha_A\Delta t$, which is $\bigo(1)$ once
+$\Delta t=\bigo(\alpha_A^{-1})$, and the whole block encoding costs one query to $U_A$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec13-4}]
+(a) Write $\mathcal A=\mathcal B_0-\mathcal B_1$, $\mathcal B_0=\id$, with $\mathcal B_1$ holding
+the blocks $B_k$ on the first sub-block-diagonal. Then $\mathcal B_1\dg\mathcal B_1$ is
+block-diagonal with diagonal blocks $B_l\dg B_l$, so
+$\norm{\mathcal B_1}^2=\norm{\mathcal B_1\dg\mathcal B_1}=\sup_l\norm{B_l}^2=\zeta_1^2$, giving
+$\norm{\mathcal B_1}\le\zeta_1$ and $\norm{\mathcal A}\le\norm{\mathcal B_0}+\norm{\mathcal B_1}
+\le\zeta_0+\zeta_1$.
+
+(b) Solving the block lower-triangular system by forward substitution gives the entries of
+$\mathcal A^{-1}$: its $k$-th sub-block-diagonal collects the ordered products
+$B_{l+k-1}\cdots B_l$ (this is checked directly by multiplying $\mathcal A\,\mathcal A^{-1}=\id$
+block-row by block-row, telescoping the products). Denoting by $\mathcal B^{(k)}$ the operator
+carrying just the $k$-th sub-block-diagonal, the same block-diagonal argument as in (a) yields
+$\norm{\mathcal B^{(k)}}\le\sup_l\norm{B_{l+k-1}\cdots B_l}=\zeta_k$. Hence
+$\norm{\mathcal A^{-1}}\le\sum_{k=0}^{m-1}\norm{\mathcal B^{(k)}}\le\sum_{k=0}^{m-1}\zeta_k$.
+Multiplying the two bounds gives $\kappa(\mathcal A)=\norm{\mathcal A}\norm{\mathcal A^{-1}}\le
+(\zeta_0+\zeta_1)\sum_{k=0}^{m-1}\zeta_k$, which is \eqref{eq:lec13-condnum}.
+
+For the contractive time-independent case, $B_k=B=\id+\Delta t\,A\approx\ee^{\Delta t A}$, so
+$\zeta_k=\norm{B^k}\approx\norm{\ee^{k\Delta t A}}\le C_1\ee^{-C_2 k\Delta t}$. The geometric
+series sums to $\sum_{k\ge0}\zeta_k\le C_1/(1-\ee^{-C_2\Delta t})\approx C_1/(C_2\Delta t)=
+\bigo(1/\Delta t)$, independent of $N_t$. With $\norm{\mathcal A}=\bigo(1)$ this gives
+$\kappa(\mathcal A)=\bigo(1/\Delta t)$, independent of $T$ (unless $C_2$ is tiny).
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec13-5}]
+Applying the block encoding of $B=\id+A\Delta t$ once maps $x_{k-1}$ to (the flagged component)
+$B x_{k-1}/(1+\alpha_A\Delta t)$, since the LCU subnormalization is $1+\alpha_A\Delta t$. The
+probability of measuring the success flag and obtaining the correctly normalized $x_k=Bx_{k-1}$
+is therefore $\le\dfrac{1}{(1+\alpha_A\Delta t)^2}\dfrac{\norm{x_k}^2}{\norm{x_{k-1}}^2}$.
+Multiplying over $k=1,\dots,N_t$ the norm ratios telescope,
+\[
+  \prod_{k=1}^{N_t}\frac{1}{(1+\alpha_A\Delta t)^2}\frac{\norm{x_k}^2}{\norm{x_{k-1}}^2}
+  =\frac{1}{(1+\alpha_A\Delta t)^{2N_t}}\frac{\norm{x(T)}^2}{\norm{x_0}^2}.
+\]
+Using $(1+\alpha_A\Delta t)^{N_t}\approx\ee^{\alpha_A\Delta t\,N_t}=\ee^{\alpha_A T}$ gives
+\eqref{eq:lec13-march-fail}, $\approx\ee^{-2\alpha_A T}\norm{x(T)}^2/\norm{x_0}^2$. For
+$A=-\ii H$ Hermitian, $\norm{x(T)}=\norm{x_0}$, yet the prefactor $\ee^{-2\alpha_A T}=
+\ee^{-2\norm H T}$ (taking $\alpha_A=\norm H$) still decays exponentially. Oblivious amplitude
+amplification rescues Hamiltonian simulation because $\ee^{-\ii H\Delta t}$ is unitary, so the
+subnormalized block can be deterministically rotated back to a unit-amplitude success; for a
+non-unitary $B$ the amplification target is not norm-preserving, so this rotation does not exist
+and one must amplify each step's singular values instead (\cref{thm:lec13-marching}).
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec13-6}]
+(a) Let $L=L\dg\succeq0$ have spectral decomposition $L=\sum_j\lambda_j\proj{\phi_j}$ with
+$\lambda_j\ge0$. Substituting $x=\lambda_j t$ into the given Fourier identity,
+$\int_\R\frac{1}{\pi(1+k^2)}\ee^{-\ii k\lambda_j t}\dd k=\ee^{-\abs{\lambda_j t}}=\ee^{-\lambda_j t}$
+(since $\lambda_j,t\ge0$). By the spectral mapping theorem a scalar identity valid on the
+spectrum lifts to the operator,
+\[
+  \int_\R\frac{1}{\pi(1+k^2)}\ee^{-\ii kLt}\dd k
+  =\sum_j\Bigl(\int_\R\frac{1}{\pi(1+k^2)}\ee^{-\ii k\lambda_j t}\dd k\Bigr)\proj{\phi_j}
+  =\sum_j\ee^{-\lambda_j t}\proj{\phi_j}=\ee^{-Lt},
+\]
+which is the $H=0$ case of the LCHS identity.
+
+(b) For $f(k)=\frac{1}{2\pi}\ee^{-2^\beta}\ee^{(1+\ii k)^\beta}$, evaluate at $k=-\ii$:
+$(1+\ii k)|_{k=-\ii}=1+\ii(-\ii)=2$, so $f(-\ii)=\frac1{2\pi}\ee^{-2^\beta}\ee^{2^\beta}=
+\frac1{2\pi}$, hence $2\pi f(-\ii)=1$. The normalization $\int_\R\frac{f(k)}{1-\ii k}\dd k=
+2\pi f(-\ii)=1$ follows from the residue theorem: $\frac{1}{1-\ii k}$ has a simple pole at
+$k=-\ii$ in the lower half-plane, where $f$ is analytic, and closing the contour there picks up
+$2\pi f(-\ii)$. For large real $k$, $\mathrm{Re}\,(1+\ii k)^\beta=\abs k^\beta\cos(\beta\pi/2)
++o(\abs k^\beta)$ with $\cos(\beta\pi/2)>0$ for $\beta\in(0,1)$, so $\abs{f(k)}\sim
+\ee^{-c\abs k^\beta}$ decays faster than any polynomial; then $\frac{\abs{f(k)}}{\abs{1-\ii k}}
+=\bigo(\ee^{-C\abs k^\beta})$ and truncating at $\abs k\le K$ leaves a tail
+$\bigo(\ee^{-CK^\beta})$, which is $\le\epsilon$ once $K=\bigo(\log^{1/\beta}(1/\epsilon))$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec13-7}]
+(a) With $w(t,r,p)=\ee^{-p}u(t,r)$, the time derivative is $\partial_t w=\ee^{-p}\partial_t u
+=\ee^{-p}\partial_{rr}u$ (using the heat equation). On the other hand $\partial_{rr}w=\ee^{-p}
+\partial_{rr}u$ and $\partial_p w=-\ee^{-p}u$, so $\ee^{-p}\partial_{rr}u=-\partial_p(\ee^{-p}
+\partial_{rr}u\cdot(-1))$; more directly, $-\partial_p\partial_{rr}w=-\partial_p(\ee^{-p}
+\partial_{rr}u)=\ee^{-p}\partial_{rr}u$. Hence $\partial_t w=-\partial_p\partial_{rr}w$.
+
+(b) Applying the Fourier transform in $p$, the operator $-\partial_p$ becomes multiplication by
+$\ii\eta$ (equivalently $-\ii\partial_p\to\eta$): $\mathcal F_p[-\partial_p\partial_{rr}w]=
+\ii\eta\,\partial_{rr}\tilde w$. Thus $\partial_t\tilde w=\ii\eta\,\partial_{rr}\tilde w$, i.e.\
+$\ii\partial_t\tilde w=-\eta\,\partial_{rr}\tilde w$. The generator $\mathcal H(\eta)=-\eta\,
+\partial_{rr}$ is, for each fixed real $\eta$, self-adjoint under homogeneous Dirichlet boundary
+conditions (integration by parts twice moves both derivatives across with no boundary terms,
+since the test functions vanish at the endpoints, and $\partial_{rr}$ is symmetric there). A
+self-adjoint generator produces a unitary propagator $\ee^{-\ii\mathcal H(\eta)t}$, so the lifted
+equation is a genuine Schr\"odinger equation.
+
+(c) After the inverse Fourier transform in $p$, the state carries $w(t,r,p)=\ee^{-p}u(t,r)$ for
+$p>0$. Projecting the $p$-register onto a mode $p_k>0$ yields the (unnormalized) component
+$\ee^{-p_k}u(t,r)$, so $u(t,r)=\ee^{p_k}w(t,r,p_k)$ recovers the solution up to the known scalar
+$\ee^{p_k}$. Because the projected amplitude is $\ee^{-p_k}\norm{u(T)}/\norm{w(0)}$, the
+probability of successfully landing in mode $p_k$ is its square,
+$\ee^{-2p_k}\norm{u(T)}^2/\norm{w(0)}^2$; choosing a small $p_k>0$ keeps this probability as
+large as possible while remaining in the region $p>0$ where the warp is exact.
+\end{solution}

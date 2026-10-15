@@ -1,0 +1,1381 @@
+\chapter{Grover's Algorithm and Amplitude Amplification}
+\label{ch:lec03}
+
+\begin{objectives}
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item Trace the historical arc from Deutsch's algorithm to unstructured search.
+  \item Derive the Grover iteration geometrically.
+  \item Construct the phase oracle and diffusion operator as explicit circuits.
+  \item Generalize to amplitude amplification and state its quadratic speedup.
+  \item Sketch the query lower bound for unstructured search.
+\end{itemize}
+\end{objectives}
+
+\coverage{the entire chapter (\S3.1--\S3.5).}
+
+The previous lectures fixed the language of states, gates, and measurement. This
+lecture uses that language to build the two archetypal query algorithms of the
+subject. We begin with the oracle model, in which the only access to an unknown
+Boolean function is a black-box unitary, and cost is measured in \emph{queries}
+to that box rather than in elementary gates. Within this model, Deutsch's
+algorithm and its descendants (Deutsch--Jozsa, Bernstein--Vazirani) demonstrate a
+clean and deterministic quantum advantage; the tools they introduce---phase
+kickback and the Hadamard transform---recur throughout the course. We then turn
+to the flagship application, Grover's algorithm for \emph{unstructured search},
+which finds a marked item among $N$ candidates using only $\bigo(\sqrt N)$
+queries, a quadratic speedup over the classical $\bigo(N)$. The mechanism reduces
+to a strikingly simple geometric picture: the search lives inside a
+two-dimensional plane, and each iteration is a rotation toward the solution. We
+prove the rotation picture, compute the optimal number of iterations, generalize
+to amplitude amplification, and close with the matching $\Omega(\sqrt N)$ lower
+bound that shows the algorithm is optimal.
+
+\section{Deutsch's algorithm}
+\label{sec:lec03-1}
+
+We are given a Boolean function $f:\{0,1\}^n\to\{0,1\}$ whose internal structure
+is hidden from us. We do not have the code of $f$; we may only feed inputs and
+receive outputs through a black box. To use $f$ inside a quantum circuit we need
+its action to be reversible, since every quantum gate is unitary. The standard
+device for this is the following.
+
+\begin{definition}[Oracle / query model]
+\label{def:lec03-oracle}
+Let $f:\{0,1\}^n\to\{0,1\}$. The \emph{oracle} (or \emph{quantum oracle}) for $f$
+is the operator $\Uf$ acting on $n+1$ qubits---an $n$-qubit \emph{input register}
+and a single-qubit \emph{target register}---defined on the computational basis by
+\[
+  \Uf\ket{x}\ket{y}=\ket{x}\ket{y\oplus f(x)},
+  \qquad x\in\{0,1\}^n,\ y\in\{0,1\},
+\]
+where $\oplus$ denotes addition modulo $2$. The \emph{query complexity} of a task
+is the minimum number of applications of $\Uf$ (over all algorithms that succeed)
+needed to solve it.
+\end{definition}
+
+The exclusive-or in the target register---rather than simply overwriting $y$ with
+$f(x)$---is precisely what makes the oracle reversible.
+
+\begin{lemma}[The oracle is unitary]
+\label{lem:lec03-unitary}
+For every $f:\{0,1\}^n\to\{0,1\}$, the operator $\Uf$ of
+\cref{def:lec03-oracle} is unitary and is its own inverse:
+$\Uf\dg\Uf=\Uf^2=\id$.
+\end{lemma}
+
+\begin{proof}
+The set $\{\ket{x}\ket{y}\}$ over $x\in\{0,1\}^n$, $y\in\{0,1\}$ is an orthonormal
+basis of the $2^{n+1}$-dimensional state space. The map
+$(x,y)\mapsto(x,\,y\oplus f(x))$ is a bijection of the index set to itself, because
+it is inverted by itself: applying it twice gives
+$(x,\,y\oplus f(x)\oplus f(x))=(x,y)$ since $f(x)\oplus f(x)=0$. Hence $\Uf$ merely
+permutes an orthonormal basis, so it is unitary, and $\Uf^2=\id$. Equivalently, in
+matrix form $\braket{x'y'|\Uf\dg\Uf|xy}=\delta_{xx'}\delta_{yy'}$, i.e.\
+$\Uf\dg\Uf=\id$.
+\end{proof}
+
+\paragraph{Classical versus quantum access.}
+A classical algorithm can only submit one input $x$ at a time and read back the
+single bit $f(x)$; setting the target to $y=0$ gives $\Uf\ket{x}\ket{0}=\ket{x}\ket{f(x)}$.
+To learn a \emph{global} property of $f$ this way may force us to examine almost
+all $2^n$ inputs. A quantum algorithm can instead prepare a uniform superposition
+of all inputs and apply $\Uf$ once, acting on every input in parallel:
+\[
+  \Uf\Big(\tfrac{1}{\sqrt{N}}\sum_{x\in\{0,1\}^n}\ket{x}\Big)\ket{0}
+  =\tfrac{1}{\sqrt{N}}\sum_{x}\ket{x}\ket{f(x)},
+  \qquad N=2^n.
+\]
+Parallelism alone is not enough---measuring this state returns one random pair
+$(x,f(x))$, no better than a classical query. The extra ingredient that converts
+parallelism into advantage is \emph{interference}, engineered through phase
+kickback and the Hadamard transform.
+
+\subsection{Phase kickback}
+
+The oracle writes $f(x)$ into the target register as a bit. We would prefer to
+have $f(x)$ appear as a \emph{phase} on the input register, since phases are what
+interfere. The following observation---perhaps the single most important trick in
+the lecture---accomplishes exactly this by choosing the target register cleverly.
+
+\begin{lemma}[Phase kickback]
+\label{lem:lec03-kickback}
+Let $\ket{-}=\tfrac{1}{\sqrt2}(\ket{0}-\ket{1})$. Then for every $x\in\{0,1\}^n$,
+\[
+  \Uf\ket{x}\ket{-}=(-1)^{f(x)}\ket{x}\ket{-}.
+\]
+In particular the target qubit is left in $\ket{-}$ and may be discarded, so on
+the input register the oracle acts as the effective diagonal unitary
+$\tilde U_f\ket{x}=(-1)^{f(x)}\ket{x}$.
+\end{lemma}
+
+\begin{proof}
+Expand the target register and apply \cref{def:lec03-oracle} to each branch:
+\[
+  \Uf\ket{x}\ket{-}
+  =\tfrac{1}{\sqrt2}\big(\Uf\ket{x}\ket{0}-\Uf\ket{x}\ket{1}\big)
+  =\tfrac{1}{\sqrt2}\big(\ket{x}\ket{f(x)}-\ket{x}\ket{1\oplus f(x)}\big).
+\]
+Consider the two cases for the bit $f(x)$. If $f(x)=0$ the target factor is
+$\tfrac{1}{\sqrt2}(\ket{0}-\ket{1})=\ket{-}=(+1)\ket{-}$. If $f(x)=1$ it is
+$\tfrac{1}{\sqrt2}(\ket{1}-\ket{0})=-\ket{-}=(-1)\ket{-}$. Both cases are captured
+by the single formula $(-1)^{f(x)}\ket{-}$, whence
+$\Uf\ket{x}\ket{-}=(-1)^{f(x)}\ket{x}\ket{-}$. Since the target factor is unchanged
+and unentangled from the input register, it factors out and can be dropped.
+\end{proof}
+
+\begin{remark}
+\label{rem:lec03-kickback}
+The name \emph{kickback} reflects that the eigenvalue $(-1)^{f(x)}$ of the target
+qubit's controlled action is ``kicked back'' onto the control (input) register.
+The target qubit acts purely as a passive signal state. This is the same mechanism
+that, with a target eigenstate of a general unitary, powers quantum phase
+estimation later in the course (\cref{ch:lec04}).
+\end{remark}
+
+Applying $\Uf$ to a uniform superposition with the target in $\ket{-}$ therefore
+produces, on the input register,
+\[
+  \tfrac{1}{\sqrt{N}}\sum_{x}\ket{x}\;\xmapsto{\ \Uf\ }\;
+  \tfrac{1}{\sqrt{N}}\sum_{x}(-1)^{f(x)}\ket{x}.
+\]
+Every value of $f$ is now recorded in a relative sign. It remains to read out
+these signs; the tool for that is the Hadamard transform.
+
+\subsection{The Hadamard transform}
+
+We will use repeatedly the action of $H^{\otimes n}$ on a basis state. Recall for
+a single qubit $H\ket{a}=\tfrac{1}{\sqrt2}\sum_{b\in\{0,1\}}(-1)^{ab}\ket{b}$.
+
+\begin{lemma}[Hadamard identity]
+\label{lem:lec03-had}
+For $x\in\{0,1\}^n$, writing $x\cdot z=\bigoplus_{i=1}^{n}x_i z_i$ for the bitwise
+inner product modulo $2$,
+\[
+  H^{\otimes n}\ket{x}=\frac{1}{\sqrt{2^{\,n}}}\sum_{z\in\{0,1\}^n}(-1)^{x\cdot z}\ket{z}.
+\]
+\end{lemma}
+
+\begin{proof}
+Take the tensor product of the single-qubit rule over the $n$ qubits:
+\[
+  H^{\otimes n}\ket{x}
+  =\bigotimes_{i=1}^{n}\Big(\tfrac{1}{\sqrt2}\sum_{z_i\in\{0,1\}}(-1)^{x_i z_i}\ket{z_i}\Big)
+  =\frac{1}{\sqrt{2^{\,n}}}\sum_{z\in\{0,1\}^n}(-1)^{\sum_i x_i z_i}\ket{z}.
+\]
+Because the phase is $\pm1$, the exponent $\sum_i x_i z_i$ may be reduced modulo
+$2$, giving $(-1)^{x\cdot z}$.
+\end{proof}
+
+We also record the orthogonality relation that makes the interference exact:
+\begin{equation}
+  \frac{1}{2^{\,n}}\sum_{x\in\{0,1\}^n}(-1)^{x\cdot w}
+  =\delta_{w,0^n},
+  \qquad w\in\{0,1\}^n,
+  \label{eq:lec03-orthog}
+\end{equation}
+which holds because the sum factors as $\prod_{i=1}^{n}\tfrac12\sum_{x_i}(-1)^{x_i w_i}$,
+and each factor equals $1$ if $w_i=0$ and $0$ if $w_i=1$.
+
+\subsection{The Deutsch algorithm}
+
+Consider the simplest nontrivial case, $n=1$, so $f:\{0,1\}\to\{0,1\}$. There are
+four such functions. We wish to decide a global property of $f$ using as few
+queries as possible.
+
+\begin{definition}[Constant and balanced functions]
+\label{def:lec03-constbal}
+A function $f:\{0,1\}^n\to\{0,1\}$ is \emph{constant} if $f(x)$ takes the same
+value on all $2^n$ inputs. It is \emph{balanced} if $f(x)=0$ on exactly half of
+the inputs and $f(x)=1$ on the other half. For $n=1$, $f$ is constant iff
+$f(0)=f(1)$ and balanced iff $f(0)\neq f(1)$.
+\end{definition}
+
+Classically, deciding whether $f$ is constant or balanced for $n=1$ requires
+\emph{two} queries: knowing $f(0)$ alone tells us nothing about $f(1)$. Deutsch's%
+\footnote{David Deutsch (b.\ 1953) is a physicist at the Centre for Quantum
+Computation, Clarendon Laboratory, University of Oxford. His 1985 paper
+\emph{Quantum theory, the Church--Turing principle and the universal quantum
+computer} introduced the universal quantum Turing machine and the first quantum
+algorithm; he also pioneered quantum logic gates and quantum error correction, and
+is a leading advocate of the Everett (``many-worlds'') interpretation and the
+founder of constructor theory.}
+algorithm decides it with a single query.
+
+\begin{theorem}[Correctness of the Deutsch algorithm]
+\label{thm:lec03-deutsch}
+Prepare the two-qubit state $\ket{0}\ket{1}$, apply $H$ to each qubit, apply
+$\Uf$, apply $H$ to the first qubit, and measure the first qubit. The outcome is
+$0$ if $f$ is constant and $1$ if $f$ is balanced. Exactly one query to $\Uf$ is
+used.
+\end{theorem}
+
+\begin{proof}
+After the first Hadamards,
+$H\ket{0}\otimes H\ket{1}=\ket{+}\ket{-}=\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})\ket{-}$.
+Applying $\Uf$ and using phase kickback (\cref{lem:lec03-kickback}) on each
+branch,
+\[
+  \Uf\,\tfrac{1}{\sqrt2}\big(\ket{0}+\ket{1}\big)\ket{-}
+  =\tfrac{1}{\sqrt2}\big((-1)^{f(0)}\ket{0}+(-1)^{f(1)}\ket{1}\big)\ket{-}.
+\]
+Now apply $H$ to the first qubit, using $H\ket{0}=\tfrac{1}{\sqrt2}(\ket0+\ket1)$
+and $H\ket{1}=\tfrac{1}{\sqrt2}(\ket0-\ket1)$:
+\[
+  \tfrac{1}{2}\Big[\big((-1)^{f(0)}+(-1)^{f(1)}\big)\ket{0}
+  +\big((-1)^{f(0)}-(-1)^{f(1)}\big)\ket{1}\Big]\ket{-}.
+\]
+If $f$ is constant, $f(0)=f(1)$, the $\ket{1}$ amplitude vanishes and the
+$\ket{0}$ amplitude is $\pm1$; the first qubit is $\pm\ket{0}$ and measurement
+yields $0$ with certainty. If $f$ is balanced, $f(0)\neq f(1)$, the $\ket{0}$
+amplitude vanishes and the first qubit is $\pm\ket{1}$; measurement yields $1$
+with certainty. The oracle is called once.
+\end{proof}
+
+Notice that the answer is read from the \emph{first} qubit, even though
+classically one would expect the ``information'' to live in the target qubit that
+received $f(x)$. This inversion is the hallmark of interference.
+
+\begin{example}[Deutsch on $f(a)=a\oplus 1$]
+\label{exa:lec03-deutsch}
+Take $f(0)=1$, $f(1)=0$, which is balanced. After the query the first register is
+$\tfrac{1}{\sqrt2}\big((-1)^{1}\ket0+(-1)^{0}\ket1\big)=\tfrac{1}{\sqrt2}(-\ket0+\ket1)=-\ket{-}$.
+Applying $H$ gives $H(-\ket{-})=-\ket{1}$, so the measurement returns $1$,
+correctly reporting ``balanced.'' By contrast, for the constant function
+$f\equiv 1$ the first register after the query is
+$\tfrac{1}{\sqrt2}(-\ket0-\ket1)=-\ket{+}$, and $H(-\ket{+})=-\ket0$ returns $0$,
+reporting ``constant.''
+\end{example}
+
+\begin{example}[Explicit circuits: the four one-bit oracles and Deutsch's circuit]
+\label{exa:lec03-deutsch-circuit}
+For $n=1$ there are exactly four functions $f:\{0,1\}\to\{0,1\}$, and each oracle
+$\Uf\ket{x}\ket{y}=\ket{x}\ket{y\oplus f(x)}$ is a small explicit circuit on the
+input qubit $x$ (top) and target qubit $y$ (bottom):
+\[
+  \begin{array}{llll}
+    f\equiv 0\ (\text{const}) : & \Uf=\id, &
+    f(x)=x\ (\text{bal}) : & \Uf=\CNOT_{x\to y},\\[2pt]
+    f\equiv 1\ (\text{const}) : & \Uf=\id\otimes X, &
+    f(x)=x\oplus1\ (\text{bal}) : & \Uf=(\id\otimes X)\,\CNOT_{x\to y}.
+  \end{array}
+\]
+Take the balanced $f(x)=x$, whose oracle is a single $\CNOT$. The full Deutsch
+circuit---$H$ on both qubits, the oracle, $H$ on the input, then measure the input---is
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket0$} & \gate{H} & \ctrl{1} & \gate{H} & \meter{} \\
+\lstick{$\ket1$} & \gate{H} & \targ{}  & \qw      & \qw
+\end{quantikz}
+\end{center}
+Tracing it through: $\ket0\ket1\xrightarrow{H\otimes H}\ket{+}\ket{-}
+\xrightarrow{\CNOT}\tfrac1{\sqrt2}(\ket0-\ket1)\ket{-}=\ket{-}\ket{-}
+\xrightarrow{H\otimes\id}\ket{1}\ket{-}$, so the input qubit is measured as $1$:
+``balanced,'' in one query. For the constant $f\equiv0$ the oracle is the identity,
+the input qubit stays $\ket{+}\xrightarrow{H}\ket0$, and the measurement returns $0$:
+``constant.''
+\end{example}
+
+\subsection{The Deutsch--Jozsa algorithm}
+
+We now generalize to $n$ qubits under the following \emph{promise}: $f$ is either
+constant or balanced (\cref{def:lec03-constbal}), and we are guaranteed that one
+of these holds. The task is to decide which. Classically, in the worst case one
+must query $2^{n-1}+1$ inputs: after seeing $2^{n-1}$ identical outputs the
+function could still be either constant or balanced, and one more query is needed.
+Deutsch--Jozsa%
+\footnote{Richard Jozsa (b.\ 1953) is the Leigh Trapnell Professor of Quantum
+Physics at the University of Cambridge (DAMTP), where he heads the Centre for
+Quantum Information and Foundations. With Deutsch he generalized the 1985 result to
+the Deutsch--Jozsa algorithm (\emph{Rapid solution of problems by quantum
+computation}, 1992)---the first quantum algorithm exponentially faster than any
+deterministic classical one---and he is one of the six co-authors of the 1993
+quantum-teleportation protocol, as well as a co-inventor of the state fidelity and
+the swap test.}
+decides it with a single quantum query.
+
+The circuit is the unifying pattern $H^{\otimes n}$--$\Uf$--$H^{\otimes n}$ on the
+$n$-qubit input register, with the target qubit held in $\ket{-}$.
+
+\begin{theorem}[Correctness of Deutsch--Jozsa]
+\label{thm:lec03-dj}
+Prepare $\ket{0}^{\otimes n}$ on the input register and $\ket{-}$ on the target.
+Apply $H^{\otimes n}$, then $\Uf$, then $H^{\otimes n}$, and measure the input
+register. If $f$ is constant the outcome is $0^n$ with probability $1$; if $f$ is
+balanced the outcome $0^n$ occurs with probability $0$. Thus measuring all zeros
+certifies ``constant,'' and any nonzero outcome certifies ``balanced.'' One query
+to $\Uf$ is used.
+\end{theorem}
+
+\begin{proof}
+By \cref{lem:lec03-had}, $H^{\otimes n}\ket{0}^{\otimes n}
+=\tfrac{1}{\sqrt N}\sum_{x}\ket{x}$ with $N=2^n$. Applying $\Uf$ with the target
+in $\ket{-}$ triggers phase kickback (\cref{lem:lec03-kickback}) on every branch,
+giving (dropping the unchanged target factor)
+\[
+  \tfrac{1}{\sqrt N}\sum_{x}(-1)^{f(x)}\ket{x}.
+\]
+Apply $H^{\otimes n}$ once more and use \cref{lem:lec03-had} again:
+\[
+  H^{\otimes n}\tfrac{1}{\sqrt N}\sum_{x}(-1)^{f(x)}\ket{x}
+  =\frac{1}{N}\sum_{z}\Big(\sum_{x}(-1)^{f(x)}(-1)^{x\cdot z}\Big)\ket{z}.
+\]
+The amplitude of the outcome $z=0^n$ is obtained by setting $z=0^n$, so $x\cdot z=0$:
+\[
+  \alpha_{0^n}=\frac{1}{N}\sum_{x\in\{0,1\}^n}(-1)^{f(x)}.
+\]
+If $f$ is constant, every term is the same sign and $\alpha_{0^n}=\pm1$, so the
+outcome is $0^n$ with probability $\abs{\alpha_{0^n}}^2=1$. If $f$ is balanced,
+exactly $N/2$ terms equal $+1$ and $N/2$ equal $-1$, so they cancel and
+$\alpha_{0^n}=0$: the outcome $0^n$ never occurs. In either case a single query
+suffices, and the two cases are distinguished with certainty.
+\end{proof}
+
+\begin{remark}[Gate complexity of the oracle, and the role of the promise]
+\label{rem:lec03-dj-gatecost}
+The ``one query'' of \cref{thm:lec03-dj} counts \emph{calls} to $\Uf$, which the query
+model (\cref{def:lec03-oracle}) treats as a unit-cost black box. The \emph{gate}
+complexity---the number of elementary gates needed to \emph{build} $\Uf$---is a separate
+question, and it depends on the particular function $f$, \emph{not} on whether $f$ is
+constant or balanced. The promise is a global property of $f$'s truth table; it says
+nothing about how hard $f$ is to compute.
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{Constant.} $f\equiv0$ gives $\Uf=\id$ (no gates); $f\equiv1$ flips the
+        target unconditionally, $\Uf=\id^{\otimes n}\otimes X$ (one gate). Constant
+        oracles are trivial.
+  \item \emph{Balanced.} The gate count spans the whole range: a single parity
+        $f(x)=x_i$ needs one $\CNOT$, and $f(x)=s\cdot x$ needs at most $n$ $\CNOT$s
+        (\cref{def:lec03-bv}), but a \emph{generic} balanced function is as hard as a
+        generic Boolean function---by a counting (Shannon) argument almost all $n$-bit
+        functions require $\Theta(2^n/n)$ gates.
+\end{itemize}
+So the constant/balanced classification does \emph{not} fix the gate cost: two balanced
+functions can differ by an exponential factor. The dramatic $1$-vs-$(2^{n-1}{+}1)$
+Deutsch--Jozsa separation is therefore a statement about \emph{query} complexity only. If
+$\Uf$ must be compiled from gates, that cost is paid once and is incurred by \emph{any}
+algorithm---classical or quantum---so it cannot be charged against the comparison; the
+quantum advantage is purely in the number of oracle calls. (Phase kickback reuses the
+same bit oracle $\Uf$ with the target held in $\ket{-}$, so reading $f$ as a phase adds
+no gates beyond the one-time $\ket{-}$ preparation.)
+\end{remark}
+
+\subsection{The Bernstein--Vazirani algorithm}
+
+The Deutsch--Jozsa algorithm returns a single bit of information (constant vs.\
+balanced). The Bernstein--Vazirani%
+\footnote{The algorithm is due to Ethan Bernstein and Umesh Vazirani. Vazirani is
+the Roger A.\ Strauch Professor of EECS at the University of California, Berkeley,
+and directs the Berkeley Quantum Computation Center; Bernstein was his doctoral
+student there. Their 1993 paper \emph{Quantum complexity theory} defined the
+quantum Turing machine and the class $\mathsf{BQP}$, and their algorithm---a special
+case of Deutsch--Jozsa---recovers an $n$-bit hidden string in a single query, the
+seed of the first oracle separation between $\mathsf{BPP}$ and $\mathsf{BQP}$.}
+algorithm uses the very same circuit to extract
+an entire hidden $n$-bit string in one query, provided $f$ has a special linear
+structure.
+
+\begin{definition}[Bernstein--Vazirani function]
+\label{def:lec03-bv}
+Fix a hidden string $s\in\{0,1\}^n$. The associated \emph{linear} Boolean function
+is
+\[
+  f_s(x)=s\cdot x=\bigoplus_{i=1}^{n}s_i x_i \pmod 2,
+\]
+the parity of the number of positions at which $s$ and $x$ are both $1$. The
+Bernstein--Vazirani problem is: given oracle access to $\Uf$ for such an $f_s$,
+determine $s$.
+\end{definition}
+
+Classically, one recovers $s$ bit by bit. Querying $x=e_i$ (the string with a
+single $1$ in position $i$) returns $f_s(e_i)=s_i$; this determines one bit per
+query, so $n$ queries are needed and sufficient. The quantum algorithm needs one.
+
+\begin{theorem}[Correctness of Bernstein--Vazirani]
+\label{thm:lec03-bv}
+For $f=f_s$ of \cref{def:lec03-bv}, running the circuit of
+\cref{thm:lec03-dj}---$H^{\otimes n}$, then $\Uf$, then $H^{\otimes n}$, with the
+target in $\ket{-}$---leaves the input register in the state $\ket{s}$. Measuring
+recovers $s$ with certainty using a single query.
+\end{theorem}
+
+\begin{proof}
+As before, after $H^{\otimes n}$ and the single query with phase kickback the
+input register is
+\[
+  \tfrac{1}{\sqrt N}\sum_{x}(-1)^{f_s(x)}\ket{x}
+  =\tfrac{1}{\sqrt N}\sum_{x}(-1)^{s\cdot x}\ket{x}.
+\]
+Applying $H^{\otimes n}$ and using \cref{lem:lec03-had},
+\[
+  H^{\otimes n}\tfrac{1}{\sqrt N}\sum_{x}(-1)^{s\cdot x}\ket{x}
+  =\frac{1}{N}\sum_{z}\Big(\sum_{x}(-1)^{s\cdot x}(-1)^{x\cdot z}\Big)\ket{z}
+  =\frac{1}{N}\sum_{z}\Big(\sum_{x}(-1)^{x\cdot(s\oplus z)}\Big)\ket{z},
+\]
+where $s\cdot x\oplus x\cdot z=x\cdot(s\oplus z)$ because the inner product is
+linear in its second argument modulo $2$. By the orthogonality relation
+\eqref{eq:lec03-orthog}, $\tfrac{1}{N}\sum_{x}(-1)^{x\cdot(s\oplus z)}
+=\delta_{s\oplus z,\,0^n}=\delta_{z,s}$. Hence only the term $z=s$ survives and the
+register is exactly $\ket{s}$. Measuring in the computational basis returns $s$
+with probability $1$.
+\end{proof}
+
+Equivalently, $H^{\otimes n}\ket{s}=\tfrac{1}{\sqrt N}\sum_x(-1)^{s\cdot x}\ket{x}$
+by \cref{lem:lec03-had}, so the post-query state is $H^{\otimes n}\ket{s}$; a
+second $H^{\otimes n}$ inverts it (since $H^{\otimes n}$ is its own inverse) and
+returns $\ket{s}$.
+
+\begin{remark}[The unifying pattern and its limits]
+\label{rem:lec03-significance}
+Several points deserve emphasis. \emph{(i) Deterministic advantage.} All three
+algorithms succeed with probability exactly $1$; the advantage is not a matter of
+a lucky measurement. For Deutsch--Jozsa the separation is $1$ quantum query versus
+$2^{n-1}+1$ classical queries in the worst case, but only in the
+\emph{deterministic} setting: a handful of random classical queries distinguishes
+constant from balanced with high confidence, so the bounded-error classical query
+complexity is $\bigo(1)$. For Bernstein--Vazirani the separation is $1$ versus $n$
+and survives even with bounded error. \emph{(ii) The template.} Every algorithm
+here is the circuit $H^{\otimes n}\,\Uf\,H^{\otimes n}$ applied to
+$\ket{0}^{\otimes n}$ with the target in $\ket{-}$: phase kickback writes $f$ into
+signs, and the two Hadamard layers read those signs out by interference. This
+template recurs throughout quantum algorithms, from Simon's problem to Shor's.
+\emph{(iii) Queries vs.\ gates.} We count calls to $\Uf$, treating the oracle as a
+unit-cost black box; the gate cost of \emph{building} $\Uf$ for a given $f$ must be
+analyzed separately and need not be small.
+\end{remark}
+
+\section{The unstructured search problem}
+\label{sec:lec03-2}
+
+We now turn to the flagship query problem. The word \emph{unstructured} is
+essential: there is no order, index, or exploitable regularity among the items, so
+the trick behind binary search is unavailable.
+
+\begin{definition}[Unstructured search]
+\label{def:lec03-search}
+Let $N=2^{n}$ and let $f\colon\{0,1\}^{n}\to\{0,1\}$ be a Boolean function to which
+we have only \emph{oracle} access (\cref{def:lec03-oracle}). We are promised that
+there is a unique marked item $x_0\in\{0,1\}^{n}$ with
+\[
+  f(x)=\begin{cases}1,& x=x_0,\\ 0,& x\neq x_0.\end{cases}
+\]
+The goal is to determine $x_0$ using as few queries to $\Uf$ as possible.
+\end{definition}
+
+Each application of $\Uf$ counts as one query, and we measure the cost of an
+algorithm by its query complexity. Because the function has no structure, the
+oracle is the only way to learn anything about $x_0$: the string $x_0$ cannot be
+read off directly.
+
+\begin{proposition}[Classical lower bound]
+\label{prop:lec03-classical}
+Any classical (possibly randomized) algorithm that identifies $x_0$ with constant
+success probability must make $\Omega(N)$ queries to $f$ in the worst case.
+\end{proposition}
+
+\begin{proof}[Sketch]
+A classical algorithm learns nothing about $x_0$ from a query $f(x)$ unless
+$x=x_0$. An adversary may answer $f(x)=0$ for every queried $x$ until only one
+unqueried candidate remains, which is consistent with $x_0$ being that last item.
+Thus to be certain, an algorithm must probe $N-1$ items in the worst case. A
+randomized algorithm querying a uniformly random subset of size $k$ finds $x_0$
+with probability $k/N$, so achieving constant success probability requires
+$k=\Omega(N)$ queries.
+\end{proof}
+
+This abstract task captures many concrete situations: searching an unsorted
+database, deciding satisfiability of a constraint problem (treat any satisfying
+assignment as a marked item and let the oracle test assignments), or inverting a
+function. In every case the common structure is the same: \emph{package ``is this
+candidate a solution?'' into an oracle}, and the classical exhaustive cost is
+$\bigo(N)$. Grover's algorithm attacks all of them at once.
+
+\paragraph{The phase oracle.}
+As in \cref{sec:lec03-1}, it is convenient to convert the bit-flip oracle $\Uf$
+into a \emph{phase} oracle. Preparing the target qubit in $\ket{-}$ and applying
+phase kickback (\cref{lem:lec03-kickback}) gives
+$\Uf\ket{x}\ket{-}=(-1)^{f(x)}\ket{x}\ket{-}$; the target factors out, and on the
+$n$-qubit register the oracle acts as $\ket{x}\mapsto(-1)^{f(x)}\ket{x}$, simply
+attaching a minus sign to the marked basis state $\ket{x_0}$.
+
+\section{Grover's search algorithm}
+\label{sec:lec03-3}
+
+Two operators drive the algorithm. Both are \emph{reflections}, and their product
+is a rotation. We first define them, prove they are genuine reflections, and then
+assemble the Grover iterate and analyze it geometrically.
+
+Throughout, let
+\[
+  \ket{\psi_0}=H^{\otimes n}\ket{0^{n}}=\frac{1}{\sqrt N}\sum_{x\in\{0,1\}^{n}}\ket{x}
+\]
+be the uniform superposition over all $N$ basis states. This is the algorithm's
+starting state; every candidate carries amplitude $1/\sqrt N$.
+
+\begin{definition}[Marking reflection and diffusion operator]
+\label{def:lec03-reflections}
+The \emph{marking reflection} (phase oracle) is
+\[
+  R_{x_0}=\id-2\proj{x_0},
+\]
+which flips the sign of the amplitude on $\ket{x_0}$ and leaves the orthogonal
+complement fixed. The \emph{diffusion operator} is
+\[
+  R_{\psi_0}=2\proj{\psi_0}-\id,
+\]
+which fixes $\ket{\psi_0}$ and flips the sign of everything orthogonal to it. It
+can be written equivalently as
+\[
+  R_{\psi_0}=H^{\otimes n}\bigl(2\proj{0^{n}}-\id\bigr)H^{\otimes n},
+\]
+which is how it is implemented as a circuit.
+\end{definition}
+
+\begin{lemma}[Both operators are reflections]
+\label{lem:lec03-reflections}
+Each of $R_{x_0}$ and $R_{\psi_0}$ is Hermitian, unitary, and an involution
+($R^2=\id$); geometrically each is a reflection of the Hilbert space about a
+hyperplane.
+\end{lemma}
+
+\begin{proof}
+Let $\ket{u}$ be a unit vector and set $P=\proj{u}$, so $P=P\dg$ and $P^{2}=P$ (an
+orthogonal projector). Consider $R=\id-2P$. Then
+\[
+  R\dg=\id-2P\dg=\id-2P=R,
+\]
+so $R$ is Hermitian. Moreover
+\[
+  R^{2}=(\id-2P)^{2}=\id-4P+4P^{2}=\id-4P+4P=\id,
+\]
+so $R$ is an involution. A Hermitian involution is unitary, since
+$R\dg R=R^{2}=\id$. Its action is $R\ket{u}=-\ket{u}$ and $R\ket{w}=\ket{w}$ for
+every $\ket{w}\perp\ket{u}$, which is exactly a reflection about the hyperplane
+$\ket{u}^{\perp}$.
+
+Applying this with $\ket{u}=\ket{x_0}$ gives $R_{x_0}=\id-2\proj{x_0}$ directly.
+For the diffusion operator, note
+$R_{\psi_0}=2\proj{\psi_0}-\id=-\bigl(\id-2\proj{\psi_0}\bigr)$; by the computation
+above $\id-2\proj{\psi_0}$ is a Hermitian unitary involution, and negating it
+preserves all three properties. Explicitly $R_{\psi_0}\ket{\psi_0}=\ket{\psi_0}$
+and $R_{\psi_0}\ket{w}=-\ket{w}$ for $\ket{w}\perp\ket{\psi_0}$, so $R_{\psi_0}$ is
+the reflection through the axis $\ket{\psi_0}$. The identity
+$R_{\psi_0}=H^{\otimes n}(2\proj{0^{n}}-\id)H^{\otimes n}$ follows because
+$H^{\otimes n}$ is unitary and $H^{\otimes n}\ket{0^{n}}=\ket{\psi_0}$.
+\end{proof}
+
+Intuitively $R_{\psi_0}$ implements an ``inversion about the mean'': writing a
+state as $\sum_x a_x\ket{x}$ with mean amplitude $\bar a=\tfrac1N\sum_x a_x$, one
+checks that $R_{\psi_0}\sum_x a_x\ket{x}=\sum_x(2\bar a-a_x)\ket{x}$, reflecting
+each amplitude about $\bar a$ (Exercise~\ref{ex:lec03-1}).
+
+\begin{definition}[Grover iterate]
+\label{def:lec03-iterate}
+The \emph{Grover iterate} is the composition of the two reflections,
+\[
+  G=R_{\psi_0}R_{x_0}
+   =\bigl(2\proj{\psi_0}-\id\bigr)\bigl(\id-2\proj{x_0}\bigr).
+\]
+One iteration first marks the solution (via $R_{x_0}$) and then reflects about the
+mean (via $R_{\psi_0}$).
+\end{definition}
+
+\subsection{Building the two reflections as circuits}
+\label{sec:lec03-circuits}
+
+So far $R_{x_0}$ and $R_{\psi_0}$ are abstract operators. Before analyzing them it
+is instructive to see that both are ordinary circuits built from standard gates.
+
+\paragraph{The marking reflection as a phase oracle.}
+Recall from \cref{sec:lec03-1} that the bit-flip oracle $\Uf$ becomes the phase
+oracle $\ket{x}\mapsto(-1)^{f(x)}\ket{x}$ once the target qubit is held in
+$\ket{-}$: by phase kickback (\cref{lem:lec03-kickback}) the eigenvalue
+$(-1)^{f(x)}$ is written onto the input register, leaving the ancilla in $\ket{-}$
+to be reused on the next query. For the single-solution predicate of
+\cref{def:lec03-search} this is exactly $R_{x_0}=\id-2\proj{x_0}$, the operator
+that flips the sign of $\ket{x_0}$ alone. It has a transparent gate-level
+implementation. Start from the multiply-controlled $Z$ gate on $n$ qubits,
+which multiplies $\ket{1^n}$ by $-1$ and fixes every other basis state, since
+$Z\ket{1}=-\ket{1}$ fires only when all $n$ qubits are $1$. This is precisely
+the phase oracle for the marked string $1^n$. To mark an \emph{arbitrary}
+$x_0\in\{0,1\}^n$ instead, conjugate the multiply-controlled $Z$ by
+$X$ (NOT) gates placed on exactly those qubits where $x_0$ has a $0$:
+\[
+  R_{x_0}=\Bigl(\textstyle\bigotimes_{i:\,(x_0)_i=0}X_i\Bigr)\,
+          \bigl(\text{mult.\ ctrl-}Z\bigr)\,
+          \Bigl(\textstyle\bigotimes_{i:\,(x_0)_i=0}X_i\Bigr).
+\]
+The leading NOTs turn $\ket{x_0}$ into $\ket{1^n}$; the controlled-$Z$
+attaches the $-1$; the trailing NOTs restore $\ket{x_0}$. Every other basis state
+either fails to become $\ket{1^n}$ (so it is untouched) or has its two NOT layers
+cancel, so it emerges unchanged. For $n=3$ and $x_0=\ket{011}$, for instance, one
+places an $X$ on the single $0$-qubit before and after a doubly controlled
+$Z$, giving the circuit for $R_{x_0}$
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket{x_1}$} & \gate{X} & \ctrl{1} & \gate{X} & \qw \\
+\lstick{$\ket{x_2}$} & \qw      & \ctrl{1} & \qw      & \qw \\
+\lstick{$\ket{x_3}$} & \qw      & \gate{Z} & \qw      & \qw
+\end{quantikz}
+\end{center}
+Reading it through: the leading $X$ on $q_1$ sends $\ket{011}\mapsto\ket{111}$,
+the doubly-controlled $Z$ multiplies $\ket{111}$ by $-1$, and the trailing
+$X$ restores $\ket{011}$; every other basis state either never reaches
+$\ket{111}$ or has its two $X$ layers cancel, so only $\ket{x_0}=\ket{011}$
+picks up the sign---exactly $R_{x_0}=\id-2\proj{011}$.
+
+\paragraph{Realizing the controlled-$Z$ by kickback.}
+The doubly (or multiply) controlled $Z$ is itself typically compiled from a
+controlled-$X$ (Toffoli, for $n=3$) sandwiched between two Hadamards on the
+target, using the identity $Z=HX H$: with the target prepared by the
+first $H$ in $\ket{-}$, the multi-controlled NOT kicks back a factor $-1$ exactly
+when all controls are $1$, and the second $H$ returns the target to its
+computational value. This is the same phase-kickback mechanism of
+\cref{lem:lec03-kickback}, now used to synthesize the diagonal phase gate rather
+than to query an external oracle. Concretely the doubly-controlled $Z$ above is
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket{x_1}$} & \qw      & \ctrl{1} & \qw      & \qw \\
+\lstick{$\ket{x_2}$} & \qw      & \ctrl{1} & \qw      & \qw \\
+\lstick{$\ket{x_3}$} & \gate{H} & \targ{}  & \gate{H} & \qw
+\end{quantikz}
+\end{center}
+a Toffoli conjugated by Hadamards on the target wire ($Z=HX H$).
+
+\begin{remark}[We never build $R_{x_0}$ from $x_0$]
+\label{rem:lec03-oracle-from-f}
+The circuit above hard-codes the marked string---$X$ gates on the $0$-bits of a
+\emph{given} $x_0$---so it is illustrative only; if we already knew $x_0$ there would
+be nothing to search for. In a real search $R_{x_0}$ is the phase oracle compiled
+from the \emph{verifier} $f$ of \cref{def:lec03-search}, the reversible circuit that
+\emph{tests} whether a candidate is a solution. Building it needs only the ability to
+\emph{recognize} a solution, not to \emph{locate} one---the ``hard to find, easy to
+check'' structure of search. The marked string $x_0$ is whatever input makes $f$
+fire; Grover surfaces it at the final measurement, after which one classical
+evaluation of $f$ confirms it.
+\end{remark}
+
+\begin{example}[Compiling $R_{x_0}$ from a verifier]
+\label{ex:lec03-oracle-compile}
+Most searches take the form ``find $x$ with $g(x)=t$'' for an efficiently computable
+$g$ and a known target $t$ (satisfiability, function inversion, and database matching
+all fit this mold). The verifier is $f(x)=[\,g(x)=t\,]$, and $R_{x_0}$ is assembled in
+three stages that use only $g$ and $t$---never $x_0$:
+\begin{enumerate}[label=(\arabic*),leftmargin=1.9em,itemsep=1pt,topsep=2pt]
+  \item \emph{Compute.} A reversible circuit $U_g$ writes the result into a fresh
+        ancilla register: $\ket{x}\ket{0^m}\mapsto\ket{x}\ket{g(x)}$.
+  \item \emph{Mark.} Flip the phase iff the ancilla equals $t$---the
+        $X$-conjugated multiply-controlled $Z$ of the previous figure, now
+        applied to the \emph{ancilla} register with $X$s on the bits where
+        $t_j=0$. Only the known target $t$ enters.
+  \item \emph{Uncompute.} Apply $U_g^{\dagger}$ to reset the ancilla to $\ket{0^m}$
+        (Bennett), disentangling it from the data.
+\end{enumerate}
+The net action on the data register is
+$\ket{x}\mapsto(-1)^{[\,g(x)=t\,]}\ket{x}=R_{x_0}\ket{x}$, with $x_0=g^{-1}(t)$ the
+solution we never had to find:
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket{x_1}$} & \gate[6]{U_g} & \qw & \gate[6]{U_g^{\dagger}} & \qw \\
+\lstick{$\ket{x_2}$} &               & \qw &                         & \qw \\
+\lstick{$\ket{x_3}$} &               & \qw &                         & \qw \\
+\lstick{$\ket{0}$}   &               & \gate[3]{{=}\,t\,?} &         & \qw \\
+\lstick{$\ket{0}$}   &               &     &                         & \qw \\
+\lstick{$\ket{0}$}   &               &     &                         & \qw
+\end{quantikz}
+\end{center}
+For instance take $g(x)=(x_1,\ x_1\oplus x_2,\ x_1x_2\oplus x_3)$---three
+$\CNOT$/Toffoli writes into the ancilla---and $t=101$. This oracle marks the unique
+$x_0=110$, since $g(110)=101$, yet its construction referred only to the circuit for
+$g$ and the target $t$. Here $g$ is small enough to invert by hand, but the identical
+recipe compiles the oracle for a thousand-variable \textsc{sat} instance or a
+cryptographic one-way $g$---in size proportional to the cost of evaluating $f$---while
+$x_0$ stays out of reach until amplitude amplification surfaces it.
+\end{example}
+
+\begin{remark}[Examples of search oracles]
+\label{rem:lec03-oracle-examples}
+The verifier $g$ (equivalently $f=[\,g(x)=t\,]$) can be \emph{any} efficiently
+computable function---anything for which one can write a fast ``is $x$ a solution?''
+check. Grover is the generic tool when checking is easy but the problem is
+\emph{unstructured}. Representative oracles:
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt,topsep=2pt]
+  \item \emph{Symmetric-key search.} $x$ is a secret key $k$, $g(k)=\mathrm{Enc}_k(P_0)$
+        for a known plaintext $P_0$, and $t$ the observed ciphertext; $x_0$ is the key.
+        The quadratic speedup halves the effective key length (e.g.\ $2^{128}\!\to\!2^{64}$
+        for AES-128), the reason post-quantum guidance doubles symmetric key sizes.
+  \item \emph{Hash preimage.} $g=H$ a cryptographic hash and $t$ a target digest; find
+        $x$ with $H(x)=t$.
+  \item \emph{Satisfiability / constraint problems.} $g(x)=\varphi(x)$ with $t=1$:
+        ``does $x$ satisfy every clause?''---likewise Sudoku, graph coloring, and
+        scheduling.
+  \item \emph{Unstructured table.} $g(x)=L[x]$ for a fixed unsorted table $L$; find the
+        index matching $t$. E.g.\ $L=[5,2,7,4,1,6,0,3]$ and $t=4$ give $x_0=3$: with no
+        structure, trying entries is the only option---the purest Grover setting.
+  \item \emph{Optimization by thresholding.} $g(x)=[\,\mathrm{cost}(x)\le\theta\,]$;
+        binary-searching $\theta$ reduces minimization to a sequence of searches.
+\end{itemize}
+If instead $g$ has exploitable structure (periodicity for Shor, linearity for
+Bernstein--Vazirani, convexity for classical optimization), a tailored algorithm beats
+Grover; Grover is the universal fallback, giving a quadratic speedup over blind search
+whenever all one has is a checker.
+\end{remark}
+
+\paragraph{The diffusion operator as a circuit.}
+The diffusion reflection admits the factorization already recorded in
+\cref{def:lec03-reflections},
+\[
+  R_{\psi_0}=H^{\otimes n}\bigl(2\proj{0^{n}}-\id\bigr)H^{\otimes n}.
+\]
+The inner operator $2\proj{0^n}-\id$ is a reflection about $\ket{0^n}$: it fixes
+$\ket{0^n}$ and negates everything else, which (up to a global $-1$) is the same
+multiply-controlled phase gate as above, now conditioned on the all-$0$ string and
+so obtained by wrapping the controlled-$Z$ in NOTs on \emph{every} qubit. The
+flanking Hadamard layers map $\ket{\psi_0}\leftrightarrow\ket{0^n}$, so conjugation
+converts ``reflect about $\ket{0^n}$'' into ``reflect about $\ket{\psi_0}$''---the
+inversion about the mean. Thus a full Grover iterate $G=R_{\psi_0}R_{x_0}$ is: one
+phase-oracle call, then a layer of $H$, a reflection about $\ket{0^n}$, and a final
+layer of $H$.
+
+\paragraph{The catch, and why the algorithm is still useful.}
+Building $R_{x_0}$ as above appears to require knowing $x_0$, which is the very
+thing we are searching for. In genuine applications one does \emph{not} hardcode
+$x_0$: the oracle is a reversible circuit for a \emph{predicate}
+$f(x)=[\,x\text{ is a solution}\,]$---``does this candidate satisfy the
+constraints?''---that can be evaluated without knowing which inputs pass. The
+phase oracle then marks whatever inputs happen to satisfy $f$, and Grover's
+iteration amplifies them. Counting oracle calls (\cref{def:lec03-oracle}) rather
+than elementary gates is what makes this separation of concerns clean: the cost of
+compiling $f$ into a circuit is charged separately, exactly as in
+\cref{rem:lec03-significance}.
+
+\subsection{The invariant plane and the rotation picture}
+
+The power of the algorithm comes from the fact that $G$ never leaves a fixed
+two-dimensional plane, inside which it acts as an ordinary rotation.
+
+Define the normalized state orthogonal to $\ket{x_0}$ that lives in the ``bad''
+subspace:
+\[
+  \ket{\psi_0^{\perp}}
+    =\frac{1}{\sqrt{N-1}}\sum_{x\neq x_0}\ket{x}.
+\]
+Then $\braket{x_0|\psi_0^{\perp}}=0$, and the uniform state decomposes as
+\begin{equation}
+  \ket{\psi_0}
+    =\frac{1}{\sqrt N}\ket{x_0}+\frac{\sqrt{N-1}}{\sqrt N}\ket{\psi_0^{\perp}}
+    =\sin\frac{\theta}{2}\,\ket{x_0}+\cos\frac{\theta}{2}\,\ket{\psi_0^{\perp}},
+  \label{eq:lec03-initdecomp}
+\end{equation}
+where the angle $\theta\in(0,\pi)$ is defined by
+\begin{equation}
+  \sin\frac{\theta}{2}=\frac{1}{\sqrt N},
+  \qquad
+  \theta=2\arcsin\frac{1}{\sqrt N}\approx\frac{2}{\sqrt N}\quad(N\gg1).
+  \label{eq:lec03-theta}
+\end{equation}
+So $\ket{\psi_0}$ makes a small angle $\theta/2$ with the axis
+$\ket{\psi_0^{\perp}}$.
+
+\begin{theorem}[$G$ is a rotation in the plane $\mathcal{P}$]
+\label{thm:lec03-rotation}
+Let $\mathcal{P}=\operatorname{span}\{\ket{x_0},\ket{\psi_0^{\perp}}\}$. Then $G$
+maps $\mathcal{P}$ into itself, and restricted to $\mathcal{P}$ (in the ordered
+orthonormal basis $\{\ket{\psi_0^{\perp}},\ket{x_0}\}$) it is the rotation by the
+angle $\theta$ of \eqref{eq:lec03-theta}:
+\[
+  G\big|_{\mathcal{P}}
+    =\begin{pmatrix}\cos\theta & -\sin\theta\\[2pt]\sin\theta & \cos\theta\end{pmatrix}.
+\]
+\end{theorem}
+
+\begin{proof}
+First note that both reflections preserve $\mathcal{P}$. The vector $\ket{x_0}$
+lies in $\mathcal{P}$ and $\ket{\psi_0}\in\mathcal{P}$ by
+\eqref{eq:lec03-initdecomp}, so $\ket{\psi_0^{\perp}}\in\mathcal{P}$ as well. The
+operator $R_{x_0}$ negates $\ket{x_0}$ and fixes every vector orthogonal to
+$\ket{x_0}$; in particular it fixes $\ket{\psi_0^{\perp}}$, so it maps
+$\mathcal{P}$ to itself. The operator $R_{\psi_0}$ fixes $\ket{\psi_0}\in\mathcal P$
+and negates its orthogonal complement; the in-plane vector orthogonal to
+$\ket{\psi_0}$ inside $\mathcal P$ stays in $\mathcal P$, so $R_{\psi_0}$ also
+preserves $\mathcal{P}$. Hence $G=R_{\psi_0}R_{x_0}$ preserves $\mathcal{P}$.
+
+We now use the plane-geometry fact that \emph{the product of two reflections is a
+rotation by twice the angle between their axes} (Exercise~\ref{ex:lec03-7}).
+Inside $\mathcal P$, the mirror line of $R_{x_0}$ is the axis
+$\ket{\psi_0^{\perp}}$ (the fixed direction of $R_{x_0}$ within $\mathcal P$), and
+the mirror line of $R_{\psi_0}$ is the axis $\ket{\psi_0}$. By
+\eqref{eq:lec03-initdecomp} the angle between $\ket{\psi_0^{\perp}}$ and
+$\ket{\psi_0}$ is $\theta/2$, so $G$ is a rotation by $2\cdot(\theta/2)=\theta$.
+
+For a self-contained verification, compute the matrix directly. Using
+$\sin\tfrac{\theta}{2}=1/\sqrt N$, $\cos\tfrac{\theta}{2}=\sqrt{(N-1)/N}$ and
+\eqref{eq:lec03-initdecomp}, apply $R_{x_0}=\id-2\proj{x_0}$:
+\[
+  R_{x_0}\ket{\psi_0^{\perp}}=\ket{\psi_0^{\perp}},
+  \qquad
+  R_{x_0}\ket{x_0}=-\ket{x_0}.
+\]
+Thus in the basis $\{\ket{\psi_0^{\perp}},\ket{x_0}\}$,
+$R_{x_0}=\begin{psmallmatrix}1&0\\0&-1\end{psmallmatrix}$, a reflection about the
+$\ket{\psi_0^{\perp}}$ axis. Next $R_{\psi_0}=2\proj{\psi_0}-\id$ is the reflection
+about the axis $\ket{\psi_0}$, which sits at angle $\theta/2$ from
+$\ket{\psi_0^{\perp}}$; a reflection about a line at angle $\phi$ from the first
+basis vector has matrix
+$\begin{psmallmatrix}\cos2\phi&\sin2\phi\\\sin2\phi&-\cos2\phi\end{psmallmatrix}$,
+so with $\phi=\theta/2$,
+\[
+  R_{\psi_0}=\begin{pmatrix}\cos\theta&\sin\theta\\ \sin\theta&-\cos\theta\end{pmatrix}.
+\]
+Multiplying,
+\[
+  G=R_{\psi_0}R_{x_0}
+   =\begin{pmatrix}\cos\theta&\sin\theta\\ \sin\theta&-\cos\theta\end{pmatrix}
+    \begin{pmatrix}1&0\\0&-1\end{pmatrix}
+   =\begin{pmatrix}\cos\theta&-\sin\theta\\ \sin\theta&\cos\theta\end{pmatrix},
+\]
+which is exactly the rotation by $\theta$.
+\end{proof}
+
+\begin{theorem}[State after $k$ iterations]
+\label{thm:lec03-afterk}
+With $\theta$ as in \eqref{eq:lec03-theta},
+\[
+  G^{k}\ket{\psi_0}
+    =\sin\!\frac{(2k+1)\theta}{2}\,\ket{x_0}
+     +\cos\!\frac{(2k+1)\theta}{2}\,\ket{\psi_0^{\perp}}.
+\]
+Consequently the probability of measuring the marked item after $k$ iterations is
+$p_k=\sin^{2}\!\bigl((2k+1)\theta/2\bigr)$.
+\end{theorem}
+
+\begin{proof}
+By \cref{thm:lec03-rotation}, $G$ restricted to $\mathcal P$ is rotation by
+$\theta$, so $G^{k}$ is rotation by $k\theta$. The initial state
+\eqref{eq:lec03-initdecomp} sits at angle $\theta/2$ measured from the
+$\ket{\psi_0^{\perp}}$ axis (its $\ket{x_0}$-component is $\sin(\theta/2)$).
+Rotating by $k\theta$ increases this angle to $\theta/2+k\theta=(2k+1)\theta/2$.
+Hence the $\ket{x_0}$-component becomes $\sin\bigl((2k+1)\theta/2\bigr)$ and the
+$\ket{\psi_0^{\perp}}$-component becomes $\cos\bigl((2k+1)\theta/2\bigr)$, as
+claimed. Measuring in the computational basis yields $x_0$ with probability equal
+to the squared $\ket{x_0}$-amplitude, namely
+$p_k=\sin^{2}\bigl((2k+1)\theta/2\bigr)$.
+\end{proof}
+
+\begin{example}[A fully worked run: $N=16$, marked item $x_0=5$]
+\label{exa:lec03-n8}
+It is worth watching every amplitude move once, on a case small enough to write
+out yet large enough that several iterations are needed---and large enough to see
+what happens if one runs \emph{too} many. Take four qubits, $N=16$, and mark the
+basis state $\ket{x_0}=\ket{5}=\ket{0101}$. From \eqref{eq:lec03-theta},
+$\sin(\theta/2)=1/\sqrt{16}=1/4$, so $\theta=2\arcsin(1/4)\approx28.96^{\circ}$ and
+$(\pi/2\theta)-\tfrac12\approx2.64$; rounding gives $k^{\ast}=3$ iterations. Because
+the amplitudes stay uniform across the fifteen unmarked states throughout, it
+suffices to track two numbers per step: the common amplitude $a$ on the unmarked
+states and the amplitude $g$ on $\ket{x_0}$. Recall that the oracle $R_{x_0}$ flips
+the sign of $g$ and that the diffusion $R_{\psi_0}$ sends every amplitude
+$a_x\mapsto 2\bar a-a_x$, reflecting it about the mean $\bar a$
+(Exercise~\ref{ex:lec03-1}).
+
+\emph{Start.} $\ket{\psi_0}=H^{\otimes4}\ket{0000}$ gives every amplitude equal to
+$1/4$, so measuring now returns $\ket{x_0}$ with probability $1/16$.
+
+\emph{Iteration~1.} The oracle sends $g\colon\ 1/4\mapsto-1/4$ while the fifteen
+unmarked amplitudes are unchanged. The mean is
+$\bar a=\bigl(15\cdot\tfrac14-\tfrac14\bigr)/16=\tfrac{7}{32}$. Inversion about the
+mean gives, for an unmarked amplitude, $2\bar a-\tfrac14=\tfrac{3}{16}$, and for the
+marked one $2\bar a+\tfrac14=\tfrac{11}{16}$, so
+\[
+  G\ket{\psi_0}=\frac{3}{16}\!\!\sum_{x\neq 5}\ket{x}+\frac{11}{16}\ket{5},
+  \qquad
+  p_1=\Bigl(\tfrac{11}{16}\Bigr)^{2}=\frac{121}{256}\approx0.473.
+\]
+
+\emph{Iteration~2.} The oracle flips the marked amplitude to $-\tfrac{11}{16}$; the
+new mean is $\bar a=\bigl(15\cdot\tfrac{3}{16}-\tfrac{11}{16}\bigr)/16
+=\tfrac{17}{128}$. Inversion yields unmarked $2\bar a-\tfrac{3}{16}=\tfrac{5}{64}$
+and marked $2\bar a+\tfrac{11}{16}=\tfrac{61}{64}$, so
+\[
+  G^{2}\ket{\psi_0}=\frac{5}{64}\!\!\sum_{x\neq5}\ket{x}+\frac{61}{64}\ket{5},
+  \qquad
+  p_2=\Bigl(\tfrac{61}{64}\Bigr)^{2}=\frac{3721}{4096}\approx0.908.
+\]
+
+\emph{Iteration~3 (the optimum).} The oracle flips the marked amplitude to
+$-\tfrac{61}{64}$; the mean is
+$\bar a=\bigl(15\cdot\tfrac{5}{64}-\tfrac{61}{64}\bigr)/16=\tfrac{7}{512}$.
+Inversion yields unmarked $2\bar a-\tfrac{5}{64}=-\tfrac{13}{256}$ and marked
+$2\bar a+\tfrac{61}{64}=\tfrac{251}{256}$, so
+\[
+  G^{3}\ket{\psi_0}=-\frac{13}{256}\!\!\sum_{x\neq5}\ket{x}+\frac{251}{256}\ket{5},
+  \qquad
+  p_3=\Bigl(\tfrac{251}{256}\Bigr)^{2}=\frac{63001}{65536}\approx0.961.
+\]
+This is the maximum: $p_3\approx0.961$ already exceeds the guarantee $1-1/N=15/16$
+of \cref{thm:lec03-kstar}, and the small \emph{negative} amplitude on the unmarked
+states shows the state has just edged past $\ket{x_0}$.
+
+\emph{Iterations~4 and~5 (over-rotation).} Nothing stops us from continuing, but the
+geometry now works against us: each further $G$ rotates the state by another
+$\theta$, carrying it \emph{away} from $\ket{x_0}$. Running the same recurrence
+twice more gives marked amplitudes $\tfrac{781}{1024}$ and then $\tfrac{1451}{4096}$,
+\[
+  p_4=\Bigl(\tfrac{781}{1024}\Bigr)^{2}=\frac{609961}{1048576}\approx0.582,
+  \qquad
+  p_5=\Bigl(\tfrac{1451}{4096}\Bigr)^{2}=\frac{2105401}{16777216}\approx0.126.
+\]
+The success probability falls from $0.961$ back down toward its starting value---a
+concrete instance of the over-rotation warned of in \cref{rem:lec03-overrotate}.
+All six stages are collected in \cref{tab:lec03-n8}; the entries agree with the
+closed form $p_k=\sin^{2}\bigl((2k+1)\theta/2\bigr)$ of \cref{thm:lec03-afterk}.
+\end{example}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{ccccc}
+\toprule
+iteration $k$ & angle $\tfrac{(2k+1)\theta}{2}$ & unmarked amp. & marked amp. ($\ket5$) & $p_k=\abs{g}^2$\\
+\midrule
+$0$ (start)    & $14.5^{\circ}$  & $1/4$       & $1/4$       & $1/16\approx0.063$\\
+$1$            & $43.4^{\circ}$  & $3/16$      & $11/16$     & $121/256\approx0.473$\\
+$2$            & $72.4^{\circ}$  & $5/64$      & $61/64$     & $3721/4096\approx0.908$\\
+$3$ (optimum)  & $101.3^{\circ}$ & $-13/256$   & $251/256$   & $63001/65536\approx0.961$\\
+$4$            & $130.3^{\circ}$ & $-171/1024$ & $781/1024$  & $609961/1048576\approx0.582$\\
+$5$            & $159.3^{\circ}$ & $-989/4096$ & $1451/4096$ & $2105401/16777216\approx0.126$\\
+\bottomrule
+\end{tabular}
+\caption{Amplitudes after each Grover iteration for $N=16$, $x_0=5$
+(\cref{exa:lec03-n8}). All fifteen unmarked states share a common amplitude at every
+stage. The success probability climbs to its peak at the optimum $k^{\ast}=3$ and
+then \emph{falls} as iterations~4 and~5 over-rotate the state past $\ket{x_0}$;
+each row matches the closed form $p_k=\sin^{2}\bigl((2k+1)\theta/2\bigr)$.}
+\label{tab:lec03-n8}
+\end{table}
+
+\subsection{Choosing the number of iterations}
+\label{sec:lec03-iterations}
+
+\cref{thm:lec03-afterk} shows the amplitude on $\ket{x_0}$ is maximized when the
+angle $(2k+1)\theta/2$ is as close as possible to $\pi/2$, i.e.\ when the state is
+(nearly) aligned with $\ket{x_0}$. This fixes the optimal iteration count.
+
+\begin{theorem}[Optimal number of iterations]
+\label{thm:lec03-kstar}
+Choose $k$ so that $(2k+1)\theta/2$ is closest to $\pi/2$; the optimal choice is
+\[
+  k^{\ast}=\left\lfloor\frac{\pi}{4}\sqrt N\right\rfloor
+  \qquad\bigl(\text{rounding } \tfrac{\pi}{2\theta}-\tfrac12\bigr).
+\]
+With this choice the success probability satisfies $p_{k^{\ast}}\ge 1-1/N$, so a
+single run succeeds with probability $\approx1$. The algorithm therefore uses
+$k^{\ast}=\bigo(\sqrt N)$ oracle queries.
+\end{theorem}
+
+\begin{proof}
+We want $(2k+1)\theta/2\approx\pi/2$, i.e.\ $2k+1\approx\pi/\theta$, i.e.\
+$k\approx\pi/(2\theta)-1/2$. Using the approximation $\theta\approx2/\sqrt N$ from
+\eqref{eq:lec03-theta} valid for large $N$,
+\[
+  k\approx\frac{\pi}{2\theta}-\frac12\approx\frac{\pi}{2}\cdot\frac{\sqrt N}{2}-\frac12
+     =\frac{\pi}{4}\sqrt N-\frac12,
+\]
+and rounding to the nearest nonnegative integer gives
+$k^{\ast}=\lfloor(\pi/4)\sqrt N\rfloor$. Because $k$ is an integer we cannot in
+general hit the angle $\pi/2$ exactly, but the residual angular error is at most
+$\theta/2$ (half a rotation step): choosing $k^{\ast}$ so that
+$(2k^{\ast}+1)\theta/2$ lies within $\theta/2$ of $\pi/2$ gives
+\[
+  p_{k^{\ast}}=\sin^{2}\!\frac{(2k^{\ast}+1)\theta}{2}
+    =\cos^{2}\!\Bigl(\frac{\pi}{2}-\frac{(2k^{\ast}+1)\theta}{2}\Bigr)
+    \ge\cos^{2}\!\frac{\theta}{2}=1-\sin^{2}\frac{\theta}{2}=1-\frac1N.
+\]
+Each iterate $G=R_{\psi_0}R_{x_0}$ makes exactly one oracle call (inside
+$R_{x_0}$), so the total query cost is $k^{\ast}=\bigo(\sqrt N)$.
+\end{proof}
+
+This is the headline result: $\bigo(\sqrt N)$ queries versus the classical
+$\bigo(N)$, a quadratic speedup. The gain comes from operating on \emph{amplitudes}
+rather than probabilities: $G$ rotates the amplitude linearly in $k$, and
+probability is its square, so the linear growth of the angle produces the
+square-root scaling in $k$.
+
+\begin{remark}[Do not over-rotate]
+\label{rem:lec03-overrotate}
+More iterations is \emph{not} always better. Since
+$p_k=\sin^{2}((2k+1)\theta/2)$ oscillates, once $(2k+1)\theta/2$ passes $\pi/2$ the
+success probability decreases again---the state ``rotates past'' $\ket{x_0}$. One
+must therefore stop at $k^{\ast}$; running the loop too long is counterproductive.
+If $N$ is unknown one can still succeed with $\bigo(\sqrt N)$ expected queries by
+trying geometrically increasing guesses for the number of iterations and choosing
+the number at random within each guess.
+\end{remark}
+
+\subsection{Running Grover in practice}
+
+The state-after-$k$ formula (\cref{thm:lec03-afterk}) and the optimal count
+$k^{\ast}$ (\cref{thm:lec03-kstar}) are all we need to search in earnest. The two
+examples below put them to work and make a point easily lost in the geometry: the
+algorithm never uses the \emph{value} of the marked string $x_0$, only the oracle
+that recognizes it.
+
+\begin{example}[Running Grover in practice: we never use $x_0$]
+\label{exa:lec03-practice}
+\cref{exa:lec03-n8} tracked the amplitude on $\ket{x_0}=\ket5$ for illustration, but
+the algorithm itself never knows $x_0$: the only access to $f$ is through the
+black-box oracle $R_{x_0}$, and the mark $\ket5$ was baked into that oracle by
+whoever posed the search, not by us. What, then, do we actually run?
+
+\emph{Where the oracle comes from.} We are not handed $x_0$; we are handed a way to
+\emph{recognize} it---a predicate $f$ with $f(x)=1$ exactly when $x=x_0$, supplied as
+the reversible \emph{bit} oracle $\Uf\colon\ket{x}\ket{y}\mapsto\ket{x}\ket{y\oplus
+f(x)}$ of \cref{def:lec03-oracle}, which writes the \emph{value} of $f$ into an extra
+qubit. Grover, on the other hand, needs the \emph{phase} oracle
+$R_{x_0}=\id-2\proj{x_0}$, which writes no bit but attaches a sign to $\ket{x_0}$. These
+are the same operator viewed through a single ancilla. Prepare that ancilla in
+$\ket-=\tfrac1{\sqrt2}(\ket0-\ket1)$; since the controlled flip $\ket y\mapsto\ket{y\oplus
+f(x)}$ either leaves $\ket-$ alone ($f(x)=0$) or sends it to $-\ket-$ ($f(x)=1$), phase
+kickback (\cref{lem:lec03-kickback}) gives
+\[
+  \Uf\bigl(\ket{x}\otimes\ket-\bigr)
+    =(-1)^{f(x)}\,\ket{x}\otimes\ket-
+    =\bigl(R_{x_0}\ket{x}\bigr)\otimes\ket-,
+  \qquad
+  R_{x_0}=\sum_{x}(-1)^{f(x)}\proj{x}=\id-2\proj{x_0},
+\]
+the last equality because $(-1)^{f(x)}=+1$ everywhere except at the single string
+$x=x_0$, where it is $-1$. In words: \emph{with the target held in $\ket-$, the bit
+oracle $\Uf$ acts on the data register exactly as the phase oracle $R_{x_0}$}---the
+ancilla emerges unchanged and factors off, carrying the sign back onto $\ket{x}$.
+Concretely,
+\begin{center}
+\begin{quantikz}[column sep=0.65cm,row sep=0.5cm]
+\lstick{$\ket{x}$ \,($n$ data qubits)} & \qwbundle{n} & \gate[2]{\Uf} & \qwbundle{n} & \rstick{$(-1)^{f(x)}\ket{x}$} \\
+\lstick{$\ket{1}$} & \gate{H} & & \gate{H} & \rstick{$\ket{1}$}
+\end{quantikz}
+\end{center}
+the ancilla's two $H$ gates turn $\ket1$ into $\ket-$ and back, so it returns to $\ket1$
+and may be reused or discarded; everything between them, read on the top register,
+\emph{is} $R_{x_0}$. Note what this circuit contains: the gates of $\Uf$ and one
+ancilla, and \emph{never $x_0$ itself}---the minus sign lands on whichever input
+satisfies $f$, wherever that happens to be. (If $\Uf$ allocates scratch qubits while
+evaluating $f$, uncompute them afterwards so they return to $\ket0$ and leave the data
+register unentangled.) This is the compilation of \cref{ex:lec03-oracle-compile}, and
+\cref{exa:lec03-unknown} below carries it out for a concrete, genuinely unknown $x_0$.
+
+The one quantity we \emph{do} know is the size of the search space, $N=16$ (and,
+here, that there is a single solution, $M=1$). That is enough, because by
+\cref{thm:lec03-kstar} the optimal iteration count depends only on $N$,
+\[
+  k^{\ast}=\Bigl\lfloor\tfrac{\pi}{4}\sqrt{N}\Bigr\rfloor
+         =\Bigl\lfloor\tfrac{\pi}{4}\cdot4\Bigr\rfloor=\lfloor\pi\rfloor=3,
+\]
+not on \emph{which} item is marked. So the procedure is:
+\begin{enumerate}[label=(\arabic*),leftmargin=1.9em,itemsep=1pt,topsep=2pt]
+  \item Prepare $\ket{\psi_0}=H^{\otimes4}\ket{0000}$ and apply the Grover iterate
+        $G=R_{\psi_0}R_{x_0}$ exactly $k^{\ast}=3$ times. Here $R_{x_0}$ is the oracle
+        we are \emph{handed}: we run it as a black box, and although its subscript
+        $x_0$ records that it marks a single item (so $R_{x_0}=\id-2\proj{x_0}$), the
+        value of that item is unknown to us---the circuit never reads it.
+  \item Measure the four qubits, obtaining a candidate string $y\in\{0,1\}^4$.
+  \item \emph{Verify}: evaluate the predicate once. If $f(y)=1$, output $y$;
+        otherwise discard it and repeat from~(1).
+\end{enumerate}
+The verification in step~(3) is a single classical evaluation of $f$, and it is what
+makes the algorithm trustworthy without ever referring to $x_0$: a wrong guess is
+detected and costs nothing but a repeat. By \cref{exa:lec03-n8} the measurement in
+step~(2) returns the true $x_0=5$ with probability $p_3=63001/65536\approx0.961$, so
+the expected number of attempts is $1/p_3\approx1.04$---almost always the first one.
+Each attempt uses $k^{\ast}=3$ oracle calls inside the Grover iterations plus one
+$f$-evaluation to verify, for an expected total of about four queries.
+
+Contrast this with brute force: testing items one at a time finds the marked string
+in $8$ queries on average and $15$ in the worst case. Even at $N=16$ Grover is
+already ahead, and the gap widens as $\sqrt N$ against $N$.
+
+One caveat: the recipe used $M=1$ to fix $k^{\ast}$. If the number of solutions $M$
+is \emph{unknown}, one cannot pin down $k^{\ast}$ in advance---too few iterations and
+the amplitude is still small, too many and it over-rotates
+(\cref{rem:lec03-overrotate}). The standard fix is to try exponentially growing
+guesses $k=1,2,4,8,\dots$, drawing the actual count at random below each guess and
+verifying after every run; this still finds a solution in $\bigo(\sqrt N)$ expected
+queries. The multi-solution case is treated below.
+\end{example}
+
+\begin{example}[A search whose solution we genuinely do not know: inverting a function]
+\label{exa:lec03-unknown}
+\cref{exa:lec03-practice} still \emph{named} the answer, $x_0=5$, so that we could
+watch the amplitudes move; in a real search we would not know it. Here is the same
+algorithm applied to a problem whose solution is \emph{not} available in advance.
+
+Let $g:\{0,1\}^{4}\to\{0,1\}^{4}$ be a function we can evaluate but not easily
+invert---think of a toy block cipher $g(x)=E_x(m_0)$ that encrypts a fixed, known
+plaintext $m_0$ under the $4$-bit key $x$. Somebody chose a secret key $x_0$ and
+published the ciphertext $t=g(x_0)$. Our task is to recover the key: find $x$ with
+$g(x)=t$. Assume the key is unique for this $t$, so there is a single marked item---but
+\emph{we have no idea which of the sixteen strings it is}, and no shortcut to find out
+short of search.
+
+\emph{Building the oracle without knowing $x_0$.} The predicate
+$f(x)=\mathbf 1[g(x)=t]$ is something we \emph{can} compute even though we cannot invert
+$g$: run the circuit for $g$ on $x$, compare the output to the published $t$, and set a
+flag bit. Turning this verifier into the phase oracle $R_{x_0}=\id-2\proj{x_0}$ is
+exactly the construction of \cref{ex:lec03-oracle-compile}---compute $f$ into an ancilla
+held in $\ket-$, which stamps a minus sign on precisely the satisfying input, then
+uncompute the scratch. At no point does this circuit contain $x_0$; it contains $g$ and
+$t$, and the mark \emph{emerges} at whatever input happens to satisfy $g(x)=t$.
+
+\emph{Running it.} The quantum circuit is now \emph{identical} to that of
+\cref{exa:lec03-n8}: prepare $\ket{\psi_0}=H^{\otimes4}\ket{0000}$, apply
+$G=R_{\psi_0}R_{x_0}$ for $k^{\ast}=\lfloor(\pi/4)\sqrt{16}\rfloor=3$ iterations, and
+measure. Because the amplitude analysis of \cref{exa:lec03-n8} never used the
+\emph{value} of $x_0$---only that there was one marked item among $N=16$---the state
+traces out the very same trajectory, and the measurement returns the hidden key with
+probability $p_3=63001/65536\approx0.961$, \emph{whatever that key turns out to be}. We
+then evaluate $g$ once on the measured string to confirm $g(y)=t$; on the rare miss we
+simply repeat. Only at this verification step do we learn the answer---the quantum part
+discovered it without ever being told.
+
+The contrast with classical key search is the whole point. Not knowing $x_0$, a
+classical attacker can only try keys one at a time, expecting $8$ and worst-case $15$
+evaluations of $g$; Grover needs $k^{\ast}=3$ queries to the $g$-based oracle plus one
+verification. This quadratic speedup for brute-force inversion---in effect halving the
+key length an adversary must contend with---is the standard reason symmetric-key sizes
+are doubled to stay secure against quantum attack.
+\end{example}
+
+\section{Multiple solutions and amplitude amplification}
+\label{sec:lec03-4}
+
+The single-solution analysis extends in two directions: to several marked items at
+once, and---more broadly---to amplifying the success amplitude of \emph{any} state
+preparation, not just the uniform superposition. Both reuse the two-reflection
+rotation of \cref{thm:lec03-rotation} verbatim, changing only what plays the role of
+the ``good'' subspace.
+
+\subsection{Multiple solutions}
+
+Suppose now that there are $M\ge1$ marked items, $S=\{x:f(x)=1\}$ with
+$\abs{S}=M$. Everything goes through with the ``good'' subspace replaced by the
+span of the marked basis states. Let
+\[
+  \ket{\mathrm{good}}=\frac{1}{\sqrt M}\sum_{x\in S}\ket{x},
+  \qquad
+  \ket{\mathrm{bad}}=\frac{1}{\sqrt{N-M}}\sum_{x\notin S}\ket{x},
+\]
+so that
+$\ket{\psi_0}=\sqrt{M/N}\,\ket{\mathrm{good}}+\sqrt{(N-M)/N}\,\ket{\mathrm{bad}}$.
+Define $R_S=\id-2\sum_{x\in S}\proj{x}$ (the phase oracle now flips all marked
+items) and keep the same diffusion $R_{\psi_0}$. The identical argument shows
+$G=R_{\psi_0}R_S$ is a rotation by $\theta$ in
+$\operatorname{span}\{\ket{\mathrm{good}},\ket{\mathrm{bad}}\}$ with
+\[
+  \sin\frac{\theta}{2}=\sqrt{\frac{M}{N}},
+  \qquad\text{equivalently}\qquad
+  \sin\theta=2\sin\frac{\theta}{2}\cos\frac{\theta}{2}
+            =2\sqrt{\frac{M}{N}}\sqrt{\frac{N-M}{N}}\approx 2\sqrt{\frac{M}{N}}.
+\]
+The optimal iteration count becomes
+\[
+  k^{\ast}=\left\lfloor\frac{\pi}{4}\sqrt{\frac{N}{M}}\right\rfloor
+  =\bigo\!\left(\sqrt{\frac{N}{M}}\right),
+\]
+so more solutions make the search faster.
+
+\begin{example}[The exact case $N=4$, $M=1$]
+\label{exa:lec03-n4}
+Here $\sin(\theta/2)=1/\sqrt4=1/2$, so $\theta/2=\pi/6$ and $\theta=\pi/3$. After a
+single iteration ($k=1$) the angle is
+\[
+  \frac{(2\cdot1+1)\theta}{2}=\frac{3\theta}{2}=\frac{3}{2}\cdot\frac{\pi}{3}=\frac{\pi}{2},
+\]
+so by \cref{thm:lec03-afterk} the state is
+$G\ket{\psi_0}=\sin(\pi/2)\ket{x_0}+\cos(\pi/2)\ket{\psi_0^{\perp}}=\ket{x_0}$.
+Thus for $N=4$ a \emph{single} Grover iteration finds the marked item with
+certainty---a rare instance where the algorithm is exactly deterministic.
+\end{example}
+
+\begin{example}[A multi-solution estimate]
+\label{exa:lec03-satcount}
+Suppose a SAT instance on $n=30$ variables has $M=2^{10}$ satisfying assignments
+among $N=2^{30}$ candidates. Classical exhaustive search needs on the order of
+$N/M=2^{20}\approx10^{6}$ trials to hit a solution. Grover instead needs about
+\[
+  \frac{\pi}{4}\sqrt{\frac{N}{M}}
+    =\frac{\pi}{4}\sqrt{2^{20}}
+    =\frac{\pi}{4}\cdot2^{10}\approx804
+\]
+oracle queries---the square-root improvement in action.
+\end{example}
+
+\subsection{Amplitude amplification}
+
+Grover's construction generalizes far beyond search.
+
+\begin{theorem}[Amplitude amplification]
+\label{thm:lec03-aa}
+Let $\mathcal A$ be any quantum procedure preparing a state
+\[
+  \mathcal A\ket{0}=\sqrt{p_0}\,\ket{\psi_{\mathrm{good}}}+\sqrt{1-p_0}\,\ket{\psi_{\mathrm{bad}}},
+\]
+where a projector $P$ recognizes the good part
+($P\ket{\psi_{\mathrm{good}}}=\ket{\psi_{\mathrm{good}}}$,
+$P\ket{\psi_{\mathrm{bad}}}=0$) and $p_0=\braket{0|\mathcal A\dg P\mathcal A|0}$ is
+the initial success probability. Define the two reflections
+$S_P=\id-2P$ and $S_0=\mathcal A(2\proj{0}-\id)\mathcal A\dg$, and set
+$Q=S_0S_P$. Then $Q$ rotates by an angle $\theta$ with
+$\sin^{2}(\theta/2)=p_0$ inside
+$\operatorname{span}\{\ket{\psi_{\mathrm{good}}},\ket{\psi_{\mathrm{bad}}}\}$, and
+after
+\[
+  k^{\ast}=\left\lfloor\frac{\pi}{4\arcsin\sqrt{p_0}}\right\rfloor
+  =\bigo\!\bigl(1/\sqrt{p_0}\bigr)
+\]
+iterations the good state is obtained with probability $\Omega(1)$.
+\end{theorem}
+
+\begin{proof}[Sketch]
+The state $\mathcal A\ket{0}$ decomposes in the two-dimensional space
+$\operatorname{span}\{\ket{\psi_{\mathrm{good}}},\ket{\psi_{\mathrm{bad}}}\}$
+exactly as $\ket{\psi_0}$ did in \eqref{eq:lec03-initdecomp}, with
+$\sin(\theta/2)=\sqrt{p_0}$. The reflection $S_P$ negates the good component and
+fixes the bad one; the reflection $S_0=\mathcal A(2\proj{0}-\id)\mathcal A\dg$ is,
+by conjugating the elementary reflection $2\proj0-\id$ by the unitary $\mathcal A$,
+the reflection about the axis $\mathcal A\ket{0}$. The proof of
+\cref{thm:lec03-rotation} applies verbatim with $\ket{x_0}$ replaced by
+$\ket{\psi_{\mathrm{good}}}$ and $\ket{\psi_0}$ by $\mathcal A\ket{0}$: the product
+of the two reflections is a rotation by $\theta$. After $k$ iterations the good
+amplitude is $\sin((2k+1)\theta/2)$, maximized at
+$k^{\ast}\approx\pi/(2\theta)-1/2$ with $\theta=2\arcsin\sqrt{p_0}$, giving
+$k^{\ast}=\bigo(1/\sqrt{p_0})$ since $\theta\ge2\sqrt{p_0}$ for small $p_0$.
+\end{proof}
+
+This is a quadratic improvement over the $\bigo(1/p_0)$ repetitions that a
+classical prepare-and-check strategy would require to see the good outcome. Grover
+search is the special case $\mathcal A=H^{\otimes n}$, $p_0=M/N$.
+
+\section{Query complexity lower bounds}
+\label{sec:lec03-5}
+
+Grover's algorithm is not just good; it is asymptotically the best possible.
+
+\begin{theorem}[Query lower bound]
+\label{thm:lec03-lower}
+Any quantum algorithm that finds the marked item $x_0$ (or even merely decides
+whether a marked item exists) with constant success probability must make
+$\Omega(\sqrt N)$ oracle queries.
+\end{theorem}
+
+\begin{proof}[Idea]
+Run the algorithm both on the ``empty'' oracle $f\equiv0$ and on the oracle
+marking a single item $x_0$. Let $\ket{\phi_k}$ be the state after $k$ queries in
+the empty case and $\ket{\phi_k^{x_0}}$ the state in the marked case, and define
+the total deviation
+\[
+  D_k=\sum_{x_0}\norm{\,\ket{\phi_k^{x_0}}-\ket{\phi_k}\,}^{2}.
+\]
+A hybrid argument shows each additional query can increase $D_k$ by only a bounded
+amount: $D_k\le 4k^{2}$. On the other hand, to reliably distinguish which item is
+marked, the marked-case states for different $x_0$ must be nearly orthogonal to
+the empty-case state, which forces $D_k=\Omega(N)$. Combining
+$\Omega(N)\le D_k\le 4k^{2}$ gives $k=\Omega(\sqrt N)$.
+\end{proof}
+
+\begin{remark}[Grover is optimal]
+\label{rem:lec03-optimal}
+The upper bound of \cref{thm:lec03-kstar} and the lower bound above match up to
+constant factors: both are $\Theta(\sqrt N)$. Hence Grover's algorithm is optimal
+for unstructured search---no quantum algorithm can do asymptotically better. The
+quadratic speedup is the best achievable when the only access to the problem is
+through an unstructured oracle; a super-polynomial speedup would require
+exploitable structure, as in Shor's algorithm or the phase-estimation-based
+methods of \cref{ch:lec04}.
+\end{remark}
+
+\exercisesection
+\begin{exercise}\label{ex:lec03-1}
+Show that the diffusion operator implements ``inversion about the mean'': for any
+state $\sum_x a_x\ket{x}$ with mean amplitude $\bar a=\tfrac1N\sum_x a_x$,
+\[
+  R_{\psi_0}\sum_x a_x\ket{x}=\sum_x(2\bar a-a_x)\ket{x}.
+\]
+\end{exercise}
+
+\begin{exercise}\label{ex:lec03-2}
+List all four functions $f:\{0,1\}\to\{0,1\}$ and classify each as constant or
+balanced. For each, compute by hand the first-qubit measurement outcome produced
+by the Deutsch algorithm of \cref{thm:lec03-deutsch}.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec03-3}
+Prove that $\Uf$ of \cref{def:lec03-oracle} is Hermitian, and use this together
+with $\Uf^2=\id$ to conclude that its eigenvalues are $\pm1$. Then show directly
+(without invoking \cref{lem:lec03-kickback}) that if the target qubit is
+initialized in $\ket{+}=\tfrac{1}{\sqrt2}(\ket0+\ket1)$ instead of $\ket{-}$, then
+$\Uf\ket{x}\ket{+}=\ket{x}\ket{+}$ for all $x$, so no phase is kicked back; explain
+why $\ket{-}$ is the useful choice.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec03-4}
+For $n=2$, let $f(x_1x_2)=x_1\oplus x_2$. Verify that $f$ is balanced and trace the
+Deutsch--Jozsa state through $H^{\otimes 2}$, $\Uf$, $H^{\otimes 2}$, confirming
+that the amplitude of $\ket{00}$ is $0$. In the Bernstein--Vazirani setting with
+hidden string $s$, suppose instead the oracle is for the affine function
+$g(x)=s\cdot x\oplus c$ with an unknown constant bit $c$; show that the algorithm
+of \cref{thm:lec03-bv} still outputs $s$ with certainty, and identify where the
+constant $c$ goes.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec03-5}
+Take $N=2$ (one qubit, $n=1$) with the single marked item $x_0$. Compute $\theta$
+from \eqref{eq:lec03-theta}, apply one Grover iterate to $\ket{\psi_0}$, and
+interpret the result. Why is the case $N=2$ slightly special? Then, for general
+$N$ with $k^{\ast}=\lfloor(\pi/4)\sqrt N\rfloor$, show that the success probability
+satisfies $p_{k^{\ast}}\ge1-1/N$ (you may use that the residual angle from $\pi/2$
+is at most $\theta/2$).
+\end{exercise}
+
+\begin{exercise}\label{ex:lec03-6}
+Consider $N=2^{20}$. Approximately how many iterations $k^{\ast}$ maximize the
+success probability? What happens qualitatively to the success probability if one
+instead runs $2k^{\ast}$ iterations? Explain using $p_k=\sin^2((2k+1)\theta/2)$.
+Separately, for $M=4$ marked items among $N=1024$, find $\sin(\theta/2)$, the
+optimal iteration count $k^{\ast}$, and compare with the single-solution count for
+the same $N$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec03-7}
+Prove the plane-geometry fact used in \cref{thm:lec03-rotation}: in a real
+two-dimensional plane, the composition of a reflection about a line $\ell_1$ and a
+reflection about a line $\ell_2$ (with $\ell_2$ at angle $\alpha$ from $\ell_1$) is
+a rotation by $2\alpha$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec03-8}
+Building the phase oracle. On three qubits, let $x_0=\ket{101}$ be the marked
+state. Following \cref{sec:lec03-circuits}, write the marking reflection
+$R_{x_0}=\id-2\proj{x_0}$ as a doubly controlled $Z$ conjugated by $X$
+gates, specifying which qubits carry the $X$ gates. Verify by hand that your
+circuit multiplies $\ket{101}$ by $-1$ and leaves the other seven basis states
+fixed (it suffices to check $\ket{101}$, one basis state that becomes $\ket{111}$
+under the leading NOTs, and one that does not). Then run one Grover iterate on the
+uniform state $\ket{\psi_0}=H^{\otimes3}\ket{000}$ with this $x_0$ and report the
+resulting amplitude on $\ket{x_0}$ and the success probability $p_1$; confirm it
+matches \cref{exa:lec03-n8}.
+\end{exercise}
+
+\readingsection
+\begin{itemize}[leftmargin=1.4em]
+  \item Lin Lin, \emph{qasc notes}, Ch.~2 (query model, Deutsch--Jozsa and
+        Bernstein--Vazirani, Grover's algorithm) --- \texttt{qasc\_notes.pdf}.
+  \item Lin Lin, \emph{live notes}, Ch.~11 (amplitude amplification and its
+        applications) --- \texttt{live\_notes\_0429.pdf}.
+  \item A.~M.~Childs, \emph{Lecture Notes on Quantum Algorithms} (the oracle
+        model, Grover search, amplitude amplification, and the hybrid-argument
+        $\Omega(\sqrt N)$ lower bound) --- \texttt{material/}.
+  \item M.~A.~Nielsen and I.~L.~Chuang, \emph{Quantum Computation and Quantum
+        Information}, Ch.~6 (quantum search algorithms and the search lower bound).
+  \item D.~Brody, \emph{The Joy of Quantum Computing}, Princeton Univ.\ Press,
+        2025, Ch.~2 (Deutsch's algorithm and the phase oracle) and Ch.~8
+        (a concrete walkthrough of Grover's search: oracle construction from a
+        multiply-controlled $Z$, the inversion-about-the-mean geometry, and
+        the worked $N=8$ example) ---
+        \texttt{material/Brody\_The\ Joy\ of\ Quantum\ Computing\_Princeton\_2025.pdf}.
+\end{itemize}

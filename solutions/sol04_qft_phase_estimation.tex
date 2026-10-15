@@ -1,0 +1,182 @@
+\chapter{Quantum Fourier Transform and Phase Estimation}
+% Solutions to the exercises of \cref{ch:lec04}.
+
+\begin{solution}[Exercise~\ref{ex:lec04-1}]
+For $N=4$, $\omega=\ee^{\ii 2\pi/4}=\ii$. By \cref{def:lec04-qft},
+\[
+  \QFT\ket{1}=\tfrac12\sum_{k=0}^{3}\ii^{k}\ket{k}
+   =\tfrac12\bigl(\ket{0}+\ii\ket{1}-\ket{2}-\ii\ket{3}\bigr).
+\]
+For the product form, $j=1=(01)_2$ means $j_1=0$, $j_2=1$, so $0.j_2=\tfrac12$
+and $0.j_1 j_2=0.01=\tfrac14$, giving phases $\ee^{\ii 2\pi/4}=\ii$ and
+$\ee^{\ii 2\pi/2}=-1$. Hence
+$\QFT\ket{1}=\tfrac12(\ket{0}+\ii\ket{1})\otimes(\ket{0}-\ket{1})
+=\tfrac12(\ket{0}-\ket{1}+\ii\ket{2}-\ii\ket{3})$, which equals the direct
+result after the bit-reversal reordering that identifies the tensor-product qubit
+order with the integer labels $\ket{0},\dots,\ket{3}$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec04-2}]
+With $(\QFT)_{kj}=N^{-1/2}\omega^{jk}$ and $(\QFT\dg)_{jk}=N^{-1/2}\omega^{-jk}$,
+\[
+  \braket{k'|\QFT\,\QFT\dg|k}
+   =\sum_{j=0}^{N-1}(\QFT)_{k'j}(\QFT\dg)_{jk}
+   =\frac{1}{N}\sum_{j=0}^{N-1}\omega^{j(k'-k)}
+   =\delta_{k,k'},
+\]
+by \cref{lem:lec04-geom}. Thus $\QFT\,\QFT\dg=\id$; combined with
+\cref{thm:lec04-unitary} this confirms $\QFT$ is unitary from both sides. For
+$n=1$, $N=2$ and $\omega=\ee^{\ii\pi}=-1$, so $(\QFT)_{kj}=\tfrac{1}{\sqrt2}
+(-1)^{jk}$, i.e.\ the matrix $\tfrac{1}{\sqrt2}\left(\begin{smallmatrix}1&1\\1&-1
+\end{smallmatrix}\right)=H$. Concretely $\QFT\ket{0}=\tfrac{1}{\sqrt2}(\ket0+\ket1)$
+and $\QFT\ket{1}=\tfrac{1}{\sqrt2}(\ket0-\ket1)$, matching $H$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec04-3}]
+By linearity and \cref{lem:lec04-geom} (with $\sum_j\omega^{jk}=N\delta_{k,0}$),
+\[
+  \QFT\Bigl(\tfrac{1}{\sqrt N}\sum_{j}\ket{j}\Bigr)
+   =\frac{1}{N}\sum_{k}\Bigl(\sum_{j}\omega^{jk}\Bigr)\ket{k}
+   =\frac{1}{N}\sum_{k}N\delta_{k,0}\ket{k}=\ket{0}.
+\]
+A constant (``DC'') signal has all of its weight at zero frequency, $k=0$: it has
+no oscillatory content, so every nonzero-frequency amplitude cancels.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec04-4}]
+Processing qubits $1,2,3$: qubit~$1$: $H$, then controlled-$R_2$ (control $2$),
+controlled-$R_3$ (control $3$); qubit~$2$: $H$, then controlled-$R_2$ (control
+$3$); qubit~$3$: $H$; finally SWAP qubits $1$ and $3$. Counting: $3$ Hadamards,
+$2+1+0=3=\binom{3}{2}$ controlled-phase gates, and $1$ SWAP
+($\lfloor3/2\rfloor=1$), for $3+3+1=7$ gates, in agreement with
+\cref{thm:lec04-count} ($n+\tfrac{n(n-1)}2+\lfloor n/2\rfloor=3+3+1$).
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec04-5}]
+Apply $V$ to a QFT basis state $\ket{\psi_k}=\tfrac{1}{\sqrt N}\sum_j\omega^{jk}
+\ket{j}$:
+\[
+  V\ket{\psi_k}=\frac{1}{\sqrt N}\sum_{j}\omega^{jk}\ket{(j+1)\bmod N}.
+\]
+Reindex with $j'=(j+1)\bmod N$, i.e.\ $j=(j'-1)\bmod N$; because $\omega^{N}=1$
+the phase $\omega^{jk}=\omega^{(j'-1)k}=\omega^{-k}\omega^{j'k}$ is well defined
+modulo $N$. Hence
+\[
+  V\ket{\psi_k}=\omega^{-k}\,\frac{1}{\sqrt N}\sum_{j'}\omega^{j'k}\ket{j'}
+   =\omega^{-k}\ket{\psi_k}=\ee^{-\ii 2\pi k/N}\ket{\psi_k}.
+\]
+Thus each $\ket{\psi_k}=\QFT\ket{k}$ is an eigenvector of $V$ with eigenvalue
+$\ee^{-\ii 2\pi k/N}$, so $\QFT\dg V\QFT$ is diagonal: the QFT diagonalizes the
+cyclic shift.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec04-6}]
+With $\ket{\psi}=\ket{1}$ we have $U\ket{1}=\ee^{\ii 2\pi\varphi}\ket{1}$, so
+$\braket{\psi|U|\psi}=\ee^{\ii 2\pi\varphi}$ and
+$\Re\braket{\psi|U|\psi}=\cos2\pi\varphi$. The $\ket{0}$-ancilla branch is
+$\tfrac12(\ket{1}+\ee^{\ii 2\pi\varphi}\ket{1})$, so
+$p(0)=\tfrac14\abs{1+\ee^{\ii 2\pi\varphi}}^{2}=\tfrac12(1+\cos2\pi\varphi)$ and
+$p(1)=\tfrac12(1-\cos2\pi\varphi)$, matching \cref{thm:lec04-hadamard}. Inserting
+$S\dg$ multiplies the $\ket{1}$ branch by $-\ii$, so the $\ket{0}$-branch becomes
+$\tfrac12(\ket{\psi}-\ii\,U\ket{\psi})$ and $p(0)=\tfrac14(2+\ii\braket{\psi|U|
+\psi}-\ii\overline{\braket{\psi|U|\psi}})=\tfrac12(1+\Im\braket{\psi|U|\psi})$.
+The real test returns only $\cos2\pi\varphi$, an even function of $\varphi$, so
+$\varphi$ and $1-\varphi$ give the same $p(0)$; the imaginary test returns
+$\sin2\pi\varphi$, whose sign breaks the ambiguity.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec04-7}]
+After the controlled powers the ancilla holds
+$\tfrac{1}{\sqrt8}\sum_{j=0}^{7}\ee^{\ii 2\pi(3/8)j}\ket{j}=\QFT\ket{3}$, since
+$\varphi=3/8=k/2^{t}$ with $k=3$ and $t=3$. By \cref{thm:lec04-exact} the inverse
+QFT returns $\ket{3}=\ket{011}$ and the measurement reads $011$, i.e.\
+$\tilde\varphi=3/8$ with certainty.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec04-8}]
+With $T=8$ and $\varphi=\tfrac13$, use
+$\abs{\gamma_k}^{2}=\tfrac{1}{T^{2}}\sin^{2}(\pi T(\varphi-k/T))/
+\sin^{2}(\pi(\varphi-k/T))$. For $k=3$, $\varphi-k/T=\tfrac13-\tfrac38
+=-\tfrac{1}{24}$, so
+\[
+  \abs{\gamma_3}^{2}=\tfrac{1}{64}\frac{\sin^2(\pi/3)}{\sin^2(\pi/24)}
+   \approx\tfrac{1}{64}\cdot\frac{0.75}{0.01704}\approx0.687.
+\]
+For $k=2$, $\varphi-k/T=\tfrac13-\tfrac14=\tfrac{1}{12}$, so
+\[
+  \abs{\gamma_2}^{2}=\tfrac{1}{64}\frac{\sin^2(2\pi/3)}{\sin^2(\pi/12)}
+   \approx\tfrac{1}{64}\cdot\frac{0.75}{0.06699}\approx0.175.
+\]
+The nearest level $k=3$ ($=0.375$) is most likely, as expected since it is the
+closest $t$-bit approximation to $0.333\ldots$; the remaining probability spreads
+over the other levels.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec04-9}]
+Take $\epsilon=0.1$ and $n=6$ in \cref{thm:lec04-precision}. Then
+\[
+  t=n+\bigl\lceil\log_2\bigl(2+\tfrac{1}{2\cdot0.1}\bigr)\bigr\rceil
+   =6+\lceil\log_2(2+5)\rceil=6+\lceil\log_2 7\rceil=6+3=9
+\]
+ancilla qubits, since $\log_2 7\approx2.81$ rounds up to $3$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec04-10}]
+Kitaev's method spends \emph{circuit depth}: applying $U^{2^{j}}$ (which costs
+$2^{j}$ applications of $U$) amplifies the phase so that each bit is read with
+high confidence, and by \cref{rem:lec04-depth} the total query cost sums to
+$\bigo(\sum_j 2^j)=\bigo(1/\epsilon)$. The single-qubit estimator of
+\cref{sec:lec04-1} uses only $U$ and learns $\varphi$ through a probability that
+must be resolved to $\bigo(\epsilon)$; by Bernoulli variance this needs
+$\bigo(1/\epsilon^{2})$ \emph{repetitions}. Coherent depth thus buys a quadratic
+saving over incoherent samples. This is exactly the Heisenberg versus shot-noise
+distinction of \cref{sec:lec04-5}: coherently accumulating phase over total
+evolution time $\mathcal{T}=\bigo(1/\epsilon)$ gives precision
+$\epsilon\sim1/\mathcal{T}$ (Heisenberg limit), whereas independent repetitions
+give only $\epsilon\sim1/\sqrt{\mathcal{T}}$ (shot noise).
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec04-11}]
+With $N=8$ and $\omega=\ee^{\ii\pi/4}$, the definition gives
+$\QFT\ket{5}=\tfrac{1}{2\sqrt2}\sum_{k=0}^{7}\omega^{5k}\ket{k}$. Reducing
+$\omega^{5k}$ modulo $\omega^{8}=1$ yields the amplitudes
+$\tfrac{1}{2\sqrt2}\bigl(1,\omega^{5},\ii,\omega^{7},-1,\omega,-\ii,
+\omega^{3}\bigr)$ for $\ket{0},\dots,\ket{7}$, i.e.\
+\[
+  \QFT\ket{5}=\tfrac{1}{2\sqrt2}\Bigl(\ket{0}-\tfrac{1+\ii}{\sqrt2}\ket{1}
+  +\ii\ket{2}+\tfrac{1-\ii}{\sqrt2}\ket{3}-\ket{4}+\tfrac{1+\ii}{\sqrt2}\ket{5}
+  -\ii\ket{6}-\tfrac{1-\ii}{\sqrt2}\ket{7}\Bigr),
+\]
+since $\omega^{5}=\ee^{\ii 5\pi/4}=-(1+\ii)/\sqrt2$,
+$\omega^{7}=(1-\ii)/\sqrt2$, $\omega=(1+\ii)/\sqrt2$,
+$\omega^{3}=(-1+\ii)/\sqrt2$. From the product form, $j=5=(101)_2$ gives phases
+$0.j_1 j_2 j_3=\tfrac58$, $0.j_2 j_3=\tfrac14$, $0.j_3=\tfrac12$, so
+\[
+  \QFT\ket{5}=\tfrac{1}{\sqrt2}(\ket{0}+\ee^{\ii 5\pi/4}\ket{1})\otimes
+  \tfrac{1}{\sqrt2}(\ket{0}+\ii\ket{1})\otimes
+  \tfrac{1}{\sqrt2}(\ket{0}-\ket{1}).
+\]
+Expanding over $\ket{k_1 k_2 k_3}$ gives amplitudes $\tfrac{1}{2\sqrt2}$ times,
+in order $000,\dots,111$: $1,-1,\ii,-\ii,\omega^{5},-\omega^{5},\ii\omega^{5},
+-\ii\omega^{5}$, i.e.\ attached to $\ket{0},\ket{4},\ket{2},\ket{6},\ket{1},
+\ket{5},\ket{3},\ket{7}$ after bit reversal $k_1 k_2 k_3\mapsto k_3 k_2 k_1$.
+The SWAP of qubits $1$ and $3$ exchanges $\ket{1}=\ket{001}\leftrightarrow
+\ket{4}=\ket{100}$ and $\ket{3}=\ket{011}\leftrightarrow\ket{6}=\ket{110}$,
+while fixing the palindromes $\ket{0},\ket{2},\ket{5},\ket{7}$; applying it to
+the expanded product reproduces the definition amplitudes above exactly.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec04-12}]
+For $U=\diag(1,\ee^{\ii\pi/4})$ we have $U\ket{1}=\ee^{\ii\pi/4}\ket{1}
+=\ee^{\ii 2\pi\varphi}\ket{1}$ with $\varphi=\tfrac18=0.001_2$. After the
+controlled powers the ancilla is
+$\tfrac{1}{\sqrt8}\sum_{j=0}^{7}\ee^{\ii 2\pi(1/8)j}\ket{j}=\QFT\ket{1}$, so by
+\cref{thm:lec04-exact} the inverse QFT returns $\ket{1}=\ket{001}$ and the
+measurement reads $001$ (recovering $\ee^{\ii 2\pi/8}=\ee^{\ii\pi/4}$). The
+powers reduce to $U=P(\pi/4)$, $U^{2}=P(\pi/2)$, $U^{4}=P(\pi)$. For $U=Z$,
+$Z\ket{1}=-\ket{1}=\ee^{\ii 2\pi(1/2)}\ket{1}$ gives $\varphi=\tfrac12=0.100_2$,
+ancilla $\QFT\ket{4}$, outcome $100$; and $Z\ket{0}=\ket{0}$ gives $\varphi=0$,
+outcome $000$. In both $Z$ cases $Z^{2^{m}}=(Z^{2})^{2^{m-1}}=\id$ for $m\ge1$
+because $Z^{2}=\id$, so the controlled-$U^{2}$ and controlled-$U^{4}$ act
+trivially and may be dropped.
+\end{solution}

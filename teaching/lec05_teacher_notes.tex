@@ -1,0 +1,197 @@
+\documentclass[11pt]{article}
+\input{teacher_preamble}
+\providecommand{\QFT}{\mathrm{QFT}}
+\title{\textbf{Lecture 5 --- Applications of Phase Estimation}\\[0.3em]\large Teacher's Notes (chalk, one 3$\times$45\,min meeting)}
+\author{Course Instructor}
+\date{}
+\begin{document}
+\maketitle
+
+\noindent\textbf{How to use these notes.} A chalk plan for one three-hour meeting in
+three 45-minute blocks. \textsf{On the board} panels give what to write;
+\textcolor{teal}{\textbf{Sketch}} cues what to draw; \tmark{n} paces each chunk. The
+spine is a single idea---\emph{QPE reads an eigenphase}---applied three ways; keep
+pointing back to Lecture~4. In-class problems have teacher answers; orange
+\emph{Advanced} boxes are optional.
+
+\medskip
+\noindent\textbf{Learning goals (by the end a student can):}
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item Estimate a ground-state energy by running QPE on $\ee^{-\ii Ht}$, and explain why the cost is set by the input/ground-state overlap.
+  \item Recognize amplitude estimation as QPE of the Grover iterate, and state its $\bigo(1/\epsilon)$ vs.\ $\bigo(1/\epsilon^2)$ quadratic advantage.
+  \item Cast order finding as phase estimation of modular multiplication and recover the order by continued fractions (the quantum core of Shor).
+  \item State the Heisenberg limit and the no-fast-forwarding caveat at the level of their consequences.
+\end{itemize}
+
+\medskip
+\noindent\textbf{Prerequisites.} Lecture~4 (QPE, inverse QFT, precision bound);
+Lecture~3 (Grover iterate); basic number theory ($\gcd$, modular arithmetic, continued
+fractions).
+
+\medskip
+\noindent\textbf{Materials.} Cheat strip: $H\ket{\psi_j}=\lambda_j\ket{\psi_j}$,
+ground energy $\lambda_0$, gap $\Delta=\lambda_1-\lambda_0$, overlap $p_0=|\braket{\phi|\psi_0}|^2$;
+colored chalk for ``signal'' (true value) vs.\ ``estimate.''
+
+% =====================================================================
+\block{Block 1 --- Ground-state energy estimation}{45}
+% =====================================================================
+\noindent\emph{Objective:} eigenphases of $\ee^{-\ii Ht}$ are energies; QPE on a trial
+state samples energy $\lambda_j$ with probability $|\braket{\phi|\psi_j}|^2$.
+
+\medskip
+\noindent\textbf{Pacing:} eigenphase $\to$ energy \tmark{12}; the overlap governs cost
+\tmark{12}; min-over-runs estimator \tmark{10}; in-class \tmark{3}; buffer \tmark{8}.
+
+\subsection*{1. From eigenphase to energy \tmark{12}}
+\begin{board}
+Run QPE with $U=\ee^{-\ii Ht}$. Its eigenphases are $\varphi_j=-\lambda_j t/2\pi \pmod1$,
+so a $t$-ancilla QPE on $\ket{\psi_j}$ returns $\widetilde\varphi_j\approx\varphi_j$ and
+hence $\widetilde\lambda_j=-2\pi\widetilde\varphi_j/t$. Choose the evolution time so all
+$\lambda_j t$ fit in $[0,2\pi)$ (rescale $H$) to avoid aliasing.
+\end{board}
+Say aloud: ``energy = phase accumulated per unit time''; QPE is a quantum spectrometer.
+Implementing $\ee^{-\ii Ht}$ (Hamiltonian simulation) is Part~III---here it is a black box.
+
+\subsection*{2. The overlap governs the cost \tmark{12}}
+\begin{board}
+On a trial state $\ket\phi=\sum_j c_j\ket{\psi_j}$, QPE returns $\lambda_j$ with
+probability $|c_j|^2$ and collapses onto $\ket{\psi_j}$. To hit the \emph{ground} energy
+$\lambda_0$ you need outcome $j=0$: expected repetitions $\sim 1/p_0$, $p_0=|c_0|^2$.
+A good classical/variational guess for $\ket\phi$ (large $p_0$) is essential.
+\end{board}
+\sketch{Spectrum as a comb of lines $\lambda_0<\lambda_1<\cdots$; the trial state's bars
+$|c_j|^2$ over them; QPE ``samples a line'' with those weights.}
+
+\subsection*{3. The min-over-runs estimator \tmark{10}}
+\begin{board}
+Repeat QPE $R$ times; each run yields some $\widetilde\lambda_{j}$. Report the
+\emph{minimum}. With $p_0$ not tiny and $R=\bigo(\tfrac1{p_0}\log\tfrac1\delta)$ runs, the
+smallest observed estimate equals $\widetilde\lambda_0$ (to QPE precision) except with
+probability $\delta$---the ground state is the lowest line, so its sample is the min.
+\end{board}
+
+\begin{inclass}[Repetitions for the ground energy]\label{ic:l5-overlap}
+A trial state has ground-state overlap $p_0=0.04$. Roughly how many QPE runs are needed
+so that at least one hits $\lambda_0$ with probability $\ge0.99$?
+\end{inclass}
+\begin{answer}
+$\Prob(\text{miss all }R)=(1-p_0)^R\le0.01\Rightarrow R\ge\ln(0.01)/\ln(0.96)\approx113$.
+So $\sim\!10^2$ runs; cost scales as $1/p_0$ (QSVT filtering in \S Block~3 improves this to $1/\sqrt{p_0}$).
+\end{answer}
+
+% =====================================================================
+\block{Block 2 --- Amplitude estimation}{45}
+% =====================================================================
+\noindent\emph{Objective:} the ``good-subspace weight'' is an eigenphase of the Grover
+iterate, so QPE estimates it with a quadratic speedup over sampling.
+
+\medskip
+\noindent\textbf{Pacing:} setup \& the Grover-iterate eigenphase \tmark{16}; query count
+\& quadratic advantage \tmark{14}; applications \tmark{9}; in-class \tmark{6}.
+
+\subsection*{1. The weight as an eigenphase \tmark{16}}
+\begin{board}
+Let $\mathcal A\ket0=\ket\Psi=\sin\tfrac\theta2\ket{\text{good}}+\cos\tfrac\theta2\ket{\text{bad}}$,
+so the good-subspace probability is $a=\sin^2\tfrac\theta2$. The Grover iterate
+$Q=\mathcal A S_0\mathcal A^\dagger S_{\text{good}}$ rotates by $\theta$ in the 2-D
+good/bad plane; its eigenvalues are $\ee^{\pm\ii\theta}$. \textbf{Amplitude estimation}
+$=$ QPE on $Q$ to read $\theta$, hence $a=\sin^2\tfrac\theta2$.
+\end{board}
+Point back: this is exactly the Grover geometry of Lecture~3, now \emph{measured} rather
+than iterated to a target.
+
+\subsection*{2. Query count and the quadratic advantage \tmark{14}}
+\begin{board}
+A $t$-bit QPE on $Q$ uses $\bigo(2^t)$ applications of $Q$ and resolves $\theta$ to
+$\bigo(2^{-t})$, so estimating $a$ to additive error $\epsilon$ costs
+\[
+  \bigo(1/\epsilon)\ \text{queries}\quad\text{vs.}\quad\bigo(1/\epsilon^2)\ \text{for Monte Carlo.}
+\]
+A \emph{quadratic} speedup in precision---the same $\sqrt{\ }$ that powers Grover.
+\end{board}
+
+\subsection*{3. Applications \tmark{9}}
+\begin{board}
+\emph{Quantum counting}: $\mathcal A=H^{\otimes n}$, good $=$ marked set; $a=M/N$ gives the
+number of solutions $M$---and the right Grover iteration count without knowing $M$.
+\emph{Monte Carlo}: estimating a mean $\E[f]$ to error $\epsilon$ in $\bigo(1/\epsilon)$
+queries (quadratically fewer samples).
+\end{board}
+
+\begin{inclass}[Counting speedup]\label{ic:l5-ae}
+To estimate a probability $a$ to additive error $\epsilon=10^{-3}$: how many samples does
+classical Monte Carlo need (order of magnitude), and how many Grover-iterate queries does
+amplitude estimation need?
+\end{inclass}
+\begin{answer}
+Monte Carlo $\sim1/\epsilon^2=10^{6}$ samples; amplitude estimation $\sim1/\epsilon=10^{3}$
+queries to $Q$---a thousand-fold reduction here, the quadratic advantage.
+\end{answer}
+
+% =====================================================================
+\block{Block 3 --- Order finding, Shor, and limits}{45}
+% =====================================================================
+\noindent\emph{Objective:} factoring reduces to order finding; order finding is QPE of a
+modular-multiplication unitary; continued fractions recover the order.
+
+\medskip
+\noindent\textbf{Pacing:} factoring $\to$ order finding \tmark{10}; order finding as QPE
+\tmark{14}; continued fractions \& speedup \tmark{12}; limits (brief) \tmark{6}; in-class \tmark{3}.
+
+\subsection*{1. Factoring reduces to order finding \tmark{10}}
+\begin{board}
+To factor $M$: pick $1<a<M$ with $\gcd(a,M)=1$; let $r=\mathrm{ord}_M(a)$ be the least
+$r>0$ with $a^r\equiv1\pmod M$. If $r$ is even and $a^{r/2}\not\equiv-1$, then
+$\gcd(a^{r/2}\pm1,\,M)$ are nontrivial factors. The hard part is finding $r$---do it quantumly.
+\end{board}
+
+\subsection*{2. Order finding as phase estimation \tmark{14}}
+\begin{board}
+Modular-multiplication unitary $U_a\ket{y}=\ket{ay\bmod M}$. Its eigenstates
+\[
+  \ket{u_s}=\tfrac1{\sqrt r}\sum_{k=0}^{r-1}\ee^{-\ii2\pi sk/r}\ket{a^k\bmod1}
+  \quad\text{have eigenphase } \varphi_s=\tfrac{s}{r}.
+\]
+Starting the eigenstate register in $\ket1=\tfrac1{\sqrt r}\sum_s\ket{u_s}$, QPE returns a
+random $s/r$ (each $s$ equally likely). Controlled-$U_a^{2^j}$ is modular exponentiation.
+\end{board}
+Say aloud: we never prepare a single $\ket{u_s}$---$\ket1$ is their uniform superposition,
+so one QPE run yields $\widetilde{s/r}$ for a random $s$.
+
+\subsection*{3. Recovering $r$ and the speedup \tmark{12}}
+\begin{board}
+From the estimate $\widetilde{s/r}$ (to $2n+1$ bits, $n=\lceil\log_2 M\rceil$), the
+\emph{continued-fraction} expansion returns the fraction $s/r$ in lowest terms, hence $r$
+(when $\gcd(s,r)=1$; retry otherwise---$\bigo(1)$ expected repeats). Cost: $\bigo(n^2)$
+for the QFT $+$ modular exponentiation, i.e.\ $\mathrm{poly}(n)$ --- \emph{exponentially}
+faster than the best known classical factoring.
+\end{board}
+
+\begin{inclass}[Continued fractions]\label{ic:l5-cf}
+QPE on $U_a$ with $M=15$, $a=7$ returns the estimate $\widetilde{s/r}=0.25$. What are the
+candidate $s/r$, the order $r$, and the resulting factors of $15$?
+\end{inclass}
+\begin{answer}
+$0.25=\tfrac14\Rightarrow s/r=1/4$, so $r=4$. Check $7^4=2401\equiv1\pmod{15}$. Then
+$a^{r/2}=7^2=49\equiv4$, and $\gcd(4\pm1,15)=\gcd(5,15),\gcd(3,15)=5,3$: factors $15=3\times5$.
+\end{answer}
+
+\subsection*{4. Limits --- state them, don't prove \tmark{6}}
+\begin{board}
+\emph{Heisenberg limit}: $N_U$ uses of $U$ buy phase precision $\sim1/N_U$ (optimal).
+\emph{Ground-state prep} (QSVT spectral filter, Lecture~9): cost $\sim1/\sqrt{p_0}$ and
+$\sim1/\Delta$---a Grover-type $\Omega(1/\sqrt{p_0})$, $\Omega(1/\Delta)$ lower bound shows
+this is near-optimal. \emph{No fast-forwarding}: generic $\ee^{-\ii Ht}$ needs
+$\Omega(t)$ work---recurs in Part~III.
+\end{board}
+
+\begin{advanced}
+\textbf{Eigenstate preparation by filtering.} A polynomial $p(H)\approx$ projector onto
+$\lambda\le\lambda_0+\Delta/2$, applied by QSVT (Lecture~9), amplifies the ground
+component from amplitude $\sqrt{p_0}$ to $\bigo(1)$ using $\bigo(1/\sqrt{p_0})$ calls and
+degree $\bigo(1/\Delta)$---quadratically better in $p_0$ than the $1/p_0$ sampling of
+Block~1. Mention only; the machinery is QSVT.
+\end{advanced}
+
+\end{document}

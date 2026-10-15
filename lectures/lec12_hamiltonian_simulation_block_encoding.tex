@@ -1,0 +1,713 @@
+\chapter{Hamiltonian Simulation II: Block-Encoding Methods}
+\label{ch:lec12}
+
+\begin{objectives}
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item Simulate time-independent Hamiltonians with QSVT at optimal query cost.
+  \item Apply the truncated Taylor-series method with oblivious amplitude amplification.
+  \item Handle time-dependent Hamiltonians via the truncated Dyson series and interaction picture.
+  \item State and motivate the no-fast-forwarding theorem.
+\end{itemize}
+\end{objectives}
+
+The product formulas of \cref{ch:lec11} take as their raw material the individual
+term-evolutions $\ee^{-\ii H_\gamma s}$ and stitch them together. This chapter takes a
+different input: a \emph{block encoding} of $H$ (\cref{ch:lec06}), i.e.\ a unitary $U_H$
+whose top-left corner equals $H/\alpha$ for some $\alpha\ge\norm H$. From this single
+oracle we build $\ee^{-\ii Ht}$ directly, using the quantum singular value transformation
+(QSVT, \cref{ch:lec09}) and the linear-combination-of-unitaries primitive (LCU,
+\cref{ch:lec07}). The payoff is a query complexity
+\begin{equation}
+  \bigo\!\Bigl(\alpha t+\log(1/\epsilon)\Bigr),
+  \label{eq:lec12-optimal}
+\end{equation}
+which is \emph{additive} in the time and the log-inverse-precision---exponentially better
+in $\epsilon$ than the best product formula \eqref{eq:lec11-suzuki-opt}, and, as we prove
+in \cref{sec:lec12-5}, optimal: no algorithm can do better than linear in $\alpha t$. The
+trade-off is that block-encoding methods treat $H$ as a monolithic object and cannot, by
+themselves, exploit the commutator structure or geometric locality that makes product
+formulas so efficient for lattice models; the two families are complementary.
+
+We proceed in five steps. \Cref{sec:lec12-1} builds $\ee^{-\ii Ht}$ from a block encoding
+by approximating $\cos$ and $\sin$ through the Jacobi--Anger expansion, running each
+through QSVT, and combining them by LCU---the route to the optimal
+scaling~\eqref{eq:lec12-optimal}. \Cref{sec:lec12-2} presents the older but conceptually
+transparent truncated Taylor-series method, an LCU of the powers $(-\ii Ht)^k/k!$ cleaned
+up by oblivious amplitude amplification. \Cref{sec:lec12-3} extends the setting to
+time-dependent $H(t)$, where the naive matrix exponential fails and the time-ordered
+(Dyson) exponential takes its place. \Cref{sec:lec12-4} implements the truncated Dyson
+series as an LCU over a clock register and develops the interaction-picture method, which
+fast-forwards a large but easy term. \Cref{sec:lec12-5} proves the no-fast-forwarding
+theorem, closing the loop by showing that \eqref{eq:lec12-optimal} cannot be beaten in
+general. Throughout, $\norm\cdot$ is the spectral norm, $U_H\in\mathrm{BE}_{\alpha,m}(H)$
+denotes an $(\alpha,m)$-block encoding of $H$ on $m$ ancillas, and we write
+$U_H\in\mathrm{BE}_{\alpha,m}(H,\epsilon)$ when the encoded operator is within $\epsilon$
+of $H$ in spectral norm.
+
+\section{QSVT and optimal-scaling simulation}
+\label{sec:lec12-1}
+
+\paragraph{Reduction to \texorpdfstring{$\alpha=1$}{alpha=1}.}
+Given $U_H\in\mathrm{BE}_{\alpha,m}(H)$, the encoded operator is $A\defeq H/\alpha$ with
+$\norm A\le1$. Since $\ee^{-\ii Ht}=\ee^{-\ii A(\alpha t)}$, the normalization $\alpha$
+is absorbed into a rescaled time $\tau\defeq\alpha t$, and we may assume $\norm H\le1$ at
+the price of simulating for the longer (dimensionless) time $\tau$. Every query complexity
+below is stated in $\tau=\alpha t$, which is why $\alpha$ appears in
+\eqref{eq:lec12-optimal}. A block-encoding error is also harmless: if
+$U_{\tilde H}\in\mathrm{BE}_{1,m}(\tilde H)$ with $\|\tilde H-H\|\le\epsilon'$, Duhamel's
+formula (variation of constants) gives
+\begin{equation}
+  \ee^{-\ii\tilde Ht}-\ee^{-\ii Ht}
+  =-\ii\int_0^t\ee^{-\ii H(t-s)}(\tilde H-H)\,\ee^{-\ii\tilde Hs}\,\dd s,
+  \qquad
+  \norm{\ee^{-\ii\tilde Ht}-\ee^{-\ii Ht}}\le\epsilon' t,
+  \label{eq:lec12-duhamel-pert}
+\end{equation}
+so choosing $\epsilon'=\epsilon/(2t)$ makes the encoding error contribute at most
+$\epsilon/2$. We therefore assume an exact $U_H\in\mathrm{BE}_{1,m}(H)$ from now on.
+
+\paragraph{The strategy: \texorpdfstring{$\ee^{-\ii Ht}=\cos(Ht)-\ii\sin(Ht)$}{e=cos-i sin}.}
+QSVT (\cref{ch:lec09}) implements $f(A)$ for a \emph{real} polynomial $f$ of definite
+parity satisfying $|f(x)|\le1$ on $[-1,1]$, using $\deg f$ applications of $U_H,U_H\dg$.
+The target $\ee^{-\ii tx}$ is complex, so we split it into its real and imaginary parts,
+\begin{equation}
+  \ee^{-\ii Ht}=\cos(Ht)-\ii\sin(Ht),
+  \label{eq:lec12-cossin}
+\end{equation}
+where $\cos(tx)$ is real and \emph{even} and $\sin(tx)$ is real and \emph{odd}---exactly the
+two parity classes QSVT handles. We approximate each by a polynomial, realize each by a
+QSVT circuit, and add them with a single LCU ancilla.
+
+\paragraph{Jacobi--Anger expansion.}
+The efficient polynomial approximation of the trigonometric functions is the
+Fourier--Chebyshev (Jacobi--Anger) series. With $T_k$ the degree-$k$ Chebyshev polynomial
+and $J_\nu$ the Bessel function of the first kind,
+\begin{equation}
+  \cos(tx)=J_0(t)+2\sum_{k=1}^{\infty}(-1)^kJ_{2k}(t)\,T_{2k}(x),
+  \qquad
+  \sin(tx)=2\sum_{k=0}^{\infty}(-1)^kJ_{2k+1}(t)\,T_{2k+1}(x).
+  \label{eq:lec12-jacobi-anger}
+\end{equation}
+These converge extraordinarily fast because the Bessel coefficients decay
+super-exponentially once the index exceeds $t$: for $m\ge0$,
+\begin{equation}
+  |J_m(t)|\le\frac{1}{m!}\Bigl(\frac{t}{2}\Bigr)^m,
+  \label{eq:lec12-bessel-tail}
+\end{equation}
+so truncating each series at Chebyshev degree $2K$ (resp.\ $2K+1$) leaves a tail bounded by
+$2\sum_{k>2K}|J_k(t)|=\bigo\bigl((\ee t/(2K{+}1))^{2K+1}\ee^{t/2}\bigr)$. The Bessel index
+must clear $t$ before the factorial dominates; beyond that point each extra degree buys a
+constant-factor reduction in error. This gives the following truncation lemma.
+
+\begin{lemma}[Jacobi--Anger truncation degree]
+\label{lem:lec12-ja-degree}
+For any $t>0$ and $\epsilon\in(0,\ee^{-1})$ there is a truncation order
+\begin{equation}
+  K=\Theta\!\Bigl(t+\frac{\log(1/\epsilon)}{\log(\ee+\log(1/\epsilon)/t)}\Bigr)
+   =\bigo\bigl(t+\log(1/\epsilon)\bigr)
+  \label{eq:lec12-ja-K}
+\end{equation}
+such that the degree-$2K$ truncation $C(x)$ of $\cos(tx)$ and the degree-$(2K{+}1)$
+truncation $S(x)$ of $\sin(tx)$ obey
+$\sup_{x\in[-1,1]}|\cos(tx)-C(x)|\le\epsilon$ and
+$\sup_{x\in[-1,1]}|\sin(tx)-S(x)|\le\epsilon$.
+\end{lemma}
+
+\begin{proof}[Proof sketch]
+Bound the truncated tail by \eqref{eq:lec12-bessel-tail}; summing the geometric-like
+remainder shows the error is controlled by a model inequality of the form
+$(a/K)^K\le\epsilon$ with $a=\Theta(t)$. That inequality is solved exactly by the
+Lambert-$W$ function: its unique positive root is $K^\ast=\ln(1/\epsilon)/W(\ln(1/\epsilon)/a)$,
+and the elementary estimate $\ln(1+z)\ge z/(1+z)$ applied at $K=a+\ln(1/\epsilon)$ gives the
+crude bound $K^\ast\le a+\ln(1/\epsilon)=\bigo(t+\log(1/\epsilon))$; a sharper analysis of
+$W$ yields the refined logarithmic denominator in \eqref{eq:lec12-ja-K}.
+\end{proof}
+
+\paragraph{Assembling the circuit.}
+Choose $K$ by \cref{lem:lec12-ja-degree} so that $C(x),S(x)$ each approximate their
+targets to precision $\epsilon/2$. Because a QSVT-realizable polynomial must satisfy
+$|p(x)|\le1$ on $[-1,1]$ but $\max|C|,\max|S|$ can slightly exceed $1$, rescale by
+$\beta\defeq1+\epsilon$ so that $\beta^{-1}C$ and $\beta^{-1}S$ are bounded by $1$. The
+combined error is
+\begin{equation}
+  \max_{x\in[-1,1]}\bigl|(C(x)-\ii S(x))-\ee^{-\ii tx}\bigr|
+  \le\sqrt{(\epsilon/2)^2+(\epsilon/2)^2}=\epsilon/\sqrt2<\epsilon.
+  \label{eq:lec12-cs-error}
+\end{equation}
+Feeding the (even) phase factors for $\beta^{-1}C$ and the (odd) phase factors for
+$\beta^{-1}S$ into QSVT produces block encodings
+$U_C\in\mathrm{BE}_{\beta,m+1}(\cos(Ht),\epsilon/2)$ and
+$U_S\in\mathrm{BE}_{\beta,m+1}(\sin(Ht),\epsilon/2)$. One further LCU ancilla combines them
+as $C(H)-\ii S(H)$: the prepare step creates $\tfrac1{\sqrt2}(\ket0+\ket1)$ and the select
+step applies $U_C$ conditioned on $\ket0$ and (the $-\ii$-phased) $U_S$ conditioned on
+$\ket1$. The result is $U_\Phi\in\mathrm{BE}_{2\beta,m+2}(\ee^{-\ii Ht},\bigo(\epsilon))$.
+Only the $\sin$ branch needs a \emph{controlled} $U_H$; the $\cos$ branch uses uncontrolled
+queries.
+
+\begin{theorem}[Optimal time-independent simulation, Low--Chuang]
+\label{thm:lec12-optimal}
+From $U_H\in\mathrm{BE}_{1,m}(H)$ and for any $\epsilon\in(0,1)$, $t>0$, one can construct
+a block encoding $U_\Phi\in\mathrm{BE}_{2(1+\epsilon),m+2}(\ee^{-\ii Ht},\epsilon)$ using
+\begin{equation}
+  \bigo\!\Bigl(t+\frac{\log(1/\epsilon)}{\log(\ee+\log(1/\epsilon)/t)}\Bigr)
+  =\bigo\bigl(t+\log(1/\epsilon)\bigr)
+  \label{eq:lec12-thm-cost}
+\end{equation}
+applications of $U_H$, $U_H\dg$, plus one controlled $U_H$. Restoring the normalization
+$\alpha$, the cost is $\bigo(\alpha t+\log(1/\epsilon))$ queries to a block encoding
+$U_H\in\mathrm{BE}_{\alpha,m}(H)$. This matches the lower bound of \cref{sec:lec12-5} and
+is therefore optimal.
+\end{theorem}
+
+\begin{proof}
+Immediate from \cref{lem:lec12-ja-degree} and the LCU combination above: each of $U_C,U_S$
+costs $2K=\bigo(t+\log(1/\epsilon))$ queries, and the LCU doubles the count and adds two
+ancillas. The error \eqref{eq:lec12-cs-error} propagates through the (unitary) LCU circuit
+to give the stated $\epsilon$.
+\end{proof}
+
+\paragraph{Cleaning up the subnormalization.}
+The block encoding $U_\Phi$ has subnormalization $2\beta=2(1+\epsilon)$, so a bare
+measurement of the $\ket{0^{m+2}}$ flag succeeds with amplitude $\approx1/2$. Because the
+target $\ee^{-\ii Ht}$ is itself \emph{unitary}, we may deterministically boost the
+amplitude to $1$ with a single round of \emph{oblivious} amplitude amplification
+(\cref{ch:lec07})---``oblivious'' because it works for the unknown input state $\ket\psi$
+without measuring it. Using $U_\Phi$ twice and $U_\Phi\dg$ once yields
+$U\in\mathrm{BE}_{1,m+2}(\ee^{-\ii Ht},\bigo(\epsilon))$, at the cost of $3$ controlled
+$U_H$ applications. To simulate for a longer time $T=Lt$ one simply concatenates $L$ copies
+of $U$, with error growing linearly as $\bigo(L\epsilon)$.
+
+\paragraph{Contrast with product formulas.}
+Two structural differences with \cref{ch:lec11} stand out. First, precision: QSVT achieves
+$\log(1/\epsilon)$ cost where even arbitrarily-high-order Suzuki formulas pay
+$(1/\epsilon)^{o(1)}$ (equation~\eqref{eq:lec11-suzuki-opt}). Second, structure: the
+product formula bound \eqref{eq:lec11-thm-cost} is governed by nested-commutator norms
+$\alpha_{\mathrm{comm}}$, which for a geometrically local Hamiltonian are far smaller than
+$\alpha=\norm H$; the block-encoding cost \eqref{eq:lec12-optimal} sees only $\alpha$ and
+cannot exploit that locality. Thus for a dense Hamiltonian, or when $\epsilon$ is tiny,
+QSVT wins; for a local lattice model at moderate precision, a Trotter formula may still be
+cheaper. Modern simulations often combine both.
+
+\begin{example}[{Truncation degree for $\norm H t=4\pi$}]
+\label{exa:lec12-degree}
+Take $\norm Ht=\tau=4\pi\approx12.57$ and target $\epsilon=10^{-3}$. The Bessel
+coefficient $J_m(\tau)$ becomes negligible once $m\gtrsim\tau$; numerically one finds that
+Chebyshev degree $d=2K\approx24$ already gives a QSVT representation error near
+$10^{-2}$, while $d\approx50$ pushes the uniform error on $[-1,1]$ below $10^{-6}$. The
+crude bound of \cref{lem:lec12-ja-degree} predicts
+$K\lesssim\tau+\ln(1/\epsilon)\approx12.57+6.9\approx19.5$, i.e.\ Chebyshev degree
+$\approx39$, comfortably consistent with the empirical $d\approx24$--$50$ range: past the
+threshold $m\approx\tau$, each additional pair of Chebyshev degrees cuts the error by a
+constant factor, so the degree grows only additively in $\log(1/\epsilon)$. This is the
+hallmark additive scaling of \eqref{eq:lec12-optimal}.
+\end{example}
+
+\section{Truncated Taylor series}
+\label{sec:lec12-2}
+
+\paragraph{An LCU of powers.}
+Predating the QSP methods, the truncated Taylor-series method of Berry--Childs--Cleve--Kothari--Somma
+offers a different and very concrete route to nearly-optimal simulation, and is the natural
+warm-up for the time-dependent Dyson method of \cref{sec:lec12-4}. Assume $\norm H\le1$.
+For a short step $\Delta t$, truncate the Taylor series of the propagator after order
+$K-1$:
+\begin{equation}
+  \ee^{-\ii H\Delta t}\approx\sum_{k=0}^{K-1}\frac{(-\ii H\Delta t)^k}{k!}.
+  \label{eq:lec12-taylor}
+\end{equation}
+This is a \emph{linear combination of the unitaries} implicit in the powers of $H$: each
+$(-\ii H)^k$ is a product of $k$ copies of the block encoding $U_H$ (with a global phase),
+and the coefficients $c_k=(\Delta t)^k/k!$ are nonnegative. We implement it with the
+standard LCU pair
+\begin{equation}
+  U_{\mathrm{SEL}}=\sum_{k=0}^{K-1}\proj{k}\otimes U_k,
+  \qquad
+  V_{\mathrm{PREP}}\ket{0}=\frac{1}{\sqrt{\norm c_1}}\sum_{k=0}^{K-1}\sqrt{c_k}\,\ket{k},
+  \label{eq:lec12-taylor-lcu}
+\end{equation}
+where $U_k$ is a block encoding of $(-\ii H)^k$ and $\norm c_1=\sum_k c_k$ is the
+coefficient $1$-norm.
+
+\paragraph{Choosing the step so the $1$-norm is $2$.}
+The LCU subnormalization equals $\norm c_1$. Picking $\Delta t=\ln2$ makes the full
+(untruncated) series sum to $\sum_{k\ge0}(\Delta t)^k/k!=\ee^{\Delta t}=2$, so
+$\norm c_1\le2$ for any finite $K$, with $|\,\norm c_1-2\,|$ controlled by the Taylor
+remainder. The LCU therefore produces a block encoding of $\ee^{-\ii H\Delta t}$ with
+subnormalization $\le2$. Because the target is unitary, one round of oblivious amplitude
+amplification (two uses of the LCU walk and one of its inverse) removes the factor of $2$,
+yielding
+\begin{equation}
+  W\in\mathrm{BE}_{1,a}(\ee^{-\ii H\Delta t},\epsilon'),
+  \qquad a=\bigo(\log K+m).
+  \label{eq:lec12-taylor-W}
+\end{equation}
+
+\paragraph{Concatenating segments and choosing $K$.}
+For total time $t=L\Delta t$ we chain $L$ segments, $\ee^{-\ii Ht}\approx W^L$, with error
+growing linearly: $\|(\bra{0^a}W\ket{0^a})^L-\ee^{-\ii Ht}\|\le L\epsilon'$, so we take
+$\epsilon'=\epsilon/L=\epsilon\Delta t/t$. The per-segment truncation error is the Taylor
+tail
+\begin{equation}
+  \Bigl\|\sum_{k=K}^{\infty}\frac{(-\ii H\Delta t)^k}{k!}\Bigr\|
+  \le\frac{(\norm H\Delta t)^K}{K!}\,\ee^{\norm H\Delta t}
+  \le\Bigl(\frac{\ee\norm H\Delta t}{K}\Bigr)^K\ee^{\norm H\Delta t}\le\epsilon',
+  \label{eq:lec12-taylor-tail}
+\end{equation}
+using $K!\ge(K/\ee)^K$. With $\norm H\le1$ and $\Delta t=\ln2$ the base is $\bigo(1)$, so
+the model inequality $(a/K)^K\le\epsilon'$ with $a=\bigo(1)$ has (via the Lambert-$W$
+estimate of \cref{lem:lec12-ja-degree}) the solution
+\begin{equation}
+  K=\bigo\!\Bigl(\frac{\log(1/\epsilon')}{\log\log(1/\epsilon')}\Bigr)
+   =\bigo\!\Bigl(\frac{\log(t/\epsilon)}{\log\log(t/\epsilon)}\Bigr).
+  \label{eq:lec12-taylor-K}
+\end{equation}
+Because there are $L=\bigo(t)$ segments (each of fixed duration $\ln2$), each costing
+$\bigo(K)$ queries to $U_H$, the total query complexity is
+\begin{equation}
+  \bigo\!\Bigl(t\,\frac{\log(t/\epsilon)}{\log\log(t/\epsilon)}\Bigr),
+  \label{eq:lec12-taylor-cost}
+\end{equation}
+with $\bigo(m+\log\log(t/\epsilon))$ ancilla qubits. This is \emph{near}-optimal: linear in
+$t$, but with an extra $\log(t/\epsilon)/\log\log(t/\epsilon)$ factor that the QSVT method
+of \cref{thm:lec12-optimal} removes. Its virtue is conceptual transparency and its role as
+the template for the Dyson method.
+
+\begin{example}[{Taylor order at $\epsilon=10^{-10}$}]
+\label{exa:lec12-taylor-order}
+For a segment with $\epsilon'=10^{-10}$, the estimate \eqref{eq:lec12-taylor-K} gives
+$K\approx\log(10^{10})/\log\log(10^{10})=\ln(10^{10})/\ln(\ln 10^{10})
+\approx23.0/\ln(23.0)\approx23.0/3.14\approx7.3$, so a truncation order $K\approx8$ already
+delivers ten digits of accuracy per segment---the doubly-logarithmic denominator makes the
+required order essentially flat in $\epsilon$. Contrast the product-formula precision cost
+$(1/\epsilon)^{1/(2k)}$ of \eqref{eq:lec11-suzuki-L}, which at $\epsilon=10^{-10}$ and
+fourth order ($k=2$) inflates the step count by $(10^{10})^{1/4}\approx316$.
+\end{example}
+
+\section{Time-dependent Hamiltonians}
+\label{sec:lec12-3}
+
+\paragraph{Why the matrix exponential fails.}
+Many important settings---adiabatic algorithms, control fields, the interaction picture
+below---involve a Hamiltonian $H(t)$ that changes in time. The Schr\"odinger equation is
+now $\partial_t\ket{\psi(t)}=-\ii H(t)\ket{\psi(t)}$. When $H$ commutes with itself at
+different times, $[H(s),H(s')]=0$, the solution is the naive exponential of the integrated
+Hamiltonian; e.g.\ for $H(t)=(T-t)\id+tX$,
+\begin{equation}
+  U(t)=\ee^{-\ii\int_0^t H(s)\,\dd s}
+      =\ee^{-\ii(\id(Tt-t^2/2)+t^2X/2)},
+  \label{eq:lec12-td-commuting}
+\end{equation}
+which one verifies by differentiation. But this breaks the moment the Hamiltonian fails to
+commute with itself: for $H(t)=(T-t)Z+tX$ one has $[H(t),H(t')]\neq0$ for $t\neq t'$, and
+\begin{equation}
+  U(t)\neq\ee^{-\ii\int_0^t H(s)\,\dd s},
+  \label{eq:lec12-td-noncommuting}
+\end{equation}
+because the chain rule no longer lets us differentiate $\ee^{-\ii\int_0^tH(s)\dd s}$ into
+$-\ii H(t)$ times itself. Time dependence introduces genuinely new features; the correct
+object is the \emph{time-ordered} exponential.
+
+\begin{theorem}[Ordered exponential and Dyson series]
+\label{thm:lec12-dyson}
+Let $A\colon[0,t]\to\C^{d\times d}$ be continuous. The operator ODE
+$\partial_t U(t)=A(t)U(t)$ with $U(0)=\id$ has a unique solution, the \emph{ordered
+operator exponential}, given by the convergent series
+\begin{equation}
+  U(t)=\mathcal T\ee^{\int_0^tA(s)\dd s}
+  =\id+\sum_{n=1}^{\infty}\int_0^t\!\!\int_0^{s_n}\!\!\cdots\int_0^{s_2}
+    A(s_n)\cdots A(s_1)\,\dd s_1\cdots\dd s_n.
+  \label{eq:lec12-dyson-series}
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+By the fundamental theorem of calculus, $U(t)=\id+\int_0^t A(s)U(s)\,\dd s$. Iterating this
+integral equation $p$ times reproduces the first $p$ terms of \eqref{eq:lec12-dyson-series}
+plus a remainder
+$R_{p+1}(t)=\int_0^t\!\int_0^{s_{p+1}}\!\cdots\int_0^{s_2}A(s_{p+1})\cdots A(s_1)U(s_1)\,
+\dd s_1\cdots\dd s_{p+1}$. Let $M=\sup_{s\in[0,t]}\norm{A(s)}<\infty$. Since
+$\norm{U(s)}\le\ee^{\int_0^s\norm{A(\tau)}\dd\tau}\le\ee^{Mt}$, submultiplicativity and the
+volume $t^{p+1}/(p+1)!$ of the ordered simplex give
+$\norm{R_{p+1}(t)}\le\ee^{Mt}(Mt)^{p+1}/(p+1)!\to0$ as $p\to\infty$. Uniqueness is standard
+Picard--Lindel\"of. When $A(t)\equiv A$ is constant the nested integrals collapse to
+$A^n t^n/n!$ and \eqref{eq:lec12-dyson-series} is the ordinary Taylor series
+$\ee^{At}$---the Dyson series is precisely the time-dependent analogue.
+\end{proof}
+
+\paragraph{Time ordering.}
+An equivalent bookkeeping uses the \emph{time-ordering} symbol $\mathcal T$, which sorts a
+product of operators into nonincreasing time order:
+$\mathcal T[A(s_1)A(s_2)]=A(s_1)A(s_2)$ if $s_1\ge s_2$ and $A(s_2)A(s_1)$ otherwise. Since
+each of the $n!$ orderings of $(s_1,\dots,s_n)$ contributes the same integral over the full
+cube, $\int_{[0,t]^n}\mathcal T[A(s_1)\cdots A(s_n)]\dd s=n!\int_{\mathrm{simplex}}
+A(s_n)\cdots A(s_1)\dd s$, whence the compact form
+\begin{equation}
+  U(t)=\mathcal T\ee^{\int_0^tA(s)\dd s}
+   =\id+\sum_{n=1}^{\infty}\frac{1}{n!}\int_{[0,t]^n}
+     \mathcal T[A(s_1)\cdots A(s_n)]\,\dd s_1\cdots\dd s_n.
+  \label{eq:lec12-timeorder}
+\end{equation}
+The symbol $\mathcal T$ is a \emph{prescription}, not an operator on the Hilbert space; the
+Dyson-series form \eqref{eq:lec12-dyson-series} is usually cleaner to manipulate, but the
+time-ordered form organizes the terms we must implement in the algorithm.
+
+\paragraph{Block-encoding a time-dependent Hamiltonian.}
+To simulate $H(t)$ we must block encode not just the operator but also its time argument.
+Discretize $[0,T]$ into $2^{n_t}$ steps of size $\Delta t=T/2^{n_t}$ and round to the
+piecewise-constant $\tilde H(t)=H(t_\ell)$, $t_\ell=\ell\Delta t$, $\ell=\lfloor
+t/\Delta t\rfloor$. By Taylor's theorem the local error is
+$\|H(t)-\tilde H(t)\|\le\max_s\|H'(s)\|\,\Delta t$, and the induced error in the ordered
+exponential over $[0,T]$ is
+\begin{equation}
+  \bigl\|\mathcal T\ee^{-\ii\int_0^TH(s)\dd s}
+        -\mathcal T\ee^{-\ii\int_0^T\tilde H(s)\dd s}\bigr\|
+  \le\max_{s}\norm{H'(s)}\,T\,\Delta t.
+  \label{eq:lec12-disc-error}
+\end{equation}
+To keep this below $\epsilon_T$ it suffices to take
+\begin{equation}
+  n_t=\bigo\!\Bigl(\log\frac{\max_s\norm{H'(s)}\,T^2}{\epsilon_T}\Bigr),
+  \label{eq:lec12-nt}
+\end{equation}
+so the time register grows only \emph{logarithmically} in the variation
+$\max_s\norm{H'(s)}$ and in $1/\epsilon_T$. The discretized Hamiltonian is then encoded via
+a \emph{clock register} $\ket\ell$ tensored with the system block encoding.
+
+\begin{definition}[$\mathrm{HAM\text{-}T}$ oracle]
+\label{def:lec12-hamt}
+For $H(t)\in\C^{2^n\times2^n}$ and normalization $\alpha_T>0$, the oracle
+$\mathrm{HAM\text{-}T}$ on $n_t+m+n$ qubits block encodes the block-diagonal operator
+indexed by the clock,
+\begin{equation}
+  (\id\otimes\bra{0^m}\otimes\id)\,\mathrm{HAM\text{-}T}\,
+   (\id\otimes\ket{0^m}\otimes\id)
+  =\sum_{\ell=0}^{2^{n_t}-1}\proj{\ell}\otimes\frac{H(\ell T/2^{n_t})}{\alpha_T}.
+  \label{eq:lec12-hamt}
+\end{equation}
+\end{definition}
+
+\paragraph{Standard-form construction.}
+To build $\mathrm{HAM\text{-}T}$, write $H(t)=\sum_{j=0}^{M-1}c_j(t)U_j(t)$ with
+$c_j(t)\ge0$ and $U_j(t)$ unitary (signs and phases absorbed into the $U_j$). A time-aware
+$\mathrm{SELECT}$ applies $U_j(\ell T/2^{n_t})$ conditioned on the clock $\ket\ell$ and
+index $\ket j$, and a $\mathrm{PREP\text{-}T}$ oracle prepares the coefficients
+$\ket\ell\ket{0}\mapsto\ket\ell\sum_j\sqrt{c_j(\ell T/2^{n_t})/\alpha}\,\ket j$ with
+$\alpha\ge\max_\ell\sum_j c_j$; then
+$\mathrm{HAM\text{-}T}=(\mathrm{PREP\text{-}T}\dg\otimes\id)\,\mathrm{SELECT}\,
+(\mathrm{PREP\text{-}T}\otimes\id)$ by the LCU lemma of \cref{ch:lec07}. Time-dependent
+phases $\ee^{\pm\ii\omega t_\ell}$ are realized by a Hermitian clock operator
+$\mathcal C=\sum_\ell(\ell/2^{n_t})\proj\ell$: the unitary $\ee^{\pm\ii\omega T\mathcal C}$
+applies the phase $\ee^{\pm\ii\omega\ell T/2^{n_t}}=\ee^{\pm\ii\omega t_\ell}$ to
+$\ket\ell$ by phase kickback, and factors into $n_t$ single-qubit $R_z$ rotations on the
+clock.
+
+\begin{example}[{Clock encoding of $H(t)=X+\sin(\omega t)Z$}]
+\label{exa:lec12-clock}
+The coefficient $\sin(\omega t)$ changes sign, so we split it into complex exponentials to
+restore nonnegative coefficients:
+\begin{equation}
+  H(t)=X+\tfrac12(-\ii\ee^{\ii\omega t})Z+\tfrac12(\ii\ee^{-\ii\omega t})Z,
+  \label{eq:lec12-clock-standard}
+\end{equation}
+so the coefficients are $c=[1,\tfrac12,\tfrac12]$ and the unitaries are
+$[X,\,-\ii\ee^{\ii\omega t}Z,\,\ii\ee^{-\ii\omega t}Z]$. A uniform $\mathrm{PREP\text{-}T}$
+(Hadamards on the index register) suffices, the clock phases $\ee^{\pm\ii\omega T\mathcal C}$
+are applied inside $\mathrm{SELECT}$ by phase kickback, and the $\pm\ii$ factors are set by
+a fixed single-qubit gate (a phase gate conjugated by $X$). This small example already shows
+the two ingredients: nonnegative LCU coefficients plus a clock that carries the time
+dependence.
+\end{example}
+
+\section{Truncated Dyson series and interaction picture}
+\label{sec:lec12-4}
+
+\paragraph{Dyson as an LCU over the clock.}
+With $\mathrm{HAM\text{-}T}$ in hand we implement the truncated Dyson series just as we did
+the truncated Taylor series, except that the powers $H^k$ are replaced by time-ordered
+products $\tilde H(s_k)\cdots\tilde H(s_1)$ integrated over the ordered simplex. Truncating
+\eqref{eq:lec12-dyson-series} at order $K$ and using piecewise-constancy turns each
+$n$-fold integral into a finite sum over clock values,
+\begin{equation}
+  \mathcal T\ee^{-\ii\int_0^T\tilde H(s)\dd s}
+  \approx\id+\sum_{k=1}^{K}\frac{(-\ii)^k}{k!}
+    \sum_{s_1,\dots,s_k\in S}
+    \mathcal T\bigl[\tilde H(s_k)\cdots\tilde H(s_1)\bigr](\Delta t)^k,
+  \label{eq:lec12-truncdyson}
+\end{equation}
+where $S=\{\ell\Delta t\}$. The domain grows exponentially in $k$, but---exactly as in the
+Taylor method---the LCU cost depends only on the coefficient $1$-norm, not on the number of
+terms, so implementation is not exponential in $k$. The one genuinely new ingredient is
+time ordering: each order-$k$ term needs its own $k$ clock registers, and a reversible
+sorting network arranges the factors $\tilde H(s_k)\cdots\tilde H(s_1)$ into nonincreasing
+time order before applying them.
+
+\begin{lemma}[Short-segment Dyson simulation]
+\label{lem:lec12-dyson-short}
+Let $H\colon[0,T]\to\C^{2^n\times2^n}$ be differentiable with a standard-form LCU
+decomposition, and let $T\in[0,\ln2/\alpha_T]$. There is an algorithm implementing $V$ with,
+for some $\beta\le2+\bigo(\epsilon)$,
+\begin{equation}
+  \bigl\|\beta(\bra0\otimes\id)V(\ket0\otimes\id)
+        -\mathcal T\ee^{-\ii\int_0^TH(s)\dd s}\bigr\|\le\epsilon,
+  \label{eq:lec12-dyson-short}
+\end{equation}
+using $n_t$ satisfying \eqref{eq:lec12-nt} and $\bigo(\log(1/\epsilon)/\log\log(1/\epsilon))$
+queries to $\mathrm{HAM\text{-}T}$.
+\end{lemma}
+
+\begin{proof}[Proof sketch]
+Split the error into discretization and truncation parts. The discretization part is
+$\le\epsilon/2$ by \eqref{eq:lec12-disc-error} once $n_t$ obeys \eqref{eq:lec12-nt} with
+$\epsilon_T=\epsilon/2$. The truncation part is the Dyson tail, bounded exactly as the
+Taylor tail: at order $K$ it is $\le(\alpha_T T)^{K+1}/(K+1)!$. Choosing $\Delta t$ so that
+$\alpha_T T=\ln2$ makes the base $\bigo(1)$, and the Lambert-$W$ estimate of
+\cref{lem:lec12-ja-degree} gives
+$K=\bigo(\log(\alpha_T T/\epsilon)/\log\log(\alpha_T T/\epsilon))
+=\bigo(\log(1/\epsilon)/\log\log(1/\epsilon))$. Each Dyson order costs one
+$\mathrm{HAM\text{-}T}$ query, so $K$ queries suffice.
+\end{proof}
+
+\begin{theorem}[Long-time Dyson simulation]
+\label{thm:lec12-dyson-long}
+Under the hypotheses of \cref{lem:lec12-dyson-short}, for any $\epsilon,T>0$ there is a
+unitary $U$ with
+$\|(\bra0\otimes\id)U(\ket0\otimes\id)-\mathcal T\ee^{-\ii\int_0^TH(s)\dd s}\|\le\epsilon$
+using $n_t$ time qubits from \eqref{eq:lec12-nt} and
+$\widetilde{\bigo}(\alpha_T T\log(1/\epsilon))$ queries to $\mathrm{HAM\text{-}T}$.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+Divide $[0,T]$ into $r-1$ segments of duration $\ln2/\alpha_T$ (so $\alpha_T T_{\mathrm{seg}}
+=\ln2$) plus one shorter final segment. Each full segment has success probability $\approx
+1/4$ and is boosted to $\approx1$ by one round of oblivious amplitude amplification; the
+final segment is amplified by fixed-point amplitude amplification (\cref{ch:lec03}).
+Concatenating the $r=\bigo(\alpha_T T)$ segment circuits, each costing
+$\bigo(\log(1/\epsilon)/\log\log(1/\epsilon))$ queries, gives the stated
+$\widetilde{\bigo}(\alpha_T T\log(1/\epsilon))$. By allowing segment durations to adapt to a
+locally smaller $\alpha_T(t)$, the count sharpens to
+$\widetilde{\bigo}(\int_0^T\alpha_T(t)\dd t\cdot\log(1/\epsilon))$.
+\end{proof}
+
+This is the near-optimal time-dependent result $\bigo(\max_t\norm{H(t)}T\log(\cdots))$
+quoted in the Dong An talk. It is a $\log$ factor short of the qubitization/QSVT optimum
+because time-dependent Hamiltonians have no global eigenbasis: qubitization builds a walk
+operator whose spectrum is that of a \emph{fixed} $H$, and one cannot define a single walk
+operator that encodes an entire time-varying evolution. Bridging this gap remains open.
+
+\paragraph{The interaction picture: fast-forwarding an easy term.}
+Given the $\log$ overhead, why prefer Dyson methods? Because for a \emph{time-independent}
+$H=\alpha A+\beta B$ with $\norm A,\norm B\le1$ and $\beta\gg\alpha$, the dynamics is
+dominated by the large, ``easy'' term $B$. Pass to the frame rotating with $B$: define
+$\ket{\psi(t)}_I\defeq\ee^{\ii\beta Bt}\ket{\psi(t)}$.
+
+\begin{proposition}[Interaction Hamiltonian]
+\label{prop:lec12-interaction}
+If $\partial_t\ket{\psi(t)}=-\ii(\alpha A+\beta B)\ket{\psi(t)}$ and
+$\ket{\psi(t)}_I=\ee^{\ii\beta Bt}\ket{\psi(t)}$, then
+$\partial_t\ket{\psi(t)}_I=-\ii H_I(t)\ket{\psi(t)}_I$ with
+\begin{equation}
+  H_I(t)=\alpha\,\ee^{\ii\beta Bt}A\,\ee^{-\ii\beta Bt},
+  \qquad
+  \norm{H_I(t)}=\alpha\norm A\le\alpha.
+  \label{eq:lec12-interaction}
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+By the product rule,
+$\partial_t\ket{\psi(t)}_I=\ii\beta B\ee^{\ii\beta Bt}\ket\psi
++\ee^{\ii\beta Bt}(-\ii)(\alpha A+\beta B)\ket\psi
+=-\ii\alpha\ee^{\ii\beta Bt}A\ket\psi
+=-\ii\alpha\ee^{\ii\beta Bt}A\ee^{-\ii\beta Bt}\ket{\psi}_I$; the $\beta B$ terms cancel.
+Unitary conjugation preserves the spectral norm, giving
+$\norm{H_I(t)}=\alpha\norm A\le\alpha$.
+\end{proof}
+
+The interaction Hamiltonian has norm governed by the \emph{small} coefficient $\alpha$, not
+$\beta$. Applying \cref{thm:lec12-dyson-long} to $H_I$ gives a query count of
+$\widetilde{\bigo}(\alpha T\log(1/\epsilon))$---the large term $B$ no longer appears in the
+leading cost. The catch is that $H_I(t)$ oscillates rapidly, $H_I'(t)=\ii\alpha\beta
+\ee^{\ii\beta Bt}[B,A]\ee^{-\ii\beta Bt}$, so the variation scale is set by $\beta$; but by
+\eqref{eq:lec12-nt} the time register grows only \emph{logarithmically} in that variation,
+so it costs little. The remaining requirement is that we can implement $\ee^{\ii\beta Bt}$
+efficiently---i.e.\ that $B$ can be \emph{fast-forwarded} (simulated in time sublinear in
+$\beta t$), which holds for one-sparse $B$ (Pauli strings), Fourier-diagonal kinetic terms,
+and other special cases.
+
+\begin{example}[{Particle in a periodic potential}]
+\label{exa:lec12-particle}
+Discretize $H=\tfrac{p^2}{2m}+\omega\cos^2(x)$ on a grid of $2N+1$ points. The kinetic term
+is circulant---diagonal in the Fourier basis, $\tfrac{p^2}{2m}=\mathrm{QFT}\dg
+D_{\mathrm{kin}}\mathrm{QFT}$---and the potential is diagonal in position; the block-encoding
+normalization is $\alpha=\bigo(N^2/(mL^2)+|\omega|)$. Direct QSVT/Taylor simulation
+(\cref{sec:lec12-1,sec:lec12-2}) then costs
+$\widetilde{\bigo}((N^2/(mL^2)+|\omega|)T\log(1/\epsilon))$ queries, which \emph{diverges}
+as we refine the grid ($N\to\infty$) to reduce discretization error. Now take the
+interaction picture with respect to the large kinetic term $B$ (fast-forwardable via the
+QFT). Then $\norm{H_I}$ is set by the \emph{potential} coefficient $|\omega|$, and
+\cref{thm:lec12-dyson-long} gives $\widetilde{\bigo}(|\omega|T\log(1/\epsilon))$
+queries---independent of $N$. The interaction picture makes an otherwise grid-limited
+simulation feasible even for exponentially fine grids, and underlies leading query
+complexities for chemistry and quantum field theory.
+\end{example}
+
+\section{No-fast-forwarding theorem}
+\label{sec:lec12-5}
+
+\paragraph{Can we beat linear in $\alpha t$?}
+Some Hamiltonians \emph{can} be fast-forwarded: $\ee^{-\ii Zt}$ is one single-qubit
+rotation for any $t$, cost independent of $t$; more generally any Hamiltonian diagonalized
+by an efficiently-implementable transform can be evolved in time independent of $t$. Could
+this be general? A heuristic recursion says no: if every Hamiltonian could be simulated in
+$\bigo(\sqrt{\int_0^T\alpha_T})$ queries, then a quantum computer simulating a quantum
+computer simulating $\dots$ would compress any $T$-time dynamics to $T^{o(1)}$, collapsing
+all quantum computation to near-constant time---absurd. The rigorous statement comes from
+query complexity.
+
+\begin{theorem}[No fast-forwarding, Berry--Ahokas--Cleve--Sanders]
+\label{thm:lec12-nofastforward}
+There is a family of Hamiltonians $H$ (specifically a $2$-sparse, banded operator $G_x$
+with $\alpha=\norm{G_x}=\Theta(n)$) for which any quantum algorithm implementing a channel
+$W$ with induced trace distance $D_{\mathrm{Tr}}(W,\ee^{-\ii Ht})\le1/4$ must make
+$\Omega(\alpha t)$ queries to the block-encoding oracle. Consequently the linear-in-$\alpha t$
+scaling of \cref{thm:lec12-optimal} is optimal, and no method can be uniformly
+fast-forwarding.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+The argument reduces \emph{parity} to Hamiltonian simulation; since computing the parity of
+an $n$-bit string $s$ requires $\Omega(n)$ oracle queries (\cref{ch:lec03}), a
+sub-linear-in-$\alpha t$ simulator would violate that bound.
+
+\emph{The angular-momentum walk.} Let $J_x$ be the spin-$n/2$ angular-momentum operator
+with nonzero entries $\bra{j+1}J_x\ket j=\tfrac12\sqrt{(n-j)(j+1)}$. Using the
+$\mathfrak{su}(2)$ algebra $[J_x,J_z]=-\ii J_y$, etc., a Heisenberg-picture computation
+gives $\ee^{-\ii J_x\pi}J_z\ee^{\ii J_x\pi}=\cos(\pi)J_z-\sin(\pi)J_y=-J_z$, whence
+$\ee^{-\ii J_x\pi}\ket0=\ket n$: evolving for time $\pi$ walks the state from the bottom of
+the ladder to the top. Now build a ``dual-rail'' variant $G_x$ that additionally toggles a
+parity qubit according to the bits of $s$: its lower-diagonal entries are
+$\bra{j+1}\bra{m\oplus s_j}G_x\ket j\ket m=\tfrac12\sqrt{(n-j)(j+1)}$. On the permuted basis
+$G_x$ is unitarily equivalent to $J_x\otimes\id$, so
+\begin{equation}
+  \ee^{-\ii G_x\pi}\ket0\ket0=\ket n\Bigl|\textstyle\bigoplus_j s_j\Bigr\rangle
+  =\ket n\Bigl|\textstyle\sum_j s_j\bmod2\Bigr\rangle:
+  \label{eq:lec12-parity}
+\end{equation}
+simulating $G_x$ for time $\pi$ deposits the parity of $s$ in the parity register.
+
+\emph{Query cost of the block encoding.} $G_x$ is $2$-sparse and banded with largest entry
+$\bigo(n)$, so it is block-encoded (via the sparse-access construction of \cref{ch:lec06})
+with normalization
+$\alpha=\max_j\tfrac12\sqrt{(n-j)(j+1)}=\Theta(n)$, using $\bigo(1)$ queries to the string
+oracle $U_s$ per block-encoding call. Hence $\alpha t=\alpha\pi=\Theta(n)$.
+
+\emph{Contradiction.} Suppose a simulator existed using $o(\alpha t)=o(n)$ block-encoding
+queries to reach trace distance $\le1/4$. Composing with \eqref{eq:lec12-parity} would
+compute the parity of $s$ using $o(n)$ queries to $U_s$ within trace distance $1/4$---but no
+quantum algorithm can compute parity in $o(n)$ queries (\cref{ch:lec03}). Therefore
+$\Omega(\alpha t)$ queries are necessary, and $G_x$ cannot be fast-forwarded.
+\end{proof}
+
+\paragraph{Interpretation.}
+The lower bound is not an artifact of a clumsy encoding: $G_x$ is genuinely as hard as
+parity, and parity is genuinely $\Omega(n)$. The theorem thus pins down the landscape of
+\cref{ch:lec11,ch:lec12}. The optimal query complexity of any general-purpose Hamiltonian
+simulator is $\Theta(\alpha t+\log(1/\epsilon))$: QSVT (\cref{thm:lec12-optimal}) achieves
+it, the no-fast-forwarding bound forbids beating the $\alpha t$ term, and the
+$\log(1/\epsilon)$ term is likewise information-theoretically necessary. Product formulas
+undercut $\alpha$ by $\alpha_{\mathrm{comm}}$ for local Hamiltonians but pay a
+super-logarithmic precision price; block-encoding methods pay optimally in $\epsilon$ but
+see only $\alpha$. Fast-forwarding is possible only for \emph{structured} Hamiltonians (a
+known diagonalizing transform, commuting terms, or the interaction-picture reduction of a
+fast-forwardable dominant term), never in general.
+
+\exercisesection
+
+\begin{exercise}\label{ex:lec12-1}
+\emph{Block-encoding error is benign.} Starting from
+$U_{\tilde H}\in\mathrm{BE}_{1,m}(\tilde H)$ with $\|\tilde H-H\|\le\epsilon'$, derive the
+Duhamel identity \eqref{eq:lec12-duhamel-pert} by differentiating
+$g(s)=\ee^{-\ii H(t-s)}\ee^{-\ii\tilde Hs}$, and conclude
+$\|\ee^{-\ii\tilde Ht}-\ee^{-\ii Ht}\|\le\epsilon' t$. Hence show $\epsilon'=\epsilon/(2t)$
+suffices to make the encoding error contribute at most $\epsilon/2$ to the simulation.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec12-2}
+\emph{Parity split for QSVT.} Verify that $\cos(tx)$ is even and $\sin(tx)$ is odd in $x$,
+and that both are real. Explain why this parity/reality structure is exactly what real-QSVT
+requires (\cref{ch:lec09}), and why the imaginary unit in $\ee^{-\ii Ht}=\cos(Ht)-\ii
+\sin(Ht)$ forces the two-branch LCU combination rather than a single QSVT circuit.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec12-3}
+\emph{Jacobi--Anger truncation and the Bessel tail.} Using the bound
+$|J_m(t)|\le\tfrac1{m!}(t/2)^m$ of \eqref{eq:lec12-bessel-tail}, show the degree-$2K$
+truncation error of $\cos(tx)$ in \eqref{eq:lec12-jacobi-anger} is
+$\bigo\bigl((\ee t/(2K{+}1))^{2K+1}\ee^{t/2}\bigr)$. Explain qualitatively why the required
+degree behaves as $K=\bigo(t+\log(1/\epsilon))$: identify the threshold index beyond which
+the factorial dominates, and why each further degree then gives constant-factor error decay.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec12-4}
+\emph{Taylor order at high precision.} For a truncated-Taylor segment with $\norm H\le1$,
+$\Delta t=\ln2$, verify $\norm c_1=\sum_{k=0}^{K-1}(\Delta t)^k/k!\le2$ and derive the tail
+bound \eqref{eq:lec12-taylor-tail}. Using $K!\ge(K/\ee)^K$ and the Lambert-$W$ estimate,
+show $K=\bigo(\log(1/\epsilon')/\log\log(1/\epsilon'))$, and estimate $K$ numerically for
+$\epsilon'=10^{-8}$ (compare \cref{exa:lec12-taylor-order}).
+\end{exercise}
+
+\begin{exercise}\label{ex:lec12-5}
+\emph{Dyson series for constant $A$.} Show that when $A(t)\equiv A$ is time-independent, the
+Dyson series \eqref{eq:lec12-dyson-series} collapses to the ordinary Taylor series
+$\ee^{At}$ by evaluating the ordered-simplex integrals
+$\int_0^t\!\int_0^{s_n}\!\cdots\int_0^{s_2}\dd s_1\cdots\dd s_n=t^n/n!$. Then verify the
+remainder bound $\norm{R_{p+1}(t)}\le\ee^{Mt}(Mt)^{p+1}/(p+1)!$ used in the convergence
+proof of \cref{thm:lec12-dyson}.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec12-6}
+\emph{The interaction-picture equation.} Prove \cref{prop:lec12-interaction}: for
+$H=\alpha A+\beta B$ and $\ket{\psi(t)}_I=\ee^{\ii\beta Bt}\ket{\psi(t)}$, show
+$\partial_t\ket{\psi}_I=-\ii H_I(t)\ket{\psi}_I$ with
+$H_I(t)=\alpha\ee^{\ii\beta Bt}A\ee^{-\ii\beta Bt}$, and hence $\norm{H_I(t)}=\alpha\norm
+A\le\alpha$. Compute $H_I'(t)$ and explain, using \eqref{eq:lec12-nt}, why its
+$\beta$-scale oscillation costs only $\bigo(\log\beta)$ extra clock qubits.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec12-7}
+\emph{Angular-momentum walk and the no-fast-forwarding reduction.} Using the
+$\mathfrak{su}(2)$ relations $[J_x,J_y]=\ii J_z$, $[J_y,J_z]=\ii J_x$, $[J_z,J_x]=\ii J_y$,
+expand $\ee^{-\ii J_x\pi}J_z\ee^{\ii J_x\pi}$ as a nested-commutator (Hadamard) series and
+sum it to $-J_z$, thereby proving $\ee^{-\ii J_x\pi}\ket0=\ket n$. Explain how the dual-rail
+modification $G_x$ deposits the parity $\bigoplus_j s_j$ as in \eqref{eq:lec12-parity}, and
+why $\alpha=\norm{G_x}=\Theta(n)$ with $\alpha t=\Theta(n)$ then yields the $\Omega(\alpha
+t)$ lower bound via the $\Omega(n)$ parity bound of \cref{ch:lec03}.
+\end{exercise}
+
+\readingsection
+\begin{itemize}[leftmargin=1.4em]
+  \item Lin Lin, \emph{live notes}, Ch.~14 (block-encoding-based Hamiltonian simulation:
+        QSP/QSVT with optimal query complexity, the truncated Taylor-series method,
+        time-ordered exponentials and the Dyson series, block encoding of time-dependent
+        operators, the truncated Dyson method, the interaction picture, and the
+        no-fast-forwarding theorem).
+  \item Dong An, \emph{Quantum Numerical Linear Algebra} talk (Hamiltonian simulation:
+        the $\ee^{-\ii\norm HTx}=\cos-\ii\sin$ decomposition, the Jacobi--Anger polynomial
+        approximation, the optimal $\bigo(\norm HT+\log(1/\epsilon))$ QSVT scaling, and the
+        near-optimal truncated-Dyson result for time-dependent $H(t)$).
+  \item G.~H.~Low and I.~L.~Chuang, \emph{Optimal Hamiltonian simulation by quantum signal
+        processing}, Phys.\ Rev.\ Lett.\ \textbf{118}, 010501 (2017) (arXiv:1606.02685),
+        for \cref{thm:lec12-optimal}.
+  \item D.~W.~Berry, A.~M.~Childs, R.~Cleve, R.~Kothari, and R.~D.~Somma,
+        \emph{Simulating Hamiltonian dynamics with a truncated Taylor series}, Phys.\ Rev.\
+        Lett.\ \textbf{114}, 090502 (2015) (arXiv:1412.4687), for \cref{sec:lec12-2}.
+  \item G.~H.~Low and N.~Wiebe, \emph{Hamiltonian simulation in the interaction picture},
+        arXiv:1805.00675 (2018); and M.~Kieferov\'a, A.~Scherer, and D.~W.~Berry,
+        \emph{Simulating the dynamics of time-dependent Hamiltonians with a truncated Dyson
+        series}, Phys.\ Rev.\ A \textbf{99}, 042314 (2019) (arXiv:1805.00582), for
+        \cref{sec:lec12-4}.
+  \item D.~W.~Berry, G.~Ahokas, R.~Cleve, and B.~C.~Sanders, \emph{Efficient quantum
+        algorithms for simulating sparse Hamiltonians}, Commun.\ Math.\ Phys.\ \textbf{270},
+        359--371 (2007) (arXiv:quant-ph/0508139), for the no-fast-forwarding theorem
+        \eqref{eq:lec12-parity} of \cref{sec:lec12-5}.
+\end{itemize}

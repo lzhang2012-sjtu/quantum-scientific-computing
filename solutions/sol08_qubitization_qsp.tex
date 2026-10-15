@@ -1,0 +1,171 @@
+\chapter{Qubitization and Quantum Signal Processing}
+% Solutions to the exercises of \cref{ch:lec08}.
+
+\begin{solution}[Exercise~\ref{ex:lec08-1}]
+With $\lambda=\cos\theta$ and $\sqrt{1-\lambda^2}=\sin\theta\ (\ge0$ on $[0,\pi])$,
+\[
+  O(\lambda)=U(\lambda)Z
+  =\begin{pmatrix}\lambda&\sqrt{1-\lambda^2}\\ \sqrt{1-\lambda^2}&-\lambda\end{pmatrix}
+   \begin{pmatrix}1&0\\0&-1\end{pmatrix}
+  =\begin{pmatrix}\lambda&-\sqrt{1-\lambda^2}\\ \sqrt{1-\lambda^2}&\lambda\end{pmatrix}
+  =\begin{pmatrix}\cos\theta&-\sin\theta\\ \sin\theta&\cos\theta\end{pmatrix},
+\]
+a rotation by $\theta$; hence $O(\lambda)^k$ is the rotation by $k\theta$, with
+$(1,1)$-entry $\cos(k\theta)=T_k(\lambda)$ and $(2,1)$-entry
+$\sin(k\theta)=\sin\theta\,U_{k-1}(\lambda)$. From
+$\cos((k+1)\theta)+\cos((k-1)\theta)=2\cos\theta\cos(k\theta)$ we get
+$T_{k+1}(\lambda)+T_{k-1}(\lambda)=2\lambda T_k(\lambda)$, i.e.\ the recurrence.
+Cubing,
+\[
+  O(\lambda)^3=\begin{pmatrix}\cos3\theta&-\sin3\theta\\ \sin3\theta&\cos3\theta\end{pmatrix},
+  \quad
+  T_3(\lambda)=\cos3\theta=4\lambda^3-3\lambda,\quad
+  U_2(\lambda)=\frac{\sin3\theta}{\sin\theta}=4\lambda^2-1,
+\]
+using $\cos3\theta=4\cos^3\theta-3\cos\theta$ and
+$\sin3\theta=(3-4\sin^2\theta)\sin\theta=(4\cos^2\theta-1)\sin\theta$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec08-2}]
+Here $A=\tfrac12\Xgate=\tfrac12(\proj{+}-\proj{-})$ has eigenvalues
+$\lambda_\pm=\pm\tfrac12$ with eigenvectors $\ket\pm=\tfrac1{\sqrt2}(\ket0\pm\ket1)$,
+and $m=1$ so $Z_\Pi=\Zgate$ on the single flag qubit. By \cref{lem:lec08-qubit},
+\[
+  U_A\ket0\ket\pm=\pm\tfrac12\ket0\ket\pm+\tfrac{\sqrt3}{2}\ket{\perp_\pm},
+  \qquad
+  [U_A]_{\mathcal B_\pm}
+  =\begin{pmatrix}\pm\tfrac12&\tfrac{\sqrt3}{2}\\[2pt]\tfrac{\sqrt3}{2}&\mp\tfrac12\end{pmatrix},
+\]
+where $\sqrt{1-\lambda_\pm^2}=\sqrt{1-\tfrac14}=\tfrac{\sqrt3}{2}$. Then
+$[U_A\Zgate]_{\mathcal B_\pm}=\bigl(\begin{smallmatrix}\pm\frac12&-\frac{\sqrt3}2\\
+\frac{\sqrt3}2&\pm\frac12\end{smallmatrix}\bigr)=O(\lambda_\pm)$, whose $(1,1)$-entry
+is $\lambda_\pm=T_1(\lambda_\pm)$; summing over the two eigenspaces,
+$\Pi(U_A\Zgate)\Pi=\proj0\otimes\sum_\pm\lambda_\pm\proj\pm=\proj0\otimes A$, so
+$k=1$ gives $T_1(A)=A$. For $k=2$, $[O(\lambda_\pm)^2]_{11}=2\lambda_\pm^2-1
+=2\cdot\tfrac14-1=-\tfrac12$ for \emph{both} signs, so
+$\Pi(U_A\Zgate)^2\Pi=\proj0\otimes(-\tfrac12)(\proj++\proj-)
+=\proj0\otimes(-\tfrac12\id)=\proj0\otimes T_2(A)$, matching
+$T_2(A)=2A^2-\id=-\tfrac12\id$ of \cref{exa:lec08-T2}.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec08-3}]
+The matrix $M\defeq[U_A]_{\mathcal B_j}=\bigl(\begin{smallmatrix}\lambda&\sqrt{1-\lambda^2}
+\\ \sqrt{1-\lambda^2}&-\lambda\end{smallmatrix}\bigr)$ satisfies $M=M\dg$ and
+$M^2=(\lambda^2+(1-\lambda^2))\id=\id$, with $\det M=-\lambda^2-(1-\lambda^2)=-1$: it
+is a reflection. Right-multiplying by $Z=[Z_\Pi]_{\mathcal B_j}$ gives
+$MZ=O(\lambda_j)$ with $\det(MZ)=(\det M)(\det Z)=(-1)(-1)=+1$ and $(MZ)(MZ)\dg=\id$:
+a rotation. Powers of $U_A$ alone give $[U_A^k]_{\mathcal B_j}=M^k$, which cycles
+$\id,M,\id,M,\dots$ and never produces $\cos(k\theta)=T_k(\lambda)$ for $k\ge2$ (a
+reflection has eigenvalues $\pm1$, so its powers only ever give $\pm1$ on the block,
+not the continuum of Chebyshev values). Interposing the reflection $Z_\Pi$ converts
+each reflection $M$ into the rotation $MZ$, and it is the \emph{minimal} fix because
+a single extra determinant-$(-1)$ factor per query is exactly what is needed to make
+the product a rotation ($\det=+1$); using no reflection leaves a reflection, and
+using two per query would return a reflection again.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec08-4}]
+By \cref{thm:lec08-general}, even Chebyshev polynomials come from $k$ pairs
+$U_A\dg Z_\Pi\,U_A Z_\Pi$. For $T_4(A)$ take $k=2$:
+\[
+  T_4:\quad \bigl(U_A\dg Z_\Pi\,U_A Z_\Pi\bigr)^2
+   =U_A\dg Z_\Pi\,U_A Z_\Pi\,U_A\dg Z_\Pi\,U_A Z_\Pi,
+\]
+which uses $2$ queries to $U_A$ and $2$ to $U_A\dg$, total $4$ signal queries
+$=\deg T_4$. For the odd $T_3(A)$ prepend one $U_A Z_\Pi$ to the $k=1$ pair:
+\[
+  T_3:\quad U_A Z_\Pi\,\bigl(U_A\dg Z_\Pi\,U_A Z_\Pi\bigr)
+   =U_A Z_\Pi\,U_A\dg Z_\Pi\,U_A Z_\Pi,
+\]
+which uses $2$ queries to $U_A$ and $1$ to $U_A\dg$, total $3=\deg T_3$. In both
+cases the number of signal operators (queries to $U_A$ or $U_A\dg$) equals the
+Chebyshev degree; the $U_A,U_A\dg$ alternation is what lets each query advance the
+degree by one while respecting the map $\mathcal H_j\leftrightarrow\mathcal H_j'$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec08-5}]
+Compute
+\[
+  U_\Phi(\lambda)=\ee^{\ii\phi_0 Z}O(\lambda)\ee^{\ii\phi_1 Z}
+  =\begin{pmatrix}\ee^{\ii\phi_0}&0\\0&\ee^{-\ii\phi_0}\end{pmatrix}
+   \begin{pmatrix}\lambda&-\sqrt{1-\lambda^2}\\ \sqrt{1-\lambda^2}&\lambda\end{pmatrix}
+   \begin{pmatrix}\ee^{\ii\phi_1}&0\\0&\ee^{-\ii\phi_1}\end{pmatrix}
+  =\begin{pmatrix}\ee^{\ii(\phi_0+\phi_1)}\lambda & -\ee^{\ii(\phi_0-\phi_1)}\sqrt{1-\lambda^2}\\[3pt]
+    \ee^{-\ii(\phi_0-\phi_1)}\sqrt{1-\lambda^2}&\ee^{-\ii(\phi_0+\phi_1)}\lambda\end{pmatrix}.
+\]
+Comparing with \eqref{eq:lec08-qspform}, $P(\lambda)=\ee^{\ii(\phi_0+\phi_1)}\lambda$
+and $Q(\lambda)=\ee^{\ii(\phi_1-\phi_0)}$ (constant, so that
+$-Q\sqrt{1-\lambda^2}$ matches the top-right entry). Conditions:
+$\deg P=1\le1$, $\deg Q=0\le0$ (1); $P$ odd, $Q$ even (2), with $d=1$; and
+$\abs{P}^2+(1-\lambda^2)\abs{Q}^2=\lambda^2+(1-\lambda^2)=1$ (3). Taking
+$\phi_0=\phi_1=0$ gives $P(\lambda)=\lambda$; taking
+$\phi_0=\phi_1=\tfrac\pi4$ gives $P(\lambda)=\ee^{\ii\pi/2}\lambda=\ii\lambda$. A
+degree-$1$ sequence \emph{cannot} give $P(\lambda)=\tfrac12\lambda$: condition (3)
+forces $\abs{P(1)}=1$, whereas $\tfrac12\lambda$ has $\abs{P(1)}=\tfrac12$. This does
+not contradict \cref{cor:lec08-real}: there one asks for $\operatorname{Re}P=p$ with
+$\abs{p}\le1$, and the subnormalized target $p(\lambda)=\tfrac12\lambda$ is realized
+as the \emph{real part} of a valid $P$ (of the same degree, with $\abs{P}\le1$),
+e.g.\ via the $\tfrac12(P+P^*)$ LCU construction, not as $P$ itself.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec08-6}]
+Multiply the degree-$(d-1)$ form by $O(\lambda)\ee^{\ii\phi_d Z}$. First,
+\[
+  \begin{pmatrix}P&-Q\sqrt{1-\lambda^2}\\ Q^*\sqrt{1-\lambda^2}&P^*\end{pmatrix}
+  \begin{pmatrix}\lambda&-\sqrt{1-\lambda^2}\\ \sqrt{1-\lambda^2}&\lambda\end{pmatrix}
+  =\begin{pmatrix}\lambda P-(1-\lambda^2)Q & -\sqrt{1-\lambda^2}(P+\lambda Q)\\[3pt]
+    \sqrt{1-\lambda^2}(P^*+\lambda Q^*)&\lambda P^*-(1-\lambda^2)Q^*\end{pmatrix},
+\]
+using $-Q\sqrt{1-\lambda^2}\cdot\sqrt{1-\lambda^2}=-(1-\lambda^2)Q$ in the $(1,1)$
+slot and $P\cdot(-\sqrt{1-\lambda^2})+(-Q\sqrt{1-\lambda^2})\lambda
+=-\sqrt{1-\lambda^2}(P+\lambda Q)$ in the $(1,2)$ slot. Right-multiplying by
+$\ee^{\ii\phi_d Z}=\mathrm{diag}(\ee^{\ii\phi_d},\ee^{-\ii\phi_d})$ scales column $1$
+by $\ee^{\ii\phi_d}$ and column $2$ by $\ee^{-\ii\phi_d}$, giving
+$\widetilde P=\ee^{\ii\phi_d}(\lambda P-(1-\lambda^2)Q)$ and (from the top-right
+entry $-\widetilde Q\sqrt{1-\lambda^2}=-\ee^{-\ii\phi_d}\sqrt{1-\lambda^2}(P+\lambda
+Q)$) $\widetilde Q=\ee^{-\ii\phi_d}(P+\lambda Q)$, which is \eqref{eq:lec08-newPQ}.
+\emph{Degrees:} $\deg\widetilde P\le\max(1+\deg P,\,2+\deg Q)\le\max(d,\,2+(d-2))=d$
+and $\deg\widetilde Q\le\max(\deg P,\,1+\deg Q)\le d-1$. \emph{Parity:} $P$ has parity
+$(d-1)$ and $Q$ parity $(d-2)$; multiplying by $\lambda$ (odd) or $(1-\lambda^2)$
+(even) makes both terms of $\widetilde P$ have parity $d$, and both terms of
+$\widetilde Q$ parity $d-1$. \emph{Unitarity:} the map
+$(P,Q)\mapsto(\lambda P-(1-\lambda^2)Q,\,P+\lambda Q)$ followed by unit-modulus phases
+preserves $\abs{\cdot}^2$ because $O(\lambda)$ and $\ee^{\ii\phi_d Z}$ are unitary;
+explicitly
+\[
+  \abs{\widetilde P}^2+(1-\lambda^2)\abs{\widetilde Q}^2
+  =\abs{\lambda P-(1-\lambda^2)Q}^2+(1-\lambda^2)\abs{P+\lambda Q}^2
+  =(\lambda^2+(1-\lambda^2))\bigl(\abs P^2+(1-\lambda^2)\abs Q^2\bigr),
+\]
+where the cross terms $-2\lambda(1-\lambda^2)\operatorname{Re}(P\bar Q)$ and
+$+2\lambda(1-\lambda^2)\operatorname{Re}(P\bar Q)$ cancel; the bracket is $1$ by the
+inductive hypothesis, so condition (3) is preserved.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec08-7}]
+With $\Phi=(0,0,0)$, $U_\Phi(\lambda)=O(\lambda)^2$, and by \cref{lem:lec08-rot} its
+$(1,1)$-entry is $\cos2\theta=2\cos^2\theta-1=2\lambda^2-1=T_2(\lambda)$; explicitly
+\[
+  O(\lambda)^2=\begin{pmatrix}\lambda&-\sqrt{1-\lambda^2}\\ \sqrt{1-\lambda^2}&\lambda\end{pmatrix}^2
+  =\begin{pmatrix}2\lambda^2-1&-2\lambda\sqrt{1-\lambda^2}\\ 2\lambda\sqrt{1-\lambda^2}&2\lambda^2-1\end{pmatrix}.
+\]
+For the eigenvalue-transform convention, recall $O(\lambda)=U_A(\lambda)Z$ and
+$\ee^{\ii\frac\pi2 Z}=\ii Z$, so $O(\lambda)\ee^{\ii\phi Z}=U_A(\lambda)Z\ee^{\ii\phi Z}
+=(-\ii)\,U_A(\lambda)\,\ee^{\ii(\phi+\frac\pi2)Z}$ after writing
+$Z=(-\ii)\ee^{\ii\frac\pi2 Z}$ and combining exponents. Applying this to each of the
+$d=2$ signal factors of $O(\lambda)^2$ (phases $0,0$) converts the all-zero
+$O$-convention into the $e$-convention with
+$e=(0+\tfrac\pi4,\,0+\tfrac\pi2,\,0+\tfrac\pi4)=(\tfrac\pi4,\tfrac\pi2,\tfrac\pi4)$
+(the interior phases pick up $\tfrac\pi2$ and the two boundary phases $\tfrac\pi4$
+each, the standard QET convention), and pulls out the global factor $(-\ii)^2=-1$. Concretely one checks by
+direct multiplication that
+\[
+  \ee^{\ii\frac\pi4 Z}U_A(\lambda)\ee^{\ii\frac\pi2 Z}U_A(\lambda)\ee^{\ii\frac\pi4 Z}
+  =(-\ii)^2\begin{pmatrix}2\lambda^2-1&*\\ *&*\end{pmatrix}
+  =-\begin{pmatrix}T_2(\lambda)&*\\ *&*\end{pmatrix},
+\]
+so up to the overall phase $(-\ii)^d=(-\ii)^2=-1$ the top-left block is
+$T_2(\lambda)=2\lambda^2-1$, as claimed in \cref{exa:lec08-qsp}(c). (The phase
+$(-\ii)^d$ is a physically irrelevant global factor and is dropped in the block
+encoding.)
+\end{solution}

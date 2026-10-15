@@ -1,0 +1,183 @@
+\chapter{Input Models: State Preparation and Block Encoding}
+% Solutions to the exercises of \cref{ch:lec06}.
+
+\begin{solution}[Exercise~\ref{ex:lec06-1}]
+Since $U_A$ is unitary, $\norm{U_A}=1$, and a compression of a unitary by isometries
+cannot increase its norm:
+\[
+  \norm{A}=\norm{\alpha\,(\bra{0^a}\otimes\id)U_A(\ket{0^a}\otimes\id)}
+  \le\alpha\,\norm{\bra{0^a}\otimes\id}\,\norm{U_A}\,\norm{\ket{0^a}\otimes\id}
+  =\alpha\cdot1\cdot1\cdot1=\alpha,
+\]
+so $\alpha\ge\norm{A}$ is necessary. Conversely, if $\norm{A}\le\alpha$ then
+$\norm{A/\alpha}\le1$, and \cref{prop:lec06-svd} gives a $(1,1)$-block-encoding
+$U$ of $A/\alpha$, i.e.\ $(\bra{0}\otimes\id)U(\ket{0}\otimes\id)=A/\alpha$; reading
+the same $U$ as an encoding of $A$ multiplies the block by $\alpha$, so $U$ is an
+$(\alpha,1)$-block-encoding of $A$.
+
+The max-norm bounds each entry but not the collective effect of a row: for
+\[
+  A=\begin{pmatrix}1&1\\1&-1\end{pmatrix},\qquad \norm{A}_{\max}=1,\quad
+  \norm{A}=\sqrt2=s\,\norm{A}_{\max}\text{ with }s=2,
+\]
+because $A\dg A=2\id$ has both singular values equal to $\sqrt2$. This is the
+$s$-sparse bound $\norm{A}\le s\norm{A}_{\max}$ saturated at $s=2$, and it explains
+why the sparse construction pays $\alpha=s$: it must be safe for the worst row.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec06-2}]
+By \cref{def:lec06-be} (exact case), $(\bra{0^a}\otimes\id)U_A(\ket{0^a}\otimes\id)
+=A/\alpha$, so
+\[
+  U_A\ket{0^a}\ket{b}=\ket{0^a}\frac{A\ket{b}}{\alpha}+\ket{\perp},
+  \qquad (\bra{0^a}\otimes\id)\ket{\perp}=0,
+\]
+where $\ket{\perp}$ lies entirely in the orthogonal complement of the flag
+subspace. Measuring the flag register in the computational basis gives outcome
+$0^a$ with probability
+\[
+  p=\norm{(\bra{0^a}\otimes\id)U_A\ket{0^a}\ket{b}}^2
+   =\norm{\tfrac1\alpha A\ket{b}}^2=\frac{\norm{A\ket{b}}^2}{\alpha^2},
+\]
+and the post-measurement system state is the normalized flag component
+$\bigl(A\ket{b}/\alpha\bigr)/\sqrt{p}=A\ket{b}/\norm{A\ket{b}}$. The expected number
+of independent repetitions until the flag first reads $0^a$ is $1/p=
+\alpha^2/\norm{A\ket{b}}^2$, i.e.\ it grows like $\alpha^2$. (With amplitude
+amplification, \cref{sec:lec03-4}, this improves to $\bigo(\alpha/\norm{A\ket{b}})$
+rounds.) An oversized $\alpha$---as in the $\alpha=10$ variant of
+\cref{exa:lec06-2x2}---therefore inflates the runtime quadratically (or linearly,
+after amplification) for no benefit, which is why $\alpha$ is kept as close to
+$\norm{A}$ as the construction allows.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec06-3}]
+The location map is $c(j)=(j+1)\bmod4$, a $4$-cycle, so
+$O_c\ket{j}=\ket{(j+1)\bmod4}$ (equivalently the cyclic-shift permutation on two
+qubits). The entry oracle rotates the signal qubit by the amplitude
+$a_j=A_{c(j),j}$,
+\[
+  O_A\ket{0}\ket{i}\ket{j}
+   =\bigl(a_j\ket{0}+\sqrt{1-a_j^2}\,\ket{1}\bigr)\ket{i}\ket{j},
+\]
+noting the amplitude depends on the column $j$ only (the nonzero row is determined by
+$j$). With $U_A=(\id\otimes O_c)O_A$ (the signal qubit is untouched by $O_c$, which
+acts on the column register, relabeling it as the row register),
+\[
+  U_A\ket{0}\ket{j}
+  =\bigl(a_j\ket{0}+\sqrt{1-a_j^2}\ket{1}\bigr)\ket{(j+1)\bmod4},
+\]
+and therefore
+\[
+  \bra{0}\bra{i}U_A\ket{0}\ket{j}
+  =a_j\,\braket{i|(j+1)\bmod4}=a_j\,\delta_{i,(j+1)\bmod4}=A_{ij},
+\]
+since $A_{ij}=a_j$ exactly when $i=(j+1)\bmod4$ and is $0$ otherwise. The $\ket{1}$
+branch is annihilated by the $\bra{0}$ projection. By \cref{rem:lec06-verify} this
+verifies $U_A\in\mathrm{BE}_{1,1}(A)$.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec06-4}]
+For $A=\diag(a_0,a_1)$ the diagonal entry oracle
+$O_A\ket{0}\ket{i}=(a_i\ket{0}+\sqrt{1-a_i^2}\ket{1})\ket{i}$ acts on the two-qubit
+space (flag qubit tensor system qubit). Ordering the basis as
+$\ket{0}\ket{0},\ket{0}\ket{1},\ket{1}\ket{0},\ket{1}\ket{1}$,
+\[
+  U_A=O_A=\begin{pmatrix}
+    a_0 & 0 & \sqrt{1-a_0^2} & 0\\
+    0 & a_1 & 0 & \sqrt{1-a_1^2}\\
+    \sqrt{1-a_0^2} & 0 & -a_0 & 0\\
+    0 & \sqrt{1-a_1^2} & 0 & -a_1
+  \end{pmatrix},
+\]
+which \emph{is} symmetric and real here, hence Hermitian for this particular
+convention of the controlled rotation. Whether the diagonal encoding comes out
+Hermitian depends on the sign convention of the rotation; the substantive point is
+that Hermiticity of $A$ places \emph{no} constraint on the off-diagonal blocks of
+$U_A$ (the columns $\sqrt{1-a_i^2}$ and the sign of the lower-right block are free to
+satisfy unitarity), so a generic block-encoding circuit for a Hermitian $A$---for
+instance one that applies a phase $\ee^{\ii\phi_i}$ in the $\ket{1}$ branch, giving
+\[
+  \begin{pmatrix} a_i & \ee^{-\ii\phi_i}\sqrt{1-a_i^2}\\
+                  \ee^{\ii\phi_i}\sqrt{1-a_i^2} & -a_i\ee^{\ii\phi_i}\cdots\end{pmatrix}
+\]
+in each block---breaks $U_A=U_A\dg$. Because qubitization (\cref{ch:lec08}) needs the
+encoding unitary itself to be a reflection ($U_A^2=\id$), the Hermitian property must
+be imposed as a separate design requirement, which is exactly \cref{def:lec06-hbe}.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec06-5}]
+Trace the amplitudes in the proof of \cref{thm:lec06-ssparse}. The first diffusion
+$D$ maps $\ket{0^{s'}}\mapsto\frac{1}{\sqrt s}\sum_\ell\ket{\ell}$, introducing a
+factor $1/\sqrt s$ on the source side. On the target side, applying $D$ to
+$\ket{0^{s'}}$ likewise produces $\frac{1}{\sqrt s}\sum_{\ell'}\ket{\ell'}$, a second
+factor $1/\sqrt s$. When the inner product is formed, the two sums collapse to a
+single surviving index via $\braket{\ell'|\ell}=\delta_{\ell\ell'}$, leaving the
+product of the two prefactors, $\frac{1}{\sqrt s}\cdot\frac{1}{\sqrt s}=\frac1s$,
+multiplying $A_{ij}$. Neither the entry oracle nor the location oracle contributes any
+scalar (they are norm-preserving and act as permutations/controlled rotations), so the
+$1/s$ comes \emph{entirely} from the two diffusion operators. Hence the top-left block
+is $A/s$ and any such construction has $\alpha=s$.
+
+For a dense matrix $s=N=2^n$, so $\alpha=N$, exponential in the qubit count.
+Downstream algorithms cost $\bigo(\alpha\cdot\text{stuff})=\bigo(N)$ queries, wiping
+out any quantum advantage: block encoding a generic dense matrix through the sparse
+construction is no better than reading all $N^2$ entries. The construction is useful
+precisely when $s=\polylog(N)$ (or the matrix is dense but structured, encodable by a
+different route with small $\alpha$, as in the LCU or RACBEM models).
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec06-6}]
+Here $L=2$, $\beta_0=\beta_1=\tfrac12$, $\alpha=\beta_0+\beta_1=1$. The prepare
+unitary must satisfy
+$\mathrm{PREP}\ket0=\frac1{\sqrt\alpha}\sum_k\sqrt{\beta_k}\ket k
+=\tfrac1{\sqrt2}(\ket0+\ket1)=\Hgate\ket0$, so $\mathrm{PREP}=\Hgate$, the single
+flag-qubit Hadamard. The select unitary is
+$\mathrm{SEL}=\proj0\otimes\Xgate+\proj1\otimes\Zgate$, applying $\Xgate$ when the
+flag is $\ket0$ and $\Zgate$ when it is $\ket1$. Then, using $\Hgate\dg=\Hgate$,
+\[
+  (\bra0\otimes\id)U(\ket0\otimes\id)
+  =(\bra0\Hgate\otimes\id)\,\mathrm{SEL}\,(\Hgate\ket0\otimes\id)
+  =\sum_k\abs{\braket{k|\Hgate|0}}^2 V_k
+  =\tfrac12\Xgate+\tfrac12\Zgate=A,
+\]
+since $\abs{\braket{k|\Hgate|0}}^2=\tfrac12$ for $k=0,1$. Thus
+$U\in\mathrm{BE}_{1,1}(A)$. The spectral norm is
+$\norm{A}=\tfrac12\norm{\Xgate+\Zgate}=\tfrac12\cdot\sqrt2=\tfrac1{\sqrt2}\approx0.707$
+(the eigenvalues of $\Xgate+\Zgate$ are $\pm\sqrt2$). So $\alpha=1$ is \emph{not}
+optimal: the LCU factor is the $\ell_1$-norm $\sum_k\beta_k=1$, which exceeds
+$\norm{A}=1/\sqrt2$. LCU pays the $\ell_1$-norm, not the spectral norm; the two
+coincide only when the $V_k$ act ``in the same direction,'' which $\Xgate$ and
+$\Zgate$ (anticommuting) do not.
+\end{solution}
+
+\begin{solution}[Exercise~\ref{ex:lec06-7}]
+Model on the Hermitian construction of \cref{thm:lec06-hbe}. Use two $n$-qubit
+registers (row $i$, column $j$) and process the source with $V$ and the target with a
+mirror copy of $V$. Applying $V$ to the column register of the source
+$\ket{0^n}\ket{j}$ gives
+\[
+  V\ket{0^n}\ket{j}=\frac1{\sqrt N}\sum_i\ee^{\ii\theta_{ij}/2}\ket i\ket j .
+\]
+Applying $V$ to the target $\ket{0^n}\ket{i}$ gives
+$\frac1{\sqrt N}\sum_{i'}\ee^{\ii\theta_{i'i}/2}\ket{i'}\ket i$. Inserting a
+\textsc{swap} of the two registers between the source and target halves (so that the
+row label produced on the source side is matched against the column label on the
+target side) and taking the inner product,
+\[
+  \bra{0^n}\bra i\,U\,\ket{0^n}\ket j
+  =\frac1N\sum_{k}\ee^{-\ii\theta_{ki}/2}\ee^{\ii\theta_{kj}/2}
+   \braket{\text{matched}}
+  =\frac1N\,\ee^{\ii(\theta_{ij})/2}\ee^{\ii\theta_{ij}/2}\cdot 1
+  =\frac1N\ee^{\ii\theta_{ij}}=\frac{A_{ij}}{N},
+\]
+where Hermiticity $A_{ji}=A_{ij}^{\ast}$, i.e.\ $\theta_{ji}=-\theta_{ij}$, is used so
+that the phase from the target copy of $V$ combines with the source phase to give
+$\ee^{\ii\theta_{ij}}$ rather than canceling, and the $\braket{\text{matched}}$
+Kronecker deltas from the \textsc{swap} pick out the single surviving term $k$ with
+$k=i$ on one side and $k=j$ on the other. The two copies of $V$ each contribute a
+$1/\sqrt N$ from the uniform superposition $V\ket{0^n}\ket\cdot$, so the top-left block
+is $A/N$: the subnormalization factor is $\alpha=N$. (This matches the general
+principle that an $N$-dense Hermitian matrix costs $\alpha=N$; the entries lying on
+the unit circle is what makes the amplitudes $\ee^{\ii\theta_{ij}/2}/\sqrt N$ uniform
+in magnitude and hence loadable by a single $V$.)
+\end{solution}

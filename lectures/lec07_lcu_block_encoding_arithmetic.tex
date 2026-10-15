@@ -1,0 +1,716 @@
+\chapter{Linear Combination of Unitaries and Block-Encoding Arithmetic}
+\label{ch:lec07}
+
+\begin{objectives}
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item Implement a weighted sum of unitaries with the \textsc{prepare}--\textsc{select}--\textsc{prepare}$\dg$ (LCU) circuit and read off its block-encoding parameters.
+  \item Realize matrix and vector addition via LCU as a block encoding with subnormalization equal to the $\ell^1$-norm of the coefficients.
+  \item Compose block encodings to multiply matrices, and explain why naive stacking fails while duplicate-ancilla and compression-gadget constructions succeed.
+  \item Contrast the coherent LCU circuit with a hybrid importance-sampling estimator, and compare their costs.
+  \item Track the $\ell^1$ overhead $\norm{c}_1$ through additions and the product $\prod\alpha_j$ through multiplications, and see when amplitude amplification removes the associated success-probability penalty.
+\end{itemize}
+\end{objectives}
+
+The previous lecture (\cref{ch:lec06}) delivered two input models: the
+state-preparation oracle for vectors and the block encoding for matrices. A
+single block encoding is, however, only as useful as the arithmetic we can build
+on top of it. Almost every matrix that arises in scientific computing is presented
+as a \emph{combination} of simpler pieces---a Hamiltonian is a sum of local terms,
+a discretized differential operator is a sum of shifts, a propagator is a product
+of exponentials---so we need rules that turn block encodings of the pieces into a
+block encoding of the whole. \cref{sec:lec06-arith} introduced these operations---%
+matrix and vector addition, matrix--matrix multiplication---through one concrete
+example apiece; this lecture gives the \emph{general} construction for arbitrarily
+many terms, together with its error propagation and $\ell^1$ cost. We develop the
+single most important such rule, the \emph{linear combination of unitaries} (LCU), and
+the composition
+calculus it generates: block encodings of matrix and vector \emph{sums}
+(\cref{sec:lec07-2}) and \emph{products} (\cref{sec:lec07-3}). LCU is the
+\textsc{prepare}--\textsc{select}--\textsc{prepare}$\dg$ sandwich already
+previewed in \cref{exa:lec06-lcu}; here we derive it in full, quantify its success
+probability and repeat count, and note how oblivious amplitude amplification
+(\cref{ch:lec03}) removes the subnormalization penalty when the target is
+(nearly) an isometry. We then contrast the coherent circuit with a purely
+classical \emph{hybrid} alternative---importance sampling over the terms---whose
+appeal and whose variance we analyze in \cref{sec:lec07-4}. The recurring theme,
+made precise in \cref{sec:lec07-5}, is that the cost of LCU is governed by the
+$\ell^1$-norm $\norm{c}_1=\sum_j\abs{c_j}$ of the combination coefficients, exactly
+as the cost of a single block encoding was governed by its subnormalization factor
+$\alpha$. Throughout, $A$ is an $n$-qubit matrix ($N=2^n$) and we reuse the
+block-encoding notation $\mathrm{BE}_{\alpha,a}(A,\epsilon)$ of
+\cref{def:lec06-be}.
+
+\section{The LCU construction}
+\label{sec:lec07-1}
+
+Suppose a target operator is presented as a weighted sum of $K$ unitaries,
+\begin{equation}
+  T=\sum_{j=0}^{K-1}c_j\,U_j,\qquad U_j\in\mathrm{U}(2^n),\quad c_j>0,\quad K=2^a.
+  \label{eq:lec07-Tdef}
+\end{equation}
+(We take the coefficients positive for now; a phase $c_j=\abs{c_j}\ee^{\ii\phi_j}$
+is absorbed into $U_j\mapsto\ee^{\ii\phi_j}U_j$, still unitary, so the general real
+or complex case reduces to this one.) The idea of LCU is to encode the coefficients
+in the amplitudes of an $a$-qubit \emph{control} register, apply the $U_j$ in
+superposition controlled on that register, and then coherently ``fold'' the
+superposition back so that the flag $\ket{0^a}$ picks out precisely $T$. The two
+ingredients are the \textsc{select} and \textsc{prepare} oracles.
+
+\begin{definition}[\textsc{select} and \textsc{prepare} oracles]
+\label{def:lec07-oracles}
+The \emph{select oracle} for the family $\{U_j\}_{j\in[K]}$ is the $(a+n)$-qubit
+unitary
+\begin{equation}
+  \mathrm{SEL}\defeq\sum_{j\in[K]}\proj{j}\otimes U_j,
+  \label{eq:lec07-sel}
+\end{equation}
+which applies $U_j$ to the system conditioned on the control register holding
+$\ket{j}$. The \emph{prepare oracle} for the coefficients $c=(c_0,\dots,c_{K-1})$,
+$c_j\ge0$, is any $a$-qubit unitary $\mathrm{PREP}$ with
+\begin{equation}
+  \mathrm{PREP}\ket{0^a}=\frac{1}{\sqrt{\norm{c}_1}}\sum_{j\in[K]}\sqrt{c_j}\,\ket{j},
+  \qquad \norm{c}_1=\sum_{j\in[K]}\abs{c_j}.
+  \label{eq:lec07-prep}
+\end{equation}
+\end{definition}
+
+Only the first column of $\mathrm{PREP}$ is fixed by \eqref{eq:lec07-prep}; the
+remaining columns may be any completion to a unitary (its existence is guaranteed
+because the specified column is a unit vector). The following lemma is the
+workhorse of Part~II.
+
+\begin{theorem}[Linear combination of unitaries]
+\label{thm:lec07-lcu}
+Let $T=\sum_{j\in[K]}c_j U_j$ with $c_j\ge0$, $K=2^a$, and let
+$\mathrm{SEL},\mathrm{PREP}$ be as in \cref{def:lec07-oracles}. Then
+\begin{equation}
+  W\defeq\bigl(\mathrm{PREP}\dg\otimes\id_n\bigr)\,\mathrm{SEL}\,
+          \bigl(\mathrm{PREP}\otimes\id_n\bigr)
+  \label{eq:lec07-W}
+\end{equation}
+is an exact $(\norm{c}_1,a)$-block-encoding of $T$, i.e.\
+$W\in\mathrm{BE}_{\norm{c}_1,a}(T)$.
+\end{theorem}
+
+\begin{proof}
+Fix an arbitrary $n$-qubit state $\ket{\psi}$ and propagate the flagged input
+$\ket{0^a}\ket{\psi}$ through the three factors. First $\mathrm{PREP}$ dresses the
+control register with the coefficient amplitudes,
+\begin{equation}
+  \bigl(\mathrm{PREP}\otimes\id\bigr)\ket{0^a}\ket{\psi}
+  =\frac{1}{\sqrt{\norm{c}_1}}\sum_{j}\sqrt{c_j}\,\ket{j}\ket{\psi}.
+  \label{eq:lec07-step1}
+\end{equation}
+Next $\mathrm{SEL}$ applies $U_j$ in each branch:
+\begin{equation}
+  \mathrm{SEL}\,\frac{1}{\sqrt{\norm{c}_1}}\sum_{j}\sqrt{c_j}\,\ket{j}\ket{\psi}
+  =\frac{1}{\sqrt{\norm{c}_1}}\sum_{j}\sqrt{c_j}\,\ket{j}\,U_j\ket{\psi}.
+  \label{eq:lec07-step2}
+\end{equation}
+Finally $\mathrm{PREP}\dg$ acts on the control register. We do not need the full
+image; we need only the amplitude of the flag $\ket{0^a}$, obtained by projecting
+with $\bra{0^a}$. Using
+$\bra{0^a}\mathrm{PREP}\dg=\bigl(\mathrm{PREP}\ket{0^a}\bigr)\dg
+=\frac{1}{\sqrt{\norm{c}_1}}\sum_{j}\sqrt{c_j}\,\bra{j}$ and
+$\braket{j'|j}=\delta_{jj'}$,
+\begin{equation}
+  \bigl(\bra{0^a}\otimes\id\bigr)W\bigl(\ket{0^a}\otimes\id\bigr)\ket{\psi}
+  =\frac{1}{\norm{c}_1}\sum_{j,j'}\sqrt{c_{j'}}\sqrt{c_j}\,
+   \braket{j'|j}\,U_j\ket{\psi}
+  =\frac{1}{\norm{c}_1}\sum_{j}c_j U_j\ket{\psi}
+  =\frac{T}{\norm{c}_1}\ket{\psi}.
+  \label{eq:lec07-block}
+\end{equation}
+Since $\ket{\psi}$ was arbitrary,
+$(\bra{0^a}\otimes\id)W(\ket{0^a}\otimes\id)=T/\norm{c}_1$, which is exactly the
+exact-block-encoding relation \eqref{eq:lec06-bealt} with subnormalization factor
+$\alpha=\norm{c}_1$ and $a$ ancilla qubits.
+\end{proof}
+
+Three remarks fix the meaning of the construction.
+
+\begin{remark}[Reading the circuit; why $\ell^1$]
+\label{rem:lec07-read}
+The output of $W$ on $\ket{0^a}\ket{\psi}$ is, keeping all branches,
+\begin{equation}
+  W\ket{0^a}\ket{\psi}
+  =\frac{1}{\norm{c}_1}\ket{0^a}\,T\ket{\psi}+\ket{\perp},
+  \qquad \bigl(\proj{0^a}\otimes\id\bigr)\ket{\perp}=0,
+  \label{eq:lec07-output}
+\end{equation}
+so the flag $\ket{0^a}$ is measured with probability
+$\norm{T\ket{\psi}}^2/\norm{c}_1^2$, and conditioned on it the system holds the
+normalized $T\ket{\psi}/\norm{T\ket{\psi}}$, exactly as in the general
+block-encoding picture (\cref{sec:lec06-2}). The subnormalization is the
+$\ell^1$-norm $\norm{c}_1$, \emph{not} $\norm{T}$: because
+$\norm{T}\le\sum_j c_j\norm{U_j}=\norm{c}_1$, LCU is never better than
+$\alpha=\norm{c}_1$, and it is tight exactly when the $U_j$ add up ``in phase''
+(e.g.\ all $U_j=\id$). Reducing $\norm{c}_1$---by choosing a more efficient
+decomposition of $T$ into unitaries---is the central knob for controlling cost, and
+is the subject of \cref{sec:lec07-5}.
+\end{remark}
+
+\begin{remark}[Cost is logarithmic in the number of terms]
+\label{rem:lec07-log}
+The register that carries the combination has only $a=\log_2 K$ qubits, so LCU can
+superpose an exponentially large number of terms with a linear number of ancillas.
+The genuine cost hides in the two oracles: $\mathrm{PREP}$ must load the
+$\sqrt{c_j}$ amplitudes (\cref{def:lec06-sp}, subject to the same structure
+requirements as any state preparation) and $\mathrm{SEL}$ must apply a
+$K$-fold-multiplexed unitary. A direct implementation of either scales linearly in
+$K$; an \emph{efficient} LCU therefore needs additional structure---for instance,
+the $U_j$ being Pauli strings addressed by their binary label, so that $\mathrm{SEL}$
+is a sequence of $a$ controlled-Pauli layers.
+\end{remark}
+
+\begin{remark}[Unequal split of the coefficients]
+\label{rem:lec07-split}
+Nothing forces the ``load'' and ``unload'' oracles to be adjoints. Writing
+$c_j=\beta_j\gamma_j$ and using two preparations
+$\mathrm{PREP}\ket{0^a}=\frac{1}{\norm{\beta}_2}\sum_j\beta_j\ket{j}$ and
+$\widetilde{\mathrm{PREP}}\ket{0^a}=\frac{1}{\norm{\gamma}_2}\sum_j\gamma_j\ket{j}$,
+the sandwich $W=(\widetilde{\mathrm{PREP}}\dg\otimes\id)\,\mathrm{SEL}\,
+(\mathrm{PREP}\otimes\id)$ is a $(\norm{\beta}_2\norm{\gamma}_2,a)$-block-encoding of
+$T$. By Cauchy--Schwarz $\norm{c}_1=\sum_j\abs{\beta_j\gamma_j}\le
+\norm{\beta}_2\norm{\gamma}_2$, so the symmetric choice
+$\beta_j=\gamma_j=\sqrt{c_j}$ (whence
+$\widetilde{\mathrm{PREP}}=\mathrm{PREP}$) minimizes the subnormalization at
+$\norm{c}_1$. The freedom is occasionally useful when one of the two preparations is
+cheaper to build than its adjoint.
+\end{remark}
+
+\begin{example}[LCU of two Pauli matrices]
+\label{exa:lec07-twopauli}
+Take the single-qubit Hermitian operator $T=\tfrac12\Xgate+\tfrac12\Zgate$, so
+$K=2$, $a=1$, $c_0=c_1=\tfrac12$, $U_0=\Xgate$, $U_1=\Zgate$, and
+$\norm{c}_1=1$. The prepare oracle must satisfy
+$\mathrm{PREP}\ket{0}=\tfrac{1}{\sqrt1}\bigl(\sqrt{\tfrac12}\ket{0}
++\sqrt{\tfrac12}\ket{1}\bigr)=\tfrac{1}{\sqrt2}(\ket0+\ket1)$, which is the
+Hadamard gate $\mathrm{PREP}=\Hgate$ (self-inverse, so
+$\mathrm{PREP}\dg=\Hgate$). The select oracle is
+$\mathrm{SEL}=\proj{0}\otimes\Xgate+\proj{1}\otimes\Zgate$, a controlled-$\Xgate$
+followed by a control-on-$\ket1$ $\Zgate$. Then
+$W=(\Hgate\otimes\id)\,\mathrm{SEL}\,(\Hgate\otimes\id)$ and, by
+\eqref{eq:lec07-block},
+\[
+  (\bra0\otimes\id)W(\ket0\otimes\id)
+  =\tfrac12\Xgate+\tfrac12\Zgate
+  =\begin{pmatrix}\tfrac12&\tfrac12\\[2pt]\tfrac12&-\tfrac12\end{pmatrix}=T,
+\]
+so $W\in\mathrm{BE}_{1,1}(T)$. Here $\alpha=\norm{c}_1=1$ is optimal: the two
+Paulis are orthogonal in Hilbert--Schmidt inner product, $\norm{T}=\tfrac{1}{\sqrt2}
+\cdot\sqrt2=1$ (its singular values are both $1/\sqrt2\cdot\sqrt2$; explicitly
+$T/\!\sqrt2$ is a reflection, $\norm{T}=1$), so no block encoding can do better than
+$\alpha=1$. Applying $W$ to $\ket0\ket\psi$ succeeds with probability
+$\norm{T\ket\psi}^2$, which equals $1$ for every $\ket\psi$ because $T$ is (up to the
+scalar) unitary; LCU here needs no repetition.
+\end{example}
+
+\begin{remark}[Oblivious amplitude amplification]
+\label{rem:lec07-oaa}
+When $T$ is itself unitary (or an isometry), as in \cref{exa:lec07-twopauli} with
+$\norm{c}_1=1$, the flag $\ket{0^a}$ still appears only with probability
+$\norm{T\ket\psi}^2/\norm{c}_1^2$, which is $<1$ whenever $\norm{c}_1>1$. Naively one
+would amplify the flag with amplitude amplification (\cref{ch:lec03}), but the
+standard routine needs to reflect about the \emph{input} state $\ket{\psi}$, which
+is unknown and possibly entangled. \emph{Oblivious} amplitude amplification removes
+this obstacle: because $W$ acts as the fixed $2\times2$ rotation
+$\bigl(\begin{smallmatrix}\sin\theta&\cos\theta\\ \cos\theta&-\sin\theta
+\end{smallmatrix}\bigr)$ (with $\sin\theta=\norm{T}/\norm{c}_1$ when $T$ is
+proportional to an isometry) on the two-dimensional subspace spanned by
+$\ket{0^a}\ket\psi$ and $\ket\perp$ \emph{for every} $\ket\psi$ simultaneously, one
+can reflect about $\ket{0^a}$ on the ancilla \emph{alone} and drive the flag to
+certainty in $\bigo(\norm{c}_1/\norm{T})$ rounds, independently of $\ket\psi$. This
+is why a Hamiltonian written as $H=\sum_j c_j P_j$ with the $P_j$ Pauli strings can
+be applied deterministically up to the $\ell^1$ overhead. We use this repeatedly in
+the Taylor-series simulation method of \cref{ch:lec12}.
+\end{remark}
+
+\begin{example}[LCU block encoding of the transverse-field Ising Hamiltonian]
+\label{exa:lec07-tfim}
+The Hamiltonian of \cref{exa:lec05-tfim},
+\[
+  H=-\sum_{i=1}^{n-1}Z_iZ_{i+1}-g\sum_{i=1}^{n}X_i,
+\]
+is \emph{already} a linear combination of unitaries: each $Z_iZ_{i+1}$ and each
+$X_i$ is a Pauli string, hence unitary. There are $K=(n-1)+n=2n-1$ terms, with
+coefficients $c_j=1$ for the $n-1$ couplings and $c_j=g$ for the $n$ field terms
+(the minus signs are phases $-P=\ee^{\ii\pi}P$ absorbed into the unitaries, and $K$
+is padded up to a power of two with zero-weight terms). By \cref{thm:lec07-lcu},
+with $a=\lceil\log_2(2n-1)\rceil$ control qubits,
+$\mathrm{PREP}\ket{0^a}=\tfrac{1}{\sqrt{\norm{c}_1}}\sum_j\sqrt{c_j}\,\ket{j}$
+loading the weights (amplitude $1$ on each coupling label, $\sqrt g$ on each field
+label) and $\mathrm{SEL}=\sum_j\proj{j}\otimes P_j$ applying the Pauli string $P_j$,
+the circuit $W=(\mathrm{PREP}\dg\otimes\id)\,\mathrm{SEL}\,(\mathrm{PREP}\otimes\id)$
+is an exact block encoding of $H$ with subnormalization
+\[
+  \alpha=\norm{c}_1=(n-1)+gn=\bigo(n).
+\]
+This is the input model that feeds the ground-state-energy estimation of
+\cref{sec:lec05-1}: QPE on $\ee^{\ii 2\pi H/\alpha}$, or the eigenvalue filters built
+by QSVT in \cref{ch:lec09}, run on $W$, and their cost scales linearly in
+$\alpha$. The $\ell^1$ growth is the generic local-Hamiltonian story---an $n$-qubit
+Hamiltonian with $\bigo(n)$ terms of $\bigo(1)$ weight block-encodes with
+$\alpha=\bigo(n)$---exactly the overhead budgeted in \cref{sec:lec07-5}.
+\end{example}
+
+\section{Matrix and vector addition}
+\label{sec:lec07-2}
+
+\cref{sec:lec06-arith} introduced matrix and vector addition by two-term example; the
+LCU lemma of \cref{sec:lec07-1} promotes them to the general rule. It applies verbatim
+when the ``unitaries'' $U_j$ are themselves block encodings or state-preparation
+oracles: the outer register of the block encoding merges into the LCU flag, and the
+surviving block is the desired sum---now for an \emph{arbitrary} number of terms, and
+tracking the errors.
+
+\begin{proposition}[Sum of block-encoded matrices]
+\label{prop:lec07-sum}
+Let $M=2^m$ and let $A_0,\dots,A_{M-1}$ be $n$-qubit matrices, each supplied by a
+block encoding $U_{A_j}\in\mathrm{BE}_{\alpha_j,a}(A_j,\epsilon_j)$ with
+$\alpha_j\ge0$. Set $\gamma\defeq\sum_{j\in[M]}\alpha_j$. Let
+$\mathrm{SEL}=\sum_{j\in[M]}\proj{j}\otimes U_{A_j}$ act on an $m$-qubit control
+register together with the shared $a$-qubit flag and system, and let $\mathrm{PREP}$
+be any $m$-qubit unitary with
+$\mathrm{PREP}\ket{0^m}=\frac{1}{\sqrt\gamma}\sum_{j\in[M]}\sqrt{\alpha_j}\,\ket{j}$.
+Then
+\begin{equation}
+  W\defeq\bigl(\mathrm{PREP}\dg\otimes\id\bigr)\,\mathrm{SEL}\,
+          \bigl(\mathrm{PREP}\otimes\id\bigr)
+  \in\mathrm{BE}_{\gamma,\,a+m}\!\Bigl(\textstyle\sum_{j\in[M]}A_j,\;
+     \sum_{j\in[M]}\epsilon_j\Bigr).
+  \label{eq:lec07-summBE}
+\end{equation}
+More generally, for a weighted sum $\sum_j c_j A_j$ with $c_j\ge0$ one rescales the
+prepared amplitudes to $\sqrt{c_j\alpha_j}$ and obtains subnormalization
+$\sum_j c_j\alpha_j$.
+\end{proposition}
+
+\begin{proof}
+Write $B_j\defeq(\bra{0^a}\otimes\id)U_{A_j}(\ket{0^a}\otimes\id)$, the block of
+$U_{A_j}$, so that $\norm{A_j-\alpha_j B_j}\le\epsilon_j$ and (a block of a unitary)
+$\norm{B_j}\le1$. The flag for $W$ is the joint state $\ket{0^m}\ket{0^a}$. Running
+the three factors exactly as in \cref{thm:lec07-lcu}, but now with each branch's
+system operator being the block $B_j$ rather than a full unitary, gives
+\begin{equation}
+  \bigl(\bra{0^m}\bra{0^a}\otimes\id\bigr)W
+  \bigl(\ket{0^m}\ket{0^a}\otimes\id\bigr)
+  =\frac{1}{\gamma}\sum_{j\in[M]}\alpha_j B_j.
+  \label{eq:lec07-sumblock}
+\end{equation}
+The only new point is that $\mathrm{SEL}$ leaves the $a$-qubit flag of $U_{A_j}$
+where it is, so the $\ket{0^m}\ket{0^a}$ projection extracts $\alpha_j B_j/\gamma$
+in each branch; the $\ket{j}$-register bookkeeping is identical to
+\eqref{eq:lec07-block}. Comparing with the target $\gamma^{-1}\sum_j A_j$ and using
+the triangle inequality,
+\begin{equation}
+  \Bigl\lVert\,\sum_{j}A_j-\gamma\cdot\tfrac1\gamma\sum_j\alpha_j B_j\Bigr\rVert
+  =\Bigl\lVert\sum_j(A_j-\alpha_j B_j)\Bigr\rVert
+  \le\sum_j\norm{A_j-\alpha_j B_j}\le\sum_j\epsilon_j,
+  \label{eq:lec07-sumerr}
+\end{equation}
+which is exactly the block-encoding statement \eqref{eq:lec07-summBE}. The weighted
+case follows by replacing $\alpha_j$ with $c_j\alpha_j$ in $\mathrm{PREP}$.
+\end{proof}
+
+The subnormalization of a sum is the sum of the subnormalizations, and the errors
+add. This linear growth is benign for a fixed number of terms but is precisely the
+$\ell^1$ overhead that we must budget for; see \cref{sec:lec07-5}.
+
+\begin{remark}[Convex weights incur no subnormalization]
+\label{rem:lec07-average}
+When the weights form a convex combination the subnormalization penalty vanishes: for
+the average $\tfrac12(A+B)$ of two exact encodings one takes $M=2$,
+$\mathrm{PREP}=\Hgate$, and weights $c_0=c_1=\tfrac12$, so $\gamma=\sum_j c_j=1$---%
+averaging costs nothing. (\cref{exa:lec06-add} is exactly this circuit, block-encoding
+$\tfrac12(X+Z)$.) The \emph{unweighted} sum $A+B$ instead has $\gamma=2$, reflecting
+that $\norm{A+B}$ can reach $\norm A+\norm B$. In general $\gamma=\norm{c}_1$ is the
+overhead that \cref{sec:lec07-5} analyzes.
+\end{remark}
+
+\subsection*{Vector addition}
+
+The same construction adds \emph{vectors} when the selected operators are
+state-preparation oracles rather than block encodings;
+\cref{prop:lec06-vecadd,exa:lec06-vecadd} gave the two-term case
+$\ket0+\ket1\to\ket+$. For general nonnegative weights $c_j$, with
+$\mathrm{SEL}=\sum_j\proj{j}\otimes O_j$ and
+$\mathrm{PREP}\ket{0^m}=\norm{c}_1^{-1/2}\sum_j\sqrt{c_j}\ket{j}$, post-selecting the
+flag $\ket{0^m}$ leaves
+\[
+  \frac{1}{\norm{c}_1}\ket{0^m}\sum_{j}c_j\ket{u_j}+\ket{\perp},
+\]
+seen with probability $\norm{\sum_j c_j\ket{u_j}}^2/\norm{c}_1^2$. It is the primitive
+behind, for example, forming $\sum_k \hat f(k)\,\ee^{\ii k H}\ket{\psi}$ in
+Fourier-based matrix-function algorithms---a genuinely many-term superposition for
+which the general \cref{prop:lec07-sum}, not the two-term picture of
+\cref{sec:lec06-arith}, is what is needed.
+
+\section{Block-encoding multiplication}
+\label{sec:lec07-3}
+
+Addition composed block encodings side by side, sharing the system register. To
+\emph{multiply} $A$ and $B$ we must feed the output of one into the input of the
+other---\cref{exa:lec06-mult} did this for one concrete product (squaring
+$\tfrac12(X+Z)$); here we give the general rule, its ancilla cost, and the reason
+naive stacking fails. The subtlety is that the block-encoding relation only holds on
+the flagged subspace, so we cannot simply apply $U_A$ and then $U_B$ on the same flag
+qubits.
+
+\begin{remark}[Why naive stacking fails]
+\label{rem:lec07-naive}
+Suppose $U_A\in\mathrm{BE}_{\alpha,a}(A)$ and $U_B\in\mathrm{BE}_{\beta,a}(B)$ share
+the \emph{same} $a$-qubit flag. Applying them in sequence gives
+\[
+  U_B U_A\ket{0^a}\ket\psi
+  =U_B\Bigl(\tfrac{1}{\alpha}\ket{0^a}A\ket\psi+\ket{\perp_A}\Bigr),
+\]
+and the $\ket{\perp_A}$ branch---which is \emph{not} flagged by $\ket{0^a}$---is
+mapped by $U_B$ back into the flagged subspace in an uncontrolled way. Concretely
+$(\bra{0^a}\otimes\id)U_BU_A(\ket{0^a}\otimes\id)$ picks up cross terms from
+$\ket{\perp_A}$ and does \emph{not} equal $\frac{1}{\alpha\beta}BA$. The remedy is to
+keep the two flag registers \emph{separate}, so that returning to the joint flag
+$\ket{0^{a}}\ket{0^{b}}$ forces \emph{both} block encodings to have acted on their
+flagged subspaces.
+\end{remark}
+
+\begin{proposition}[Product of two block-encoded matrices]
+\label{prop:lec07-prod}
+Let $U_A\in\mathrm{BE}_{\alpha,a}(A)$ and $U_B\in\mathrm{BE}_{\beta,b}(B)$ act on
+disjoint ancilla registers (of sizes $a$ and $b$) and a common $n$-qubit system.
+Then
+\begin{equation}
+  U_{AB}\defeq\bigl(U_A\otimes\id_b\bigr)\bigl(\id_a\otimes U_B\bigr)
+  \in\mathrm{BE}_{\alpha\beta,\,a+b}(AB),
+  \label{eq:lec07-prod}
+\end{equation}
+using $a+b$ ancilla qubits. (Here $U_A$ acts on flag register $a$ and the system,
+$U_B$ on flag register $b$ and the system, and the two flag registers do not
+overlap.)
+\end{proposition}
+
+\begin{proof}
+The joint flag is $\ket{0^a}\ket{0^b}$. Because the two flag registers are disjoint,
+$(\bra{0^a}\otimes\id)$ and $(\bra{0^b}\otimes\id)$ commute past each other and the
+block of the product factorizes:
+\begin{align}
+  \bigl(\bra{0^a}\bra{0^b}\otimes\id\bigr)U_{AB}
+  \bigl(\ket{0^a}\ket{0^b}\otimes\id\bigr)
+  &=\bigl(\bra{0^a}\otimes\id\bigr)U_A\bigl(\ket{0^a}\otimes\id\bigr)\;
+    \bigl(\bra{0^b}\otimes\id\bigr)U_B\bigl(\ket{0^b}\otimes\id\bigr)\notag\\
+  &=\frac{A}{\alpha}\cdot\frac{B}{\beta}=\frac{AB}{\alpha\beta}.
+  \label{eq:lec07-prodblock}
+\end{align}
+The middle step is the key: $\id_a\otimes U_B$ leaves flag register $a$ untouched,
+so projecting it onto $\ket{0^a}$ before and after commutes through $U_B$; likewise
+$U_A\otimes\id_b$ leaves flag register $b$ untouched. Thus the two blocks separate
+and multiply. Comparing with the exact-encoding relation
+\eqref{eq:lec06-bealt} gives $U_{AB}\in\mathrm{BE}_{\alpha\beta,a+b}(AB)$. (With
+errors $\epsilon_A,\epsilon_B$ the same telescoping bound as in
+\cref{prop:lec07-sum} gives error $\alpha\beta$ times the product-rule expansion; the
+exact case suffices for us.)
+\end{proof}
+
+The product multiplies the subnormalizations, $\alpha\beta$, and \emph{adds} the
+ancilla counts, $a+b$. Iterating \eqref{eq:lec07-prod} over $L$ factors gives
+$\prod_{j}\alpha_j$ subnormalization and $\sum_j a_j$ ancillas---correct, but
+ancilla-hungry.
+
+\begin{remark}[Duplicate-ancilla vs.\ compression-gadget cost]
+\label{rem:lec07-compress}
+Two refinements reduce the ancilla count for a product of $L$ block encodings, each
+in $\mathrm{BE}_{\alpha,a}(A_i)$.
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{Duplicate ancilla.} A deferred-measurement trick records, in a single
+        extra qubit, whether \emph{all} flag registers returned to $\ket{0^a}$; one
+        can then reuse the flag register across the $L$ factors and needs only
+        $a+(L-1)$ ancillas (one bookkeeping qubit per factor beyond the first) to
+        obtain a unitary in $\mathrm{BE}_{\alpha^{L},\,a+L-1}(A_L\cdots A_1)$.
+  \item \emph{Compression gadget.} The bookkeeping qubits are highly redundant---one
+        only needs to know whether \emph{any} factor left the flag subspace, a single
+        bit of information that a counter can hold. The compression gadget replaces
+        the $L-1$ bookkeeping qubits by a $\lceil\log_2(L+1)\rceil$-qubit counter,
+        giving $\mathrm{BE}_{\alpha^{L},\,a+\lceil\log_2(L+1)\rceil}(A_L\cdots A_1)$.
+        This exponential saving in ancillas is what makes long products (e.g.\
+        Chebyshev/monomial expansions inside QSVT, \cref{ch:lec09}) practical.
+\end{itemize}
+Both refinements leave the subnormalization at $\alpha^L$. That exponential growth in
+$L$ is intrinsic to the product rule and is \emph{not} an artifact: even a matrix
+with spectral radius $\rho(A)<1$, so that $\sup_L\norm{A^L}\le C<\infty$, may have
+$\norm{A}>1$ and hence require $\alpha\ge\norm{A}>1$; encoding $A^L$ this way carries
+subnormalization $\alpha^L$ even though $\norm{A^L}$ stays bounded. Reconciling these
+two facts---bounded powers, blowing-up subnormalization---is exactly the difficulty
+that dedicated linear-ODE algorithms (\cref{ch:lec13}) are built to resolve.
+\end{remark}
+
+\begin{example}[Two-term product]
+\label{exa:lec07-prod2}
+Let $A,B$ be $1$-sparse with $\norm{A}_{\max},\norm{B}_{\max}\le1$, block-encoded by
+$U_A\in\mathrm{BE}_{1,1}(A)$ and $U_B\in\mathrm{BE}_{1,1}(B)$ as in
+\cref{prop:lec06-1sparse}. Using \emph{two} flag qubits (registers $a$ and $b$), the
+circuit $U_{AB}=(U_A\otimes\id)(\id\otimes U_B)$ is a $(1,2)$-block-encoding of
+$AB$: on flag $\ket0\ket0$ it returns $AB\ket\psi$ with the two flag qubits back in
+$\ket0$. If instead we tried to reuse a single flag qubit
+($U_AU_B$ on the same ancilla), the $\ket1$ branch produced by $U_B$ would be fed
+into $U_A$ and re-enter the $\ket0$ block, corrupting the answer---the failure of
+\cref{rem:lec07-naive}. The extra ancilla is precisely the bookkeeping that keeps the
+two encodings from interfering.
+\end{example}
+
+\section{Hybrid LCU and importance sampling}
+\label{sec:lec07-4}
+
+The circuit $W$ of \cref{thm:lec07-lcu} realizes $T=\sum_j c_j U_j$
+\emph{coherently}: all $K$ branches exist simultaneously in superposition, and a
+single run applies the whole combination. Often, though, we do not want the state
+$T\ket{\psi}$ itself but only an \emph{expectation value}
+$u\dg O u$ of some observable $O$ in the (unnormalized) output
+$u=T\ket{u_0}=\sum_j c_j U_j\ket{u_0}$. In that case a \emph{hybrid} strategy---run
+one term at a time on the quantum computer, combine classically---becomes available
+and can trade circuit depth for repetitions.
+
+Expanding the quadratic form,
+\begin{equation}
+  u\dg O u
+  =\sum_{j,j'}c_j c_{j'}\,\bra{u_0}U_j\dg\,O\,U_{j'}\ket{u_0}.
+  \label{eq:lec07-hybrid}
+\end{equation}
+Each summand $\bra{u_0}U_j\dg O U_{j'}\ket{u_0}$ is an off-diagonal matrix element
+that a quantum computer can estimate with a \emph{Hadamard test}: prepare
+$\ket{u_0}$, apply the controlled pair $U_j\dg O U_{j'}$ (or, for a single unitary
+$O$, the controlled $U_{j'}$ and $U_j$), and read the ancilla. No superposition over
+$j$ is required---only two of the $U$'s appear per run---so the circuit is as shallow
+as a single term, at the price of estimating an $\bigo(K^2)$-term sum.
+
+\begin{proposition}[Importance-sampling estimator for $u\dg Ou$]
+\label{prop:lec07-is}
+Let $c_j\ge0$, $\norm{c}_1=\sum_j c_j$, and define the probability distribution
+$p_j=c_j/\norm{c}_1$ on $[K]$. Draw pairs $(j,j')$ independently with
+$\Prob[(j,j')]=p_j p_{j'}$, and for each pair form the (Hadamard-test) unbiased
+estimate $\widehat{h}_{jj'}$ of $h_{jj'}\defeq\bra{u_0}U_j\dg O U_{j'}\ket{u_0}$.
+Then
+\begin{equation}
+  \widehat{\mathcal E}\defeq\norm{c}_1^2\,\widehat{h}_{jj'}
+  \qquad\text{is an unbiased estimator of } u\dg Ou,
+  \label{eq:lec07-isest}
+\end{equation}
+and averaging over $R$ independent samples gives variance
+$\Var[\tfrac1R\sum\widehat{\mathcal E}]=\bigo(\norm{c}_1^4\,\norm{O}^2/R)$. Hence
+$\bigo(\norm{c}_1^4\norm{O}^2/\varepsilon^2)$ samples suffice to estimate $u\dg Ou$
+to additive error $\varepsilon$.
+\end{proposition}
+
+\begin{proof}
+Unbiasedness: with $(j,j')\sim p_jp_{j'}$ and $\widehat h_{jj'}$ conditionally
+unbiased for $h_{jj'}$,
+\[
+  \E[\widehat{\mathcal E}]
+  =\norm{c}_1^2\sum_{j,j'}p_j p_{j'}\,h_{jj'}
+  =\norm{c}_1^2\sum_{j,j'}\frac{c_j}{\norm{c}_1}\frac{c_{j'}}{\norm{c}_1}h_{jj'}
+  =\sum_{j,j'}c_j c_{j'}h_{jj'}
+  =u\dg Ou,
+\]
+by \eqref{eq:lec07-hybrid}. For the variance, each $\abs{h_{jj'}}\le\norm{O}$
+(since $\norm{U_j\ket{u_0}}=1$), so a single estimate obeys
+$\abs{\widehat{\mathcal E}}\le\norm{c}_1^2\norm{O}$ (up to the $\bigo(1)$ Hadamard-test
+variance), giving $\Var[\widehat{\mathcal E}]=\bigo(\norm{c}_1^4\norm{O}^2)$; the
+$R$-sample average divides this by $R$. Setting the standard deviation to
+$\varepsilon$ yields $R=\bigo(\norm{c}_1^4\norm{O}^2/\varepsilon^2)$.
+\end{proof}
+
+\begin{remark}[Coherent vs.\ hybrid: the trade-off]
+\label{rem:lec07-tradeoff}
+The two implementations occupy opposite ends of a depth--repetition trade-off.
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{Coherent LCU} (\cref{thm:lec07-lcu}) uses one deep circuit containing
+        all $K$ terms via $\mathrm{SEL}$, with an ancilla register and (if the state
+        is wanted) $\bigo(\norm{c}_1/\norm{u})$ amplifications; it produces the
+        quantum state $u/\norm{u}$ and preserves coherence for further processing.
+  \item \emph{Hybrid importance sampling} (\cref{prop:lec07-is}) uses many shallow
+        circuits with at most two terms each and \emph{no} multiplexed $\mathrm{SEL}$,
+        but pays a worse dependence on the $\ell^1$-norm---$\norm{c}_1^4$ in the
+        sample count versus $\norm{c}_1$ in the coherent repeat count---and only ever
+        yields a scalar $u\dg Ou$, not the state.
+\end{itemize}
+The hybrid route is attractive on near-term hardware, where circuit depth and clean
+ancillas are scarce, and when the final quantity of interest is a single expectation
+value; the coherent route wins asymptotically and whenever the output state must be
+fed into a downstream quantum subroutine.
+\end{remark}
+
+\section{Cost: the \texorpdfstring{$\ell^1$}{l1} overhead}
+\label{sec:lec07-5}
+
+Every construction above is governed by one scalar: the $\ell^1$-norm of the
+combination coefficients. Collecting the accounting:
+
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{Addition} of block encodings with subnormalizations $\alpha_j$ produces
+        subnormalization $\gamma=\sum_j\alpha_j$ (\cref{prop:lec07-sum}); for a
+        weighted sum $\sum_j c_j A_j$ with $\norm{A_j}\le1$ the subnormalization is
+        $\norm{c}_1$. The number of times the coherent circuit must be run to see the
+        flag is $\bigo(\gamma/\norm{T\ket{\psi}})$
+        (\cref{rem:lec07-read}), reduced to $\bigo(\gamma/\norm{T})$ by oblivious
+        amplitude amplification when $T$ is proportional to an isometry
+        (\cref{rem:lec07-oaa}).
+  \item \emph{Multiplication} of $L$ block encodings produces subnormalization
+        $\prod_j\alpha_j$ (\cref{prop:lec07-prod}, \cref{rem:lec07-compress}). For
+        $\alpha_j\equiv\alpha$ this is $\alpha^L$, an exponential in the number of
+        factors.
+  \item \emph{Hybrid sampling} costs $\bigo(\norm{c}_1^4\norm{O}^2/\varepsilon^2)$
+        shallow runs (\cref{prop:lec07-is}).
+\end{itemize}
+
+The moral is that $\norm{c}_1$ is to LCU what $\alpha$ was to a single block encoding
+(\cref{ch:lec06}): a subnormalization that shrinks the success probability
+quadratically and multiplies every downstream query count linearly (or, for
+products, exponentially in the number of factors). Minimizing it is therefore the
+principal design problem.
+
+\begin{remark}[Quantum advantage of the arithmetic---and its price]
+\label{rem:lec07-advantage}
+Set against classical cost, the win is the same exponential-in-dimension story as for
+a single block encoding (\cref{sec:lec06-advantage}), now for \emph{combinations}.
+Classically, forming $\sum_{j} c_j A_j\ket{b}$ for $K$ structured $N\times N$ terms
+costs $\bigo(K\,sN)$, and a product $A_L\cdots A_1\ket{b}$ costs $\bigo(L\,sN)$---linear
+in the exponentially large dimension $N=2^n$. The LCU circuit instead uses $\bigo(K)$
+calls to the per-term block encodings on only $\lceil\log_2 K\rceil$ control qubits,
+each call $\polylog(N)$ for structured terms, and the product rule chains $L$ encodings
+with $\bigo(\log L)$ ancillas (the compression gadget, \cref{rem:lec07-compress}). So
+the arithmetic runs in $\polylog(N)$ time in the dimension---an exponential
+advantage---while the \emph{price} of combining is paid in the subnormalization:
+$\norm{c}_1$ for a sum, $\prod_j\alpha_j$ for a product, each shrinking the success
+probability quadratically and multiplying the downstream query count (linearly for
+sums, exponentially in the number of factors). The input and output caveats of
+\cref{sec:lec06-advantage} apply unchanged: the advantage is genuine only when the
+terms are efficiently encodable and the final read-out is a succinct summary. This is
+exactly the regime of the quantum linear-system solver (\cref{ch:lec10}) and
+Hamiltonian simulation (\cref{ch:lec11}), where LCU supplies the arithmetic and the
+answer is an expectation value or a sampled bit, not the full solution vector.
+\end{remark}
+
+\begin{example}[The $\ell^1$-norm depends on the decomposition]
+\label{exa:lec07-l1decomp}
+A given $T$ can be written as a linear combination of unitaries in many ways, and the
+resulting $\norm{c}_1$ varies. Consider the diagonal matrix
+$T=\diag(1,1,\dots,1,-1)$ on $n$ qubits (a single sign flip on the last basis
+state). One decomposition writes $T=\id-2\proj{N-1}$; since $\proj{N-1}$ is not
+unitary, expand it into Paulis, $\proj{N-1}=\prod_{k}\tfrac{\id-\Zgate_k}{2}$, whose
+expansion has $2^n$ Pauli terms each with coefficient $2^{-n}$, giving
+$\norm{c}_1=\id\text{-term}+2\cdot2^{-n}\cdot 2^n=1+2=3$ after cancellation---but the
+naive term-by-term bound is $\norm{c}_1=1+2\sum_k\ldots$, exponentially worse if one
+is careless. A far better decomposition recognizes $T$ itself as a single
+\emph{reflection} (it is unitary and Hermitian), so $T=1\cdot T$ with $\norm{c}_1=1$
+and no LCU overhead at all. The lesson: before invoking LCU, check whether the target
+is already (a scalar times) a unitary, and otherwise seek the decomposition with the
+smallest $\ell^1$-norm. This is why Hamiltonians are grouped into as few Pauli terms
+as possible, and why product formulas (\cref{ch:lec11}) sometimes beat LCU for
+simulation.
+\end{example}
+
+\begin{remark}[Where LCU sits in the toolbox]
+\label{rem:lec07-toolbox}
+LCU and single-matrix block encoding (\cref{ch:lec06}) together generate the full
+arithmetic of block encodings: sums, weighted sums, and products of encodable
+matrices are all encodable, with the bookkeeping rules of this lecture. What LCU does
+\emph{not} directly give is a general \emph{function} $f(A)$ beyond polynomials
+expressible as short LCUs (e.g.\ truncated Chebyshev or Fourier series). For that we
+need qubitization and quantum signal processing (\cref{ch:lec08}) and the quantum
+singular value transformation (\cref{ch:lec09}), which realize essentially arbitrary
+bounded polynomials of $A$ with subnormalization independent of the polynomial
+degree---often dramatically better than the $\norm{c}_1$ of the corresponding LCU. We
+will return to compare the two approaches once QSVT is in hand.
+\end{remark}
+
+\exercisesection
+
+\begin{exercise}\label{ex:lec07-1}
+\emph{Deriving the LCU block.} Let $T=\sum_{j\in[K]}c_j U_j$ with $c_j\ge0$,
+$K=2^a$, and let $W=(\mathrm{PREP}\dg\otimes\id)\,\mathrm{SEL}\,(\mathrm{PREP}
+\otimes\id)$ as in \cref{thm:lec07-lcu}. Reproduce the three-line computation
+\eqref{eq:lec07-step1}--\eqref{eq:lec07-block} to show
+$(\bra{0^a}\otimes\id)W(\ket{0^a}\otimes\id)=T/\norm{c}_1$. Then show that if the
+input flag is $\ket{k}\ne\ket{0^a}$ instead of $\ket{0^a}$, the surviving
+$\bra{0^a}$-block is $\frac{1}{\norm{c}_1}\sum_j\sqrt{c_j}\,
+\overline{(\mathrm{PREP})_{jk}}\,\sqrt{c_j}\,U_j$ in general---i.e.\ only the
+$\ket{0^a}$ column of $\mathrm{PREP}$ matters for the encoded operator.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec07-2}
+\emph{Optimality of $\norm{c}_1$.} Using \cref{rem:lec07-split}, show that for any
+factorization $c_j=\beta_j\gamma_j$ the asymmetric circuit block-encodes $T$ with
+subnormalization $\norm{\beta}_2\norm{\gamma}_2$, and prove via Cauchy--Schwarz that
+this is minimized, at value $\norm{c}_1$, by $\beta_j=\gamma_j=\sqrt{c_j}$. Conclude
+that among all \textsc{prepare}--\textsc{select}--\textsc{unprepare} circuits for a
+fixed $\{U_j\}$, the symmetric one has the smallest subnormalization.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec07-3}
+\emph{LCU of three Paulis.} Consider $T=\Xgate+\Ygate+2\Zgate$ on one qubit.
+Determine $\norm{c}_1$, the number of control qubits $a$, and write down explicitly
+the prepare state $\mathrm{PREP}\ket{0^a}$ and the select oracle
+$\mathrm{SEL}=\sum_j\proj{j}\otimes U_j$ (you may use a $2$-qubit control register
+with one label unused, and set the coefficient of the unused label to $0$). State the
+resulting block-encoding parameters $(\alpha,a)$ and compute $\norm{T}$ to check that
+$\alpha=\norm{c}_1$ overshoots $\norm{T}$ here.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec07-4}
+\emph{Block-encoding a weighted sum.} Let $U_A\in\mathrm{BE}_{\alpha_A,a}(A)$ and
+$U_B\in\mathrm{BE}_{\alpha_B,a}(B)$ share a flag register. Following
+\cref{prop:lec07-sum}, construct a circuit that block-encodes $C=A+B$ and identify
+its subnormalization and ancilla count. Then do the same for a general
+$\alpha_A\ne\alpha_B$, writing down the required $\mathrm{PREP}$ amplitudes
+$\propto(\sqrt{\alpha_A},\sqrt{\alpha_B})$, and confirm the subnormalization is
+$\alpha_A+\alpha_B$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec07-5}
+\emph{Why naive multiplication fails.} Let $U_A\in\mathrm{BE}_{1,1}(A)$ and
+$U_B\in\mathrm{BE}_{1,1}(B)$ share a \emph{single} flag qubit. Write $U_B\ket0\ket
+\psi=\ket0 B\ket\psi+\ket1\ket{\chi}$ and $U_A(\ket0 B\ket\psi+\ket1\ket\chi)$, and
+show by an explicit $2\times2$ example ($A=B=\tfrac12\Xgate$, say, so
+$\norm{A}=\norm{B}=\tfrac12$) that
+$(\bra0\otimes\id)U_AU_B(\ket0\otimes\id)\ne AB$ in general because of the
+$\ket1\ket\chi$ cross term. Then verify that placing $U_A,U_B$ on \emph{disjoint}
+flag qubits (\cref{prop:lec07-prod}) restores $(\bra{00}\otimes\id)U_{AB}
+(\ket{00}\otimes\id)=AB$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec07-6}
+\emph{Subnormalization of a power.} Let $A$ be block-encoded by
+$U_A\in\mathrm{BE}_{\alpha,a}(A)$ with $\alpha=\norm{A}$. Using
+\cref{prop:lec07-prod} iteratively (or the compression gadget of
+\cref{rem:lec07-compress}), give a block encoding of $A^L$ and its subnormalization.
+Exhibit a $2\times2$ matrix $A$ with $\rho(A)<1$ but $\norm{A}>1$ (hint: a
+nonnormal matrix such as $\bigl(\begin{smallmatrix}0&2\\0&0\end{smallmatrix}\bigr)$
+scaled so that $\rho=0$, or a Jordan-type block), and explain why the
+subnormalization $\alpha^L$ grows without bound even though $\norm{A^L}$ does not.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec07-7}
+\emph{Cost of the hybrid estimator.} In the setting of \cref{prop:lec07-is}, suppose
+$K=100$ terms with all $c_j=1$ (so $\norm{c}_1=100$) and a bounded observable
+$\norm{O}\le1$. How many shallow Hadamard-test runs $R$ are needed to estimate
+$u\dg Ou$ to additive error $\varepsilon=10^{-2}$? Compare with the coherent-LCU
+repeat count $\bigo(\norm{c}_1/\norm{u})$ (assume $\norm{u}=\Theta(\norm{c}_1)$) and
+comment on which implementation you would choose (i) on a shallow near-term device
+and (ii) if the state $u/\norm{u}$ is needed for a subsequent quantum subroutine.
+\end{exercise}
+
+\readingsection
+\begin{itemize}[leftmargin=1.4em]
+  \item Lin Lin, \emph{qasc notes}, Sec.~7.3 (linear combination of unitaries).
+  \item Lin Lin, \emph{live notes}, Ch.~9 (LCU lemma, block encodings of matrix
+        additions and multiplications, and worked examples including the highly
+        oscillatory integral and Fourier/eigenvalue transformations).
+  \item Dong An, \emph{Quantum Numerical Linear Algebra} tutorial talk (LCU as
+        \textsc{prepare}--\textsc{select}--\textsc{unprepare}, matrix and vector
+        addition, matrix multiplication by duplicate ancillas and the compression
+        gadget, and the hybrid importance-sampling estimator).
+  \item G.~H.~Low and I.~L.~Chuang, \emph{Hamiltonian simulation by qubitization},
+        Quantum \textbf{3}, 163 (2019), and A.~M.~Childs and N.~Wiebe,
+        \emph{Hamiltonian simulation using linear combinations of unitary
+        operations}, Quantum Inf.\ Comput.\ \textbf{12}, 901 (2012), for the original
+        LCU and oblivious amplitude amplification arguments.
+\end{itemize}

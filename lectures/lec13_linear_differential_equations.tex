@@ -1,0 +1,687 @@
+\chapter{Quantum Algorithms for Linear Differential Equations}
+\label{ch:lec13}
+
+\begin{objectives}
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item Reduce linear ODEs and semi-discretized PDEs to problems solvable on a quantum
+        computer, and identify the norm-growth obstruction absent from Hamiltonian simulation.
+  \item Compare the linear-system, time-marching, and LCHS approaches and their scalings in
+        $\alpha_A T$ and the norm-growth factors $q,Q$.
+  \item Explain Schr\"odingerization: the warped phase transform that lifts a non-unitary
+        linear ODE to a unitary Schr\"odinger evolution in one extra variable.
+  \item Work the heat equation as a running example through several of these methods.
+\end{itemize}
+\end{objectives}
+
+The previous two chapters simulated the Schr\"odinger equation
+$\partial_t\ket\psi=-\ii H\ket\psi$, whose propagator $\ee^{-\ii Ht}$ is unitary and
+therefore norm-preserving. This chapter attacks the more general linear differential equation
+\begin{equation}
+  \frac{\dd}{\dd t}x(t)=A(t)\,x(t)+b(t),\qquad t\in[0,T],\qquad x(0)=x_0,
+  \label{eq:lec13-ode}
+\end{equation}
+with $A(t)\in\C^{d\times d}$ not necessarily anti-Hermitian. Two things change at once. First,
+the propagator $\mathcal T\ee^{\int_0^t A(s)\dd s}$ is no longer unitary, so the ``easy'' route
+of the last chapter---block encode $\ee^{At}$ directly and clean up with oblivious amplitude
+amplification (\cref{ch:lec12})---fails except for very short times, because that clean-up step
+requires the encoded operator to be close to unitary. Second, the \emph{magnitude}
+$\norm{x(t)}$ carries physical information (temperature decays, an absorbed wave loses norm),
+so the output model must track it. As we shall see, this magnitude reappears in every
+complexity estimate as a norm-growth factor.
+
+We develop four algorithms. \Cref{sec:lec13-1} fixes the problem, input, and output models and
+records Duhamel's principle, which reduces the inhomogeneous problem to the homogeneous one.
+\Cref{sec:lec13-2} presents the historically first approach: discretize time, stack the whole
+solution history into one large linear system $\mathcal A\mathbf x=\mathbf b$, and solve it with a
+QLSP solver (\cref{ch:lec10}); the cost is linear in $\alpha_A T$ but carries a condition-number
+and success-probability analysis. \Cref{sec:lec13-3} adapts the classical time-marching
+viewpoint---advance one copy of the state step by step---using uniform singular value
+amplification; this trades the history state's ancilla and initial-state overhead for a
+quadratic dependence on $\alpha_A T$ and a growth factor $Q$. \Cref{sec:lec13-4} exploits
+dissipative structure: writing $A=L+\ii H$ with $L\succeq0$, the LCHS identity expresses the
+non-unitary $\ee^{-At}$ as an integral of \emph{unitary} evolutions $\ee^{-\ii(H+kL)t}$,
+implemented by LCU (\cref{ch:lec07}) plus Hamiltonian simulation (\cref{ch:lec11,ch:lec12}), and
+recovers near-optimal cost in both oracles. \Cref{sec:lec13-5} presents Schr\"odingerization,
+the PDE-native cousin of LCHS: a warped phase transform in one extra variable $p$ turns the
+non-unitary dynamics into a genuine Schr\"odinger equation that is simulated unitarily and then
+projected. \Cref{sec:lec13-6} runs the heat equation through these methods and compares the
+resulting resource scalings. Throughout, $\norm\cdot$ is the spectral norm, $\mathcal T$ the
+time-ordering symbol of \cref{sec:lec12-3}, and $\widetilde{\bigo}$ suppresses polylogarithmic
+factors.
+
+\section{Problem setup and semi-discretization}
+\label{sec:lec13-1}
+
+\paragraph{Semi-discretization of PDEs.}
+The equations we care about often begin as partial differential equations. The prototypical
+example is the heat equation $\partial_t u=\partial_{rr}u$ on $r\in[0,1]$ with homogeneous
+Dirichlet data. Discretizing space on a uniform grid $r_j=jh$, $h=1/(N{+}1)$,
+$j=1,\dots,N$, and approximating the second derivative by the central difference
+$u''(r_j)\approx(u_{j-1}-2u_j+u_{j+1})/h^2$ turns the PDE into the linear ODE system
+\begin{equation}
+  \frac{\dd}{\dd t}u(t)=L\,u(t),
+  \qquad
+  L=\frac{1}{h^2}
+  \begin{psmallmatrix}
+    -2 & 1 & & \\ 1 & -2 & 1 & \\ & \ddots & \ddots & \ddots \\ & & 1 & -2
+  \end{psmallmatrix},
+  \label{eq:lec13-semidiscrete}
+\end{equation}
+where $L\in\R^{N\times N}$ is the discrete Laplacian: symmetric and negative definite, with
+$\norm L\approx4/h^2\approx4N^2$. This ``method of lines'' is generic: a linear PDE, once its
+spatial operator is discretized on $d^{\mathrm{th}}$-dimensional grid of $N$ points per axis,
+becomes an ODE of the form \eqref{eq:lec13-ode} with $A$ inheriting the sparsity and the norm
+of the discretized operator. The exponent of $N$ in $\norm A$ (here $N^2$) is what makes these
+problems demanding and is the origin of most of the cost below.
+
+\paragraph{Duhamel's principle.}
+For the homogeneous problem ($b=0$) the solution is $x(t)=U(t,0)x_0$, where $U(t,s)$ is the
+propagator solving $\partial_t U(t,s)=A(t)U(t,s)$, $U(s,s)=\id$; explicitly $U(t,s)=\mathcal T
+\ee^{\int_s^t A(\tau)\dd\tau}$ (\cref{thm:lec12-dyson}). The inhomogeneity is handled once and
+for all by the following classical identity.
+
+\begin{proposition}[Duhamel's principle]
+\label{prop:lec13-duhamel}
+With $U(t,s)$ as above, the solution of \eqref{eq:lec13-ode} is
+\begin{equation}
+  x(t)=U(t,0)\,x_0+\int_0^t U(t,s)\,b(s)\,\dd s.
+  \label{eq:lec13-duhamel}
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+Write $R(t)$ for the right-hand side and differentiate, using $\partial_t U(t,s)=A(t)U(t,s)$
+and $U(t,t)=\id$:
+\[
+  R'(t)=A(t)U(t,0)x_0+U(t,t)b(t)+\int_0^t A(t)U(t,s)b(s)\,\dd s
+       =A(t)R(t)+b(t).
+\]
+Since $R(0)=x_0$, uniqueness of solutions (Picard--Lindel\"of, valid because $A,b$ are
+Lipschitz) gives $R\equiv x$.
+\end{proof}
+
+Because the integral in \eqref{eq:lec13-duhamel} is a numerical quadrature of propagators
+$U(t,s)$ applied to $b(s)$, a block encoding of $U$ together with LCU produces the
+inhomogeneous term. \emph{We therefore restrict attention to the homogeneous problem}
+$\dot x=A(t)x$ from now on. Equivalently, one may augment the system: with
+$\tilde x=(x;1)$ and $\tilde A=\begin{psmallmatrix}A&b\\0&0\end{psmallmatrix}$ the inhomogeneous
+equation becomes homogeneous in one higher dimension.
+
+\paragraph{Input model.}
+The initial state is prepared by a unitary $U_{x_0}\ket{0}=\ket{x_0}$ (assume $\norm{x_0}=1$).
+The matrix $A(t)$ is accessed, exactly as the $\mathrm{HAM\text{-}T}$ oracle of
+\cref{def:lec12-hamt}, through a block encoding on a time grid $\{t_k\}_{k=0}^{N_t-1}$,
+$N_t=2^{n_t}$:
+\begin{equation}
+  (\bra{0^{m_A}}\otimes\id_t\otimes\id_s)\,U_A\,(\ket{0^{m_A}}\otimes\id_t\otimes\id_s)
+  =\frac{1}{\alpha_A}\sum_{k=0}^{N_t-1}\proj{k}\otimes A(t_k),
+  \label{eq:lec13-UA}
+\end{equation}
+with subnormalization $\alpha_A\ge\max_t\norm{A(t)}$. The inhomogeneity, when present, is
+accessed by an analogous oracle $U_b$.
+
+\paragraph{Output model and the norm-growth obstruction.}
+Unlike Hamiltonian simulation, the solution norm can swing over many orders of magnitude. The
+scalar example $\dot x=-Zx$ on $\C^2$ has $x(t)=(x_0^{(0)}\ee^{-t},x_0^{(1)}\ee^{t})$: one
+component decays, the other grows, so the \emph{normalized} state and its norm are both
+nontrivial functions of $t$. We therefore define the quantum solution to be a block encoding
+of the \emph{unnormalized} vector $x(T)$,
+\begin{equation}
+  (\bra{0^{m_{\mathrm{sol}}}}\otimes\id_s)\,U_{\mathrm{sol}}\,(\ket{0^{m_{\mathrm{sol}}}}\ket{x_0})
+  =\frac{1}{\alpha_{\mathrm{sol}}}\,x(T),
+  \label{eq:lec13-output}
+\end{equation}
+from which $\norm{x(T)}$ is read off through the success probability. The obstruction that
+rules out the naive strategy is this: a truncated Taylor block encoding of $\ee^{At}$ has
+subnormalization $\approx\ee^{\alpha t}$, growing \emph{exponentially} in $t$; and oblivious
+amplitude amplification cannot rescue it because that primitive requires the encoded operator
+to be near-unitary, i.e.\ $A$ near-anti-Hermitian. The remedy of every method below is to
+avoid exponentiating $A$ as a monolithic block. The relevant norm-growth quantities are
+\begin{equation}
+  q\defeq\frac{\max_{0\le t\le T}\norm{x(t)}}{\norm{x(T)}},
+  \qquad
+  Q\defeq\frac{\sup_{0=t_0<\dots<t_L=T}\prod_{l}\norm{U(t_{l+1},t_l)}}{\norm{x(T)}},
+  \label{eq:lec13-qQ}
+\end{equation}
+which quantify how much the algorithm must ``fight'' against the decay of the target relative to
+intermediate states. Both equal $1$ when $\norm{x(t)}$ is constant (e.g.\ $A$ anti-Hermitian),
+and both blow up when $x(T)$ is much smaller than earlier states.
+
+\section{Linear-system-of-equations method}
+\label{sec:lec13-2}
+
+\paragraph{The history state.}
+The oldest quantum algorithm for \eqref{eq:lec13-ode} (Berry, 2014) reformulates the whole
+evolution as one linear system. On a uniform grid $t_k=k\,\Delta t$, $\Delta t=T/N_t$, write
+$x_k=x(t_k)$ and encode the entire trajectory in a single \emph{history state}
+\begin{equation}
+  X(T)=\frac{1}{\sqrt{N_t}}\sum_{k=1}^{N_t}\ket{t_k}\otimes x_k,
+  \label{eq:lec13-history}
+\end{equation}
+the Feynman--Kitaev history vector. The forward Euler discretization
+$x_{k+1}-x_k=\Delta t\,(A_k x_k+b_k)$ (with $A_k=A(t_k)$) is precisely the statement that
+$X(T)$ solves a block-bidiagonal linear system $\mathcal A\mathbf x=\mathbf b$, with
+\begin{equation}
+  \mathcal A=
+  \begin{psmallmatrix}
+    \id & & & \\
+    -(\id+\Delta t\,A_1) & \id & & \\
+    & \ddots & \ddots & \\
+    & & -(\id+\Delta t\,A_{N_t-1}) & \id
+  \end{psmallmatrix},
+  \label{eq:lec13-bigmatrix}
+\end{equation}
+and right-hand side carrying the initial data $(\id+\Delta t\,A_0)x_0+\Delta t\,b_0$ in its
+first block. Compactly,
+\begin{equation}
+  \mathcal A=\id_t\otimes\id_s-\sum_{k=1}^{N_t-1}\ket{t_{k+1}}\!\bra{t_k}\otimes(\id_s+\Delta t\,A_k),
+  \label{eq:lec13-bigmatrix-compact}
+\end{equation}
+so a block encoding of $\mathcal A$ needs one query to $U_A$ (the shift $\ket{t_k}\mapsto
+\ket{t_{k+1}}$ is an adder circuit) and has subnormalization at most $2+\alpha_A\Delta t=\bigo(1)$
+once $\Delta t=\bigo(\alpha_A^{-1})$. Crucially, this route never forms the matrix power
+$(\id+\Delta t A)^{N_t}$ explicitly---the difficulty flagged in \cref{ch:lec09}---because the
+QLSP solver inverts $\mathcal A$ rather than multiplying its blocks.
+
+\paragraph{Padding for the final state.}
+The final value $x_{N_t}$ appears in \eqref{eq:lec13-history} with weight $1/\sqrt{N_t}$, so
+measuring it directly is inefficient. Append $N_t$ copies of $x_{N_t}$ using one ancilla qubit,
+$\tilde X=\ket0\otimes\mathbf x+\ket1\otimes\mathbf y$ with $\mathbf y=(x_{N_t},\dots,x_{N_t})$,
+enforced by additional rows $-x_{N_t-1+j}+x_{N_t+j}=0$. Measuring the ancilla in $\ket1$ and
+succeeding with probability
+\begin{equation}
+  \frac{\norm{x_{N_t}}^2}{\norm{x_{N_t}}^2+\frac1{N_t}\sum_k\norm{x_k}^2}
+  \approx\frac{1}{1+\chi^2},
+  \qquad
+  \chi^2=\frac{\tfrac1T\int_0^T\norm{x(t)}^2\dd t}{\norm{x(T)}^2},
+  \label{eq:lec13-success}
+\end{equation}
+projects onto (a superposition dominated by) the final state; here $\chi\le q$. When
+$\norm{x(t)}\equiv1$ the success probability is exactly $1/2$.
+
+\begin{proposition}[Condition number of the block-bidiagonal system]
+\label{prop:lec13-condnum}
+Let $\{B_k\}_{k=1}^{m-1}$ be $n\times n$ blocks and $\mathcal A$ the block lower-bidiagonal
+matrix with $\id$ on the diagonal and $-B_k$ on the subdiagonal. Put $\zeta_0=1$ and
+$\zeta_k=\sup_{1\le l\le m-k}\norm{B_{l+k-1}\cdots B_l}$. Then
+\begin{equation}
+  \kappa(\mathcal A)\le(\zeta_0+\zeta_1)\sum_{k=0}^{m-1}\zeta_k.
+  \label{eq:lec13-condnum}
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+Write $\mathcal A=\mathcal B_0-\mathcal B_1$ with $\mathcal B_0=\id$ and $\mathcal B_1$ the
+strictly-lower part holding the $B_k$. Since $\mathcal B_1\dg\mathcal B_1$ is block-diagonal
+with blocks $B_l\dg B_l$, we have $\norm{\mathcal B_1}\le\sup_l\norm{B_l}=\zeta_1$, hence
+$\norm{\mathcal A}\le\zeta_0+\zeta_1$. The inverse has the explicit lower-triangular form
+$\mathcal A^{-1}=\sum_{k=0}^{m-1}\mathcal B^{(k)}$, where the $k$-th sub-block-diagonal
+$\mathcal B^{(k)}$ collects the ordered products $B_{l+k-1}\cdots B_l$. The same
+block-diagonal argument gives $\norm{\mathcal B^{(k)}}\le\zeta_k$, so by the triangle
+inequality $\norm{\mathcal A^{-1}}\le\sum_{k=0}^{m-1}\zeta_k$. Multiplying the two bounds
+yields \eqref{eq:lec13-condnum}.
+\end{proof}
+
+Applying \cref{prop:lec13-condnum} with $B_k=\id+\Delta t\,A_k\approx\ee^{\Delta t A_k}$ and
+$\zeta=\sup_{0\le s\le t\le T}\norm{U(t,s)}$ gives $\zeta_k\le\zeta$ for all $k$, so
+$\kappa(\mathcal A)=\bigo(N_t\zeta)=\bigo(T\alpha_A\zeta)$. When the dynamics is contractive
+($\norm{\ee^{At}}\le C_1\ee^{-C_2t}$) the geometric series telescopes and
+$\norm{\mathcal A^{-1}}=\bigo(1/\Delta t)$ independently of $N_t$, so $\kappa(\mathcal A)
+=\bigo(1/\Delta t)$. If instead $A$ has an eigenvalue with positive real part, $\ee^{At}$ and
+hence $\kappa(\mathcal A)$ grow without bound in $T$: the condition number correctly diagnoses
+exponentially growing solutions.
+
+\begin{theorem}[Linear-system solver]
+\label{thm:lec13-lse}
+For the homogeneous equation with $A(t)$ accessed by \eqref{eq:lec13-UA} on a grid with
+$0<t_{k+1}-t_k\le\ln2/\alpha_A$, using short-time Dyson propagators (\cref{lem:lec12-dyson-short})
+for the diagonal blocks, there is a quantum algorithm that prepares $\ket{x(T)}$ to error
+$\epsilon$ with success probability $\Omega(1)$ using
+\begin{equation}
+  \widetilde{\bigo}\bigl(\alpha_A T\,\zeta\,q\bigr)
+  \label{eq:lec13-lse-cost}
+\end{equation}
+queries to $U_A$ and $U_{x_0}$ (and their inverses), where $\zeta$ and $q$ are as above.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+By \cref{prop:lec13-condnum}, $\kappa(\mathcal A)=\bigo(N_t\zeta)=\bigo(T\alpha_A\zeta)$ with
+$N_t=\Theta(T\alpha_A)$ steps of size $\ln2/\alpha_A$. A near-optimal QLSP solver
+(\cref{ch:lec10}) inverts $\mathcal A$ in $\bigo(\kappa\,\polylog(\kappa/\epsilon))$ queries;
+perturbation theory for linear systems fixes the per-block accuracy $\epsilon'=\bigo(\epsilon/
+T\alpha_A\zeta)$, giving $\bigo(\log(1/\epsilon'))$ Dyson queries per block. Amplitude
+amplification of the padded-state success probability \eqref{eq:lec13-success} contributes the
+factor $q$.
+\end{proof}
+
+The scaling is \emph{linear} in $\alpha_A T$. Its drawback is that the QLSP solver queries $U_A$
+and $U_{x_0}$ together, so the initial-state cost is also $\widetilde{\bigo}(\alpha_A T\zeta q)$;
+when $U_{x_0}$ is expensive this is wasteful, and the next two methods improve it to $\bigo(q)$.
+
+\section{Time-marching method}
+\label{sec:lec13-3}
+
+\paragraph{Why naive marching fails.}
+The classical instinct is to march: prepare $x_0$, apply the short-time propagator $B=\id+
+A\Delta t$ (block-encoded from $U_A$) once per step, and reach $x_{N_t}$. Each application is a
+block encoding with subnormalization $1+\alpha_A\Delta t$, so a single measurement of the
+success flag succeeds with amplitude $\le(1+\alpha_A\Delta t)^{-1}\norm{x_k}/\norm{x_{k-1}}$.
+Over all $N_t$ steps the probability of success multiplies to
+\begin{equation}
+  \prod_{k=1}^{N_t}\frac{1}{(1+\alpha_A\Delta t)^2}\frac{\norm{x_k}^2}{\norm{x_{k-1}}^2}
+  \approx\ee^{-2\alpha_A T}\frac{\norm{x(T)}^2}{\norm{x_0}^2},
+  \label{eq:lec13-march-fail}
+\end{equation}
+which decays \emph{exponentially} in $\alpha_A T$---even for Hamiltonian simulation
+($A=-\ii H$), where $\norm{x(T)}=\norm{x_0}$, the factor $\ee^{-2\norm H T}$ kills the run.
+For Hamiltonian simulation the fix was oblivious amplitude amplification, which works only
+because $\ee^{-\ii H\Delta t}$ is unitary; for genuinely non-unitary $B$ we need a different
+tool.
+
+\paragraph{Uniform singular value amplification.}
+The remedy (Fang--Lin--Tong 2023) is to amplify each short-time propagator up to its operator
+norm before chaining. Build a short-time Dyson block encoding $V_k\in\mathrm{BE}(\Xi_k)$ of
+$\Xi_k=U(t_{k+1},t_k)$ with $\bigo(\log(1/\epsilon'))$ queries and subnormalization $\Theta(1)$,
+then apply \emph{uniform singular value amplification} (USVA, \cref{ch:lec09}) to produce
+$V_{\Phi_k}\in\mathrm{BE}_{\norm{\Xi_k}(1+\delta)}(\Xi_k,\epsilon')$ using $\bigo(\delta^{-1}
+\log(1/\epsilon'))$ applications of $V_k$. Chaining the $N_t$ amplified blocks as a product of
+block encodings gives cumulative subnormalization $\prod_k\norm{\Xi_k}(1+\delta)^{N_t}\le
+2\prod_k\norm{\Xi_k}=2Q\norm{x(T)}$ once $\delta N_t=\ln2$, so the overall success probability
+is $\Omega(Q^{-2})$.
+
+\begin{theorem}[Time-marching solver]
+\label{thm:lec13-marching}
+Under the input model \eqref{eq:lec13-UA} with steps $\le\ln2/\alpha_A$, there is a quantum
+algorithm preparing $\ket{x(T)}$ to error $\epsilon$ with success probability $\Omega(1)$ using
+\begin{equation}
+  \widetilde{\bigo}\bigl(Q\,\alpha_A^2 T^2\bigr)
+  \label{eq:lec13-marching-cost}
+\end{equation}
+queries to $U_A$ and only $\bigo(Q)$ applications of $U_{x_0}$, where $Q$ is the growth factor of
+\eqref{eq:lec13-qQ}.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+With $N_t=\bigo(T\alpha_A)$ steps and $\delta=\Theta(N_t^{-1})$, each amplified block costs
+$\bigo(\delta^{-1}\log^2(1/\epsilon'))=\bigo(T\alpha_A\log^2(T\alpha_A Q/\epsilon))$ queries.
+Summed over the $N_t$ blocks this is $\bigo(T^2\alpha_A^2\log^2(\cdots))$. Choosing
+$\epsilon'=\bigo(\epsilon/N_t Q)$ controls error amplification through the non-unitary chain.
+Amplitude amplification of the $\Omega(Q^{-2})$ success probability multiplies the query count
+by $Q$, giving \eqref{eq:lec13-marching-cost}; because $U_{x_0}$ enters only inside the
+amplitude amplification, it is queried $\bigo(Q)$ times.
+\end{proof}
+
+The trade-off relative to \cref{thm:lec13-lse} is stark: time marching is \emph{quadratic} in
+$\alpha_A T$ (worse) but needs only $\bigo(Q)$ initial-state preparations (better). It wins
+precisely when $U_{x_0}$ dominates the cost.
+
+\section{Linear combination of Hamiltonian simulation (LCHS)}
+\label{sec:lec13-4}
+
+\paragraph{Dissipative structure.}
+Consider $\dot x=-A(t)x$ (the minus sign emphasizes dissipation) and split $A$ into its
+Hermitian and anti-Hermitian parts via the Cartesian decomposition
+\begin{equation}
+  A=L+\ii H,\qquad L=\frac{A+A\dg}{2}=L\dg,\qquad H=\frac{A-A\dg}{2\ii}=H\dg.
+  \label{eq:lec13-cartesian}
+\end{equation}
+Assume the \emph{positivity condition} $L(t)\succeq0$ for all $t$. Then $\norm{\mathcal T
+\ee^{-\int_s^t A(\tau)\dd\tau}}\le1$, so the solution norm is non-increasing and
+$\max_t\norm{x(t)}=\norm{x_0}$, whence $q=\norm{x_0}/\norm{x(T)}$. This regime covers many
+open-system and non-Hermitian problems (e.g.\ complex absorbing potentials, where $L=V_I\succeq0$
+is a damping potential).
+
+\paragraph{The LCHS identity.}
+The key is a complex-analytic representation of the non-unitary $\ee^{-Lt}$ (and, when $H\ne0$,
+of $\ee^{-At}$) as a superposition of unitary evolutions. The Cauchy kernel gives the two
+warm-up cases: for $L=0$ ($A=\ii H$), $\int_\R\frac{1}{\pi(1+k^2)}\dd k=1$ trivially yields
+$\ee^{-\ii Ht}=\int_\R\frac{1}{\pi(1+k^2)}\ee^{-\ii Ht}\dd k$; and for $H=0$ ($A=L\succeq0$),
+the Fourier representation $\int_\R\frac{1}{\pi(1+k^2)}\ee^{-\ii kx}\dd k=\ee^{-\abs x}$ combined
+with the spectral mapping theorem gives $\ee^{-Lt}=\int_\R\frac{1}{\pi(1+k^2)}\ee^{-\ii kLt}\dd k$.
+The general statement writes the Cauchy weight as $\frac{1}{\pi(1+k^2)}=\frac{f(k)}{1-\ii k}$ and
+generalizes both to $A=L+\ii H$.
+
+\begin{theorem}[Linear combination of Hamiltonian simulation]
+\label{thm:lec13-lchs}
+Let $f(z)$ be analytic on the lower half-plane $\{\mathrm{Im}\,z<0\}$ and continuous on
+$\{\mathrm{Im}\,z\le0\}$, satisfy a mild decay bound $\abs z^\alpha\abs{f(z)}\le\mathrm{const}$
+for $\mathrm{Im}\,z\le0$ and some $\alpha>0$, and normalize as $\int_\R\frac{f(k)}{1-\ii k}\dd k=1$.
+If $A(t)=L(t)+\ii H(t)$ with $L(t)\succeq0$ for all $0\le t\le T$, then
+\begin{equation}
+  \mathcal T\ee^{-\int_0^T A(s)\dd s}
+  =\int_\R\frac{f(k)}{1-\ii k}\,
+   \mathcal T\ee^{-\ii\int_0^T\bigl(kL(s)+H(s)\bigr)\dd s}\,\dd k.
+  \label{eq:lec13-lchs}
+\end{equation}
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+Let $O_L(t)=\mathcal T\ee^{-\int_0^t A(s)\dd s}$ and let $O_R(t)$ be the right-hand side of
+\eqref{eq:lec13-lchs} with upper limit $t$. Both satisfy $O(0)=\id$: for $O_R$ this is the
+normalization $\int_\R\frac{f(k)}{1-\ii k}\dd k=1$. Differentiating $O_R$ under the (Cauchy
+principal value) integral and using $\partial_t\mathcal T\ee^{-\ii\int_0^t(kL+H)}=-\ii(kL(t)+
+H(t))\mathcal T\ee^{-\ii\int_0^t(kL+H)}$, then rewriting $-\ii kL-\ii H=(-L-\ii H)+(1-\ii k)L$,
+splits the derivative into $-A(t)O_R(t)$ plus a remainder proportional to $L(t)\,\mathrm{P}
+\!\int_\R f(k)\,\mathcal T\ee^{-\ii\int_0^t(kL+H)}\dd k$. The integrand of the remainder is
+analytic in the lower half-plane, and when $L(t)\succeq\lambda_0>0$ a contour argument shows the
+remainder vanishes; hence $O_R'=-A O_R$. Since $O_L,O_R$ solve the same ODE with the same
+initial condition, uniqueness gives $O_L=O_R$ for $\lambda_0>0$, and the limit $\lambda_0\to0$
+completes the proof.
+\end{proof}
+
+\paragraph{From identity to algorithm.}
+Two design choices make \eqref{eq:lec13-lchs} implementable. First, the \emph{kernel}: the
+Cauchy choice $f(k)=\frac1{\pi(1+\ii k)}$ decays only like $1/k$, giving a cusp in the Fourier
+transform and a large truncation range. The near-optimal kernel
+\begin{equation}
+  f(k)=\frac{1}{2\pi}\,\ee^{-2^\beta}\,\ee^{(1+\ii k)^\beta},\qquad\beta\in(0,1),
+  \label{eq:lec13-kernel}
+\end{equation}
+still satisfies $2\pi f(-\ii)=1$ but decays faster than any polynomial, so $\frac{f(k)}{1-\ii k}
+=\bigo(\ee^{-C\abs k^\beta})$ and the integral may be truncated to $\abs k\le K=\bigo(\log^{1/\beta}
+(1/\epsilon))$. Second, \emph{quadrature}: replace the truncated integral by a finite sum
+$\sum_j\omega_j\,\mathcal T\ee^{-\ii\int_0^T(k_j L+H)}$, a genuine linear combination of
+Hamiltonian simulations. Its LCU cost is set by the coefficient $1$-norm $\sum_j\abs{\omega_j}
+\approx\int_\R\frac{\abs{f(k)}}{\sqrt{1+k^2}}\dd k=\bigo(1)$, \emph{independent} of $T,\alpha_A,
+\epsilon$. Each Hamiltonian simulation problem $\ee^{-\ii\int_0^T(k_j L+H)}$ has
+$\max_t\norm{k_jL(t)+H(t)}=\bigo(\alpha_A\log^{1/\beta}(1/\epsilon))$ and is implemented by the
+truncated Dyson method (\cref{sec:lec12-4}).
+
+\begin{theorem}[LCHS solver]
+\label{thm:lec13-lchs-cost}
+For $\dot x=-A(t)x$ with $L(t)\succeq0$ and any $\beta\in(0,1)$, there is a quantum algorithm
+preparing $\ket{x(T)}$ to error $\epsilon$ with success probability $\Omega(1)$ using
+\begin{equation}
+  \widetilde{\bigo}\Bigl(q\,\alpha_A T\,\bigl(\log(1/\epsilon)\bigr)^{1+1/\beta}\Bigr)
+  \label{eq:lec13-lchs-cost}
+\end{equation}
+queries to $U_A$ (and its inverse), and $\bigo(q)$ applications of $U_{x_0}$, where
+$q=\norm{x_0}/\norm{x(T)}$.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+Truncating the kernel to $\abs k\le K=\bigo(\log^{1/\beta}(1/\epsilon))$ and quadrature give an
+LCU whose $1$-norm is $\bigo(1)$. Each of the $\bigo(K)$ Hamiltonian evolutions is simulated by
+the truncated Dyson series (\cref{thm:lec12-dyson-long}) at cost $\widetilde{\bigo}(\alpha_A T
+\log(1/\epsilon))$ queries to $U_A$; the extra factor $K^{1/\beta}$ enters through the norm
+$\max_t K\norm{L}+\norm{H}$, giving $\widetilde{\bigo}(\alpha_A T(\log(1/\epsilon))^{1+1/\beta})$
+per solve. Amplitude amplification of the $\Omega(q^{-2})$ success probability multiplies by $q$;
+$U_{x_0}$ enters only there, so it is queried $\bigo(q)$ times.
+\end{proof}
+
+LCHS thus achieves near-optimal $\alpha_A T$ scaling (linear, like the linear-system method) and
+optimal $\bigo(q)$ initial-state cost (like time marching)---the best of both. Its price is the
+dissipativity requirement $L\succeq0$, which the other two methods do not need.
+
+\begin{example}[{Complex absorbing potentials}]
+\label{exa:lec13-cap}
+In molecular scattering one replaces the real potential by $V_R-\ii V_I$ with $V_I\ge0$ an
+absorbing (damping) layer, giving $\ii\partial_t u=(-\tfrac12\Delta+V_R-\ii V_I)u$, i.e.\
+$\dot u=-A u$ with $A=V_I+\ii(-\tfrac12\Delta+V_R)$. Here the Hermitian part is
+$H=-\tfrac12\Delta+V_R$ with $\norm H=\bigo(N^2+\max_t\norm{V_R})$ and the anti-Hermitian
+generator has $L=V_I\succeq0$: exactly the LCHS regime. LCHS prepares $u(T)/\norm{u(T)}$ to
+error $\epsilon$ using $\widetilde{\bigo}(q\,\alpha_A T)$ queries with
+$\alpha_A=\bigo(N^2+\max_t\norm{V_R}+\norm{V_I})$ and $q=\norm{u_0}/\norm{u(T)}$; the physical
+interest is precisely the pre-escape regime where $\norm{u(T)}$ is not too small, so $q=\bigo(1)$.
+\end{example}
+
+\section{Schr\"odingerization}
+\label{sec:lec13-5}
+
+\paragraph{The warped phase transform.}
+Schr\"odingerization (Jin--Liu--Yu 2022) is the PDE-native cousin of LCHS: instead of a spectral
+integral, it introduces one extra continuous variable that turns dissipative dynamics into a
+genuine Schr\"odinger equation. Consider first the heat equation $\partial_t u=\partial_{rr}u$.
+Introduce $p\ge0$ and define the \emph{warped phase transform}
+\begin{equation}
+  w(t,r,p)=\ee^{-p}\,u(t,r),\qquad p\ge0.
+  \label{eq:lec13-warp}
+\end{equation}
+Since $\ee^{-p}$ is an eigenfunction of $-\partial_p$ with eigenvalue $1$, the diffusion term
+becomes an advection in $p$: $\partial_t w=\partial_{rr}u\cdot\ee^{-p}=-\partial_p\partial_{rr}w$.
+The trick generalizes to any $A$. For a general linear ODE $\dot u=Au$ with $A=A_1+\ii A_2$
+($A_1=A_1\dg\preceq0$ for stability, $A_2=A_2\dg$), the same substitution $v(t,p)=\ee^{-p}u(t)$
+for $p>0$ gives
+\begin{equation}
+  \frac{\dd}{\dd t}v(t,p)=A\,v(t,p)=-A_1\,\partial_p v+\ii A_2\,v,
+  \label{eq:lec13-warp-general}
+\end{equation}
+using $A_1 v=A_1\ee^{-p}u=-\partial_p(\ee^{-p})A_1 u\to-A_1\partial_p v$. The right-hand side is
+now \emph{first order} in $p$ (a transport term $-A_1\partial_p$) plus a Hermitian term
+$\ii A_2$. Symmetrically extend the initial data to $p<0$ as $v(0,p)=\ee^{-\abs p}u_0$; because
+the transport moves the profile leftward and $\ee^{-\abs p}$ decays, the region $p>0$ is
+unaffected by the extension, and one recovers
+\begin{equation}
+  u(t)=\int_0^\infty v(t,p)\,\dd p,\qquad\text{or simply}\qquad u(t)=\ee^{p_*}v(t,p_*)\ \ (p_*>0).
+  \label{eq:lec13-recover}
+\end{equation}
+
+\paragraph{Fourier spectral discretization in $p$.}
+The transport operator $-\partial_p$ is diagonalized by the Fourier transform in $p$: with
+$\eta$ the Fourier variable, $-\ii\partial_p\to\eta$. Applying $\mathcal F_p$ to
+\eqref{eq:lec13-warp-general},
+\begin{equation}
+  \frac{\dd}{\dd t}\tilde v(t,\eta)=-\ii\bigl(\eta A_1-A_2\bigr)\tilde v(t,\eta)
+  =-\ii\,\mathcal H(\eta)\,\tilde v(t,\eta),
+  \qquad
+  \mathcal H(\eta)=\eta A_1-A_2,
+  \label{eq:lec13-schrod}
+\end{equation}
+and $\mathcal H(\eta)=\mathcal H(\eta)\dg$ is Hermitian for every $\eta$ (both $A_1,A_2$ are
+Hermitian and $\eta\in\R$). Equation \eqref{eq:lec13-schrod} is a bona fide Schr\"odinger
+equation: its propagator $\ee^{-\ii\mathcal H(\eta)t}$ is unitary. Embedding $\tilde v(0,\cdot)$
+into amplitudes, the whole evolution is the single unitary $\ee^{-\ii(A_1\otimes\hat\eta-A_2
+\otimes\id)t}$ on the joint system-plus-$p$ register, where $\hat\eta$ is the (diagonal)
+quadrature operator. Discretizing $p\in[-L,R]$ on $N_p=2^{n_p}$ points and applying the DFT
+$F_p$ realizes $\hat\eta\to D_\mu=\diag(\eta_k)$ with $\abs{D_\mu}_{\max}\lesssim1/\Delta p$.
+
+\paragraph{The algorithm.}
+The recipe (\cref{fig:lec13-schrod-schematic}) is: (i) form the product state
+$\ket{w(0)}=\ket{u_0}\otimes\ket{\ee^{-\abs p}}$; (ii) apply the QFT $F_p$ on the $p$-register;
+(iii) evolve under the unitary $\ee^{-\ii(A_1\otimes D_\mu-A_2\otimes\id)t}$ by any Hamiltonian
+simulation method of \cref{ch:lec11,ch:lec12}; (iv) apply the inverse QFT; (v) measure/project
+the $p$-register onto a mode $p_k>0$ and read out $u(t)=\ee^{p_k}w(t,p_k)$. Step (v) succeeds
+with probability $\ee^{-2p_k}\norm{u(T)}^2/\norm{w(0)}^2$, the Schr\"odingerization analogue of
+the norm-growth factor. Sparse-access to $A$ is inherited by $\mathcal H$: if $A$ has sparsity
+$s(A)$ and max-entry $\norm A_{\max}$, then $s(\mathcal H)=\bigo(s(A))$ and
+$\norm{\mathcal H}_{\max}=\bigo(\norm A_{\max}/\Delta p)$, and the Berry--Childs--Kothari sparse
+Hamiltonian simulation lemma (near-optimal, $\widetilde\bigo(\tau)$ queries with
+$\tau=s\norm{\mathcal H}_{\max}t$; \cref{ch:lec11}) applies directly.
+
+\begin{figure}[ht]
+  \centering
+  \begin{tikzpicture}[>=stealth,every node/.style={font=\small}]
+    \node (u0) at (0,0) {$\ket{u_0}$};
+    \node[draw] (prep) at (2.1,0) {form $\ket{w(0)}$};
+    \node[draw] (F) at (4.2,0) {$F_p$};
+    \node[draw] (U) at (7.4,0) {$\ee^{-\ii(A_1\otimes D_\mu-A_2\otimes\id)t}$};
+    \node[draw] (Fi) at (10.3,0) {$F_p\dg$};
+    \node[draw] (P) at (12.6,0) {project $p_k>0$};
+    \node (out) at (14.8,0) {$\ket{u(t)}$};
+    \draw[->] (u0)--(prep); \draw[->] (prep)--(F); \draw[->] (F)--(U);
+    \draw[->] (U)--(Fi); \draw[->] (Fi)--(P); \draw[->] (P)--(out);
+  \end{tikzpicture}
+  \caption{The Schr\"odingerization pipeline: warp the state into the extra $p$-register,
+    QFT into the $\eta$-basis, evolve unitarily under the Hermitian $\mathcal H(\eta)=\eta A_1
+    -A_2$, inverse-QFT, and project onto a mode with $p_k>0$ to recover
+    $u(t)=\ee^{p_k}w(t,p_k)$.}
+  \label{fig:lec13-schrod-schematic}
+\end{figure}
+
+\begin{theorem}[Schr\"odingerization gate complexity]
+\label{thm:lec13-schrod-cost}
+Let $A\in\C^{N_A\times N_A}$ arise from a $d$-dimensional discretization ($N_A\sim2^{m_d}$,
+$m_d=dm$), split as $A=A_1+\ii A_2$ with $A_1\preceq0$. Using $m_p$ qubits on the $p$-register,
+the Schr\"odingerization method simulates $\dot u=Au$ to time $T$ with gate complexity
+\begin{equation}
+  N_{\mathrm{gates}}=(m_d+m_p)\,\widetilde{\bigo}\!\Bigl(\frac{s(A)\,\norm A_{\max}\,T}{\Delta p}\Bigr)
+   +\bigo(m_p\log m_p).
+  \label{eq:lec13-schrod-cost}
+\end{equation}
+In the special case where $A_1$ is diagonalized in the momentum basis and $A_2$ is diagonal, a
+first-order time-splitting scheme achieves
+$N_{\mathrm{gates}}=\tfrac{T}{\Delta t}\,\bigo(dm\log m+m_p\log m_p)$.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+The Hamiltonian $\mathcal H=A_1\otimes D_\mu-A_2\otimes\id$ has sparsity
+$s(\mathcal H)\le s(A_1)+s(A_2)=\bigo(s(A))$ and max-entry $\norm{\mathcal H}_{\max}\le
+\norm{A_1}_{\max}\abs{D_\mu}_{\max}+\norm{A_2}_{\max}=\bigo(\norm A_{\max}/\Delta p)$, using
+$\abs{D_\mu}_{\max}\lesssim1/\Delta p$. Feeding $\tau=s(\mathcal H)\norm{\mathcal H}_{\max}T
+=\widetilde\bigo(s(A)\norm A_{\max}T/\Delta p)$ into the sparse simulation lemma
+(\cref{ch:lec11}) and adding two QFTs on the $p$-register ($\bigo(m_p\log m_p)$ gates) gives
+\eqref{eq:lec13-schrod-cost}. When $A_1$ is momentum-diagonal and $A_2$ diagonal, the two
+factors of the split evolution are each diagonalized by a QFT, so each step costs
+$\bigo(dm\log m+m_p\log m_p)$ gates and there are $T/\Delta t$ steps.
+\end{proof}
+
+The relationship to LCHS is now transparent: both express non-unitary dynamics through unitary
+evolutions parameterized by an extra real variable ($\eta$ in Schr\"odingerization, $k$ in
+LCHS), and both read out the answer by projecting/weighting that variable. LCHS phrases this in
+the language of block encodings and quadrature; Schr\"odingerization phrases it as an honest
+higher-dimensional Schr\"odinger PDE with a spectral discretization---often the more natural
+choice when one already has a grid-based simulator and Fourier tooling.
+
+\section{Example: the heat equation}
+\label{sec:lec13-6}
+
+We now run the one-dimensional heat equation
+\begin{equation}
+  \partial_t u(r,t)=\partial_{rr}u(r,t),\qquad r\in[0,1],\qquad u(0,t)=u(1,t)=0,
+  \label{eq:lec13-heat}
+\end{equation}
+through the methods above and compare the resource scaling. Central differencing on $N$ interior
+points gives $\dot u=-A u$ with $A=-L\in\R^{N\times N}$ the (negated) discrete Laplacian of
+\eqref{eq:lec13-semidiscrete}: Hermitian, positive definite, tridiagonal, with $\norm A\approx
+4N^2$. Numerical stability of the explicit time-stepping requires $\Delta t=\bigo(\norm A^{-1})
+=\bigo(N^{-2})$, so the associated linear system has size $N N_t$ with $N_t=T/\Delta t=
+\bigo(N^2 T)$.
+
+\paragraph{Linear-system method.}
+Since $A$ is Hermitian with all eigenvalues positive, $\ee^{-At}$ is contractive and $\zeta=
+\bigo(1)$; with $\alpha_A=\bigo(N^2)$, \cref{thm:lec13-lse} gives query complexity
+$\widetilde{\bigo}(q\,N^2 T)$, where $q=\norm{u_0}/\norm{u(T)}$. (This matches the qasc estimate
+$\bigo(N^4\epsilon^{-1})$ once one substitutes the forward-Euler condition number $\kappa=
+\bigo(1/\Delta t)=\bigo(N^2)$ and the first-order accuracy $\epsilon=\bigo(\Delta t)$ into the
+HHL cost $\bigo(\kappa^2\epsilon^{-1})$; the near-optimal QLSP solver removes one factor of
+$\kappa$.)
+
+\paragraph{LCHS.}
+Because $A$ is Hermitian and positive definite, $A=L$ with $H=0$, so the LCHS identity reduces to
+$\ee^{-At}=\int_\R\frac{f(k)}{1-\ii k}\ee^{-\ii ktA}\dd k$. \Cref{thm:lec13-lchs-cost} then gives
+query complexity $\widetilde{\bigo}(q\,N^2 T)$---the same $\alpha_A T$ dependence as the linear
+system method, but with the initial-state oracle queried only $\bigo(q)$ times.
+
+\paragraph{Time-marching.}
+The time-marching solver of \cref{thm:lec13-marching} costs $\widetilde{\bigo}(Q\,N^4 T^2)$
+queries, the extra factor of $N^2 T$ reflecting its quadratic $\alpha_A T$ dependence; it too
+queries $U_{x_0}$ only $\bigo(Q)$ times.
+
+\paragraph{Schr\"odingerization.}
+Warping to $w=\ee^{-p}u$ turns \eqref{eq:lec13-heat} into $\partial_t w=-\partial_p\partial_{rr}w$;
+after $\mathcal F_p$ the Hamiltonian is $\mathcal H=A\otimes D_\eta$, self-adjoint. Since $A$ is
+tridiagonal, $\mathcal H$ is simulated by the finite-difference shift-operator circuits of
+\cref{sec:lec13-5}: with $\gamma_0=1/(h^2 R)$, the evolution factorizes over the $p$-modes,
+$U_{\mathrm{heat}}(\tau)=\sum_k(\ee^{\ii H_0\tau})^{k-N_p/2}\otimes\proj{k}$ with
+$H_0=\gamma_0(S^-+S^+-2\id)$, and each nearest-neighbor hopping term $\ee^{\ii\gamma_0\tau(S_j^-
++S_j^+)}$ becomes a Bell-basis-conjugated controlled-$R_z$ gate. \Cref{thm:lec13-schrod-cost}
+then gives gate complexity $\tfrac{T}{\Delta t}\,\bigo(m\log m+m_p\log m_p)$ with $m=\log N$
+qubits per axis: polylogarithmic in $N$ per step, at the cost of the extra $p$-register and the
+$\ee^{-2p_k}$ readout probability.
+
+\paragraph{The higher-dimensional payoff.}
+In one dimension a super-polynomial quantum advantage in $N$ is unlikely (classical sparse
+solvers are efficient). The prospect improves in $d$ dimensions: for $\partial_t u=\Delta u$ on
+$[0,1]^d$ the discrete Laplacian has $\norm A=\Theta(dN^2)$, growing only \emph{linearly} in $d$
+while the classical state space grows as $N^d$. This linear-in-$d$ scaling of $\alpha_A$ is the
+structural source of potential exponential advantage---subject, as always, to the caveats of
+input preparation, output readout, and the hardness of the best classical solver.
+
+\exercisesection
+
+\begin{exercise}\label{ex:lec13-1}
+\emph{Duhamel and the augmented system.} (a) Prove \cref{prop:lec13-duhamel} by differentiating
+the right-hand side of \eqref{eq:lec13-duhamel} and invoking uniqueness. (b) Show that the
+inhomogeneous equation \eqref{eq:lec13-ode} is equivalent to the homogeneous equation
+$\dot{\tilde x}=\tilde A\tilde x$ with $\tilde x=(x;1)$ and
+$\tilde A=\begin{psmallmatrix}A&b\\0&0\end{psmallmatrix}$, and explain why this justifies
+restricting the algorithms to the homogeneous case.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec13-2}
+\emph{Norm growth and the output model.} For $\dot x=-Zx$ on $\C^2$ with $x_0=(a,b)$, compute
+$x(t)$, $\norm{x(t)}$, and the normalized $\ket{x(t)}$. Evaluate the norm-growth factor
+$q=\max_t\norm{x(t)}/\norm{x(T)}$ over $[0,T]$ and explain why it grows exponentially in $T$
+whenever $b\ne0$. Contrast with the anti-Hermitian case $\dot x=-\ii Zx$, where $q=1$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec13-3}
+\emph{The big linear system.} Starting from the forward-Euler recursion $x_{k+1}-x_k=\Delta t\,
+A_k x_k$, derive the block-bidiagonal matrix \eqref{eq:lec13-bigmatrix} and its compact form
+\eqref{eq:lec13-bigmatrix-compact}. Verify that a block encoding of $\mathcal A$ can be built
+from one query to $U_A$ with subnormalization $\bigo(1)$ when $\Delta t=\bigo(\alpha_A^{-1})$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec13-4}
+\emph{Condition number bound.} Prove \cref{prop:lec13-condnum}: (a) show $\norm{\mathcal A}\le
+\zeta_0+\zeta_1$ by bounding the block-diagonal $\mathcal B_1\dg\mathcal B_1$; (b) verify the
+explicit lower-triangular formula for $\mathcal A^{-1}$ in terms of ordered products $B_{l+k-1}
+\cdots B_l$, and conclude $\norm{\mathcal A^{-1}}\le\sum_k\zeta_k$. For the time-independent,
+contractive case $\norm{\ee^{At}}\le C_1\ee^{-C_2 t}$, show $\kappa(\mathcal A)=\bigo(1/\Delta t)$
+independent of $N_t$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec13-5}
+\emph{Why naive marching fails.} Derive the multiplicative success probability
+\eqref{eq:lec13-march-fail} for step-by-step application of the block-encoded propagator
+$B=\id+A\Delta t$. Specialize to Hamiltonian simulation $A=-\ii H$ and show the probability
+decays as $\ee^{-2\norm H T}$ even though $\norm{x(T)}=\norm{x_0}$. Explain in one sentence why
+oblivious amplitude amplification rescues this case but not a general non-unitary $B$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec13-6}
+\emph{LCHS warm-up cases.} (a) Using $\int_\R\frac{1}{\pi(1+k^2)}\ee^{-\ii kx}\dd k=\ee^{-\abs x}$,
+prove $\ee^{-Lt}=\int_\R\frac{1}{\pi(1+k^2)}\ee^{-\ii kLt}\dd k$ for $L=L\dg\succeq0$ via the
+spectral mapping theorem. (b) Verify $2\pi f(-\ii)=1$ and the normalization $\int_\R\frac{f(k)}
+{1-\ii k}\dd k=1$ for the near-optimal kernel \eqref{eq:lec13-kernel}, and explain why its
+super-polynomial decay lets the $k$-integral be truncated to $\abs k\le K=\bigo(\log^{1/\beta}
+(1/\epsilon))$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec13-7}
+\emph{Schr\"odingerization of the heat equation.} (a) With $w(t,r,p)=\ee^{-p}u(t,r)$, verify
+$\partial_t w=-\partial_p\partial_{rr}w$ for $\partial_t u=\partial_{rr}u$. (b) Apply the Fourier
+transform in $p$ ($-\ii\partial_p\to\eta$) to obtain the Schr\"odinger equation
+$\partial_t\tilde w=\ii\eta\,\partial_{rr}\tilde w$, and confirm that $\eta\,\partial_{rr}$ is
+self-adjoint under Dirichlet boundary conditions so the evolution is unitary. (c) Explain how
+$u(t,r)$ is recovered from a measured mode $p_k>0$ and why the success probability carries the
+factor $\ee^{-2p_k}$.
+\end{exercise}
+
+\readingsection
+\begin{itemize}[leftmargin=1.4em]
+  \item Lin Lin, \emph{qasc notes}, Ch.~4.5--4.6 (the linear-system-of-equations method with
+        forward/backward Euler, the Gershgorin condition-number analysis, padded history states
+        for observables, and the heat equation as the worked example).
+  \item Lin Lin, \emph{live notes}, Ch.~20 (problem setup and Duhamel's principle; the
+        linear-system, time-marching, and LCHS methods with full complexity and
+        condition-number analysis; the heat equation and complex-absorbing-potential examples;
+        the norm-growth lower bound via reduction to unstructured search).
+  \item D.~W.~Berry, \emph{High-order quantum algorithm for solving linear differential
+        equations}, J.\ Phys.\ A \textbf{47}, 105301 (2014) (arXiv:1010.2745), for the original
+        history-state / linear-system approach of \cref{sec:lec13-2}.
+  \item D.~Fang, L.~Lin, and Y.~Tong, \emph{Time-marching based quantum solvers for
+        time-dependent linear differential equations}, Quantum \textbf{7}, 955 (2023)
+        (arXiv:2208.06941), for the time-marching method of \cref{sec:lec13-3}.
+  \item D.~An, J.-P.~Liu, and L.~Lin, \emph{Linear combination of Hamiltonian simulation for
+        nonunitary dynamics with optimal state preparation cost}, Phys.\ Rev.\ Lett.\
+        \textbf{131}, 150603 (2023) (arXiv:2303.01029); and D.~An, A.~M.~Childs, and L.~Lin,
+        \emph{Quantum algorithm for linear non-unitary dynamics with near-optimal dependence on
+        all parameters}, arXiv:2312.03916 (2023), for LCHS (\cref{sec:lec13-4}).
+  \item S.~Jin, N.~Liu, and Y.~Yu, \emph{Quantum simulation of partial differential equations
+        via Schrodingerization}, Phys.\ Rev.\ Lett.\ \textbf{133}, 230602 (2024)
+        (arXiv:2212.13969); and S.~Jin and N.~Liu, \emph{Quantum simulation of discrete linear
+        dynamical systems and simple iterative methods via Schrodingerization}, arXiv:2304.02865
+        (2023), for the warped phase transform, spectral discretization, and finite-difference
+        circuits of \cref{sec:lec13-5}.
+\end{itemize}

@@ -1,0 +1,65 @@
+% =========================================================================
+% Quantum Scientific Computing — Lecture Notes
+% Fall 2026-2027 term.  Overleaf entry point (compile with pdfLaTeX).
+%
+% Structure: this master file loads preamble.tex and \include's one file per
+% lecture from lectures/.  Comment out lectures below to compile a subset
+% (use \includeonly for faster single-lecture builds).
+% =========================================================================
+\documentclass[11pt,openany]{book}
+
+\input{preamble}
+
+\title{\textbf{Quantum Scientific Computing}\\[0.5em]
+       \large Lecture Notes}
+\author{% TODO: replace with instructor name(s)
+        Lei Zhang}
+\date{Fall 2026--2027}
+
+% Faster drafting: uncomment and list the lectures you are editing.
+% \includeonly{lectures/lec01_quantum_computation_basics}
+
+\begin{document}
+
+\frontmatter
+\maketitle
+\tableofcontents
+
+\mainmatter
+
+% ------------------------------------------------------------ Part I
+\part{Foundations}
+\include{lectures/lec01_quantum_computation_basics}
+\include{lectures/lec02_channels_distances_statistics}
+\include{lectures/lec03_grover_amplitude_amplification}
+\include{lectures/lec04_qft_phase_estimation}
+\include{lectures/lec05_qpe_applications}
+
+% ------------------------------------------------------------ Part II
+\part{Quantum Numerical Linear Algebra}
+\include{lectures/lec06_input_models_block_encoding}
+\include{lectures/lec07_lcu_block_encoding_arithmetic}
+\include{lectures/lec08_qubitization_qsp}
+\include{lectures/lec09_qsvt_matrix_functions}
+\include{lectures/lec10_quantum_linear_systems}
+
+% ------------------------------------------------------------ Part III
+\part{Differential Equations and Simulation}
+\include{lectures/lec11_hamiltonian_simulation_trotter}
+\include{lectures/lec12_hamiltonian_simulation_block_encoding}
+\include{lectures/lec13_linear_differential_equations}
+\include{lectures/lec14_open_systems_nonlinear}
+
+% ------------------------------------------------------------ Part IV
+\part{Tensor Networks}
+\include{lectures/lec15_tensor_network_states}
+\include{lectures/lec16_dmrg_ground_states}
+\include{lectures/lec17_tensor_network_time_evolution}
+
+% ------------------------------------------------------------ Part V
+\part{Optimization and Quantum Machine Learning}
+\include{lectures/lec18_variational_qaoa}
+\include{lectures/lec19_quantum_lp_sdp}
+\include{lectures/lec20_quantum_machine_learning}
+
+\end{document}

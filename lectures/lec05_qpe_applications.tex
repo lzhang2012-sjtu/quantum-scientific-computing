@@ -1,0 +1,1041 @@
+\chapter{Applications of Phase Estimation}
+\label{ch:lec05}
+
+\begin{objectives}
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item Estimate ground-state energies with QPE.
+  \item Set up amplitude estimation and its quadratic advantage.
+  \item Formulate the eigenvalue problem and near-optimal ground-state preparation.
+  \item Cast order finding---the quantum core of Shor's factoring algorithm---as
+        phase estimation of a modular-multiplication unitary, and recover the
+        order by continued fractions.
+\end{itemize}
+\end{objectives}
+
+Phase estimation (\cref{ch:lec04}) is not an end in itself but a workhorse
+subroutine. This lecture assembles its three most consequential applications in
+scientific computing. First, we apply QPE to the unitary $\ee^{-\ii Ht}$ to read
+off the eigenphases---and hence the energies---of a Hamiltonian $H$, obtaining the
+\emph{ground-state energy estimation} algorithm whose cost is governed by the
+overlap between the input state and the true ground state. Second, we show that
+\emph{amplitude estimation}---the task of learning the weight $\sin^2(\theta/2)$
+of a ``good'' component in a prepared state---is nothing but phase estimation of
+the Grover iterate of \cref{ch:lec03}, and that this reduction turns the classical
+$\bigo(1/\epsilon^2)$ Monte Carlo cost into a quadratically better
+$\bigo(1/\epsilon)$. Third, we move from estimating an eigenvalue to
+\emph{preparing} the corresponding eigenstate, describing at the statement level
+how a spectral filter---built from the quantum singular value transformation
+(QSVT) of \cref{ch:lec09}---prepares the ground state with a cost that scales as
+the inverse square root of the overlap and the inverse of the spectral gap.
+Finally, we close with the \emph{lower bounds} that show these algorithms are
+essentially optimal: a metrological Heisenberg limit for phase estimation, a
+Grover-type $\Omega(1/\sqrt{p_0})$ and $\Omega(1/\Delta)$ bound for ground-state
+preparation, and a pointer to the no-fast-forwarding theorem that will recur in
+Part~III.
+
+Throughout, $H$ denotes a Hermitian matrix on $\C^N$ with $N=2^n$ and
+eigendecomposition
+\[
+  H\ket{\psi_j}=\lambda_j\ket{\psi_j},
+  \qquad \lambda_0\le\lambda_1\le\cdots\le\lambda_{N-1},
+\]
+so that $\lambda_0$ is the \emph{ground-state energy} and $\ket{\psi_0}$ the
+\emph{ground state}. The \emph{spectral gap} is $\Delta\defeq\lambda_1-\lambda_0$.
+We follow the QPE conventions of \cref{ch:lec04}: eigenphases live in $[0,1)$, a
+$t$-ancilla register resolves them to $T=2^t$ levels, and $\tilde\varphi_{k}=k/T$
+denotes a candidate estimate.
+
+\section{Ground-state energy estimation}
+\label{sec:lec05-1}
+
+The most direct application of QPE to physics is to estimate the lowest energy of
+a Hamiltonian. Two Hamiltonians recur as running examples.
+
+\begin{example}[Transverse-field Ising model]
+\label{exa:lec05-tfim}
+The one-dimensional transverse-field Ising model on $n$ sites with nearest-neighbor
+coupling is
+\[
+  H=-\sum_{i=1}^{n-1} Z_i Z_{i+1}-g\sum_{i=1}^{n} X_i,
+\]
+where $X_i,Z_i$ are Pauli operators acting on site $i$ and $g$ tunes the field.
+The matrix $H$ has dimension $2^n$, exponential in the number of sites, so
+classical diagonalization is intractable for large $n$.
+\end{example}
+
+\begin{remark}[The Ising Hamiltonian written out for $n=1,2,3$]
+\label{rem:lec05-tfim-small}
+It helps to see $H$ as an explicit matrix. With $Z_i$ denoting $Z$ on qubit $i$ and
+the identity elsewhere (likewise $X_i$), the diagonal of $H$ is the classical Ising
+energy $-\sum_i Z_iZ_{i+1}$ (a number for each computational string), and every
+off-diagonal entry equals $-g$ and connects two strings differing in a single bit
+(one $X_i$).
+
+\emph{$n=1$.} The coupling sum is empty, leaving only the field:
+\[
+  H=-gX=\begin{pmatrix}0&-g\\-g&0\end{pmatrix},
+  \qquad \lambda=\pm g,\quad \text{ground state }\ket{+}.
+\]
+
+\emph{$n=2$.} $H=-Z_1Z_2-g(X_1+X_2)$, where each single-site operator is a tensor
+product with the identity on the other qubit,
+\[
+  Z_1=Z\otimes I=\diag(1,1,-1,-1),\qquad Z_2=I\otimes Z=\diag(1,-1,1,-1),
+\]
+and $X_1=X\otimes I$, $X_2=I\otimes X$ (so $Z_i\ket{b_1b_2}=(-1)^{b_i}\ket{b_1b_2}$---the
+sign is set by the $i$-th bit---and hence $Z_1Z_2=\diag(1,-1,-1,1)$). In the basis
+$\ket{00},\ket{01},\ket{10},\ket{11}$,
+\[
+  H=\begin{pmatrix}-1&-g&-g&0\\ -g&1&0&-g\\ -g&0&1&-g\\ 0&-g&-g&-1\end{pmatrix},
+\]
+whose diagonal $(-1,1,1,-1)$ is $-Z_1Z_2$ (it is $-1$ when the two spins agree in the
+$Z$-basis, $\ket{00},\ket{11}$). At the critical field $g=1$ the ground energy is
+$\lambda_0=-\sqrt5\approx-2.236$.
+
+\emph{$n=3$.} $H=-(Z_1Z_2+Z_2Z_3)-g(X_1+X_2+X_3)$; in the basis
+$\ket{000},\dots,\ket{111}$,
+\[
+  H=\begin{pmatrix}
+    -2&-g&-g&0&-g&0&0&0\\
+    -g&0&0&-g&0&-g&0&0\\
+    -g&0&2&-g&0&0&-g&0\\
+    0&-g&-g&0&0&0&0&-g\\
+    -g&0&0&0&0&-g&-g&0\\
+    0&-g&0&0&-g&2&0&-g\\
+    0&0&-g&0&-g&0&0&-g\\
+    0&0&0&-g&0&-g&-g&-2
+  \end{pmatrix}.
+\]
+The diagonal $(-2,0,2,0,0,2,0,-2)$ reads off $-(Z_1Z_2+Z_2Z_3)$ bitwise---e.g.\
+$\ket{000}$ has both neighbor pairs aligned ($-2$), $\ket{010}$ has both frustrated
+($+2$)---and the $-g$'s are exactly the edges of the Boolean cube $\{0,1\}^3$ (each
+string joined to its three single-bit-flip neighbors). At $g=1$,
+$\lambda_0\approx-3.494$.
+
+In each case the diagonal is the cheap, local Ising part and the transverse field
+supplies all the off-diagonal structure. The dimension $2^n$ doubles with every added
+site; the lowest eigenvalue $\lambda_0$ is the ground-state energy that the
+phase-estimation and block-encoding methods of this chapter and \cref{ch:lec09}
+estimate without ever forming this matrix.
+\end{remark}
+
+\begin{example}[Fermionic Hamiltonian in second quantization]
+\label{exa:lec05-fermion}
+The central Hamiltonian of quantum chemistry describes electrons occupying a fixed
+set of $n$ single-particle \emph{spin-orbitals} $\{\chi_1,\dots,\chi_n\}$. After the
+Born--Oppenheimer approximation freezes the nuclei, the electronic energy is
+governed by the \emph{second-quantized} Hamiltonian
+\[
+  H=\sum_{i,j=1}^{n} T_{ij}\,\hat a_i\dg\hat a_j
+   +\sum_{i,j,k,l=1}^{n} V_{ijkl}\,\hat a_i\dg\hat a_j\dg\hat a_l\hat a_k,
+\]
+whose ingredients we now unpack.
+
+\emph{Occupation-number states.} Instead of tracking electron \emph{positions},
+second quantization tracks which spin-orbitals are \emph{occupied}. A basis state is
+a bit string $\ket{f_1 f_2\cdots f_n}$ with $f_i\in\{0,1\}$ recording whether orbital
+$i$ is empty or filled; these span the $2^{n}$-dimensional Fock space. The Pauli
+exclusion principle---at most one electron per spin-orbital---is automatic, since
+$f_i\le1$.
+
+\emph{Creation and annihilation operators.} The operator $\hat a_i\dg$ \emph{adds} an
+electron to orbital $i$ and $\hat a_i$ \emph{removes} one,
+\[
+  \hat a_i\dg\ket{\dots f_i{=}0\dots}=(-1)^{s_i}\ket{\dots f_i{=}1\dots},\qquad
+  \hat a_i\ket{\dots f_i{=}1\dots}=(-1)^{s_i}\ket{\dots f_i{=}0\dots},
+\]
+while $\hat a_i\dg$ annihilates an already-filled orbital and $\hat a_i$ an empty one
+($\hat a_i\dg\ket{f_i{=}1}=0$, $\hat a_i\ket{f_i{=}0}=0$). Because electrons are
+\emph{fermions}, the wavefunction must change sign under exchange; this is carried by
+the factor $(-1)^{s_i}$ with $s_i=\sum_{p<i}f_p$ counting the electrons in earlier
+orbitals. Equivalently, the operators obey the \emph{canonical anticommutation
+relations}
+\[
+  \{\hat a_i,\hat a_j\dg\}=\delta_{ij}\,\id,\qquad
+  \{\hat a_i,\hat a_j\}=\{\hat a_i\dg,\hat a_j\dg\}=0,
+  \qquad \{A,B\}\defeq AB+BA.
+\]
+It is the \emph{anti}commutator---not the commutator of bosons---that is the
+algebraic fingerprint of fermionic statistics.
+
+\emph{The two terms.} The coefficients are molecular integrals precomputed classically
+from the chosen orbitals (in atomic units). The \emph{one-electron integrals}
+\[
+  T_{ij}=\int\chi_i^{*}(\mathbf r)\Bigl(-\tfrac12\nabla^{2}+V_{\mathrm{nuc}}(\mathbf r)\Bigr)
+          \chi_j(\mathbf r)\,d\mathbf r
+\]
+hold the kinetic energy and electron--nucleus attraction, and $\hat a_i\dg\hat a_j$
+moves one electron from orbital $j$ to orbital $i$. The \emph{two-electron integrals}
+$V_{ijkl}=\iint\chi_i^{*}(\mathbf r_1)\chi_j^{*}(\mathbf r_2)\,r_{12}^{-1}\,
+\chi_k(\mathbf r_1)\chi_l(\mathbf r_2)\,d\mathbf r_1 d\mathbf r_2$ encode the Coulomb
+repulsion between electrons, and $\hat a_i\dg\hat a_j\dg\hat a_l\hat a_k$ scatters a
+pair of them. The lowest eigenvalue $\lambda_0$ of $H$ is the molecular ground-state
+energy sought by electronic-structure theory.
+
+\emph{The Jordan--Wigner transform.} To run on a quantum computer we identify each
+spin-orbital with one qubit---occupied $\leftrightarrow\ket1$, empty
+$\leftrightarrow\ket0$---so a Fock basis state \emph{is} a computational basis state.
+The single-qubit operators
+\[
+  \tfrac12(X+\ii Y)=\ket0\!\bra1 \quad(\text{lowering, ``annihilate''}),\qquad
+  \tfrac12(X-\ii Y)=\ket1\!\bra0 \quad(\text{raising, ``create''})
+\]
+flip one qubit between filled and empty. On their own, however, operators on
+different sites \emph{commute}, whereas fermionic operators must \emph{anticommute}.
+The Jordan--Wigner transform fixes this by attaching a string of $Z$'s,
+\[
+  \hat a_i= Z^{\otimes(i-1)}\otimes\tfrac12(X+\ii Y)\otimes\id^{\otimes(n-i)},
+  \qquad
+  \hat a_i\dg= Z^{\otimes(i-1)}\otimes\tfrac12(X-\ii Y)\otimes\id^{\otimes(n-i)}.
+\]
+The leading $Z^{\otimes(i-1)}$ evaluates the parity $(-1)^{s_i}$ of the orbitals
+\emph{below} $i$ (recall $Z\ket1=-\ket1$, $Z\ket0=\ket0$), supplying precisely the
+fermionic sign; and because $Z$ anticommutes with $X\pm\ii Y$ on any shared qubit,
+two such operators on different modes acquire the required extra minus sign, so the
+anticommutation relations above are reproduced exactly. Substituting these
+expressions turns every $\hat a_i\dg\hat a_j$ and $\hat a_i\dg\hat a_j\dg\hat a_l\hat
+a_k$ into a sum of Pauli strings, yielding a qubit Hamiltonian
+$H=\sum_\alpha c_\alpha P_\alpha$ of exactly the form QPE and the simulation methods
+of Part~III can handle.
+
+\emph{Cost.} The price of the $Z$ string is \emph{locality}: a single $\hat a_i$ acts
+nontrivially on up to $i$ qubits, so Jordan--Wigner Hamiltonian terms can be
+$\bigo(n)$-local. Alternative encodings (Bravyi--Kitaev, parity) reduce this to
+$\bigo(\log n)$-local operators at the cost of a more intricate mapping. Estimating
+$\lambda_0$ of the resulting qubit Hamiltonian is the central task of quantum
+chemistry on a quantum computer.
+\end{example}
+
+\subsection*{From eigenphase to energy}
+
+To bring QPE to bear we need a unitary whose eigenphases encode the eigenvalues of
+$H$. The natural choice is the time-evolution operator. Assume, after an affine
+rescaling of $H$ if necessary, that all eigenvalues lie in $(0,\tfrac12)$, and set
+\begin{equation}
+  U=\ee^{\ii 2\pi H},\qquad\text{so that}\qquad
+  U\ket{\psi_j}=\ee^{\ii 2\pi\lambda_j}\ket{\psi_j}.
+  \label{eq:lec05-Uexp}
+\end{equation}
+Then the eigenphase of $U$ on $\ket{\psi_j}$ is exactly $\lambda_j$, and running
+QPE on $U$ estimates $\lambda_j$. Producing $U$ from a description of $H$ is the
+\emph{Hamiltonian simulation} problem, the subject of \cref{ch:lec11}; for now we
+assume $U$ is available exactly and count queries to it.
+
+The catch is that we cannot prepare the exact ground state $\ket{\psi_0}$---if we
+could, the problem would be largely solved. Instead we are given an
+\emph{approximate} initial state,
+\begin{equation}
+  \ket{\phi}=\sum_{k=0}^{N-1} c_k\ket{\psi_k},
+  \qquad p_0\defeq\abs{\braket{\phi|\psi_0}}^{2}=\abs{c_0}^2,
+  \label{eq:lec05-initial}
+\end{equation}
+whose \emph{overlap} $p_0$ with the ground state is bounded below but generally
+less than $1$. By linearity, QPE acts on each eigencomponent of $\ket{\phi}$
+independently (\cref{rem:lec04-target}): a single run returns an estimate of the
+eigenphase $\lambda_k$ with probability $p_k=\abs{c_k}^2$, collapsing the system
+to $\ket{\psi_k}$. In particular the ground-state energy $\lambda_0$ is returned
+with probability $p_0$ per run; the full circuit is \cref{fig:lec05-gse}.
+
+\begin{figure}[htbp]
+\centering
+\begin{quantikz}
+\lstick{$\ket0$}      & \gate{H} & \ctrl{3}     & \qw          & \qw      & \gate[3]{\QFT^{-1}} & \meter{} \\
+\lstick{$\ket0$}      & \gate{H} & \qw          & \ctrl{2}     & \qw      &                     & \meter{} \\
+\lstick{$\ket0$}      & \gate{H} & \qw          & \qw          & \ctrl{1} &                     & \meter{} \\
+\lstick{$\ket{\phi}$} & \qw      & \gate{U^{4}} & \gate{U^{2}} & \gate{U} & \qw                 & \qw
+\end{quantikz}
+\caption{Ground-state energy estimation: phase estimation on $U=\ee^{\ii 2\pi H}$
+(\cref{eq:lec05-Uexp}), fed the trial state $\ket{\phi}$ of ground-state overlap $p_0$
+(\cref{eq:lec05-initial}). The controlled powers $U^{2^{k}}$ are controlled Hamiltonian
+simulations; by linearity a single run returns an estimate of some eigen-energy
+$\lambda_k$ with probability $\abs{c_k}^2$, so the ground energy $\lambda_0$ appears with
+probability $p_0$. The system register (one wire here) carries all $n$ system qubits.}
+\label{fig:lec05-gse}
+\end{figure}
+
+\subsection*{The min-over-runs estimator}
+
+Because $\lambda_0$ is the \emph{smallest} energy, a natural strategy is:
+
+\begin{definition}[Ground-state energy estimation by repeated QPE]
+\label{def:lec05-gsee}
+Run QPE on $U=\ee^{\ii 2\pi H}$ with input $\ket{\phi}$ a total of $M$ times,
+recording the phase estimates $\tilde\varphi^{(1)},\dots,\tilde\varphi^{(M)}$.
+Return the minimum $\min_\ell\tilde\varphi^{(\ell)}$ as the estimate of
+$\lambda_0$.
+\end{definition}
+
+If every $\lambda_k$ had an exact $t$-bit representation, one run would return
+$\lambda_0$ exactly with probability $p_0$, and $M=\bigo(p_0^{-1}\log\delta^{-1})$
+runs would suffice to see it at least once with probability $1-\delta$. The
+subtlety is the \emph{aliasing effect}: when $\lambda_k$ is not a dyadic rational,
+the geometric-sum tails of \cref{sec:lec04-4} put nonzero weight on outcomes
+$\tilde\varphi_{k'}<\lambda_0$, i.e.\ QPE can report an energy \emph{below} the
+true ground-state energy. Taking the minimum over runs makes such underestimates
+dangerous, and controlling them is what drives the cost.
+
+\begin{theorem}[Overlap-dependent cost of ground-state energy estimation]
+\label{thm:lec05-gsee}
+Let $H$ have all eigenvalues in $(\epsilon,\tfrac12)$ and let $p_0$ be the initial
+overlap in \eqref{eq:lec05-initial}. The estimator of \cref{def:lec05-gsee}
+returns $\hat\lambda_0$ with $\abs{\hat\lambda_0-\lambda_0}\le\epsilon$ with
+probability at least $1-\delta$ provided one uses
+\[
+  t=d+\bigo\bigl(\log p_0^{-1}+\log\delta^{-1}+\log\log\delta^{-1}\bigr)
+\]
+ancilla qubits (with $\epsilon=2^{-d}$), circuit depth
+$T=\bigo\bigl((\epsilon p_0\delta)^{-1}\log\delta^{-1}\bigr)$, and
+$M=\bigo(p_0^{-1}\log\delta^{-1})$ repetitions. The total query cost is
+\[
+  \bigo\bigl(\epsilon^{-1}\delta^{-1}p_0^{-2}(\log\delta^{-1})^{2}\bigr).
+\]
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+Write $T=2^{t}$ and let $\tilde\varphi_{k'}=k'/T$ be the measurement grid. By the
+Fej\'er-kernel analysis of \cref{sec:lec04-4}, the probability of outcome $k'$ on
+a single run is $\sum_k\abs{c_k}^2 F_T(\lambda_k-\tilde\varphi_{k'})$ with a
+kernel obeying $F_T(x)\le 1/(4T^2\abs{x}_1^2)$, where $\abs{\cdot}_1$ is the
+wrap-around distance. \emph{Underestimation:} when
+$\tilde\varphi_{k'}\le\lambda_0-\epsilon$ we have
+$\abs{\lambda_k-\tilde\varphi_{k'}}_1\ge\lambda_0-\tilde\varphi_{k'}\ge\epsilon$
+for every $k$, so summing the tail gives
+\[
+  \Prob(\tilde\varphi_{k'}\le\lambda_0-\epsilon)
+  \le\frac{1}{4T\epsilon}+\frac{1}{4(T\epsilon)^{2}}\le\frac{\delta'}{2},
+\]
+on setting $T\epsilon=\delta'^{-1}$. Over $M$ runs the minimum underestimates with
+probability at most $M\delta'/2$, so choosing $\delta'=M^{-1}\delta$ keeps it
+below $\delta/2$. \emph{Overestimation:} conditioned on hitting $\ket{\psi_0}$
+(probability $p_0$), the same kernel bound gives
+$\Prob(\abs{\tilde\varphi_{k'}-\lambda_0}_1<\epsilon)\ge p_0(1-\delta')$, so a
+single run overshoots by $\epsilon$ with probability at most $1-p_0/2$; over $M$
+runs the minimum overshoots with probability
+$\le(1-p_0/2)^M\le\ee^{-p_0 M/2}$, which is $\le\delta/2$ once
+$M=\lceil 2p_0^{-1}\log(2/\delta)\rceil$. Combining $\delta'=M^{-1}\delta$ with
+$T\epsilon=\delta'^{-1}$ yields the stated qubit count, depth, and---multiplying
+depth by repetitions---the total cost.
+\end{proof}
+
+\begin{remark}[The overlap $p_0$ is the bottleneck]
+\label{rem:lec05-overlap}
+\cref{thm:lec05-gsee} exposes a delicate interplay. Suppressing overshoot forces
+$M=\bigo(p_0^{-1})$ repetitions; but more repetitions raise the chance that
+\emph{some} run undershoots, which forces $\delta'=\bigo(M^{-1})=\bigo(p_0)$ and
+hence circuit depth $T=\bigo(\delta'^{-1})=\bigo(p_0^{-1})$. The product is
+$TM=\bigo(p_0^{-2})$: plain QPE has a \emph{quadratic} dependence on the inverse
+overlap. When $p_0$ is exponentially small---as it can be for large chemical
+systems---this is prohibitive. \cref{sec:lec05-3} shows how spectral filtering
+improves the dependence to $\bigo(p_0^{-1/2})$.
+\end{remark}
+
+\begin{remark}[Energy estimation does not need a gap]
+\label{rem:lec05-nogap}
+Estimating $\lambda_0$ does not require a positive spectral gap $\Delta$: any
+estimate $\lambda$ with $\abs{\lambda-\lambda_0}<\epsilon$ is a good energy
+estimate even if it happens to come from an excited state clustered near the
+ground state (Weyl's inequality guarantees eigenvalue stability). Preparing the
+ground \emph{state}, by contrast, becomes ill-posed as $\Delta\to0$: the ground
+and first-excited eigenvectors are then nearly degenerate and cannot be separated
+by any filter (the Davis--Kahan $\sin\theta$ theorem). This distinction organizes
+\cref{sec:lec05-3}.
+\end{remark}
+
+\section{Amplitude estimation}
+\label{sec:lec05-2}
+
+Grover's algorithm (\cref{ch:lec03}) rotates a state toward a marked ``good''
+subspace; amplitude \emph{estimation} instead \emph{measures} the weight of that
+subspace, and it does so by feeding the Grover iterate into phase estimation. The
+result is a quadratic speedup over classical sampling for a huge range of
+estimation tasks.
+
+\begin{definition}[Amplitude estimation]
+\label{def:lec05-ae}
+Let $U_{\phi}$ prepare a state $U_{\phi}\ket{0^n}=\ket{\phi_0}$ that decomposes as
+\begin{equation}
+  \ket{\phi_0}=\sqrt{P}\,\ket{\phi_{\mathrm{good}}}
+              +\sqrt{1-P}\,\ket{\phi_{\mathrm{bad}}},
+  \qquad \sqrt{P}=\sin\frac{\theta}{2},
+  \label{eq:lec05-aedecomp}
+\end{equation}
+where $\ket{\phi_{\mathrm{good}}}\perp\ket{\phi_{\mathrm{bad}}}$. The
+\emph{amplitude-estimation problem} is to estimate $P$ (equivalently the angle
+$\theta$) to additive precision $\epsilon$.
+\end{definition}
+
+Classically, if one can only sample---prepare $\ket{\phi_0}$, measure, and check
+whether the outcome is good---then $P$ is a Bernoulli mean, and by the variance of
+a Bernoulli estimator one needs $\bigo(1/\epsilon^2)$ samples to resolve $P$ to
+additive error $\epsilon$. The quantum algorithm does better by working
+coherently.
+
+\begin{theorem}[Amplitude estimation as phase estimation of the Grover iterate]
+\label{thm:lec05-ae}
+Let $R_{\mathrm{good}}=\id-2\proj{\phi_{\mathrm{good}}}$ reflect about the good
+subspace and $R_{\phi_0}=\id-2\proj{\phi_0}$ reflect about the initial state, and
+let $G=R_{\phi_0}R_{\mathrm{good}}$ be the Grover iterate. On the invariant plane
+$\mathcal P=\operatorname{span}\{\ket{\phi_{\mathrm{good}}},
+\ket{\phi_{\mathrm{bad}}}\}$, $G$ acts as rotation by $\theta$ and has eigenstates
+\[
+  \ket{\phi_{\pm}}=\tfrac{1}{\sqrt2}\bigl(\ket{\phi_{\mathrm{good}}}
+                    \pm\ii\,\ket{\phi_{\mathrm{bad}}}\bigr),
+  \qquad G\ket{\phi_{\pm}}=\ee^{\pm\ii\theta}\ket{\phi_{\pm}}.
+\]
+The prepared state has overlap $\abs{\braket{\phi_0|\phi_{\pm}}}^2=\tfrac12$ with
+each eigenstate, so phase estimation of $G$ on input $\ket{\phi_0}$ returns an
+estimate of $+\theta$ or $-\theta$, each with probability $\tfrac12$, and no
+post-selection is needed.
+\end{theorem}
+
+\begin{proof}
+By the amplitude-amplification analysis of \cref{sec:lec03-4}, $G$ restricted to
+$\mathcal P$ is the rotation
+$\left(\begin{smallmatrix}\cos\theta&\sin\theta\\-\sin\theta&\cos\theta
+\end{smallmatrix}\right)$ in the basis
+$\{\ket{\phi_{\mathrm{good}}},\ket{\phi_{\mathrm{bad}}}\}$. A real rotation by
+$\theta$ has eigenvalues $\ee^{\pm\ii\theta}$ with eigenvectors
+$\tfrac{1}{\sqrt2}(\ket{\phi_{\mathrm{good}}}\pm\ii\ket{\phi_{\mathrm{bad}}})
+=\ket{\phi_{\pm}}$, as stated. Writing
+$\ket{\phi_0}=\sin(\theta/2)\ket{\phi_{\mathrm{good}}}
++\cos(\theta/2)\ket{\phi_{\mathrm{bad}}}$ and projecting,
+\[
+  \abs{\braket{\phi_{\pm}|\phi_0}}^2
+  =\tfrac12\abs{\sin\tfrac{\theta}{2}\mp\ii\cos\tfrac{\theta}{2}}^2
+  =\tfrac12\bigl(\sin^2\tfrac{\theta}{2}+\cos^2\tfrac{\theta}{2}\bigr)
+  =\tfrac12.
+\]
+Thus $\ket{\phi_0}=\tfrac{1}{\sqrt2}(\ee^{\ii\alpha_+}\ket{\phi_+}
++\ee^{\ii\alpha_-}\ket{\phi_-})$ is an equal superposition of the two
+eigenstates; QPE (\cref{def:lec04-qpe}) applied to $G$ collapses onto
+$\ket{\phi_\pm}$ with probability $\tfrac12$ each and returns an estimate of the
+corresponding eigenphase $\pm\theta$. Since $P=\sin^2(\theta/2)$ is even in
+$\theta$, either outcome determines $P$.
+\end{proof}
+
+The resulting circuit---prepare $\ket{\phi_0}=U_{\phi}\ket{0^n}$, then phase-estimate the
+Grover iterate $G$---is shown in \cref{fig:lec05-ae}.
+
+\begin{figure}[htbp]
+\centering
+\begin{quantikz}
+\lstick{$\ket0$}     & \gate{H} & \qw           & \ctrl{3}     & \qw          & \qw      & \gate[3]{\QFT^{-1}} & \meter{} \\
+\lstick{$\ket0$}     & \gate{H} & \qw           & \qw          & \ctrl{2}     & \qw      &                     & \meter{} \\
+\lstick{$\ket0$}     & \gate{H} & \qw           & \qw          & \qw          & \ctrl{1} &                     & \meter{} \\
+\lstick{$\ket{0^n}$} & \qw      & \gate{U_\phi} & \gate{G^{4}} & \gate{G^{2}} & \gate{G} & \qw                 & \qw
+\end{quantikz}
+\caption{Amplitude estimation: prepare $\ket{\phi_0}=U_{\phi}\ket{0^n}$, then run phase
+estimation on the Grover iterate $G=R_{\phi_0}R_{\mathrm{good}}$, whose eigenvalues on the
+invariant plane are $\ee^{\pm\ii\theta}$ (\cref{thm:lec05-ae}). The measured $t$-bit
+estimate of $\theta$ yields $P=\sin^2(\theta/2)$ to additive error $\bigo(2^{-t})$, i.e.\
+$\bigo(1/\epsilon)$ queries to $G$---quadratically fewer than the $\bigo(1/\epsilon^2)$
+samples of classical Monte Carlo.}
+\label{fig:lec05-ae}
+\end{figure}
+
+\subsection*{Query count and the quadratic advantage}
+
+Let QPE use $t=d+\lceil\log\delta^{-1}\rceil$ ancilla qubits, so it estimates
+$\theta$ to precision $\epsilon'=2^{-d}$ with success probability $1-\delta$
+(\cref{thm:lec04-precision}). The relationship $P=\sin^2(\theta/2)$ converts an
+error in $\theta$ into an error in $P$.
+
+\begin{theorem}[Amplitude estimation error and cost]
+\label{thm:lec05-aecost}
+With $\hat P=\sin^2(\tilde\theta/2)$ the estimator built from a QPE estimate
+$\tilde\theta$ of $\theta$ with $\abs{\tilde\theta-\theta}\le\epsilon'$,
+\begin{equation}
+  \abs{\hat P-P}\le\sqrt{P(1-P)}\,\epsilon'+\frac{\epsilon'^2}{4}.
+  \label{eq:lec05-aeerr}
+\end{equation}
+Consequently, if $P$ is bounded away from $0$ and $1$ one takes
+$\epsilon'=\bigo(\epsilon)$ and QPE of $G$ costs $\bigo(1/\epsilon)$ queries to
+$G$ (hence to $U_\phi$); if $P$ is small one estimates it to multiplicative error
+$\epsilon$ by taking $\epsilon'=\sqrt{P}\,\epsilon$, at cost
+$\bigo(P^{-1/2}\epsilon^{-1})$. In both cases this is a quadratic improvement over
+the $\bigo(\epsilon^{-2})$ and $\bigo(P^{-1}\epsilon^{-2})$ sample counts of
+Monte Carlo estimation.
+\end{theorem}
+
+\begin{proof}
+Using the product-to-sum identities,
+\[
+  \sin^2\tfrac{\tilde\theta}{2}-\sin^2\tfrac{\theta}{2}
+   =\sin\tfrac{\theta}{2}\cos\tfrac{\theta}{2}\sin(\tilde\theta-\theta)
+    +\bigl(1-2\sin^2\tfrac{\theta}{2}\bigr)\sin^2\tfrac{\tilde\theta-\theta}{2}.
+\]
+The first term has magnitude
+$\sqrt{P(1-P)}\,\abs{\sin(\tilde\theta-\theta)}\le\sqrt{P(1-P)}\,\epsilon'$ since
+$\sin(\theta/2)\cos(\theta/2)=\tfrac12\sin\theta=\sqrt{P(1-P)}$ and
+$\abs{\sin x}\le\abs{x}$; the second is bounded by
+$\abs{1-2P}\sin^2(\epsilon'/2)\le\epsilon'^2/4$. Adding gives
+\eqref{eq:lec05-aeerr}. When $P(1-P)=\Theta(1)$ the linear term dominates and
+$\epsilon'=\bigo(\epsilon)$ suffices, so QPE queries $G$ a total of
+$\bigo(1/\epsilon')=\bigo(1/\epsilon)$ times. When $P$ is small,
+$\abs{\hat P-P}\approx\sqrt P\,\epsilon'$, and demanding this be $<P\epsilon$
+forces $\epsilon'=\sqrt P\,\epsilon$ and cost
+$\bigo(\epsilon'^{-1})=\bigo(P^{-1/2}\epsilon^{-1})$. The classical Monte Carlo
+counts follow from the Bernoulli variance $P(1-P)$.
+\end{proof}
+
+\begin{example}[Accelerating the Hadamard test]
+\label{exa:lec05-hadamard}
+Recall the Hadamard test of \cref{sec:lec04-1}, which estimates
+$\Re\braket{\psi|U|\psi}$ through the outcome probability
+$p(0)=\tfrac12(1+\Re\braket{\psi|U|\psi})$. Let $\ket{\psi}=U_\psi\ket{0^n}$. The
+combined circuit that applies $H$ to an ancilla, controlled-$U_\psi$ then
+controlled-$U$, produces
+\[
+  \ket{\phi_0}=\tfrac12\ket{0}\bigl(\ket{\psi}+U\ket{\psi}\bigr)
+              +\tfrac12\ket{1}\bigl(\ket{\psi}-U\ket{\psi}\bigr)
+             =\sqrt{P}\,\ket{\phi_{\mathrm{good}}}
+              +\sqrt{1-P}\,\ket{\phi_{\mathrm{bad}}},
+\]
+with the good subspace flagged by the ancilla $\ket{0}$, so
+$P=p(0)$. Here $R_{\mathrm{good}}=(\id-2\proj{0})\otimes\id^{\otimes n}
+=-Z\otimes\id^{\otimes n}$ is a single-qubit reflection and $R_{\phi_0}$ is built
+from the state-preparation unitary. Running amplitude estimation on
+$G=R_{\phi_0}R_{\mathrm{good}}$ estimates $p(0)$---and hence
+$\Re\braket{\psi|U|\psi}$---to precision $\epsilon$ using $\bigo(1/\epsilon)$
+queries, rather than the $\bigo(1/\epsilon^2)$ repetitions of naive sampling.
+\end{example}
+
+\begin{remark}[In what sense is amplitude estimation ``Heisenberg-limited''?]
+\label{rem:lec05-heisenberg}
+Amplitude estimation is often called Heisenberg-limited because it reduces to
+phase estimation of the Grover eigenphase and achieves error $\bigo(1/\mathcal T)$
+in the ``Grover time'' $\mathcal T=\bigo(2^{t})$---the same $1/\mathcal T$ scaling
+as the metrological Heisenberg limit of \cref{sec:lec04-5}. The interpretation
+differs, though: the metrological limit concerns a phase generated by physical
+time evolution $\ee^{-\ii Ht}$, whereas here $G$ is a \emph{constructed} unitary
+and $\mathcal T$ counts applications of the state-preparation oracle.
+\end{remark}
+
+\section{Eigenvalue problems and ground-state preparation}
+\label{sec:lec05-3}
+
+We now move from estimating $\lambda_0$ to \emph{preparing} $\ket{\psi_0}$. As
+noted in \cref{rem:lec05-nogap}, this requires a positive spectral gap $\Delta$.
+The QPE-based approach of \cref{sec:lec05-1} already prepares $\ket{\psi_0}$ as a
+by-product---the system collapses to $\ket{\psi_k}$ when the ancilla reads
+$\lambda_k$---but at cost $\bigo(p_0^{-2})$ in the inverse overlap. The modern
+approach replaces the slowly-decaying Fej\'er kernel of QPE by a \emph{sharp
+spectral filter} implemented with QSVT (\cref{ch:lec09}), improving the overlap
+dependence to $\bigo(p_0^{-1/2})$.
+
+\subsection*{The filtering idea}
+
+Suppose we know a threshold $\mu$ separating the ground energy from the rest,
+$\lambda_0\le\mu-\tfrac{\Delta}{2}<\mu+\tfrac{\Delta}{2}\le\lambda_1$. Consider
+the (shifted) step function
+\[
+  \theta_\mu(x)=\begin{cases}1,& x<\mu,\\ 0,& x>\mu,\end{cases}
+\]
+so that the matrix function $\theta_\mu(H)=\proj{\psi_0}$ is exactly the projector
+onto the ground state. If we could apply $\theta_\mu(H)$ to the initial state
+$\ket{\phi}$, we would obtain $\theta_\mu(H)\ket{\phi}=c_0\ket{\psi_0}$, which
+after normalization is precisely $\ket{\psi_0}$. QSVT lets us apply not the exact
+step function---which is discontinuous and would need infinite-degree
+polynomials---but a polynomial $F$ that approximates it away from the forbidden
+window $(\mu-\tfrac{\Delta}{2},\mu+\tfrac{\Delta}{2})$.
+
+\begin{definition}[Spectral filter polynomial]
+\label{def:lec05-filter}
+A real even polynomial $F$ is an $(\epsilon',\mu,\Delta)$-\emph{ground-state
+filter} if
+\[
+  \abs{F(x)-1}\le\epsilon'\ \ \forall x\in[0,\mu-\tfrac{\Delta}{2}],
+  \qquad
+  \abs{F(x)}\le\epsilon'\ \ \forall x\in[\mu+\tfrac{\Delta}{2},1].
+\]
+Such an $F$ can be built from a polynomial approximation to the sign function,
+with degree $\deg F=\bigo(\Delta^{-1}\log(1/\epsilon'))$.
+\end{definition}
+
+The degree bound is the crux: resolving a gap $\Delta$ costs $\bigo(1/\Delta)$ in
+polynomial degree, and hence in the number of block-encoding queries, while the
+precision $\epsilon'$ enters only logarithmically. Applying $F(H)$ to
+$\ket{\phi}=\sum_k c_k\ket{\psi_k}$,
+\[
+  F(H)\ket{\phi}=\sum_k c_k F(\lambda_k)\ket{\psi_k}
+   =\underbrace{c_0 F(\lambda_0)}_{\approx c_0}\ket{\psi_0}
+    +\sum_{k\ge1}\underbrace{c_k F(\lambda_k)}_{\bigo(\epsilon')}\ket{\psi_k},
+\]
+so the excited components are suppressed to $\bigo(\epsilon')$ while the ground
+component is preserved. The QSVT circuit realizes $F(H)$ as a block encoding: on
+input $\ket{0^m}\ket{\phi}$ it outputs $\ket{0^m}F(H)\ket{\phi}+\ket{\perp}$, and
+measuring the ancilla flag $\ket{0^m}$ succeeds with probability
+$\approx p_0$, leaving the system in a state of fidelity $1-\bigo(\epsilon'^2/p_0)$
+with $\ket{\psi_0}$.
+
+\subsection*{Near-optimal cost}
+
+Naively repeating until the flag reads $\ket{0^m}$ costs $\bigo(p_0^{-1})$ trials;
+amplitude amplification (\cref{sec:lec03-4}) boosts the success amplitude and
+reduces this to $\bigo(p_0^{-1/2})$. This is the near-optimal ground-state
+preparation result.
+
+\begin{theorem}[Ground-state preparation with a known energy window]
+\label{thm:lec05-gsp}
+Let $U_H$ be an $(\alpha,m)$-block encoding of $H$ with spectral gap
+$\Delta=\lambda_1-\lambda_0>0$, let $\ket{\phi}=U_I\ket{0^n}$ have overlap
+$p_0=\abs{\braket{\phi|\psi_0}}^2>0$, and let $\mu$ satisfy
+$\lambda_0\le\mu-\tfrac{\Delta}{2}<\mu+\tfrac{\Delta}{2}\le\lambda_1$. Then the
+ground state $\ket{\psi_0}$ can be prepared to fidelity at least $1-\epsilon$ using
+\[
+  \bigo\bigl(\alpha\,\Delta^{-1}\,p_0^{-1/2}\,\log(p_0^{-1}\epsilon^{-1})\bigr)
+\]
+queries to $U_H$ and its inverse, and $\bigo(p_0^{-1/2})$ queries to $U_I$ and its
+inverse.
+\end{theorem}
+
+\begin{proof}[Proof idea]
+Take $F$ an $(\epsilon',\mu,\Delta)$-filter of degree
+$\bigo(\Delta^{-1}\log(1/\epsilon'))$ (\cref{def:lec05-filter}) and implement
+$F(H)$ by QSVT, which uses $\bigo(\deg F)$ queries to $U_H,U_H\dg$ per application.
+The post-selected state has fidelity $1-\bigo(\epsilon'^2/p_0)$ with
+$\ket{\psi_0}$, so $\epsilon'=\Theta(\sqrt{\epsilon p_0})$ gives fidelity
+$1-\epsilon$ and makes $\log(1/\epsilon')=\bigo(\log(p_0^{-1}\epsilon^{-1}))$.
+Amplitude amplification on the flag $\ket{0^m}$, whose success amplitude is
+$\Theta(\sqrt{p_0})$, needs $\bigo(p_0^{-1/2})$ rounds; multiplying the per-round
+query depth $\bigo(\alpha\Delta^{-1}\log(1/\epsilon'))$ by these rounds gives the
+stated $U_H$-query count, and each round uses $\bigo(1)$ calls to $U_I$.
+\end{proof}
+
+\begin{remark}[Removing the a priori energy estimate]
+\label{rem:lec05-bisection}
+\cref{thm:lec05-gsp} assumes a known window $\mu$. In practice $\mu$ is unknown and
+must itself be computed. A binary search over $\mu$, in which each step solves a
+\emph{fuzzy bisection} decision (``is $\lambda_0$ below $\mu-h$ or above
+$\mu+h$?'') by estimating $\norm{F(H)\ket{\phi}}$ with amplitude estimation,
+locates $\lambda_0$ to precision $\epsilon$ using
+$\widetilde{\bigo}(\alpha\,\epsilon^{-1}p_0^{-1/2}\log\delta^{-1})$ queries to
+$U_H$. The precision $\epsilon$ plays the role of an effective gap, so this
+achieves Heisenberg-limited $\bigo(1/\epsilon)$ scaling in the energy precision
+\emph{without} assuming a positive gap; when a gap $\Delta$ is known one runs it
+only to precision $\Delta/2$ and then invokes \cref{thm:lec05-gsp}.
+\end{remark}
+
+\begin{remark}[Why $p_0^{-1/2}$ and not $p_0^{-1}$]
+\label{rem:lec05-sqrt}
+The square-root improvement over plain QPE (\cref{rem:lec05-overlap}) is exactly
+the amplitude-amplification gain of \cref{sec:lec05-2}: preparing the ground state
+is ``finding a marked item'' (the $\ket{\psi_0}$ component of $\ket{\phi}$, of
+weight $p_0$), and amplitude amplification finds it in $\bigo(p_0^{-1/2})$ rounds
+rather than the $\bigo(p_0^{-1})$ of incoherent sampling. The sharp QSVT filter is
+what makes the ``marking'' clean enough for amplification to apply.
+\end{remark}
+
+\section{Lower bounds}
+\label{sec:lec05-4}
+
+Are the algorithms above wasteful, or essentially optimal? Three lower bounds---one
+metrological, two from unstructured search---show that their key resource
+dependences cannot be improved.
+
+\subsection*{The Heisenberg limit for phase estimation}
+
+For estimating an eigenphase $\varphi$ through queries to $U(t)=\ee^{-\ii Ht}$, the
+natural resource is the total evolution time
+$\mathcal T=\sum_p\abs{t_p}$. As discussed in \cref{sec:lec04-5}, coherent phase
+accumulation attains precision $\epsilon\sim1/\mathcal T$ (the \emph{Heisenberg
+limit}), quadratically better than the $\epsilon\sim1/\sqrt{\mathcal T}$
+shot-noise scaling of incoherent repetition. This is not merely achievable but
+optimal.
+
+\begin{theorem}[Heisenberg-limit lower bound]
+\label{thm:lec05-hl}
+Consider any protocol that applies controlled evolutions $U(t_1),\dots,U(t_N)$ to
+a fixed eigenstate $\ket{\psi}$ with $U(t)\ket{\psi}=\ee^{\ii t\varphi}\ket{\psi}$,
+interleaved with arbitrary unitaries acting only on the ancilla register, and
+produces a locally unbiased estimator $\hat\varphi$ of $\varphi$. Then, with total
+evolution time $\mathcal T=\sum_p\abs{t_p}$,
+\[
+  \Var(\hat\varphi)\ge\frac{1}{4\mathcal T^{2}}.
+\]
+Hence no protocol in this model beats the Heisenberg scaling
+$\epsilon=\Omega(1/\mathcal T)$.
+\end{theorem}
+
+\begin{proof}[Proof idea]
+Each controlled query $U(t_p)$ imprints an effective phase rotation
+$V_p(\varphi)=(\id-\Pi_p)+\ee^{\ii t_p\varphi}\Pi_p$ on the ancilla, where $\Pi_p$
+is the projector onto the ``activated'' subspace, so
+$\norm{\partial_\varphi V_p}=\abs{t_p}\,\norm{\Pi_p}\le\abs{t_p}$. The final state
+$\ket{\Psi(\varphi)}$ is a product of the $V_p$ and ancilla unitaries; by the
+triangle inequality $\norm{\partial_\varphi\Psi}\le\sum_p\abs{t_p}=\mathcal T$. For
+a pure-state family the quantum Fisher information obeys
+$F_Q\le4\norm{\partial_\varphi\Psi}^2\le4\mathcal T^2$, and the quantum
+Cram\'er--Rao bound (\cref{ch:lec02}) gives
+$\Var(\hat\varphi)\ge1/F_Q\ge1/(4\mathcal T^2)$.
+\end{proof}
+
+The Fisher-information viewpoint also explains why the \emph{spacing} of evolution
+times matters: only exponentially growing times $t_p\propto2^{p}$---as in Kitaev's
+method and standard QPE---accumulate the quadratic Fisher information
+$\sum_p t_p^2=\Theta(\mathcal T^2)$ needed to saturate
+\cref{thm:lec05-hl}. A uniform grid $t_p=p\tau$ gives only
+$\sum_p t_p^2=\Theta(\mathcal T^{2}/N)$ and reaches precision
+$\epsilon=\Theta(\mathcal T^{-2/3})$, between shot noise and the Heisenberg limit.
+
+\subsection*{Search-based bounds for ground-state preparation}
+
+The cost $\bigo(p_0^{-1/2}\Delta^{-1})$ of \cref{thm:lec05-gsp} is optimal in
+\emph{both} parameters, as one sees by reducing unstructured search---which needs
+$\Omega(\sqrt N)$ queries (\cref{ch:lec03})---to ground-state preparation.
+
+\begin{theorem}[Overlap lower bound]
+\label{thm:lec05-lbp0}
+There is a family of block-encoded Hamiltonians with constant gap
+$\Delta=\Omega(1)$ and overlap $p_0\to0$ for which preparing $\ket{\psi_0}$ to
+fidelity at least $\sqrt3/2$ requires $\Omega(p_0^{-1/2})$ queries to $U_H$.
+\end{theorem}
+
+\begin{proof}[Proof idea]
+Take $U_H=U_t=\id-2\proj{t}$ for an unknown marked string $t$; it is Hermitian and
+unitary, is its own $(1,0)$-block encoding, has $\ket{t}$ as its unique ground
+state with gap $2$, and the uniform superposition $\ket{u}=H^{\otimes n}\ket{0^n}$
+has overlap $\abs{\braket{u|t}}^2=1/N$, so $p_0=1/N$ and $\sqrt{p_0}=1/\sqrt N$.
+Preparing the ground state to fidelity $\ge\sqrt3/2$ and measuring returns $t$ with
+probability $\ge3/4$. If this used $o(p_0^{-1/2})=o(\sqrt N)$ queries it would
+solve unstructured search in $o(\sqrt N)$ queries, contradicting Grover's lower
+bound.
+\end{proof}
+
+\begin{theorem}[Gap lower bound]
+\label{thm:lec05-lbgap}
+There is a family with constant overlap $p_0=\Omega(1)$ and gap $\Delta\to0$ for
+which preparing $\ket{\psi_0}$ to fidelity at least $\sqrt3/2$ requires
+$\Omega(\Delta^{-1})$ queries to $U_H$.
+\end{theorem}
+
+\begin{proof}[Proof idea]
+With $U_t=\id-2\proj{t}$ and $D=\id-2\proj{u}$ (both reflections implementable by
+Hadamards and one oracle call), the interpolated Hamiltonian
+$H(\tfrac12)=\tfrac12(D+U_t)$ acts nontrivially only on
+$\operatorname{span}\{\ket{u},\ket{t}\}$, where it has eigenvalues
+$\pm1/\sqrt N$: the gap is $\Delta=2/\sqrt N\to0$, while its ground state has
+constant overlap $\tfrac12+\bigo(1/\sqrt N)$ with both $\ket{u}$ and $\ket{t}$.
+Preparing that ground state and measuring yields $t$ with constant probability, so
+$o(\Delta^{-1})=o(\sqrt N)$ queries would again break Grover's bound.
+\end{proof}
+
+\subsection*{No fast-forwarding, and a look ahead to Part III}
+
+Both bounds above trace back to the optimality of Grover search. A related and
+deeper obstruction governs the \emph{simulation} of Hamiltonians and the solution
+of linear systems: the \emph{no-fast-forwarding theorem} states that simulating a
+generic Hamiltonian for time $t$ requires $\Omega(t)$ queries in the worst case---
+one cannot compress long-time dynamics into sublinear cost. This is why the
+quantum linear-system solvers previewed in \cref{ch:lec10} inherit a linear
+dependence on the condition number $\kappa$ (the QLSP lower bound is
+$\Omega(\kappa)$, proved by encoding Hamiltonian simulation into a linear system),
+and why the Hamiltonian-simulation algorithms of \cref{ch:lec11,ch:lec12} aim for
+cost \emph{linear} in $t$ rather than sublinear. We will meet the no-fast-forwarding
+theorem in detail when we build those algorithms in Part~III; for now it stands as
+the fundamental limit that phase estimation, amplitude estimation, and eigenstate
+preparation all press against.
+
+\section{Order finding and Shor's algorithm}
+\label{sec:lec05-5}
+
+The applications so far have been drawn from scientific computing. We close with
+the algorithm that first made phase estimation famous: \emph{Shor's factoring
+algorithm}, whose sole quantum ingredient is \emph{order finding}, and whose
+order-finding routine is nothing but QPE (\cref{ch:lec04}) applied to a
+modular-multiplication unitary. Beyond its historical weight, it is the cleanest
+illustration of the recurring pattern of this lecture---encode a number-theoretic
+quantity in the eigenphase of an efficiently implementable unitary, then read that
+phase out with QPE---and it is why a large fault-tolerant quantum computer would
+break the RSA cryptosystem.
+
+\subsection*{The number-theory wrapper: factoring reduces to order finding}
+
+Let $N=PQ$ be a product of two large primes, the modulus of an RSA public key.
+Classically the best known factoring algorithms run in time
+$\ee^{\bigo((\log N)^{1/3}(\log\log N)^{2/3})}$ (the number field sieve),
+superpolynomial in the bit length $\log N$. Shor's insight is that factoring
+reduces, in randomized polynomial classical time, to the problem of computing a
+\emph{multiplicative order}.
+
+\begin{definition}[Multiplicative order]
+\label{def:lec05-order}
+For $a$ coprime to $N$ (that is, $\gcd(a,N)=1$), the \emph{order} of $a$ modulo
+$N$ is the least positive integer $r$ with
+\[
+  a^{r}\equiv 1 \pmod N .
+\]
+\end{definition}
+
+The classical wrapper around order finding is:
+\begin{enumerate}[leftmargin=1.6em,nosep]
+  \item Pick $a\in\{2,\dots,N-1\}$ uniformly at random. Compute $g=\gcd(a,N)$ by
+        Euclid's algorithm. If $g>1$ then $g$ is already a nontrivial factor of
+        $N$---return it. Otherwise $\gcd(a,N)=1$ and we continue.
+  \item Use the quantum order-finding routine below to compute the order $r$ of
+        $a\bmod N$. \emph{This is the only quantum step.}
+  \item If $r$ is odd, or if $a^{r/2}\equiv -1\pmod N$ (equivalently
+        $a^{r/2}\bmod N=N-1$), the run is unlucky; discard it and return to
+        step~1 with a fresh $a$.
+  \item Otherwise compute $\gcd(a^{r/2}-1,\,N)$ and $\gcd(a^{r/2}+1,\,N)$. Each is
+        a nontrivial factor of $N$.
+\end{enumerate}
+
+Why does step~4 work? Since $a^{r}\equiv1$, the difference of squares gives
+\begin{equation}
+  \bigl(a^{r/2}-1\bigr)\bigl(a^{r/2}+1\bigr)=a^{r}-1\equiv 0 \pmod N,
+  \label{eq:lec05-diffsquares}
+\end{equation}
+so $N\mid(a^{r/2}-1)(a^{r/2}+1)$. Minimality of $r$ forbids
+$a^{r/2}\equiv 1$ (that would make $r/2$ a smaller order), and step~3 has excluded
+$a^{r/2}\equiv -1$; hence $N$ divides neither factor on the left of
+\eqref{eq:lec05-diffsquares} alone, so its prime factors must split between the
+two factors. Consequently $\gcd(a^{r/2}\mp1,N)$ is a nontrivial divisor of $N$. A
+standard number-theory estimate shows that a random $a$ yields an even $r$ with
+$a^{r/2}\not\equiv-1$ with probability at least $1/2$ when $N$ has at least two
+distinct odd prime factors, so $\bigo(1)$ repetitions suffice on average. Every
+step but order finding---random choice, $\gcd$, the parity test---is elementary
+classical arithmetic.
+
+\subsection*{Order finding as phase estimation}
+
+Fix $a$ with $\gcd(a,N)=1$ and work on the state space $\C^{2^n}$ with
+$n=\lceil\log_2 N\rceil$, whose computational basis labels the residues
+$\{0,1,\dots,N-1\}$ (and unused labels $\ge N$). Define the
+\emph{modular-multiplication unitary}
+\begin{equation}
+  U_a\ket{y}=\ket{ay\bmod N}\quad(0\le y<N),
+  \qquad U_a\ket{y}=\ket{y}\ (y\ge N).
+  \label{eq:lec05-Ua}
+\end{equation}
+Because multiplication by $a$ permutes the residues coprime to $N$ (its inverse is
+multiplication by $a^{-1}\bmod N$), $U_a$ is a permutation matrix, hence unitary,
+and it is implemented with $\bigo((\log N)^2)$ elementary gates by
+modular-exponentiation circuits. The point is that $U_a$ has an eigenbasis whose
+eigenphases expose the order $r$.
+
+\begin{lemma}[Eigenphases of the modular-multiplication unitary]
+\label{lem:lec05-Ua}
+Let $r$ be the order of $a\bmod N$. For each integer $s\in\{0,1,\dots,r-1\}$ the
+state
+\[
+  \ket{u_s}=\frac{1}{\sqrt r}\sum_{k=0}^{r-1}
+             \ee^{-2\pi\ii\, sk/r}\,\ket{a^{k}\bmod N}
+\]
+is an eigenstate of $U_a$ with eigenvalue $\ee^{2\pi\ii\, s/r}$:
+\[
+  U_a\ket{u_s}=\ee^{2\pi\ii\, s/r}\ket{u_s}.
+\]
+Moreover $\dfrac{1}{\sqrt r}\sum_{s=0}^{r-1}\ket{u_s}=\ket{1}$.
+\end{lemma}
+
+\begin{proof}
+Applying $U_a$ shifts $k\mapsto k+1$ in the cyclic group generated by $a$:
+\[
+  U_a\ket{u_s}=\frac{1}{\sqrt r}\sum_{k=0}^{r-1}
+    \ee^{-2\pi\ii sk/r}\ket{a^{k+1}\bmod N}
+   =\ee^{2\pi\ii s/r}\,\frac{1}{\sqrt r}\sum_{k'=0}^{r-1}
+    \ee^{-2\pi\ii sk'/r}\ket{a^{k'}\bmod N},
+\]
+where we reindexed $k'=k+1$ and used $a^{r}\equiv1$ so that the sum is periodic
+with period $r$; the reindexing multiplies each term by $\ee^{2\pi\ii s/r}$. The
+final identity follows because
+$\frac1r\sum_{s=0}^{r-1}\ee^{-2\pi\ii sk/r}=\delta_{k,0}$ picks out the $k=0$ term
+$\ket{a^0\bmod N}=\ket{1}$.
+\end{proof}
+
+\cref{lem:lec05-Ua} places us exactly in the QPE setting of \cref{ch:lec04}: the
+eigenphase of $U_a$ on $\ket{u_s}$ is $\varphi_s=s/r\in[0,1)$. Running QPE on
+$U_a$ with the $t$-qubit ancilla register of \cref{ch:lec04} therefore returns a
+$t$-bit estimate of some $s/r$. Two facts make this practical without knowing the
+eigenstates $\ket{u_s}$:
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{Cheap input state.} We cannot prepare an individual $\ket{u_s}$, but
+        the last identity of \cref{lem:lec05-Ua} says the trivially-prepared state
+        $\ket{1}$ is the uniform superposition of all the $\ket{u_s}$. By linearity
+        (as in \cref{eq:lec05-initial} for energy estimation), QPE on input
+        $\ket{1}$ returns an estimate of $s/r$ for a uniformly random
+        $s\in\{0,\dots,r-1\}$.
+  \item \emph{Controlled powers.} QPE needs controlled $U_a^{2^{j}}$, and
+        $U_a^{2^{j}}\ket{y}=\ket{a^{2^{j}}y\bmod N}$ is again a modular
+        multiplication (by the precomputable constant $a^{2^{j}}\bmod N$), so the
+        whole circuit is modular exponentiation, costing
+        $\bigo((\log N)^{2})$ gates per controlled power and $\bigo((\log N)^{3})$
+        overall.
+\end{itemize}
+
+Assembling the two ingredients gives the \emph{order-finding circuit} of
+\cref{fig:lec05-shor}, the quantum core of Shor's algorithm.
+
+\begin{figure}[htbp]
+\centering
+\begin{quantikz}
+\lstick{$\ket0$} & \gate{H} & \ctrl{3}        & \qw             & \qw          & \gate[3]{\QFT^{-1}} & \meter{} \\
+\lstick{$\ket0$} & \gate{H} & \qw             & \ctrl{2}        & \qw          &                     & \meter{} \\
+\lstick{$\ket0$} & \gate{H} & \qw             & \qw             & \ctrl{1}     &                     & \meter{} \\
+\lstick{$\ket1$} & \qw      & \gate{U_a^{4}}  & \gate{U_a^{2}}  & \gate{U_a}   & \qw                 & \qw
+\end{quantikz}
+\caption{Order finding by phase estimation on the modular-multiplication unitary
+$U_a\ket{y}=\ket{ay\bmod N}$ (\cref{eq:lec05-Ua}). The work register is prepared in the
+trivially-available $\ket{1}=\tfrac{1}{\sqrt r}\sum_{s}\ket{u_s}$ (\cref{lem:lec05-Ua}),
+and each controlled $U_a^{2^{k}}$ is a modular multiplication by the precomputed constant
+$a^{2^{k}}\bmod N$ (modular exponentiation). A run returns a $t$-bit estimate of a random
+$s/r$; continued fractions then recover the order $r$.}
+\label{fig:lec05-shor}
+\end{figure}
+
+\subsection*{Recovering \texorpdfstring{$r$}{r} by continued fractions}
+
+QPE returns a dyadic rational $\tilde\varphi=k/2^{t}\approx s/r$. With
+$t=2\log_2 N+\bigo(1)$ ancilla qubits, $\tilde\varphi$ is within $1/2N^{2}$ of the
+true $s/r$; since two distinct fractions with denominators below $N$ differ by
+more than $1/N^{2}$, the continued-fraction expansion of $\tilde\varphi$ has a
+convergent $s'/r'$ (in lowest terms) that equals $s/r$ exactly. When $\gcd(s,r)=1$
+this convergent's denominator $r'$ \emph{is} $r$; otherwise it is a divisor of
+$r$, and testing $a^{r'}\equiv1$ (or a few small multiples of $r'$) recovers $r$.
+Continued fractions thus convert the approximate phase readout into an exact
+integer order.
+
+\begin{example}[Factoring $N=15$ with $a=7$]
+\label{exa:lec05-shor15}
+Take $N=15$ and, having drawn $a=7$ with $\gcd(7,15)=1$, compute the order:
+$7^{1}=7$, $7^{2}=49\equiv4$, $7^{3}\equiv 7\cdot4=28\equiv13$,
+$7^{4}\equiv7\cdot13=91\equiv1\pmod{15}$, so $r=4$. By \cref{lem:lec05-Ua} the
+unitary $U_7$ has eigenphases $s/4\in\{0,\tfrac14,\tfrac12,\tfrac34\}$. Order
+finding uses $n=4$ qubits for the residue register (since $15=1111_2$). With even
+a modest ancilla register these phases are dyadic, so QPE on input $\ket{1}$
+returns one of the readouts
+\[
+  0.00_2=\tfrac{0}{4},\quad 0.01_2=\tfrac14,\quad
+  0.10_2=\tfrac12,\quad 0.11_2=\tfrac34,
+\]
+each with probability $\tfrac14$. A nonzero outcome, say $\tilde\varphi=0.01_2=1/4$,
+already presents $r=4$ as its denominator; the continued-fraction step is trivial
+here. (The outcome $0$ carries no information about $r$ and is simply discarded.)
+Steps~3--4 of the wrapper then finish the job: $r=4$ is even and
+$7^{r/2}=7^{2}=49\equiv 4\not\equiv-1\pmod{15}$, so
+\[
+  \gcd\bigl(7^{2}-1,\,15\bigr)=\gcd(48,15)=3,
+  \qquad
+  \gcd\bigl(7^{2}+1,\,15\bigr)=\gcd(50,15)=5,
+\]
+recovering both prime factors, $15=3\times5$. (These match Brody's worked run of
+the order-finding circuit on real hardware, where the dominant outcomes for
+$a\in\{2,7,8,13\}$ are exactly $\{00,01,10,11\}\!\cdot\!\tfrac14$, giving $r=4$.)
+\end{example}
+
+The continued-fraction machinery earns its keep only when $r$ is not a power of
+two, so that $s/r$ is a repeating binary fraction and the QPE readout is a genuine
+approximation. Factoring $N=21$ with $a=2$ (order $r=6$) is the standard such
+example and is developed in \cref{ex:lec05-7}.
+
+\subsection*{Cost and the exponential speedup}
+
+Assembling the pieces: the residue and ancilla registers use $\bigo(\log N)$
+qubits; QPE issues $\bigo(\log N)$ controlled powers of $U_a$, each a modular
+exponentiation of gate cost $\bigo((\log N)^{2})$ (or $\widetilde{\bigo}(\log N)$
+with fast multiplication), for a total quantum cost of
+$\bigo((\log N)^{3})$; and the classical wrapper---$\gcd$, continued fractions,
+and $\bigo(1)$ expected retries---adds only polynomially in $\log N$. The whole
+algorithm therefore runs in time polynomial in the bit length, an
+\emph{exponential} speedup over the superpolynomial classical number field sieve.
+Because RSA's security rests precisely on the presumed classical hardness of
+factoring $N=PQ$, a scalable fault-tolerant machine running Shor's algorithm would
+recover the private key from the public modulus---this is the sense in which phase
+estimation ``breaks the internet.'' The order-finding core is a strict
+generalization of the QPE reasoning we used for energies in \cref{sec:lec05-1} and
+for the Grover angle in amplitude estimation (\cref{sec:lec05-2}): in every case a
+quantity of interest is written as the eigenphase of an efficiently implementable
+unitary and extracted by \cref{ch:lec04}'s phase-estimation circuit.
+
+\exercisesection
+\begin{exercise}\label{ex:lec05-1}
+\emph{Energy resolution versus ancilla count.} Suppose $H$ has been rescaled so
+that $U=\ee^{\ii 2\pi H}$ has all eigenphases in $[0,1)$, and QPE is run on an
+exact eigenstate with $t$ ancilla qubits. Show that the additive resolution in the
+energy $\lambda$ is $2^{-t}$, and determine how many ancilla qubits are needed to
+resolve $\lambda_0$ to $10^{-3}$ (in the rescaled units). If the physical energy
+range is $[E_{\min},E_{\max}]$ with $E_{\max}-E_{\min}=W$, what is the resolution
+in physical units?
+\end{exercise}
+
+\begin{exercise}\label{ex:lec05-2}
+\emph{Amplitude-estimation query count.} Using \cref{thm:lec05-aecost}, determine
+the number of applications of the Grover iterate $G$ needed to estimate an
+amplitude $P$ with $P(1-P)=\Theta(1)$ to additive precision $\epsilon=10^{-3}$,
+and compare with the number of independent samples a classical Monte Carlo
+estimator would need for the same precision. State the ratio of the two costs as a
+function of $\epsilon$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec05-3}
+\emph{Overlap requirement for success probability $\ge\tfrac12$.} In the
+QPE-based ground-state routine of \cref{sec:lec05-1}, a single run returns (an
+estimate of) $\lambda_0$ with probability $p_0$. Show that to obtain $\lambda_0$
+at least once with probability $\ge\tfrac12$ in $M$ independent runs one needs
+$M\ge\log 2/\log\bigl((1-p_0)^{-1}\bigr)$, and simplify this for small $p_0$.
+Conclude that $M=\bigo(p_0^{-1})$ runs suffice.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec05-4}
+\emph{Eigenphases of the Grover iterate.} Verify by direct matrix computation that
+the rotation $\left(\begin{smallmatrix}\cos\theta&\sin\theta\\-\sin\theta&
+\cos\theta\end{smallmatrix}\right)$ has eigenvalues $\ee^{\pm\ii\theta}$ with
+eigenvectors $\tfrac{1}{\sqrt2}(1,\mp\ii)^{\mathsf T}$, and confirm the overlaps
+$\abs{\braket{\phi_0|\phi_\pm}}^2=\tfrac12$ used in \cref{thm:lec05-ae}.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec05-5}
+\emph{Filter degree versus gap.} A ground-state filter (\cref{def:lec05-filter})
+has degree $\deg F=\bigo(\Delta^{-1}\log(1/\epsilon'))$. Explain why the degree
+must grow at least like $\Delta^{-1}$ (hint: a degree-$D$ polynomial bounded by
+$1$ on $[-1,1]$ cannot change from $\approx1$ to $\approx0$ across an interval much
+shorter than $\bigo(1/D)$; recall the behavior of Chebyshev polynomials). Deduce
+how the query depth of \cref{thm:lec05-gsp} scales as $\Delta\to0$ and connect
+this to the gap lower bound of \cref{thm:lec05-lbgap}.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec05-6}
+\emph{Quadratic versus square-root overlap dependence.} Contrast the total cost of
+plain QPE ground-state energy estimation (\cref{thm:lec05-gsee},
+$\bigo(p_0^{-2})$ ignoring logs) with the QSVT-based preparation of
+\cref{thm:lec05-gsp} ($\bigo(p_0^{-1/2})$). Explain, in one or two sentences each,
+which mechanism produces each power of $p_0$, and why amplitude amplification is
+responsible for the improvement (cf.\ \cref{rem:lec05-sqrt}).
+\end{exercise}
+
+\begin{exercise}\label{ex:lec05-7}
+\emph{Factoring $N=21$ with $a=2$ by continued fractions.} Verify that the order
+of $2\bmod 21$ is $r=6$. With a $5$-bit ancilla register, order finding on $U_2$
+(\cref{eq:lec05-Ua}) returns readouts approximating $s/6$; one such readout is
+$0.00101_2=5/32$. Compute the continued-fraction expansion of $5/32$, list its
+convergents, and identify the convergent whose denominator is the order $r=6$
+(check $2^{6}\equiv1\pmod{21}$ and that no smaller candidate denominator works).
+Then complete Shor's algorithm: confirm $r$ is even and $2^{r/2}\not\equiv-1$, and
+compute $\gcd(2^{3}-1,21)$ and $\gcd(2^{3}+1,21)$ to recover the factors of $21$.
+\end{exercise}
+
+\begin{exercise}\label{ex:lec05-8}
+\emph{Eigenphases of the modular-multiplication unitary.} For $N=15$ and $a=7$,
+list the cycle $\{7^{k}\bmod 15:k=0,1,2,3\}$ and use it to write the four
+eigenstates $\ket{u_s}$ ($s=0,1,2,3$) of $U_7$ from \cref{lem:lec05-Ua}
+explicitly. Verify directly that $U_7\ket{u_1}=\ee^{2\pi\ii/4}\ket{u_1}=\ii\ket{u_1}$,
+and confirm that $\tfrac12\sum_{s=0}^{3}\ket{u_s}=\ket{1}$, so that preparing the
+easy state $\ket{1}$ is equivalent to sampling a uniformly random eigenphase
+$s/4$.
+\end{exercise}
+
+\readingsection
+\begin{itemize}[leftmargin=1.4em]
+  \item Lin Lin, \emph{qasc notes}, Ch.~4 (ground-state energy estimation,
+        amplitude estimation, HHL, and the Poisson-equation example).
+  \item Lin Lin, \emph{live notes}, Ch.~16 (amplitude estimation, Heisenberg
+        limit, and the Cram\'er--Rao viewpoint).
+  \item Lin Lin, \emph{live notes}, Ch.~18 (eigenvalue problems, near-optimal
+        ground-state preparation, and the matching lower bounds).
+  \item J.~Brody, \emph{The Joy of Quantum Computing}, Princeton University
+        Press, 2025, Ch.~10--11 (a hands-on account of order finding via phase
+        estimation and Shor's factoring algorithm, including worked
+        order-finding circuits for $a\bmod 15$ and the continued-fraction
+        recovery of $r$ when factoring $21$).
+\end{itemize}
