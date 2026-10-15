@@ -795,6 +795,47 @@ $U,\Pi,\Pi'$ generate on the two-dimensional invariant subspaces. Every algorith
 Part~II is, at bottom, a statement about polynomials of the operator $\Pi'U\Pi$.
 \end{remark}
 
+\section{Quantum advantage: where it lives, and three caveats}
+\label{sec:lec06-advantage}
+
+It is worth stating plainly where the speedup in these operations comes from---and
+where it can silently evaporate. An $n$-qubit register stores $N=2^n$ complex
+amplitudes, and a \emph{structured} block encoding together with a state-preparation
+oracle applies $A/\alpha$ to $\ket{b}$ with a circuit of only $\polylog(N)$ gates
+(\cref{sec:lec06-3} does this for sparse $A$). Classically, multiplying a vector by a
+dense $N\times N$ matrix costs $\bigo(N^2)$, and by an $s$-sparse one $\bigo(sN)$---
+both at least linear in the exponentially large dimension. So matrix--vector
+multiplication, and likewise the sums and products of \cref{sec:lec06-arith}, act on
+$2^n$-dimensional objects in time $\polylog(N)$: an \emph{exponential advantage in the
+dimension}. Three caveats decide whether that advantage is real.
+
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{Input.} The speedup assumes the inputs are cheap to load. A generic
+        vector needs $\Omega(2^n/n)$ gates to prepare (\cref{prop:lec06-sp}) and a
+        generic matrix has no $\polylog$ block encoding; only structured
+        data---sparse, efficiently integrable, or stored in QRAM---qualifies. If
+        loading the data already costs $\bigo(N)$, there is no advantage.
+  \item \emph{Output.} The result $A\ket{b}/\norm{A\ket{b}}$ is a quantum state of
+        $N$ amplitudes. Reading all of them out requires $\Omega(N)$ measurements,
+        which again erases the gain. The advantage survives only when the sought
+        answer is a \emph{succinct summary} of the output---an expectation value
+        $\bra{\psi}M\ket{\psi}$, an overlap, a sample, a single bit---rather than the
+        whole vector.
+  \item \emph{Normalization.} The subnormalization $\alpha$ (and, for the arithmetic
+        of \cref{ch:lec07}, the $\ell^1$ factor $\norm{c}_1$ and the product
+        $\prod_j\alpha_j$) enters the success probability: a matrix--vector product
+        needs $\bigo(\alpha/\norm{A\ket{b}})$ repetitions
+        (\cref{sec:lec06-matvec}). The speedup is thus exponential in the dimension
+        but only polynomial in $\alpha$, the condition number, and the accuracy.
+\end{itemize}
+
+In short, these primitives are exponential-in-dimension, not unconditional: the
+advantage is realized end to end only when structured inputs feed a $\polylog(N)$
+computation whose output is a measurable quantity---as in the linear-system solver
+(\cref{ch:lec10}), Hamiltonian simulation (\cref{ch:lec11}), and ground-state
+energy estimation (\cref{ch:lec05}). Reading the fine print on input and output is
+what separates a genuine quantum speedup from a mirage.
+
 \exercisesection
 \begin{exercise}\label{ex:lec06-1}
 \emph{Norm constraints on a block.} Let $U_A$ be an exact $(\alpha,a)$-block-encoding

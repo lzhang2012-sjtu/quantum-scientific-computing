@@ -567,6 +567,28 @@ quadratically and multiplies every downstream query count linearly (or, for
 products, exponentially in the number of factors). Minimizing it is therefore the
 principal design problem.
 
+\begin{remark}[Quantum advantage of the arithmetic---and its price]
+\label{rem:lec07-advantage}
+Set against classical cost, the win is the same exponential-in-dimension story as for
+a single block encoding (\cref{sec:lec06-advantage}), now for \emph{combinations}.
+Classically, forming $\sum_{j} c_j A_j\ket{b}$ for $K$ structured $N\times N$ terms
+costs $\bigo(K\,sN)$, and a product $A_L\cdots A_1\ket{b}$ costs $\bigo(L\,sN)$---linear
+in the exponentially large dimension $N=2^n$. The LCU circuit instead uses $\bigo(K)$
+calls to the per-term block encodings on only $\lceil\log_2 K\rceil$ control qubits,
+each call $\polylog(N)$ for structured terms, and the product rule chains $L$ encodings
+with $\bigo(\log L)$ ancillas (the compression gadget, \cref{rem:lec07-compress}). So
+the arithmetic runs in $\polylog(N)$ time in the dimension---an exponential
+advantage---while the \emph{price} of combining is paid in the subnormalization:
+$\norm{c}_1$ for a sum, $\prod_j\alpha_j$ for a product, each shrinking the success
+probability quadratically and multiplying the downstream query count (linearly for
+sums, exponentially in the number of factors). The input and output caveats of
+\cref{sec:lec06-advantage} apply unchanged: the advantage is genuine only when the
+terms are efficiently encodable and the final read-out is a succinct summary. This is
+exactly the regime of the quantum linear-system solver (\cref{ch:lec10}) and
+Hamiltonian simulation (\cref{ch:lec11}), where LCU supplies the arithmetic and the
+answer is an expectation value or a sampled bit, not the full solution vector.
+\end{remark}
+
 \begin{example}[The $\ell^1$-norm depends on the decomposition]
 \label{exa:lec07-l1decomp}
 A given $T$ can be written as a linear combination of unitaries in many ways, and the
