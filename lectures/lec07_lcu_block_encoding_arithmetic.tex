@@ -18,8 +18,12 @@ on top of it. Almost every matrix that arises in scientific computing is present
 as a \emph{combination} of simpler pieces---a Hamiltonian is a sum of local terms,
 a discretized differential operator is a sum of shifts, a propagator is a product
 of exponentials---so we need rules that turn block encodings of the pieces into a
-block encoding of the whole. This lecture develops the single most important such
-rule, the \emph{linear combination of unitaries} (LCU), and the composition
+block encoding of the whole. \cref{sec:lec06-arith} introduced these operations---%
+matrix and vector addition, matrix--matrix multiplication---through one concrete
+example apiece; this lecture gives the \emph{general} construction for arbitrarily
+many terms, together with its error propagation and $\ell^1$ cost. We develop the
+single most important such rule, the \emph{linear combination of unitaries} (LCU), and
+the composition
 calculus it generates: block encodings of matrix and vector \emph{sums}
 (\cref{sec:lec07-2}) and \emph{products} (\cref{sec:lec07-3}). LCU is the
 \textsc{prepare}--\textsc{select}--\textsc{prepare}$\dg$ sandwich already
@@ -253,10 +257,12 @@ $\alpha=\bigo(n)$---exactly the overhead budgeted in \cref{sec:lec07-5}.
 \section{Matrix and vector addition}
 \label{sec:lec07-2}
 
-The LCU lemma applies verbatim when the ``unitaries'' $U_j$ are themselves block
-encodings or state-preparation oracles: the outer register of the block encoding is
-merged into the LCU flag, and the surviving block is the desired sum. This is the
-first arithmetic rule of the block-encoding calculus.
+\cref{sec:lec06-arith} introduced matrix and vector addition by two-term example; the
+LCU lemma of \cref{sec:lec07-1} promotes them to the general rule. It applies verbatim
+when the ``unitaries'' $U_j$ are themselves block encodings or state-preparation
+oracles: the outer register of the block encoding merges into the LCU flag, and the
+surviving block is the desired sum---now for an \emph{arbitrary} number of terms, and
+tracking the errors.
 
 \begin{proposition}[Sum of block-encoded matrices]
 \label{prop:lec07-sum}
@@ -311,54 +317,45 @@ The subnormalization of a sum is the sum of the subnormalizations, and the error
 add. This linear growth is benign for a fixed number of terms but is precisely the
 $\ell^1$ overhead that we must budget for; see \cref{sec:lec07-5}.
 
-\begin{example}[Block-encoding the average $(A+B)/2$]
-\label{exa:lec07-average}
-Let $U_A\in\mathrm{BE}_{1,a}(A)$ and $U_B\in\mathrm{BE}_{1,a}(B)$ be two exact
-block encodings with the same flag register ($\norm{A},\norm{B}\le1$). Take
-$M=2$, $m=1$, weights $c_0=c_1=\tfrac12$, so $\gamma=\sum_j c_j\alpha_j=\tfrac12+
-\tfrac12=1$ and the prepared state is
-$\mathrm{PREP}\ket0=\tfrac{1}{\sqrt2}(\ket0+\ket1)$, i.e.\ $\mathrm{PREP}=\Hgate$.
-With $\mathrm{SEL}=\proj0\otimes U_A+\proj1\otimes U_B$, the circuit
-$W=(\Hgate\otimes\id)\,\mathrm{SEL}\,(\Hgate\otimes\id)$ satisfies
-\[
-  (\bra0\bra{0^a}\otimes\id)W(\ket0\ket{0^a}\otimes\id)
-  =\tfrac12 A+\tfrac12 B=\frac{A+B}{2},
-\]
-so $W\in\mathrm{BE}_{1,\,a+1}\!\bigl(\tfrac{A+B}{2}\bigr)$. The single control qubit
-selects between the two block encodings; the average incurs \emph{no}
-subnormalization penalty ($\gamma=1$) because the weights already sum to one. Had we
-instead block-encoded $A+B$ (weights $1,1$) the subnormalization would be
-$\gamma=2$, reflecting that $\norm{A+B}$ can be as large as $2$.
-\end{example}
+\begin{remark}[Convex weights incur no subnormalization]
+\label{rem:lec07-average}
+When the weights form a convex combination the subnormalization penalty vanishes: for
+the average $\tfrac12(A+B)$ of two exact encodings one takes $M=2$,
+$\mathrm{PREP}=\Hgate$, and weights $c_0=c_1=\tfrac12$, so $\gamma=\sum_j c_j=1$---%
+averaging costs nothing. (\cref{exa:lec06-add} is exactly this circuit, block-encoding
+$\tfrac12(X+Z)$.) The \emph{unweighted} sum $A+B$ instead has $\gamma=2$, reflecting
+that $\norm{A+B}$ can reach $\norm A+\norm B$. In general $\gamma=\norm{c}_1$ is the
+overhead that \cref{sec:lec07-5} analyzes.
+\end{remark}
 
 \subsection*{Vector addition}
 
-The same circuit adds \emph{vectors} when the $U_j$ are state-preparation oracles
-rather than block encodings. If $O_j\ket{0^n}=\ket{u_j}$ prepares the (normalized)
-$j$-th vector (\cref{def:lec06-sp}) and we wish to prepare the superposition
-$\sum_j c_j\ket{u_j}$ (with $c_j\ge0$), set $\mathrm{SEL}=\sum_j\proj{j}\otimes O_j$
-and $\mathrm{PREP}\ket{0^m}=\frac{1}{\sqrt{\norm{c}_1}}\sum_j\sqrt{c_j}\ket{j}$. Then
-$\mathrm{SEL}(\mathrm{PREP}\otimes\id)\ket{0^m}\ket{0^n}
-=\frac{1}{\sqrt{\norm{c}_1}}\sum_j\sqrt{c_j}\ket{j}\ket{u_j}$, and applying
-$\mathrm{PREP}\dg$ and post-selecting the flag $\ket{0^m}$ yields
-\begin{equation}
+The same construction adds \emph{vectors} when the selected operators are
+state-preparation oracles rather than block encodings;
+\cref{prop:lec06-vecadd,exa:lec06-vecadd} gave the two-term case
+$\ket0+\ket1\to\ket+$. For general nonnegative weights $c_j$, with
+$\mathrm{SEL}=\sum_j\proj{j}\otimes O_j$ and
+$\mathrm{PREP}\ket{0^m}=\norm{c}_1^{-1/2}\sum_j\sqrt{c_j}\ket{j}$, post-selecting the
+flag $\ket{0^m}$ leaves
+\[
   \frac{1}{\norm{c}_1}\ket{0^m}\sum_{j}c_j\ket{u_j}+\ket{\perp},
-  \label{eq:lec07-vecadd}
-\end{equation}
-so the flag is seen with probability $\norm{\sum_j c_j\ket{u_j}}^2/\norm{c}_1^2$ and
-the system then holds the (renormalized) target. This is the vector counterpart of
-\cref{prop:lec07-sum}: the ``matrix'' $U_j$ is replaced by the ``vector'' oracle
-$O_j$, and the surviving flag block is the vector sum. It is the primitive behind,
-for example, forming $\sum_k \hat f(k)\,\ee^{\ii k H}\ket{\psi}$ in Fourier-based
-matrix-function algorithms.
+\]
+seen with probability $\norm{\sum_j c_j\ket{u_j}}^2/\norm{c}_1^2$. It is the primitive
+behind, for example, forming $\sum_k \hat f(k)\,\ee^{\ii k H}\ket{\psi}$ in
+Fourier-based matrix-function algorithms---a genuinely many-term superposition for
+which the general \cref{prop:lec07-sum}, not the two-term picture of
+\cref{sec:lec06-arith}, is what is needed.
 
 \section{Block-encoding multiplication}
 \label{sec:lec07-3}
 
 Addition composed block encodings side by side, sharing the system register. To
 \emph{multiply} $A$ and $B$ we must feed the output of one into the input of the
-other. The subtlety is that the block-encoding relation only holds on the flagged
-subspace, so we cannot simply apply $U_A$ and then $U_B$ on the same flag qubits.
+other---\cref{exa:lec06-mult} did this for one concrete product (squaring
+$\tfrac12(X+Z)$); here we give the general rule, its ancilla cost, and the reason
+naive stacking fails. The subtlety is that the block-encoding relation only holds on
+the flagged subspace, so we cannot simply apply $U_A$ and then $U_B$ on the same flag
+qubits.
 
 \begin{remark}[Why naive stacking fails]
 \label{rem:lec07-naive}
