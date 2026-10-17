@@ -17,6 +17,10 @@
 *.ind
 main.pdf
 solutions.pdf
+main_zh.pdf
+
+# Chinese-edition translation scratch (intermediate chunks + glossary)
+zh/parts/
 
 # SDD scratch workspace
 .superpowers/

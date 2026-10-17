@@ -1,0 +1,26 @@
+% main_zh.tex — Chinese edition of the Quantum Scientific Computing lecture notes.
+% Build with XeLaTeX (NOT pdfLaTeX):  xelatex main_zh.tex  (run twice for refs/ToC)
+% CJK is provided by xeCJK + Fandol fonts (see preamble_zh.tex); the class is a
+% plain book (ctexbook breaks cleveref/\cref, which the notes rely on).
+\documentclass[11pt]{book}
+
+\input{preamble_zh.tex}
+
+\title{\textbf{量子科学计算}\\[0.4em]\large 讲义 · 中文版}
+\author{课程讲义}
+\date{2026--2027 学年 · 秋季学期}
+
+% As chapters are translated, add them to \includeonly and \include below.
+\includeonly{lec01_zh,lec03_zh,lec04_zh,lec05_zh}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\include{lec01_zh}
+\include{lec03_zh}
+\include{lec04_zh}
+\include{lec05_zh}
+% ... (further chapters added as translated)
+
+\end{document}

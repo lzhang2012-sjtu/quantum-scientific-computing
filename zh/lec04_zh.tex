@@ -1,0 +1,946 @@
+\chapter{量子傅里叶变换与相位估计}
+\label{ch:lec04}
+
+\begin{objectives}
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item 实现量子傅里叶变换并分析其门代价。
+  \item 作为 QFT 的一个应用，实现模整数加法（Draper 加法器）。
+  \item 在 QFT 之上构建量子相位估计。
+  \item 使用 Hadamard 检验 (Hadamard test) 估计期望值。
+  \item 分析 QPE 的精度与成功概率。
+\end{itemize}
+\end{objectives}
+
+\coverage{\S4.1--\S4.4。本学期不涉及：\S4.5（海森堡极限及迭代变体）。}
+
+量子相位估计 (phase estimation, QPE) 是量子计算的核心基元之一：它提取酉算符的一个本征值相位，由此成为 Shor 因子分解算法、\cref{ch:lec10} 的量子线性系统求解器、振幅估计以及量子计数背后的共同引擎。它跳动的心脏是\emph{量子傅里叶变换} (quantum Fourier transform, QFT)，即离散傅里叶变换的量子类比，它在 $n$ 个量子比特上只需 $\bigo(n^2)$ 个门即可实现。本讲将发展二者。我们从 Hadamard 检验开始，这是一个只用单个辅助比特的诊断工具，它读出期望值 $\braket{\psi|U|\psi}$，并且已经提供了一个初步的相位估计器。随后我们构造 QFT，证明它是酉的，推导其乘积表示及随之而来的高效线路，并数清其门数。有了 QFT 之后，我们围绕 $U$ 的受控幂与一个逆 QFT 组装标准 QPE，分析其精度及所需的辅助比特数，将它与 Kitaev 的逐比特方法作对比，最后以本征态制备的告诫以及关于海森堡极限迭代变体的说明收尾。
+
+全程我们使用 $n$ 个量子比特，记 $N=2^{n}$ 为态空间 $(\C^2)^{\otimes n}\cong\C^{N}$ 的维数，并把本原 $N$ 次单位根缩写为 $\omega\defeq\ee^{\ii 2\pi/N}$，使得 $\omega^{N}=1$。计算基态由整数 $j\in\{0,\dots,N-1\}$ 标记，我们自由地把 $j$ 与其 $n$ 位二进制串 $j_1 j_2\cdots j_n$ 等同起来，其中 $j_1$ 是最高有效位：
+\[
+  j=\sum_{l=1}^{n} j_l\, 2^{\,n-l},
+  \qquad \ket{j}=\ket{j_1}\otimes\cdots\otimes\ket{j_n}.
+\]
+
+\section{Hadamard 检验}
+\label{sec:lec04-1}
+
+在直接估计一个本征相位之前，我们先构建一个工具，它使用单个辅助比特读出酉算符 $U$ 在已知态 $\ket{\psi}$ 上的期望值 $\braket{\psi|U|\psi}$。它所服务的相位估计问题如下。
+
+\begin{definition}[相位估计问题]
+\label{def:lec04-pep}
+设 $U$ 是 $\C^{N}$ 上的酉算符，$\ket{\psi}$ 是它的一个本征向量，使得 $U\ket{\psi}=\ee^{\ii 2\pi\varphi}\ket{\psi}$，其中 $\varphi\in[0,1)$。\emph{相位估计问题}是：给定施加 $U$ 的受控幂以及制备 $\ket{\psi}$ 的能力，以高概率给出本征相位 $\varphi$ 的一个估计 $\tilde\varphi$，达到规定的加性精度 $\epsilon$，即 $\abs{\tilde\varphi-\varphi}\le\epsilon$。
+\end{definition}
+
+因为 $U$ 是酉的，每个本征值的模都为一，可写成 $\ee^{\ii 2\pi\varphi}$，其中 $\varphi\in[0,1)$；相位 $\varphi$ 恰好就是我们希望恢复的信息。人们或许希望经典地提取它：对于任何满足 $\braket{j|\psi}\neq0$ 的基态 $\ket{j}$，有 $\braket{j|U|\psi}/\braket{j|\psi}=\ee^{\ii 2\pi\varphi}$。这种逐元素相除需要读取一个未知量子态的振幅，无法高效完成，因为测量会使态坍缩。Hadamard 检验为期望值提供了一个高效的量子替代方案。
+
+\begin{definition}[Hadamard 检验]
+\label{def:lec04-hadamard}
+针对酉算符 $U$ 与态 $\ket{\psi}$ 的 \emph{Hadamard 检验}使用一个初始化为 $\ket{0}$ 的辅助比特，系统寄存器处于 $\ket{\psi}$。该线路对辅助比特施加一个 Hadamard 门 $H$，一个受控 $U$（以辅助比特为控制），再对辅助比特施加第二个 Hadamard，然后在计算基下测量辅助比特。在\emph{虚部}变体中，在受控 $U$ 与最后的 Hadamard 之间，对辅助比特施加一个相位门 $S\dg=\diag(1,-\ii)$。线路画在 \cref{fig:lec04-hadamard} 中。
+\end{definition}
+
+\begin{figure}[htbp]
+\centering
+\begin{quantikz}
+\lstick{$\ket0$}      & \gate{H} & \ctrl{1} & \gate{H} & \meter{} \\
+\lstick{$\ket{\psi}$} & \qw      & \gate{U} & \qw      & \qw
+\end{quantikz}
+\caption{（实部）Hadamard 检验：一个辅助比特，$H$--受控 $U$--$H$，然后测量，
+给出 $\Prob(0)=\tfrac12\bigl(1+\Re\braket{\psi|U|\psi}\bigr)$。在最后的 $H$ 之前对辅助比特插入 $S\dg$（虚部变体）则给出
+$\tfrac12\bigl(1+\Im\braket{\psi|U|\psi}\bigr)$。}
+\label{fig:lec04-hadamard}
+\end{figure}
+
+\begin{theorem}[Hadamard 检验]
+\label{thm:lec04-hadamard}
+在实部 Hadamard 检验中，测得辅助比特处于 $\ket{0}$ 的概率为
+\[
+  p(0)=\tfrac12\bigl(1+\Re\braket{\psi|U|\psi}\bigr).
+\]
+在虚部变体中（插入了 $S\dg$ 门），它是
+\[
+  p(0)=\tfrac12\bigl(1+\Im\braket{\psi|U|\psi}\bigr).
+\]
+\end{theorem}
+
+\begin{proof}
+从 $\ket{0}\otimes\ket{\psi}$ 出发。第一个 Hadamard 产生
+$\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})\otimes\ket{\psi}$。受控 $U$ 恰在辅助比特为 $\ket{1}$ 时对系统施加
+$U$，给出
+$\tfrac{1}{\sqrt2}(\ket{0}\otimes\ket{\psi}+\ket{1}\otimes U\ket{\psi})$。第二个 Hadamard 把 $\ket{0}\mapsto\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})$ 且
+$\ket{1}\mapsto\tfrac{1}{\sqrt2}(\ket{0}-\ket{1})$，于是输出中辅助比特为 $\ket{0}$ 的分支是 $\tfrac12(\ket{\psi}+U\ket{\psi})$。因此
+\[
+  p(0)=\Bigl\|\tfrac12(\ket{\psi}+U\ket{\psi})\Bigr\|^{2}
+      =\tfrac14\bigl(2+\braket{\psi|U|\psi}+\braket{\psi|U\dg|\psi}\bigr)
+      =\tfrac12\bigl(1+\Re\braket{\psi|U|\psi}\bigr),
+\]
+这里用到 $\braket{\psi|U\dg|\psi}=\overline{\braket{\psi|U|\psi}}$，故两个交叉项之和为 $2\Re\braket{\psi|U|\psi}$。对于虚部变体，插入 $S\dg$ 在最后的 Hadamard 之前把 $\ket{1}$ 分支乘以 $-\ii$；辅助比特为 $\ket{0}$ 的分支变为 $\tfrac12(\ket{\psi}-\ii\,U\ket{\psi})$，且
+\[
+  p(0)=\tfrac14\bigl(2+\ii\braket{\psi|U|\psi}-\ii\braket{\psi|U\dg|\psi}\bigr)
+      =\tfrac12\bigl(1+\Im\braket{\psi|U|\psi}\bigr),
+\]
+因为 $\ii(\braket{\psi|U|\psi}-\overline{\braket{\psi|U|\psi}})
+=\ii\cdot 2\ii\,\Im\braket{\psi|U|\psi}=-2\,\Im\braket{\psi|U|\psi}$，而追踪交叉项的整体符号即给出所述的 $+\Im$ 结果。
+\end{proof}
+
+运行这两个线路并把两个估计合并，即可恢复完整的复数
+$\braket{\psi|U|\psi}=\Re\braket{\psi|U|\psi}+\ii\,\Im\braket{\psi|U|\psi}$。
+每个概率都落在 $[0,1]$ 内，因为 $\braket{\psi|U|\psi}$ 的实部与虚部都落在 $[-1,1]$ 内。
+
+\begin{remark}[交换检验作为特例]
+\label{rem:lec04-swap}
+令``系统''由分别持有 $\ket{\phi}$ 与 $\ket{\psi}$ 的两个寄存器构成，并令 $U$ 为交换它们的交换算符。则
+$\braket{\phi,\psi|\mathrm{SWAP}|\phi,\psi}=\braket{\phi|\psi}\braket{\psi|\phi}
+=\abs{\braket{\phi|\psi}}^{2}$，它是实的，故实部 Hadamard 检验给出
+$p(0)=\tfrac12(1+\abs{\braket{\phi|\psi}}^{2})$。这正是用于估计两个态之交叠的著名\emph{交换检验} (swap test)。
+\end{remark}
+
+\paragraph{一个初步的相位估计器。}
+Hadamard 检验已经给出一个初步的相位估计器。将 \cref{thm:lec04-hadamard} 应用于本征关系
+$\braket{\psi|U|\psi}=\ee^{\ii 2\pi\varphi}$，实部检验给出（以 $p(1)$ 记结果 $\ket{1}$）$p(1)=\tfrac12(1-\cos 2\pi\varphi)$，由此
+$\varphi=\pm\arccos(1-2p(1))/(2\pi)\pmod 1$。因为 $\cos$ 是偶函数，仅凭实部检验无法区分 $\varphi$ 与 $1-\varphi$；虚部变体给出 $p(1)=\tfrac12(1-\sin 2\pi\varphi)$，而 $\sin 2\pi\varphi$ 的符号决定了 $[0,1)$ 的哪一半包含 $\varphi$。这个估计器只通过概率 $p(1)$ 来获知 $\varphi$，而 $p(1)$ 必须通过重复采样来估计。要把 $\varphi$ 分辨到加性误差 $\epsilon$，需要经验频率精确到 $\bigo(\epsilon)$，而由伯努利均值的方差，这需要 $\bigo(1/\epsilon^{2})$ 次重复。这个平方代价是只使用 $U$ 本身的代价；下文基于 QFT 的方法通过访问 $U$ 的更高次幂把它降到 $\bigo(1/\epsilon)$。
+
+\section{量子傅里叶变换}
+\label{sec:lec04-2}
+
+QFT 是经典离散傅里叶变换 (discrete Fourier transform, DFT) 的量子类比。它位于 QPE 与 Shor 因子分解算法的核心。
+
+\begin{definition}[量子傅里叶变换]
+\label{def:lec04-qft}
+设 $N=2^{n}$，$\omega=\ee^{\ii 2\pi/N}$。\emph{量子傅里叶变换}是 $\C^{N}$ 上的线性算符 $\QFT$，它在计算基态上作用为
+\[
+  \QFT\ket{j}=\frac{1}{\sqrt N}\sum_{k=0}^{N-1}\ee^{\ii 2\pi jk/N}\ket{k}
+             =\frac{1}{\sqrt N}\sum_{k=0}^{N-1}\omega^{jk}\ket{k},
+  \qquad j=0,1,\dots,N-1.
+\]
+等价地，在计算基下 $\QFT$ 是具有元素 $(\QFT)_{kj}=N^{-1/2}\omega^{jk}$ 的 $N\times N$ 矩阵，即 $\omega$ 幂次的一个归一化范德蒙德矩阵。
+\end{definition}
+
+由线性性，若 $\ket{\psi}=\sum_j x_j\ket{j}$，则 $\QFT\ket{\psi}=\sum_k
+y_k\ket{k}$，其中 $y_k=N^{-1/2}\sum_j\omega^{jk}x_j$，恰为振幅向量的经典 DFT。要点在于：输入是单个基态 $\ket{j}$，而输出是全部 $N$ 个基态的\emph{等幅值}叠加；整数 $j$ 完全编码在相对相位 $\omega^{jk}$ 之中。对 $j=0$，每个相位都是 $1$，故 $\QFT\ket{0}=N^{-1/2}\sum_k\ket{k}
+=H^{\otimes n}\ket{0}^{\otimes n}$：对全零输入，QFT 只是一层 Hadamard。
+
+
+我们先在两个最小的情形中显式计算该变换；它的一般性质——酉性、乘积（张量）形式以及高效线路——随后将接踵而至，并在这些例子中见其运作。
+
+\begin{example}[$n=2$ 的 QFT，完整演算]
+\label{ex-l4:n2}
+取 $n=2$，故 $N=4$ 且 $\omega=\ee^{\ii 2\pi/4}=\ii$。定义
+$\QFT\ket{j}=\tfrac12\sum_{k=0}^{3}\ii^{\,jk}\ket{k}$ 即矩阵
+\[
+  \QFT_4=\frac12\begin{pmatrix}
+    1 & 1 & 1 & 1\\
+    1 & \ii & -1 & -\ii\\
+    1 & -1 & 1 & -1\\
+    1 & -\ii & -1 & \ii
+  \end{pmatrix},
+\]
+其各列为 $\QFT\ket{0},\dots,\QFT\ket{3}$。把标号写成二进制
+（$\ket0=\ket{00},\ \ket1=\ket{01},\ \ket2=\ket{10},\ \ket3=\ket{11}$）并把每一列分解为（左比特）\,$\otimes$\,（右比特）：
+\[
+\begin{aligned}
+  \QFT\ket{00}&=\tfrac12(\ket{00}+\ket{01}+\ket{10}+\ket{11})
+    &&=\tfrac1{\sqrt2}(\ket0+\ket1)\otimes\tfrac1{\sqrt2}(\ket0+\ket1),\\
+  \QFT\ket{01}&=\tfrac12(\ket{00}+\ii\ket{01}-\ket{10}-\ii\ket{11})
+    &&=\tfrac1{\sqrt2}(\ket0-\ket1)\otimes\tfrac1{\sqrt2}(\ket0+\ii\ket1),\\
+  \QFT\ket{10}&=\tfrac12(\ket{00}-\ket{01}+\ket{10}-\ket{11})
+    &&=\tfrac1{\sqrt2}(\ket0+\ket1)\otimes\tfrac1{\sqrt2}(\ket0-\ket1),\\
+  \QFT\ket{11}&=\tfrac12(\ket{00}-\ii\ket{01}-\ket{10}+\ii\ket{11})
+    &&=\tfrac1{\sqrt2}(\ket0-\ket1)\otimes\tfrac1{\sqrt2}(\ket0-\ii\ket1).
+\end{aligned}
+\]
+每个分解都可\emph{凭观察}读出：凡\emph{左}比特为 $\ket1$ 之处就有一个负号（故左输出因子为 $\tfrac1{\sqrt2}(\ket0\pm\ket1)$），而凡\emph{右}比特为 $\ket1$ 之处就有一个因子 $\ii$（确定了右因子）。
+
+\emph{线路。}每个输出因子都是带有额外相位的 Hadamard，故三个门即可构建 QFT：
+\begin{enumerate}[label=(\roman*),leftmargin=1.9em,itemsep=1pt,topsep=2pt]
+  \item 对比特~$1$ 施加 $H$ 产生 $\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_1}\ket1)$；
+  \item 一个受控 $R_2$（控制比特~$2$）折入下一位，把相位升级为
+        $0.j_1 j_2$——这里 $R_2=P(\pi/2)=\diag(1,\ii)$，其中 $P(\theta)=\diag(1,\ee^{\ii\theta})$；
+  \item 对比特~$2$ 施加 $H$ 产生 $\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_2}\ket1)$。
+\end{enumerate}
+这给出 $\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_1 j_2}\ket1)\otimes
+\tfrac1{\sqrt2}(\ket0+\ee^{\ii 2\pi\,0.j_2}\ket1)$——它是 QFT 乘积形式
+（\cref{thm:lec04-product}）的\emph{镜像}，即线路在最后的比特翻转 SWAP \emph{之前}的输出：
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket{j_1}$} & \gate{H} & \gate{R_2} & \qw      & \swap{1} & \qw \\
+\lstick{$\ket{j_2}$} & \qw      & \ctrl{-1}  & \gate{H} & \targX{} & \qw
+\end{quantikz}
+\end{center}
+
+\emph{交换。}对 $\ket{j_1 j_2}=\ket{01}$，这三个门给出
+$\tfrac1{\sqrt2}(\ket0+\ii\ket1)\otimes\tfrac1{\sqrt2}(\ket0-\ket1)$，而上面的表给出
+$\QFT\ket{01}=\tfrac1{\sqrt2}(\ket0-\ket1)\otimes\tfrac1{\sqrt2}(\ket0+\ii\ket1)$
+——\emph{相同的两个因子，但次序相反}。最后对两个比特作一次 SWAP 使二者相符，对每个输入亦然：线路输出的因子是比特翻转的，而 SWAP 把它撤销。（Brody，\emph{The Joy of Quantum Computing}，第 9 章，列出了这四种情形的表；完整的比特翻转记账将在下面对 $n=3$ 加以演算。）
+\end{example}
+
+\begin{example}[$n=3$ 的 QFT 与比特翻转步骤，完整版]
+\label{exa:lec04-n3}
+取 $n=3$，$N=8$，$\omega=\ee^{\ii 2\pi/8}=\ee^{\ii\pi/4}$，并用两种方式计算
+$\QFT\ket{5}$。这里 $j=5=(101)_2$，故 $j_1=1$，$j_2=0$，$j_3=1$。
+
+\emph{由定义。}\Cref{def:lec04-qft} 直接给出八个振幅
+$N^{-1/2}\omega^{5k}$。由于 $\omega^{5}=\ee^{\ii 5\pi/4}
+=(-1-\ii)/\sqrt2$，相继的幂 $\omega^{5k}$（$k=0,\dots,7$）为
+$1,\;\omega^{5},\;\omega^{10}=\omega^{2}=\ii,\;\omega^{15}=\omega^{7},\;
+\omega^{20}=\omega^{4}=-1,\;\omega^{25}=\omega,\;\omega^{30}=\omega^{6}=-\ii,\;
+\omega^{35}=\omega^{3}$，于是
+\begin{equation}
+\label{eq:lec04-n3def}
+  \QFT\ket{5}=\frac{1}{2\sqrt2}\Bigl(
+    \ket{0}-\tfrac{1+\ii}{\sqrt2}\ket{1}+\ii\ket{2}+\tfrac{1-\ii}{\sqrt2}\ket{3}
+    -\ket{4}+\tfrac{1+\ii}{\sqrt2}\ket{5}-\ii\ket{6}
+    -\tfrac{1-\ii}{\sqrt2}\ket{7}\Bigr).
+\end{equation}
+
+\emph{由线路，在其最后的 SWAP 之前。}逐比特构建，Hadamard--受控相位网络在比特 $1,2,3$ 上写入相位
+$0.j_1 j_2 j_3=0.101_2=\tfrac58$，$0.j_2 j_3=0.01_2=\tfrac14$，以及
+$0.j_3=0.1_2=\tfrac12$——它是 QFT 乘积形式 \cref{thm:lec04-product} 的\emph{镜像}。因此其 SWAP 前的输出为
+\begin{equation}
+\label{eq:lec04-n3prod}
+  \ket{\psi_{\mathrm{circ}}}=\frac{1}{\sqrt2}\bigl(\ket{0}+\ee^{\ii 2\pi\cdot 5/8}\ket{1}\bigr)
+  \otimes\frac{1}{\sqrt2}\bigl(\ket{0}+\ii\ket{1}\bigr)
+  \otimes\frac{1}{\sqrt2}\bigl(\ket{0}-\ket{1}\bigr),
+\end{equation}
+其中 $\ee^{\ii 2\pi\cdot 5/8}=\ee^{\ii 5\pi/4}=-(1+\ii)/\sqrt2$。线路逐比特地实现
+\cref{eq:lec04-n3prod}：对比特 $1$ 的一个 $H$ 写入领头相位 $0.j_1$，来自比特 $2$ 的受控 $R_2$ 与来自比特 $3$ 的受控 $R_3$ 折入位 $j_2,j_3$ 以补全 $0.j_1 j_2 j_3$；对比特 $2$ 的一个 $H$ 与来自比特 $3$ 的受控 $R_2$ 构建 $0.j_2 j_3$；对比特 $3$ 的一个 $H$ 构建 $0.j_3$：
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket{j_1}$} & \gate{H} & \gate{R_2} & \gate{R_3} & \qw      & \qw        & \qw      & \swap{2} & \qw \\
+\lstick{$\ket{j_2}$} & \qw      & \ctrl{-1}  & \qw        & \gate{H} & \gate{R_2} & \qw      & \qw      & \qw \\
+\lstick{$\ket{j_3}$} & \qw      & \qw        & \ctrl{-2}  & \qw      & \ctrl{-1}  & \gate{H} & \targX{} & \qw
+\end{quantikz}
+\end{center}
+
+\emph{比特翻转的对账。}把 \cref{eq:lec04-n3prod} 展开为基态 $\ket{k_1 k_2 k_3}$ 之和——保持张量因子的书写次序——给出以 $k_1 k_2 k_3$ 为索引的振幅，它们\emph{不}与 \cref{eq:lec04-n3def} 逐项匹配；例如乘积把因子 $-(1+\ii)/\sqrt2$ 赋给 $\ket{100}=\ket{4}$，而定义把它赋给 $\ket{001}=\ket{1}$。二者在\emph{比特翻转}
+$k_1 k_2 k_3\mapsto k_3 k_2 k_1$ 之后恰好一致，这由对比特 $1$ 与 $3$ 的最后 SWAP 实现：它交换 $\ket{1}\leftrightarrow\ket{4}$ 与
+$\ket{3}\leftrightarrow\ket{6}$（那些非回文的串），把 \cref{eq:lec04-n3prod} 恰好搬到 \cref{eq:lec04-n3def} 上。简言之，乘积表示以比特翻转的次序输出振幅，而 SWAP 层恰是撤销它的那个置换。
+
+\emph{凭观察分解（Brody 的路线）。}乘积形式也可直接从
+\cref{eq:lec04-n3def} 读出，绕过 \cref{thm:lec04-product}：每个单 $1$ 串的振幅确定一个输出比特的相对相位。$\ket{100},\ket{010},\ket{001}$ 的系数为 $-1,\ \ii,\ \ee^{\ii 5\pi/4}$，故
+\[
+  \QFT\ket{5}=\tfrac1{\sqrt2}(\ket0-\ket1)\otimes\tfrac1{\sqrt2}(\ket0+\ii\ket1)
+  \otimes\tfrac1{\sqrt2}(\ket0+\ee^{\ii 5\pi/4}\ket1),
+\]
+这就是 \cref{eq:lec04-n3prod} 把其张量因子倒置——恰为 SWAP 所执行的比特翻转。多 $1$ 的振幅则是相关单 $1$ 相位的乘积：例如 $\ket{011}$ 的系数为
+$\ee^{\ii\pi/2}\cdot\ee^{\ii 5\pi/4}=\ee^{\ii 7\pi/4}$，与 \cref{eq:lec04-n3def} 相符——一个快速的一致性检查（Brody，\emph{The Joy of Quantum Computing}，第 9 章）。
+\end{example}
+
+\begin{remark}[与 DFT 相同的核，但没有免费午餐]
+\label{rem:lec04-dft}
+核 $N^{-1/2}\ee^{\ii 2\pi jk/N}$ 与对称归一化的经典 DFT 之核完全相同；QFT 把它\emph{在叠加中}作用于一个 $n$ 比特态的 $2^{n}$ 个振幅。人们很想由此断定傅里叶分析获得了指数加速，但变换之后我们只以振幅形式持有系数 $y_k$，而一次测量以概率 $\abs{y_k}^2$ 返回单个基态 $\ket{k}$。我们无法读出全部 $N$ 个振幅；要把它们估计到良好精度将需要指数多次重复。QFT 的威力是\emph{结构性}的：嵌入到一个更大的算法（相位估计、周期查找）之中，它把隐藏在相位里的信息转化为测量统计，使得少数几次测量即足矣。下面的线路使用 $\bigo(n^2)=\bigo((\log N)^2)$ 个门，相比之下经典 FFT 需 $\bigo(N\log N)$ 次运算，而朴素 DFT 需 $\bigo(N^2)$。
+\end{remark}
+
+\subsection*{酉性}
+
+因为 QFT 是作为量子线路实现的，它必定是酉的。证明的引擎是下面这个初等恒等式。
+
+\begin{lemma}[几何级数恒等式]
+\label{lem:lec04-geom}
+设 $N\ge1$ 且 $m\in\Z$。则
+\[
+  \sum_{k=0}^{N-1}\ee^{\ii 2\pi mk/N}=N\,[\,m\equiv 0\bmod N\,],
+\]
+其中当 $m\equiv0\pmod N$ 时方括号为 $1$，否则为 $0$。特别地，对 $m=j-j'$（$j,j'\in\{0,\dots,N-1\}$）我们有
+$\sum_{k=0}^{N-1}\ee^{\ii 2\pi(j-j')k/N}=N\,\delta_{j,j'}$。
+\end{lemma}
+
+\begin{proof}
+记 $r=\ee^{\ii 2\pi m/N}$，于是该和为几何级数
+$\sum_{k=0}^{N-1}r^{k}$。若 $m\equiv0\pmod N$，则 $r=1$ 且每项都是 $1$，给出 $N$。否则 $r\neq1$ 且
+$\sum_{k=0}^{N-1}r^{k}=(r^{N}-1)/(r-1)=(\ee^{\ii 2\pi m}-1)/(r-1)=0$，因为对整数 $m$ 有
+$r^{N}=\ee^{\ii 2\pi m}=1$，而分母非零。对于最后的陈述，若 $\abs{j-j'}<N$，则 $j-j'\equiv0\pmod N$ 迫使 $j=j'$。
+\end{proof}
+
+\begin{theorem}[QFT 是酉的]
+\label{thm:lec04-unitary}
+\cref{def:lec04-qft} 的算符满足 $\QFT\dg\QFT=\id$，故 $\QFT$ 是酉的。
+\end{theorem}
+
+\begin{proof}
+伴随算符的元素为 $(\QFT\dg)_{jk}=\overline{(\QFT)_{kj}}
+=N^{-1/2}\omega^{-jk}$。插入关于
+$\{\ket{k}\}$ 的恒等分解，
+\[
+  \braket{j'|\QFT\dg\QFT|j}
+   =\sum_{k=0}^{N-1}\overline{(\QFT)_{kj'}}\,(\QFT)_{kj}
+   =\frac{1}{N}\sum_{k=0}^{N-1}\omega^{(j-j')k}
+   =\frac{1}{N}\,N\,\delta_{j,j'}=\delta_{j,j'},
+\]
+由 \cref{lem:lec04-geom}。当 $j,j'$ 遍历基时，这说明
+$\QFT\dg\QFT=\id$，故 $\QFT$ 是酉的。
+\end{proof}
+
+既然 $\QFT$ 是酉的，$\QFT^{-1}=\QFT\dg$ 作用为
+$\QFT\dg\ket{j}=N^{-1/2}\sum_k\omega^{-jk}\ket{k}$，与 $\QFT$ 仅差在把每个相位取共轭；逆线路通过倒转门的次序并把每个相位角取负而得到。
+
+\subsection*{乘积表示}
+
+为了构建线路，我们逐比特地表达 $\QFT\ket{j}$。我们使用二进制分数
+$0.j_l j_{l+1}\cdots j_n\defeq\sum_{s=l}^{n} j_s 2^{-(s-l+1)}$；注意
+$0.j_n=j_n/2$ 且 $0.j_1\cdots j_n=j/N$。
+
+\begin{theorem}[乘积表示]
+\label{thm:lec04-product}
+对每个 $j=j_1 j_2\cdots j_n$（二进制），
+\[
+  \QFT\ket{j}
+   =\bigotimes_{l=1}^{n}
+     \frac{1}{\sqrt2}\Bigl(\ket{0}+\ee^{\ii 2\pi\,0.j_{n-l+1}\cdots j_n}\ket{1}\Bigr)
+   =\frac{1}{2^{n/2}}
+     \bigl(\ket{0}+\ee^{\ii 2\pi\,0.j_n}\ket{1}\bigr)\otimes\cdots\otimes
+     \bigl(\ket{0}+\ee^{\ii 2\pi\,0.j_1\cdots j_n}\ket{1}\bigr).
+\]
+也就是说，输出比特~$l$ 携带二进制分数相位 $0.j_{n-l+1}\cdots j_n$：
+\emph{第一个}输出比特携带最短的分数 $0.j_n$，而\emph{最后一个}携带完整的 $0.j_1\cdots j_n$。特别地，$n$ 个输出比特是无纠缠的。（\cref{thm:lec04-count} 的 Hadamard--受控相位线路自然地以\emph{相反}的比特次序产生这些因子——比特 $l$ 携带 $0.j_l\cdots j_n$——故最后一层 SWAP 门，\emph{比特翻转}，倒转寄存器以实现 $\QFT$。）
+\end{theorem}
+
+\begin{proof}
+把求和索引 $k=k_1\cdots k_n$ 展开为二进制，$k=\sum_l k_l 2^{\,n-l}$。
+指数因子化，因为和的指数是积：
+\[
+  \ee^{\ii 2\pi j(\sum_l k_l 2^{n-l})/2^{n}}
+   =\prod_{l=1}^{n}\ee^{\ii 2\pi j k_l 2^{n-l}/2^{n}}
+   =\prod_{l=1}^{n}\ee^{\ii 2\pi j k_l/2^{\,l}}.
+\]
+把它代入 QFT 的定义，并把基右矢写成二进制，
+$\ket{k}=\ket{k_1}\otimes\cdots\otimes\ket{k_n}$。每个被加项变成 $n$ 个因子的乘积，其第 $l$ 个因子只依赖单个位 $k_l$；对全部 $2^{n}$ 个串 $k$ 的那一个和因此展开为 $n$ 个独立的位和，并分配到张量积上（``积之和即和之积''）：
+\[
+\begin{aligned}
+  \QFT\ket{j}
+   &=\frac{1}{\sqrt N}\sum_{k=0}^{N-1}\ee^{\ii 2\pi jk/N}\ket{k}
+    =\frac{1}{\sqrt N}\sum_{k_1=0}^{1}\!\cdots\!\sum_{k_n=0}^{1}
+       \Bigl(\prod_{l=1}^{n}\ee^{\ii 2\pi j k_l/2^{\,l}}\Bigr)
+       \ket{k_1}\otimes\cdots\otimes\ket{k_n}\\[2pt]
+   &=\frac{1}{\sqrt N}\sum_{k_1=0}^{1}\!\cdots\!\sum_{k_n=0}^{1}\;
+       \bigotimes_{l=1}^{n}\ee^{\ii 2\pi j k_l/2^{\,l}}\ket{k_l}
+    =\frac{1}{\sqrt N}\bigotimes_{l=1}^{n}
+       \Bigl(\sum_{k_l=0}^{1}\ee^{\ii 2\pi j k_l/2^{\,l}}\ket{k_l}\Bigr)\\[2pt]
+   &=\frac{1}{\sqrt N}\bigotimes_{l=1}^{n}
+       \Bigl(\ket{0}+\ee^{\ii 2\pi j/2^{\,l}}\ket{1}\Bigr).
+\end{aligned}
+\]
+第一行是把上面的因子化重新分组，使因子 $l$ 携带右矢 $\ket{k_l}$；第二行是分配律，把每个独立的位和 $\sum_{k_l}$ 拉入它自己的张量槽；最后一行对 $k_l\in\{0,1\}$ 的每个两项和求值（$k_l=0$ 项是 $\ket{0}$，$k_l=1$ 项是
+$\ee^{\ii 2\pi j/2^{\,l}}\ket{1}$）。
+为简化 $\ee^{\ii 2\pi j/2^{l}}$，把 $j/2^{l}=\sum_{s}j_s 2^{\,n-s-l}$ 写出并拆分为满足 $n-s\ge l$ 的项（一个非负整数，贡献
+$\ee^{\ii 2\pi(\text{整数})}=1$）与满足 $n-s<l$ 的项，即
+$s=n-l+1,\dots,n$，它们给出 $0.j_{n-l+1}\cdots j_n$。于是
+$\ee^{\ii 2\pi j/2^{l}}=\ee^{\ii 2\pi\,0.j_{n-l+1}\cdots j_n}$，而分配
+$1/\sqrt N=\prod_l 2^{-1/2}$ 给出
+$\QFT\ket{j}=\bigotimes_{l=1}^{n}\tfrac{1}{\sqrt2}(\ket{0}
++\ee^{\ii 2\pi\,0.j_{n-l+1}\cdots j_n}\ket{1})$——恰为所述形式，其中输出比特 $l$ 携带 $0.j_{n-l+1}\cdots j_n$（故比特 $1$ 携带 $0.j_n$，比特 $n$ 携带完整的 $0.j_1\cdots j_n$）。输出是张量积，因而无纠缠。
+\end{proof}
+\subsection*{线路及其门数}
+
+乘积表示提示我们可以逐个量子比特地合成 QFT，使用两类门：Hadamard 门 $H$ 与受控相位门 (controlled-phase gate)
+$R_k=\diag(1,\ee^{\ii 2\pi/2^{k}})$（于是 $R_1=Z$，$R_2=S$，$R_3=T$）。该
+构造建立在如下单量子比特恒等式之上，对 $j_m\in\{0,1\}$ 成立，
+\[
+  H\ket{j_m}=\frac{1}{\sqrt2}\bigl(\ket{0}+\ee^{\ii\pi j_m}\ket{1}\bigr)
+            =\frac{1}{\sqrt2}\bigl(\ket{0}+\ee^{\ii 2\pi\,0.j_m}\ket{1}\bigr),
+\]
+因为 $\ee^{\ii\pi j_m}=(-1)^{j_m}$ 且 $0.j_m=j_m/2$。因此一个 Hadamard 门
+产生所需相位的首项；低位比特则由受控-$R_k$ 门折叠进来，
+因为当其控制比特持有比特 $j_{m+k-1}$ 时，受控-$R_k$ 恰好施加相位
+$\ee^{\ii 2\pi j_{m+k-1}/2^{k}}$。
+完整线路依次处理量子比特 $1,2,\dots,n$：在量子比特 $m$ 上先施加 $H$，然后对
+$k=2,\dots,n-m+1$ 施加以 $m$ 为目标、$m+k-1$ 为控制的受控-$R_k$ 门。最后一
+层 SWAP 门（\emph{比特翻转}）恢复正确的量子比特顺序；一般模式画于 \cref{fig:lec04-qft} 中，
+并在上文 \cref{ex-l4:n2,exa:lec04-n3} 中针对 $n=2$ 和 $n=3$ 具体给出。
+
+\begin{figure}[htbp]
+\centering
+\begin{quantikz}
+\lstick{$\ket{j_1}$} & \gate{H} & \gate{R_2} & \gate{R_3} & \ \cdots\ & \gate{R_n} & \qw      & \qw        & \qw       & \qw            & \qw \\
+\lstick{$\ket{j_2}$} & \qw      & \ctrl{-1}  & \qw        & \qw       & \qw        & \gate{H} & \gate{R_2} & \ \cdots\ & \gate{R_{n-1}} & \qw \\
+\lstick{$\ket{j_3}$} & \qw      & \qw        & \ctrl{-2}  & \qw       & \qw        & \qw      & \ctrl{-1}  & \qw       & \qw            & \qw \\
+\lstick{$\vdots$}    & \qw      & \qw        & \qw        & \qw       & \qw        & \qw      & \qw        & \qw       & \qw            & \qw \\
+\lstick{$\ket{j_n}$} & \qw      & \qw        & \qw        & \qw       & \ctrl{-4}  & \qw      & \qw        & \qw       & \ctrl{-3}      & \gate{H}
+\end{quantikz}
+\caption{$n$ 个量子比特上的量子傅里叶变换。量子比特 $m$ 先接受一个 Hadamard 门，
+随后接受来自其下方各量子比特的受控相位旋转 $R_k=\diag(1,\ee^{\ii 2\pi/2^{k}})$，
+将低位比特折叠进它的相位。最后一层 SWAP 门（比特翻转，此处略去）翻转量子比特顺序。
+门数为 $n$ 个 Hadamard、$\binom{n}{2}$ 个受控相位门与 $\lfloor n/2\rfloor$ 个 SWAP 门——共 $\bigo(n^2)$ 个门
+（\cref{thm:lec04-count}）。}
+\label{fig:lec04-qft}
+\end{figure}
+\begin{theorem}[QFT 的门复杂度]
+\label{thm:lec04-count}
+该线路实现 $n$ 个量子比特上的 QFT，恰好使用 $n$ 个 Hadamard 门、
+$\binom{n}{2}=n(n-1)/2$ 个受控相位门与至多 $\lfloor n/2\rfloor$ 个
+SWAP 门，总计 $n+n(n-1)/2+\lfloor n/2\rfloor=\bigo(n^{2})$ 个基本
+门。由于 $n=\log_2 N$，这是 $\bigo((\log N)^2)$，关于 $N$ 为多重对数级。
+\end{theorem}
+
+\begin{proof}
+在量子比特 $m$ 上我们施加一个 Hadamard 门，总共 $n$ 个。此后我们用
+受控-$R_2,\dots,R_{n-m+1}$ 将比特 $j_{m+1},\dots,j_n$ 折叠进来，即在量子比特 $m$ 上
+施加 $n-m$ 个受控相位门。求和得
+$\sum_{m=1}^{n}(n-m)=n(n-1)/2=\binom{n}{2}$。最后，比特翻转对
+$m=1,\dots,\lfloor n/2\rfloor$ 交换量子比特 $m$ 与 $n-m+1$，使用 $\lfloor n/2\rfloor$ 个
+SWAP 门。将这三项相加即得所断言的结论。
+\end{proof}
+
+\begin{remark}[近似 QFT]
+\label{rem:lec04-approx}
+受控-$R_k$ 门施加的相位 $\ee^{\ii 2\pi/2^{k}}$ 关于 $k$ 呈指数级地
+小；舍弃所有 $k>k_{\max}=\bigo(\log(n/\varepsilon))$ 的门即得 \emph{近似 QFT (approximate QFT)}，
+在算子范数下误差不超过 $\varepsilon$，而仅使用
+$\bigo(n\log(n/\varepsilon))$ 个门。无论哪种方式，门数都远低于
+经典 FFT 的 $\bigo(N\log N)$，不过（\cref{rem:lec04-dft}）这本身并不
+构成一个端到端的加速。
+\end{remark}
+
+\subsection*{应用：傅里叶基中的加法（Draper 加法器）}
+\label{sec:lec04-qftadder}
+
+QFT 不仅是相位估计的引擎；它还把整数
+\emph{加法}变成单量子比特相位旋转的乘积。设目标
+寄存器为持有 $j\in\{0,\dots,N-1\}$ 的 $n$ 个量子比特，并固定一个经典
+常数 $a$。我们寻求\emph{常数加法器}
+\[
+  \mathrm{ADD}_a:\ket{j}\longmapsto\ket{(j+a)\bmod N}.
+\]
+由于 QFT 对角化循环移位——\cref{ex:lec04-5} 是 $a=1$ 的情形，
+即 $\mathrm{ADD}_1\ket{j}=\ket{(j+1)\bmod N}$——算子
+$\mathrm{ADD}_a$ 在傅里叶基 (Fourier basis) 中是对角的，而下面的恒等式
+将这一点明确表示出来。
+
+\begin{proposition}[加法作为傅里叶基中的相位]
+\label{prop:lec04-draper}
+设 $\omega=\ee^{\ii 2\pi/N}$ 且对角酉算符
+$\Phi_a\defeq\diag\bigl(\omega^{ak}\bigr)_{k=0}^{N-1}$，则
+\[
+  \mathrm{ADD}_a=\QFT\dg\,\Phi_a\,\QFT,
+  \qquad\text{等价地}\qquad
+  \QFT\,\ket{(j+a)\bmod N}=\Phi_a\,\QFT\ket{j}.
+\]
+此外 $\Phi_a$ 分解为单量子比特相位门：在量子比特 $l$ 上
+（比特值 $k_l$，最高位在前）它作用为
+$P_l^{(a)}=\diag\bigl(1,\ee^{\ii 2\pi a\,2^{\,n-l}/N}\bigr)$，故
+$\Phi_a=\bigotimes_{l=1}^{n}P_l^{(a)}$。
+\end{proposition}
+
+\begin{proof}
+利用 $\QFT\ket{j}=N^{-1/2}\sum_k\omega^{jk}\ket{k}$ 与
+$\QFT\dg\ket{k}=N^{-1/2}\sum_m\omega^{-km}\ket{m}$，
+\[
+  \QFT\dg\Phi_a\QFT\ket{j}
+   =\frac1N\sum_{m}\Bigl(\sum_{k}\omega^{k(j+a-m)}\Bigr)\ket{m}
+   =\sum_m\delta_{m,\,(j+a)\bmod N}\,\ket{m}
+   =\ket{(j+a)\bmod N},
+\]
+因为内层几何级数当 $m\equiv j+a\pmod N$ 时恰好等于 $N$，否则为零
+（\cref{lem:lec04-geom}）。对于该分解，写
+$k=\sum_{l=1}^n k_l\,2^{\,n-l}$；则
+$\omega^{ak}=\prod_l\bigl(\ee^{\ii 2\pi a2^{\,n-l}/N}\bigr)^{k_l}$，这恰好
+是 $\bigotimes_l P_l^{(a)}$ 作用在 $\ket{k_1\cdots k_n}$ 上。
+\end{proof}
+
+因此该线路出奇地简单：\emph{施加 QFT，施加 $n$ 个
+单量子比特相位门，再施加逆 QFT}。加一个经典常数的
+代价是两次 QFT——$\bigo(n^2)$ 个门，或用 \cref{rem:lec04-approx} 的
+近似 QFT 为 $\bigo(n\log(n/\varepsilon))$——外加 $n$ 个单量子比特旋转，而且，
+值得注意的是，\emph{中间没有任何纠缠门}。这就是 Draper 加法器。
+
+要把一个\emph{量子}寄存器加到另一个上，即
+$\ket{a}\ket{j}\mapsto\ket{a}\ket{(j+a)\bmod N}$，把每个中间相位
+$P_l^{(a)}$ 提升为由第一个寄存器的量子比特\emph{控制}的相位：
+写 $a=\sum_r a_r 2^{\,n-r}$，相位 $\ee^{\ii 2\pi a2^{\,n-l}/N}$ 由各 $a_r$
+用受控-$R_k$ 门逐比特构建，恰好是 QFT 本身的那一类门。双寄存器加法器
+于是在这对 QFT 之间使用 $\bigo(n^2)$ 个受控相位
+门，且无需\emph{进位辅助比特}——这与行波进位加法器 (ripple-carry adder) 形成对比，后者
+通过 Toffoli 门传播进位，并需要一个
+额外的寄存器。
+
+\begin{remark}[从加法器到循环矩阵：通往 \cref{ch:lec07} 的桥梁]
+\label{rem:lec04-adder-lcu}
+常数加法器是循环移位的幂，$\mathrm{ADD}_a=V^{a}$，
+其中 $V=\mathrm{ADD}_1$，而 \cref{prop:lec04-draper} 表明它们
+被 QFT 同时对角化，本征值为 $\omega^{ak}$。任何
+\emph{循环 (circulant)} 矩阵都是这些移位的线性组合，
+$C=\sum_{a}c_a V^{a}$，因此被 QFT 对角化，
+$C=\QFT\dg\,\diag\bigl(\textstyle\sum_a c_a\omega^{ak}\bigr)_{k}\,\QFT$。
+将求和限制在少数几个小 $|a|$ 上即得一个\emph{带状}算子，例如
+有限差分拉普拉斯算子。这在后文中两度重现：线性
+组合 $\sum_a c_a(\cdot)$ 正是 \cref{ch:lec07} 的 LCU 块编码计算在算子
+层面所实现的——其中每个移位 $V^a$ 由此处构建的加法器
+提供——而 QFT 对角化则是 \cref{ch:lec13} 中此类算子哈密顿量模拟
+背后的主力。因此量子加法器是组装循环与
+有限差分块编码所用的基本酉算符。
+\end{remark}
+
+\subsection*{应用：揭示周期性（通向周期查找）}
+\label{sec:lec04-period}
+
+经典傅里叶变换把信号变成它的\emph{频率}；QFT 对
+量子态的振幅做同样的事，而这正是驱动
+Shor 算法的性质。假设 $\ket{\psi}=\sum_x a_x\ket{x}$ 的振幅以周期
+$r\mid N$ \emph{周期性}变化——仅在等间距梳状序列
+$x\in\{x_0,\,x_0+r,\,x_0+2r,\dots\}$ 上非零，共 $N/r$ 个等高尖峰。那么，由证明酉性时所用的同一几何
+级数，QFT 仅支撑在 $N/r$ 的倍数上：
+\[
+  \QFT\Big(\sqrt{\tfrac{r}{N}}\sum_{m=0}^{N/r-1}\ket{x_0+mr}\Big)
+  =\frac{1}{\sqrt{r}}\sum_{\ell=0}^{r-1}\ee^{\ii 2\pi \ell x_0/r}\,\Big|\,\ell\,\tfrac{N}{r}\,\Big\rangle .
+\]
+计算基中间距为 $r$ 的梳状序列，变换后成为间距为 $N/r$ 的
+梳状序列；偏移 $x_0$ 藏在相位 $\ee^{\ii 2\pi\ell x_0/r}$ 中，而
+计算基测量看不到它。因此测量返回 $N/r$ 的一个倍数，
+由此可读出周期 $r$——这就是周期查找 (period finding) 的核心。
+
+\begin{example}[从 QFT 读出周期]
+\label{ex:lec04-period}
+取 $n=3$（$N=8$）与 $\ket{\psi}=\tfrac1{\sqrt2}(\ket{0}+\ket{4})$，其振幅
+序列 $\tfrac1{\sqrt2},0,0,0,\tfrac1{\sqrt2},0,0,0$ 以周期 $r=4$ 重复。由于
+$\QFT\ket{4}=\tfrac1{\sqrt8}\sum_k\ee^{\ii\pi k}\ket{k}=\tfrac1{\sqrt8}\sum_k(-1)^k\ket{k}$，
+\[
+  \QFT\ket{\psi}=\tfrac1{\sqrt2}\big(\QFT\ket0+\QFT\ket4\big)
+  =\tfrac12\big(\ket0+\ket2+\ket4+\ket6\big).
+\]
+输出位于 $2=N/r$ 的倍数上，于是测量给出
+$\{0,2,4,6\}$ 之一，我们恢复出 $r=N/2=4$。对偶地，周期为 $2$ 的态
+$\tfrac12(\ket0+\ket2+\ket4+\ket6)$ 变换为位于 $4$ 的倍数上的态，给出
+$r=2$：QFT 把间距 $r$ 换成间距 $N/r$。
+\end{example}
+
+\begin{remark}[当周期不整除 $N$ 时]
+\label{rem:lec04-period}
+若 $r\nmid N$，梳状序列不再落在精确的网格点上：QFT 输出\emph{集中}
+在 $N/r$ 的倍数附近，而非恰好在其上，而周期
+由测得的值通过连分数恢复。这正是 Shor 的
+阶查找 (order finding) 情形，将在 \cref{ch:lec05} 中展开。（Brody，\emph{The Joy of Quantum
+Computing}，第 9 章，在一个小型模拟器上手工算出了这些周期例子。）
+\end{remark}
+
+\section{经由 QFT 的量子相位估计}
+\label{sec:lec04-3}
+
+\emph{目标。} 我们拿到一个酉算符 $U$ 以及它的某个本征态
+$\ket{\psi}$，$U\ket{\psi}=\lambda\ket{\psi}$，并想求本征值 $\lambda$。
+酉算符的每个本征值模均为 $1$，故对某个
+角度 $\theta$ 有 $\lambda=\ee^{\ii\theta}$。测量只返回 $0$ 和 $1$，因此与其直接追逐
+$\theta$，我们改为追逐\emph{分数}
+\begin{equation}
+  \varphi=\frac{\theta}{2\pi}\in[0,1),\qquad
+  \lambda=\ee^{\ii\theta}=\ee^{\ii 2\pi\varphi},
+  \label{eq:lec04-phasefrac}
+\end{equation}
+并以二进制记录它，$\varphi=0.\varphi_1\varphi_2\cdots=\sum_{\ell\ge1}\varphi_\ell
+2^{-\ell}$；用 $t$ 个辅助量子比特，一次测量返回 $\varphi$ 的 $t$ 个小数位。
+（这个 $\varphi$ 就是 Brody 的 $j$。对 $\ket{\psi}=\ket1$ 上的 $U=Z$，
+$\lambda=-1=\ee^{\ii\pi}$ 给出 $\varphi=\tfrac12=0.1_2$——这是一个远比
+$\theta=\pi$ 友好的目标，而且三个测得比特就能精确锁定它。）
+
+\emph{相位回踢，一个控制量子比特。} 该算法的引擎是一个单一
+动作。把一个控制量子比特置于一个受控-$U$ 上，其目标载有 $\ket{\psi}$。若
+控制为 $\ket0$ 则该门什么都不做；若为 $\ket1$ 则 $U$ 作用并
+返回 $U\ket{\psi}=\ee^{\ii 2\pi\varphi}\ket{\psi}$。由线性性，处于
+叠加态 $\tfrac1{\sqrt2}(\ket0+\ket1)$ 的控制给出
+\[
+  \text{c-}U\;\tfrac1{\sqrt2}\bigl(\ket0+\ket1\bigr)\ket{\psi}
+   =\tfrac1{\sqrt2}\bigl(\ket0+\ee^{\ii 2\pi\varphi}\ket1\bigr)\ket{\psi},
+\]
+于是本征相位被\emph{回踢}到\emph{控制}上，而 $\ket{\psi}$ 则
+原封不动地返回（\cref{lem:lec03-kickback}）。本征态充当被动
+催化剂；所有信息都落在控制的相对相位中。
+
+\emph{从一个控制量子比特到 $t$ 个。} 给 $t$ 个辅助比特中的每一个都赋予它自己的幂次：辅助比特
+$k$（$k=0,\dots,t-1$）控制 $U^{2^{k}}$。由于
+$U^{2^{k}}\ket{\psi}=\ee^{\ii 2\pi\varphi 2^{k}}\ket{\psi}$，同样的回踢把
+相位 $\ee^{\ii 2\pi\varphi 2^{k}}$ 写到辅助比特 $k$ 上——而且只需要那 $t$ 个幂次
+$U,U^{2},\dots,U^{2^{t-1}}$，而非全部 $2^{t}$ 个。将辅助比特制备为
+$H^{\otimes t}\ket{0^{t}}=2^{-t/2}\sum_{j}\ket{j}$ 并施加全部 $t$ 个受控
+幂次，使它们处于\emph{相位回踢态}
+\[
+  \frac{1}{\sqrt{2^{t}}}\sum_{j=0}^{2^{t}-1}\ee^{\ii 2\pi\varphi j}\ket{j}
+  \otimes\ket{\psi},
+\]
+其中 $\ket{\psi}$ 不变，而本征相位作为一个纯粹的``频率''$\varphi$
+散布在辅助比特的振幅中。最后一步把这个频率读出来：当 $\varphi$
+具有精确的 $t$ 位展开时，这个寄存器\emph{恰好}是
+$\QFT\ket{2^{t}\varphi}$（\cref{thm:lec04-exact}），于是一个\emph{逆} QFT 把它
+变成基态 $\ket{2^{t}\varphi}$，其比特拼写出 $\varphi$。
+
+\begin{definition}[标准 QPE]
+\label{def:lec04-qpe}
+\emph{标准量子相位估计}使用 $t$ 个辅助量子比特，分
+三步进行：
+\begin{enumerate}[leftmargin=1.6em,nosep]
+  \item \textbf{叠加：} 对辅助比特施加 $H^{\otimes t}$，系统
+        处于 $\ket{\psi}$：$\ket{0^{t}}\ket{\psi}\mapsto
+        2^{-t/2}\sum_j\ket{j}\ket{\psi}$。
+  \item \textbf{受控幂次：} 对 $k=0,\dots,t-1$，从第 $k$ 个
+        辅助比特施加受控-$U^{2^{k}}$，产生
+        $2^{-t/2}\sum_j\ee^{\ii 2\pi\varphi j}\ket{j}\ket{\psi}$。
+  \item \textbf{逆 QFT 读出：} 对辅助比特施加 $\QFT^{-1}$ 并在
+        计算基中测量它，得到 $\ket{\tilde\varphi}$。
+\end{enumerate}
+\end{definition}
+
+我们采用约定 $\QFT\ket{k}=2^{-t/2}\sum_{j}\ee^{\ii 2\pi jk/2^{t}}
+\ket{j}$，故 $\QFT^{-1}\ket{j}=2^{-t/2}\sum_k\ee^{-\ii 2\pi jk/2^{t}}\ket{k}$。
+\Cref{fig:lec04-qpe} 展示了 $t=3$ 个辅助比特的线路。
+
+\begin{figure}[htbp]
+\centering
+\begin{quantikz}
+\lstick{$\ket0$}      & \gate{H} & \ctrl{3}     & \qw          & \qw      & \gate[3]{\QFT^{-1}} & \meter{} \\
+\lstick{$\ket0$}      & \gate{H} & \qw          & \ctrl{2}     & \qw      &                     & \meter{} \\
+\lstick{$\ket0$}      & \gate{H} & \qw          & \qw          & \ctrl{1} &                     & \meter{} \\
+\lstick{$\ket{\psi}$} & \qw      & \gate{U^{4}} & \gate{U^{2}} & \gate{U} & \qw                 & \qw
+\end{quantikz}
+\caption{在本征态 $U\ket{\psi}=\ee^{\ii 2\pi\varphi}\ket{\psi}$ 上、使用 $t=3$ 个辅助比特的
+标准量子相位估计：Hadamard 门制备辅助比特，辅助比特
+$k$ 控制 $U^{2^{k}}$（把相位 $\ee^{\ii 2\pi\varphi 2^{k}}$ 回踢到它上面），一个
+逆 QFT 把振幅集中起来，而测量各辅助比特返回 $\varphi$ 的 $t$ 位
+估计 $\tilde\varphi$。本征态寄存器原封不动地返回。}
+\label{fig:lec04-qpe}
+\end{figure}
+
+\begin{theorem}[精确 QPE]
+\label{thm:lec04-exact}
+若对某个整数 $k\in\{0,\dots,2^{t}-1\}$ 有 $\varphi=k/2^{t}$，则标准 QPE
+以概率 $1$ 测得结果 $k$，故 $\tilde\varphi=k/2^{t}=\varphi$
+精确成立。
+\end{theorem}
+
+\begin{proof}
+在受控幂次之后，辅助比特处于 $2^{-t/2}\sum_j\ee^{\ii 2\pi\varphi
+j}\ket{j}$。代入 $\varphi=k/2^{t}$ 给出振幅
+$\ee^{\ii 2\pi jk/2^{t}}/\sqrt{2^{t}}$，这恰好是 $\QFT\ket{k}$。
+因此 $\QFT^{-1}(\QFT\ket{k})=\ket{k}$，而测量确定性地给出 $k$，
+且 $\tilde\varphi=k/2^{t}=\varphi$。
+\end{proof}
+
+\begin{example}[精确情形的算例，$t=3$]
+\label{ex-l4:exact}
+设 $\varphi=0.101_2=\tfrac58$，故 $k=5$ 且 $2^{t}=8$。第 2 步后辅助比特
+持有 $\tfrac{1}{\sqrt8}\sum_{j=0}^{7}\ee^{\ii 2\pi(5/8)j}\ket{j}=\QFT\ket{5}$。
+逆 QFT 返回 $\ket{5}=\ket{101}$，测量读出 $101$，即
+$\tilde\varphi=5/8=\varphi$，确定无疑——单次运行给出精确答案。
+\end{example}
+
+\begin{example}[对相位门的 QPE，端到端追踪]
+\label{exa:lec04-pgate}
+我们在一个具体的、本征相位恰为二进分数的单量子比特酉算符上
+运行标准 QPE，追踪每一个寄存器。设 $U=\diag(1,\ee^{\ii\pi/4})$ 为
+相位门（Brody 的 $P(\pi/4)$），取本征态 $\ket{\psi}=\ket{1}$，并
+使用 $t=3$ 个辅助比特。由 $U\ket{1}=\ee^{\ii\pi/4}\ket{1}=\ee^{\ii 2\pi\varphi}
+\ket{1}$ 我们读出 $\varphi=\tfrac18=0.001_2$，故预期精确结果
+$k=1$。
+
+\emph{第 1 步（叠加）。} 系统处于 $\ket{1}$，Hadamard 门造出
+$
+  \tfrac{1}{\sqrt8}\sum_{j=0}^{7}\ket{j}\otimes\ket{1}.
+$
+
+\emph{第 2 步（受控幂次）。} 三个受控操作是
+受控-$U$、受控-$U^{2}$ 与受控-$U^{4}$。由于
+$U^{2^{m}}\ket{1}=\ee^{\ii\pi 2^{m}/4}\ket{1}$，在本征态上它们可被
+更简单的门 $U=P(\pi/4)$、$U^{2}=P(\pi/2)$、$U^{4}=P(\pi)$ 替代。
+每个受控幂次把它的相位回踢到它的辅助比特上，又因为
+$\ee^{\ii 2\pi\varphi j}=\ee^{\ii\pi j/4}$，辅助比特寄存器变为
+\[
+  \frac{1}{\sqrt8}\sum_{j=0}^{7}\ee^{\ii 2\pi(1/8)j}\ket{j}\otimes\ket{1}
+  =\QFT\ket{1}\otimes\ket{1},
+\]
+这里用了 $N=8$ 的 \cref{def:lec04-qft}。对辅助比特写开，八个
+振幅为 $\tfrac{1}{\sqrt8}\ee^{\ii\pi j/4}$（$j=0,\dots,7$），即
+相位 $1,\omega,\ii,\omega^{3},-1,\omega^{5},-\ii,\omega^{7}$，其中
+$\omega=\ee^{\ii\pi/4}$。
+
+\emph{第 3 步（逆 QFT 读出）。} 因为辅助比特恰好是
+$\QFT\ket{1}$，施加 $\QFT^{-1}$ 确定性地返回 $\ket{1}=\ket{001}$。
+测量读出 $001$，故 $\tilde\varphi=0.001_2=\tfrac18$，而恢复出的
+本征值为 $\ee^{\ii 2\pi\tilde\varphi}=\ee^{\ii\pi/4}$——恰好是 $U$ 在
+$\ket{1}$ 上的相位。这是 Brody 硬件运行的无噪声理想化，
+其直方图由结果 $001$ 主导。配套情形
+$U=Z=\diag(1,-1)$ 配 $\ket{\psi}=\ket{1}$（给出 $\varphi=\tfrac12$，结果
+$100$）与 $\ket{\psi}=\ket{0}$（给出 $\varphi=0$，结果 $000$）以
+同样的方式读出，因为 $Z^{2^{m}}$ 对 $m\ge1$ 平凡地作用。
+\end{example}
+
+\begin{remark}[当本征相位非二进分数时]
+\label{rem:lec04-nondyadic}
+若我们改选一个 $\varphi=\tfrac13$（不是 $k/8$ 的形式）的酉算符，
+第 2 步仍让辅助比特处于
+$\tfrac{1}{\sqrt8}\sum_j\ee^{\ii 2\pi(1/3)j}\ket{j}$，但这不再是任何
+$\QFT\ket{k}$。逆 QFT 于是把测量散布到各能级
+$k/8$ 上，在最近的那个处达到峰值；由 \cref{sec:lec04-4} 的
+几何级数振幅计算出的精确概率，把权重 $\approx0.688$ 放在
+$k=3$（$\tfrac38$，$0.333\ldots$ 的最近三比特近似）上、
+$\approx0.175$ 放在 $k=2$ 上，其余放在另外六个结果上。因此单次
+运行以高概率——但不再是单位概率——返回最佳三比特估计，
+恰是接下来分析的那个峰状分布。
+\end{remark}
+
+\begin{remark}[从比特读出本征值；叠加的本征态]
+\label{rem:lec04-dictionary}
+具体地，一个 $t=3$ 的测量串 $b_1b_2b_3$ 读作二进制分数
+$\tilde\varphi=0.b_1b_2b_3$，而本征值为 $\lambda=\ee^{\ii 2\pi\tilde\varphi}$：
+\begin{center}
+\begin{tabular}{ccc@{\qquad}ccc}
+\toprule
+$b_1b_2b_3$ & $\tilde\varphi$ & $\lambda$ & $b_1b_2b_3$ & $\tilde\varphi$ & $\lambda$\\ \midrule
+$000$ & $0$            & $1$                 & $100$ & $\tfrac12$ & $-1$\\
+$001$ & $\tfrac18$     & $\ee^{\ii\pi/4}$    & $101$ & $\tfrac58$ & $\ee^{\ii 5\pi/4}$\\
+$010$ & $\tfrac14$     & $\ii$               & $110$ & $\tfrac34$ & $-\ii$\\
+$011$ & $\tfrac38$     & $\ee^{\ii 3\pi/4}$  & $111$ & $\tfrac78$ & $\ee^{\ii 7\pi/4}$\\ \bottomrule
+\end{tabular}
+\end{center}
+于是 QPE 把 $0/1$ 测量结果变成单位圆上的一个点（Brody，
+\emph{The Joy of Quantum Computing}，第 10 章，表 10.1）。当输入是本征态的
+\emph{叠加}而非单个本征态时，QPE 转而
+按交叠\emph{采样}各本征值——这一机制在
+\cref{sec:lec04-5} 中分析。
+\end{remark}
+\section{相位估计的分析}
+\label{sec:lec04-4}
+
+当 $\varphi$ 不是二进分数 $k/2^{t}$ 时，逆 QFT 不再产生单一的基态；测得的值集中在
+$\varphi$ 的最佳 $t$ 比特近似附近，其振幅构成一个尖峰状的几何级数求和。记
+$\tilde\varphi_k=k/2^{t}$，$T=2^{t}$。逆 QFT 之后结果 $k$ 的振幅为
+\[
+  \gamma_k=\frac{1}{T}\sum_{j=0}^{T-1}\ee^{\ii 2\pi(\varphi-\tilde\varphi_k)j}
+          =\frac{1}{T}\,
+           \frac{1-\ee^{\ii 2\pi T(\varphi-\tilde\varphi_k)}}
+                {1-\ee^{\ii 2\pi(\varphi-\tilde\varphi_k)}}.
+\]
+当 $\varphi=\tilde\varphi_k$ 时该求和叠缩为 $\gamma_k=1$；否则
+$\abs{\gamma_k}^{2}$ 在最接近 $T\varphi$ 的 $k$ 处呈现尖峰。
+
+\begin{theorem}[精度界与量子比特数]
+\label{thm:lec04-precision}
+设 $\abs{\varphi-\tilde\varphi_k}_1$ 表示 $\varphi$ 到
+$\tilde\varphi_k=k/T$ 的距离（按模 $1$ 度量，即圆周上的环绕距离）。则
+\[
+  \Prob\bigl(\abs{\varphi-\tilde\varphi_k}_1\ge\epsilon\bigr)
+  \le\frac{1}{2T\epsilon}+\frac{1}{2(T\epsilon)^{2}}.
+\]
+因此，要以至少 $1-\epsilon$ 的成功概率获得 $\varphi$ 的前 $\ell$ 个比特，取
+$t=\ell+\lceil\log_2(2+1/(2\epsilon))\rceil$ 个辅助比特即足够。
+\end{theorem}
+
+\begin{proof}[证明梗概]
+设 $b$ 为使 $b/T$ 成为 $\varphi$ 的最佳 $t$ 比特近似的整数，并令
+$\delta=\varphi-b/T$，其中 $\abs{\delta}\le 1/(2T)$。对几何级数求和并利用
+$\abs{1-\ee^{\ii\theta}}=2\abs{\sin(\theta/2)}$，对结果 $k=b+m$ 得到
+\[
+  \abs{\gamma_{b+m}}^{2}
+   =\frac{1}{T^{2}}\,
+     \frac{\sin^{2}(\pi T(\delta-m/T))}{\sin^{2}(\pi(\delta-m/T))}.
+\]
+对 $\abs{m}\ge e$，分子至多为 $1$，并利用对 $\abs{x}\le\tfrac12$ 成立的
+$\abs{\sin\pi x}\ge2\abs{x}$，分母有下界，从而
+$\abs{\gamma_{b+m}}^{2}\lesssim 1/(4(m-\tfrac12)^{2})$。对尾项
+$\sum_{\abs{m}\ge e}\abs{\gamma_{b+m}}^{2}$ 求和并与积分比较，得到一个
+$1/e$ 量级的界；将层级距离 $e$ 转换为相位距离
+$\epsilon=e/T$ 便给出首项 $1/(2T\epsilon)$，其次阶为
+$1/(2(T\epsilon)^{2})$（标准的 Nielsen--Chuang 估计）。
+至于量子比特数，分辨 $n$ 个比特需要 $\epsilon_{\mathrm{res}}=2^{-n}$；
+令 $t=n+p$ 给出 $T\epsilon_{\mathrm{res}}=2^{p}$，而要求
+$\tfrac{1}{2\cdot2^{p}}+\tfrac{1}{2\cdot2^{2p}}\le\epsilon$ 得
+$2^{p}\ge2+1/(2\epsilon)$，故 $t=n+\lceil\log_2(2+1/(2\epsilon))\rceil$。
+\end{proof}
+
+超出 $n$ 个分辨比特的那额外 $\lceil\log_2(2+1/(2\epsilon))\rceil$ 个量子比特，
+恰恰是为抑制几何级数求和的尾项所付出的开销。
+
+\subsection*{Kitaev 的逐比特方法}
+
+除完整的辅助寄存器外，另一种做法是通过 $U$ 的幂次放大相位，从而逐位读取 $\varphi$
+的二进制数字。
+
+\begin{lemma}[相位放大]
+\label{lem:lec04-amplify}
+若 $U\ket{\psi}=\ee^{\ii 2\pi\varphi}\ket{\psi}$，则
+$U^{2^{j}}\ket{\psi}=\ee^{\ii 2\pi(2^{j}\varphi)}\ket{\psi}$，因此以 $U^{2^{j}}$
+取代 $U$ 的 Hadamard 检验读出被放大的相位 $2^{j}\varphi\pmod1$。
+\end{lemma}
+
+\begin{proof}
+将本征关系作用 $2^{j}$ 次给出 $U^{2^{j}}\ket{\psi}
+=\ee^{\ii 2\pi\varphi 2^{j}}\ket{\psi}$；Hadamard 检验的概率仅通过
+$\ee^{\ii 2\pi(2^{j}\varphi)}$ 依赖于相位，而相位是按模 $1$ 定义的。
+\end{proof}
+
+设 $\varphi$ 具有精确的 $d$ 比特展开
+$\varphi=(.\varphi_{d-1}\cdots\varphi_0)_2$。由 \cref{lem:lec04-amplify}，使用
+$U^{2^{j}}$ 将二进制小数点左移 $j$ 位，故 $2^{j}\varphi
+=(.\varphi_{d-j-1}\cdots\varphi_0)_2\pmod1$。当仅剩一个小数位时
+（$j=d-1$），被放大的相位为 $0$ 或 $\tfrac12$，Hadamard 检验输出
+$p(1)\in\{0,1\}$，因此单次测量即可确定性地确定 $\varphi_0$。
+从 $j=d-1$ 向下处理到 $j=0$，并将每个被放大的相位估计到常数精度（例如
+在 $1/16$ 以内，鉴于已恢复的低位比特这足以舍入到正确的比特），经典
+后处理即可恢复全部 $d$ 个比特。
+
+\begin{remark}[深度与样本数的权衡]
+\label{rem:lec04-depth}
+主要代价是施加 $U^{2^{j}}$，它使用 $2^{j}$ 次 $U$ 的作用。
+对所需的幂次求和，
+$\bigo(\sum_{j}2^{j})=\bigo(2^{d})=\bigo(1/\epsilon)$，因为 $2^{-d}\sim\epsilon$。
+因此 Kitaev 方法通过使用\emph{更深}的线路（$U$ 的更高幂次）而非\emph{更多}的样本
+达到 $\bigo(1/\epsilon)$ 的总查询代价——比 \cref{sec:lec04-1} 的单量子比特估计器的
+$\bigo(1/\epsilon^{2})$ 整整好了一个数量级。
+\end{remark}
+
+\section{海森堡极限及其迭代变体}
+\label{sec:lec04-5}
+
+标准 QPE 假定系统寄存器持有一个真正的本征态 $\ket{\psi}$。
+实际上人们制备的是本征态的叠加。设 $U$ 具有谱分解
+$U\ket{\psi_k}=\ee^{\ii 2\pi\varphi_k}\ket{\psi_k}$，并设输入为
+$\ket{\Psi}=\sum_k c_k\ket{\psi_k}$，其中 $p_k=\abs{c_k}^2$，
+$\sum_k p_k=1$。由线性性，QPE 独立地作用于每个本征分量：辅助比特通过各自的相位
+$\varphi_k$ 与每个 $\ket{\psi_k}$ 关联。因此测量辅助比特以概率 $p_k$ 给出某个本征相位
+$\varphi_k$ 的估计，同时系统坍缩到对应的 $\ket{\psi_k}$：
+\begin{equation}
+\label{eq:lec04-collapse}
+  \ket{\Psi}\ \xrightarrow{\ \mathrm{QPE}\ }\
+  \bigl(\tilde\varphi_k,\,\ket{\psi_k}\bigr)\quad\text{以概率 }p_k.
+\end{equation}
+
+\begin{remark}[目标选取与应用]
+\label{rem:lec04-target}
+为了确信能获得某个特定的目标相位 $\varphi_0$，人们利用先验知识——例如
+已知 $\varphi_0\in(a,b)$ 而所有其他 $\varphi_i>b$——
+并要么对测得的区间进行后选，要么确保交叠
+$\abs{c_0}^2$ 足够大。正是这种本征态叠加的行为使 QPE 在下游应用中十分有用：
+在 Shor 算法中，输入是模乘算符本征态上的易于制备的叠加，QPE
+返回一个随机本征相位，再由连分数从中提取阶；在 \cref{ch:lec10} 的量子线性系统求解器中，
+输入 $\ket{b}$ 是矩阵 $A$ 本征向量的叠加，QPE 将每个本征值写入辅助比特，
+从而受控旋转可实现 $\lambda\mapsto1/\lambda$。
+\end{remark}
+
+\begin{example}[阶查找：一个易于制备的本征态叠加]
+\label{exa:lec04-order}
+本征态叠加机制正是驱动 Shor 算法阶查找核心的东西。取四量子比特上的模乘酉算符
+$U\ket{J}=\ket{4J\bmod 15}$，于是 $U\ket{1}=\ket{4}$ 且
+$U\ket{4}=\ket{16\bmod 15}=\ket{1}$；在二维不变子空间
+$\mathrm{span}\{\ket{1},\ket{4}\}$ 上，算符 $U$ 交换这两个基向量。
+其本征向量为 $\ket{u_s}=\tfrac{1}{\sqrt2}(\ket{1}+(-1)^{s}\ket{4})$，$s\in\{0,1\}$，
+满足 $U\ket{u_s}=(-1)^{s}\ket{u_s}=\ee^{\ii 2\pi(s/2)}\ket{u_s}$，
+故本征相位为 $\varphi_s=s/2\in\{0,\tfrac12\}$；此处阶为
+$r=2$。制备一个真正的本征态需要事先知道 $r$，但平凡制备的计算基态 $\ket{1}$
+已经分解为一个等权叠加，
+\[
+  \ket{1}=\tfrac{1}{\sqrt2}\ket{u_0}+\tfrac{1}{\sqrt2}\ket{u_1},
+  \qquad p_0=p_1=\tfrac12.
+\]
+因此在系统寄存器中以 $\ket{1}$ 运行 QPE 将返回
+$\tilde\varphi_0=0$（结果 $000$）或 $\tilde\varphi_1=\tfrac12$（当 $t=3$ 时结果 $100$），
+各以概率 $\tfrac12$ 出现。无需任何本征态制备——\cref{eq:lec04-collapse} 的相位回踢与坍缩
+完成了全部工作。完整的阶查找算法——由测得的 $s/r$ 经连分数恢复 $r$，并进而得到 $15$ 的
+因子——将在 \cref{ch:lec05} 中展开。
+\end{example}
+
+\paragraph{迭代相位估计与海森堡极限 (Heisenberg limit)。}
+\cref{def:lec04-qpe} 中完整的 $t$ 量子比特寄存器可以用一个重复使用 $t$ 次的单辅助比特替换：
+在\emph{迭代相位估计 (iterative phase estimation)}中，人们从最低有效位到最高有效位逐位测量
+$\varphi$，在下一个受控幂次 $U^{2^{k}}$ 之前将每个恢复的比特作为经典相位修正反馈到辅助比特上。
+这以一个辅助比特加经典前馈重现了 QFT 读出，代价是一个自适应的、顺序执行的线路。
+标准 QPE 与迭代 QPE 都达到随\emph{总}演化时间
+$\mathcal{T}=\sum_k 2^{k}=\bigo(1/\epsilon)$ 按 $\epsilon\sim1/\mathcal{T}$ 标度的精度，
+而非 \cref{sec:lec04-1} 中基于采样的估计器的 $\epsilon\sim1/\sqrt{\mathcal{T}}$。
+这种 $1/\mathcal{T}$ 标度就是\emph{海森堡极限}，即量子力学所允许的最优精度–资源权衡；
+散粒噪声的 $1/\sqrt{\mathcal{T}}$ 标度则是人们从独立重复中所得到的。
+这一联系由 \cref{ch:lec02} 的 Fisher 信息与 Cram\'er--Rao 框架定量化：
+相干地施加 $U^{2^{k}}$ 使关于 $\varphi$ 的 Fisher 信息随演化时间平方增长，
+在海森堡极限速率上饱和 Cram\'er--Rao 界，而非相干的重复只能线性地增加 Fisher 信息。
+
+\exercisesection
+\begin{exercise}\label{ex:lec04-1}
+对 $n=2$（$N=4$），由 \cref{def:lec04-qft} 直接计算 $\QFT\ket{1}$，并用乘积表示
+（\cref{thm:lec04-product}）验证结果。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec04-2}
+通过用 \cref{lem:lec04-geom} 求值 $\braket{k'|\QFT\,\QFT\dg|k}$，证明也有
+$\QFT\,\QFT\dg=\id$。并证明对 $n=1$（$N=2$，$\omega=-1$）QFT 等于 Hadamard 门，
+$\QFT=H$。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec04-3}
+利用 \cref{lem:lec04-geom}，证明 $\QFT$ 将均匀叠加
+$N^{-1/2}\sum_{j=0}^{N-1}\ket{j}$ 映为基态 $\ket{0}$，并将其解释为：常数信号只含
+零频率分量这一陈述。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec04-4}
+逐门写出 $n=3$ 的 QFT 线路（Hadamard 门、受控 $R_k$ 门与 SWAP 门），
+并数出门的总数。确认它与 \cref{thm:lec04-count} 相符。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec04-5}
+考虑由 $V\ket{j}=\ket{(j+1)\bmod N}$ 定义的``移位 $1$''算符 $V$。
+证明每个 $\ket{\psi_k}\defeq\QFT\ket{k}$ 满足
+$V\ket{\psi_k}=\ee^{-\ii 2\pi k/N}\ket{\psi_k}$，因此 QFT 对角化了循环移位。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec04-draper}
+（Draper 加法器。）取 $n=3$，$N=8$，常数 $a=3$。写出 \cref{prop:lec04-draper}
+的三个单量子比特相位门 $P_l^{(3)}=\diag\bigl(1,\ee^{\ii 2\pi\cdot 3\cdot
+2^{\,3-l}/8}\bigr)$，并通过直接计算验证
+$\QFT\dg\bigl(\bigotimes_{l}P_l^{(3)}\bigr)\QFT$ 将
+$\ket{6}\mapsto\ket{1}$，与 $6+3=9\equiv1\pmod 8$ 相符。指出模环绕在何处进入。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec04-6}
+对作用于本征态 $\ket{\psi}=\ket{1}$ 的对角单量子比特酉算符
+$U=\diag(1,\ee^{\ii 2\pi\varphi})$，验证 \cref{thm:lec04-hadamard} 的实
+Hadamard 检验恒等式：直接计算 $p(0)$ 与 $p(1)$。然后证明虚部变体给出
+$p(0)=\tfrac12(1+\Im\braket{\psi|U|\psi})$，并解释为何单独的实检验无法区分
+$\varphi$ 与 $1-\varphi$。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec04-7}
+设 $\varphi=0.011_2=\tfrac38$ 且 $t=3$。写出标准 QPE 中受控幂次之后的辅助比特态，
+将其识别为对应正确 $k$ 的 $\QFT\ket{k}$，并得出测量结果。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec04-8}
+对 $\varphi=\tfrac13$（非二进分数）与 $t=3$，用 $\abs{\gamma_k}^{2}
+=\tfrac{1}{T^{2}}\sin^{2}(\pi T(\varphi-k/T))/\sin^{2}(\pi(\varphi-k/T))$
+（$T=8$）计算 $k=2$ 与 $k=3$（最近的两个层级 $\tfrac28$ 与 $\tfrac38$）的概率
+$\abs{\gamma_k}^{2}$，并评述哪个结果最可能出现。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec04-9}
+利用 \cref{thm:lec04-precision}，确定需要多少辅助比特 $t$ 才能以至少 $0.9$ 的成功概率
+（即 $\epsilon=0.1$）将 $\varphi$ 估计到 $n=6$ 比特的精度。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec04-10}
+解释为何 Kitaev 的逐比特方法达到查询复杂度
+$\bigo(1/\epsilon)$，而 \cref{sec:lec04-1} 的单量子比特估计器需要
+$\bigo(1/\epsilon^{2})$ 个样本。精确指出每种方法各自花费哪种资源——线路深度还是
+重复次数——并将其与 \cref{sec:lec04-5} 的海森堡标度和散粒噪声标度联系起来。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec04-11}
+由 \cref{def:lec04-qft} 对 $n=3$ 计算 $\QFT\ket{5}$。另外，写出 QFT
+线路\emph{在其最后一次 SWAP 之前}的输出——即乘积表示 \cref{thm:lec04-product}
+的镜像，其中量子比特 $1$ 携带完整的分数 $0.j_1 j_2 j_3$。将二者在基态
+$\ket{k_1 k_2 k_3}$ 上展开，并展示那个将 SWAP 前的输出映到 $\QFT\ket5$ 的显式比特反转置换
+（量子比特 $1$ 与 $3$ 的最后一次 SWAP），指出哪些基态被交换、哪些被固定。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec04-12}
+对相位门 $U=\diag(1,\ee^{\ii\pi/4})$ 和本征态 $\ket{\psi}=\ket{1}$，以 $t=3$
+个辅助比特运行标准 QPE。识别 $\varphi$，将受控幂次之后的辅助比特态写为 $\QFT\ket{k}$，
+并给出测量结果。然后对 $U=Z$ 分别取 $\ket{\psi}=\ket{1}$ 与 $\ket{\psi}=\ket{0}$ 重复，
+在每种情形中解释为何可省略 $m\ge1$ 的受控幂次 $U^{2^{m}}$。
+\end{exercise}
+
+\readingsection
+\begin{itemize}[leftmargin=1.4em]
+  \item Lin Lin, \emph{qasc notes}, Ch.~3 (quantum Fourier transform and phase
+        estimation).
+  \item Lin Lin, \emph{live notes}, Ch.~16 (phase estimation and Fourier
+        transforms).
+  \item J.~Brody, \emph{The Joy of Quantum Computing}, Princeton University
+        Press, 2025, Ch.~9 (QFT and inverse QFT) and Ch.~10 (quantum phase
+        estimation), for concrete small-qubit walkthroughs and the order-finding
+        application.
+  \item T.~G.~Draper, \emph{Addition on a quantum computer},
+        arXiv:quant-ph/0008033 (2000), for the Fourier-basis (QFT) adder.
+\end{itemize}
