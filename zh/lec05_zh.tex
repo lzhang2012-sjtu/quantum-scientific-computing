@@ -1,0 +1,788 @@
+\chapter{相位估计的应用}
+\label{ch:lec05}
+
+\begin{objectives}
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item 用 QPE 估计基态能量 (ground-state energy)。
+  \item 建立振幅估计 (amplitude estimation) 及其平方优势 (quadratic advantage)。
+  \item 表述本征值问题以及近最优的基态制备 (ground-state preparation)。
+  \item 把阶查找 (order finding)——Shor 因子分解算法的量子核心——表述为对一个模乘酉算符的相位估计，并通过连分数 (continued fractions) 恢复出阶。
+\end{itemize}
+\end{objectives}
+
+相位估计 (QPE)（\cref{ch:lec04}）本身并非目的，而是一个主力子程序。本讲汇集了它在科学计算中最具影响力的三个应用。首先，我们把 QPE 应用于酉算符 $\ee^{-\ii Ht}$，以读出哈密顿量 (Hamiltonian) $H$ 的本征相位 (eigenphase)——从而得到其能量——由此获得\emph{基态能量估计}算法，其代价由输入态与真实基态 (ground state) 之间的交叠所决定。其次，我们证明\emph{振幅估计}——即学习所制备态中“好”分量的权重 $\sin^2(\theta/2)$ 这一任务——不过是对 \cref{ch:lec03} 的 Grover 迭代 (Grover iterate) 作相位估计，并且这一归约把经典的 $\bigo(1/\epsilon^2)$ 蒙特卡洛代价转化为平方意义上更优的 $\bigo(1/\epsilon)$。第三，我们从估计本征值 (eigenvalue) 转向\emph{制备}相应的本征态 (eigenstate)，在陈述层面描述一个谱滤波器——由 \cref{ch:lec09} 的量子奇异值变换 (QSVT) 构造——如何以随交叠的倒数平方根与谱隙 (spectral gap) 的倒数标度的代价来制备基态。最后，我们以表明这些算法本质上最优的\emph{下界} (lower bound) 作结：相位估计的计量学海森堡极限 (Heisenberg limit)、基态制备的 Grover 型 $\Omega(1/\sqrt{p_0})$ 与 $\Omega(1/\Delta)$ 界，以及对将在第 III 部分再现的不可快进 (no fast-forwarding) 定理的一处指引。
+
+贯穿全讲，$H$ 表示 $\C^N$ 上的一个厄米矩阵，其中 $N=2^n$，本征分解为
+\[
+  H\ket{\psi_j}=\lambda_j\ket{\psi_j},
+  \qquad \lambda_0\le\lambda_1\le\cdots\le\lambda_{N-1},
+\]
+于是 $\lambda_0$ 是\emph{基态能量}，$\ket{\psi_0}$ 是\emph{基态}。\emph{谱隙}为 $\Delta\defeq\lambda_1-\lambda_0$。我们沿用 \cref{ch:lec04} 的 QPE 约定：本征相位取值于 $[0,1)$，一个 $t$ 比特辅助寄存器把它们分辨到 $T=2^t$ 个层级，而 $\tilde\varphi_{k}=k/T$ 记一个候选估计。
+
+\section{基态能量估计}
+\label{sec:lec05-1}
+
+QPE 在物理上最直接的应用是估计一个哈密顿量的最低能量。有两个哈密顿量作为贯穿全讲的例子反复出现。
+
+\begin{example}[横场伊辛模型 (transverse-field Ising model)]
+\label{exa:lec05-tfim}
+$n$ 个格点、带最近邻耦合的一维横场伊辛模型 (TFIM) 为
+\[
+  H=-\sum_{i=1}^{n-1} Z_i Z_{i+1}-g\sum_{i=1}^{n} X_i,
+\]
+其中 $X_i,Z_i$ 是作用于格点 $i$ 的泡利 (Pauli) 算符，$g$ 调节场的强度。矩阵 $H$ 的维数为 $2^n$，是格点数的指数，故对大 $n$ 而言经典对角化不可行。
+\end{example}
+
+\begin{remark}[$n=1,2,3$ 时写出的伊辛哈密顿量]
+\label{rem:lec05-tfim-small}
+把 $H$ 看作一个显式矩阵会有所帮助。以 $Z_i$ 记作用于量子比特 (qubit) $i$ 的 $Z$（其余处为恒等算符，$X_i$ 同理），$H$ 的对角线是经典伊辛能量 $-\sum_i Z_iZ_{i+1}$（对每个计算基串取一个数），而每个非对角元均等于 $-g$，连接恰好相差一个比特（一个 $X_i$）的两个串。
+
+\emph{$n=1$。} 耦合项之和为空，只剩下场：
+\[
+  H=-gX=\begin{pmatrix}0&-g\\-g&0\end{pmatrix},
+  \qquad \lambda=\pm g,\quad \text{基态 }\ket{+}.
+\]
+
+\emph{$n=2$。} $H=-Z_1Z_2-g(X_1+X_2)$，其中每个单格点算符是与另一个量子比特上恒等算符的张量积 (tensor product)，
+\[
+  Z_1=Z\otimes I=\diag(1,1,-1,-1),\qquad Z_2=I\otimes Z=\diag(1,-1,1,-1),
+\]
+且 $X_1=X\otimes I$，$X_2=I\otimes X$（因此 $Z_i\ket{b_1b_2}=(-1)^{b_i}\ket{b_1b_2}$——符号由第 $i$ 个比特决定——从而 $Z_1Z_2=\diag(1,-1,-1,1)$）。在基
+$\ket{00},\ket{01},\ket{10},\ket{11}$ 下，
+\[
+  H=\begin{pmatrix}-1&-g&-g&0\\ -g&1&0&-g\\ -g&0&1&-g\\ 0&-g&-g&-1\end{pmatrix},
+\]
+其对角线 $(-1,1,1,-1)$ 即 $-Z_1Z_2$（当两个自旋在 $Z$ 基下一致时它为 $-1$，即 $\ket{00},\ket{11}$）。在临界场 $g=1$ 处基态能量为 $\lambda_0=-\sqrt5\approx-2.236$。
+
+\emph{$n=3$。} $H=-(Z_1Z_2+Z_2Z_3)-g(X_1+X_2+X_3)$；在基
+$\ket{000},\dots,\ket{111}$ 下，
+\[
+  H=\begin{pmatrix}
+    -2&-g&-g&0&-g&0&0&0\\
+    -g&0&0&-g&0&-g&0&0\\
+    -g&0&2&-g&0&0&-g&0\\
+    0&-g&-g&0&0&0&0&-g\\
+    -g&0&0&0&0&-g&-g&0\\
+    0&-g&0&0&-g&2&0&-g\\
+    0&0&-g&0&-g&0&0&-g\\
+    0&0&0&-g&0&-g&-g&-2
+  \end{pmatrix}.
+\]
+对角线 $(-2,0,2,0,0,2,0,-2)$ 按位读出 $-(Z_1Z_2+Z_2Z_3)$——例如
+$\ket{000}$ 的两对相邻格点都对齐（$-2$），$\ket{010}$ 的两对都失措（$+2$）——而那些 $-g$ 恰好是布尔立方体 $\{0,1\}^3$ 的边（每个串与它的三个单比特翻转邻居相连）。在 $g=1$ 处，
+$\lambda_0\approx-3.494$。
+
+在每种情形下，对角线是廉价的局域伊辛部分，而横场提供了全部非对角结构。维数 $2^n$ 随每增加一个格点而翻倍；最低本征值 $\lambda_0$ 就是本章与 \cref{ch:lec09} 的相位估计与块编码方法无需真正构造出这一矩阵即可估计的基态能量。
+\end{remark}
+
+\begin{example}[二次量子化下的费米子哈密顿量]
+\label{exa:lec05-fermion}
+量子化学的中心哈密顿量描述电子占据一组固定的 $n$ 个单粒子\emph{自旋轨道} $\{\chi_1,\dots,\chi_n\}$。在玻恩--奥本海默近似冻结原子核之后，电子能量由\emph{二次量子化}哈密顿量
+\[
+  H=\sum_{i,j=1}^{n} T_{ij}\,\hat a_i\dg\hat a_j
+   +\sum_{i,j,k,l=1}^{n} V_{ijkl}\,\hat a_i\dg\hat a_j\dg\hat a_l\hat a_k,
+\]
+支配，其各组成部分我们现在逐一拆解。
+
+\emph{占据数态。} 二次量子化不追踪电子的\emph{位置}，而是追踪哪些自旋轨道被\emph{占据}。一个基态是比特串 $\ket{f_1 f_2\cdots f_n}$，其中 $f_i\in\{0,1\}$ 记录轨道 $i$ 是空还是满；这些态张成 $2^{n}$ 维的福克空间。泡利不相容原理——每个自旋轨道至多一个电子——是自动满足的，因为 $f_i\le1$。
+
+\emph{产生与湮灭算符。} 算符 $\hat a_i\dg$ 向轨道 $i$ \emph{添加}一个电子，而 $\hat a_i$ \emph{移除}一个，
+\[
+  \hat a_i\dg\ket{\dots f_i{=}0\dots}=(-1)^{s_i}\ket{\dots f_i{=}1\dots},\qquad
+  \hat a_i\ket{\dots f_i{=}1\dots}=(-1)^{s_i}\ket{\dots f_i{=}0\dots},
+\]
+而 $\hat a_i\dg$ 湮灭一个已填满的轨道、$\hat a_i$ 湮灭一个空轨道
+（$\hat a_i\dg\ket{f_i{=}1}=0$，$\hat a_i\ket{f_i{=}0}=0$）。由于电子是\emph{费米子}，波函数在交换下必须变号；这由因子 $(-1)^{s_i}$ 承载，其中 $s_i=\sum_{p<i}f_p$ 计数位于更前轨道中的电子数。等价地，这些算符服从\emph{正则反对易关系}
+\[
+  \{\hat a_i,\hat a_j\dg\}=\delta_{ij}\,\id,\qquad
+  \{\hat a_i,\hat a_j\}=\{\hat a_i\dg,\hat a_j\dg\}=0,
+  \qquad \{A,B\}\defeq AB+BA.
+\]
+正是\emph{反}对易子——而非玻色子的对易子——才是费米子统计的代数指纹。
+
+\emph{两个项。} 这些系数是从所选轨道经典预先计算出的分子积分（以原子单位表示）。\emph{单电子积分}
+\[
+  T_{ij}=\int\chi_i^{*}(\mathbf r)\Bigl(-\tfrac12\nabla^{2}+V_{\mathrm{nuc}}(\mathbf r)\Bigr)
+          \chi_j(\mathbf r)\,d\mathbf r
+\]
+保存动能与电子--原子核吸引能，而 $\hat a_i\dg\hat a_j$ 把一个电子从轨道 $j$ 移到轨道 $i$。\emph{双电子积分}
+$V_{ijkl}=\iint\chi_i^{*}(\mathbf r_1)\chi_j^{*}(\mathbf r_2)\,r_{12}^{-1}\,
+\chi_k(\mathbf r_1)\chi_l(\mathbf r_2)\,d\mathbf r_1 d\mathbf r_2$ 编码电子之间的库仑排斥，而 $\hat a_i\dg\hat a_j\dg\hat a_l\hat a_k$ 散射其中一对电子。$H$ 的最低本征值 $\lambda_0$ 就是电子结构理论所求的分子基态能量。
+
+\emph{Jordan--Wigner 变换。} 为在量子计算机上运行，我们把每个自旋轨道与一个量子比特等同——被占据 $\leftrightarrow\ket1$，空的 $\leftrightarrow\ket0$——于是一个福克基态\emph{就是}一个计算基态。单量子比特算符
+\[
+  \tfrac12(X+\ii Y)=\ket0\!\bra1 \quad(\text{降算符，“湮灭”}),\qquad
+  \tfrac12(X-\ii Y)=\ket1\!\bra0 \quad(\text{升算符，“产生”})
+\]
+在满与空之间翻转一个量子比特。然而它们本身在不同格点上的算符是\emph{对易}的，而费米子算符必须\emph{反对易}。Jordan--Wigner 变换通过附加一串 $Z$ 来修正这一点，
+\[
+  \hat a_i= Z^{\otimes(i-1)}\otimes\tfrac12(X+\ii Y)\otimes\id^{\otimes(n-i)},
+  \qquad
+  \hat a_i\dg= Z^{\otimes(i-1)}\otimes\tfrac12(X-\ii Y)\otimes\id^{\otimes(n-i)}.
+\]
+前导的 $Z^{\otimes(i-1)}$ 计算 $i$ \emph{以下}各轨道的宇称 $(-1)^{s_i}$（回忆 $Z\ket1=-\ket1$，$Z\ket0=\ket0$），恰好提供了费米子符号；并且由于 $Z$ 在任意共享的量子比特上与 $X\pm\ii Y$ 反对易，不同模上的两个这样的算符会获得所需的额外负号，从而上面的反对易关系被精确地复现。代入这些表达式会把每个 $\hat a_i\dg\hat a_j$ 和 $\hat a_i\dg\hat a_j\dg\hat a_l\hat a_k$ 转化为一串泡利串之和，得到一个量子比特哈密顿量
+$H=\sum_\alpha c_\alpha P_\alpha$，其形式恰好是 QPE 以及第 III 部分的模拟方法所能处理的。
+
+\emph{代价。} $Z$ 串的代价是\emph{局域性}：单个 $\hat a_i$ 在多达 $i$ 个量子比特上非平凡地作用，故 Jordan--Wigner 哈密顿量的项可以是 $\bigo(n)$ 局域的。替代编码（Bravyi--Kitaev、宇称编码）以更繁复的映射为代价把这降到 $\bigo(\log n)$ 局域的算符。估计所得量子比特哈密顿量的 $\lambda_0$ 是量子计算机上量子化学的中心任务。
+\end{example}
+
+\subsection*{从本征相位到能量}
+
+为了让 QPE 发挥作用，我们需要一个其本征相位编码 $H$ 本征值的酉算符。自然的选择是时间演化算符。假设（必要时对 $H$ 作一个仿射重标度之后）所有本征值都落在 $(0,\tfrac12)$ 内，并取
+\begin{equation}
+  U=\ee^{\ii 2\pi H},\qquad\text{使得}\qquad
+  U\ket{\psi_j}=\ee^{\ii 2\pi\lambda_j}\ket{\psi_j}.
+  \label{eq:lec05-Uexp}
+\end{equation}
+则 $U$ 在 $\ket{\psi_j}$ 上的本征相位恰好是 $\lambda_j$，而对 $U$ 运行 QPE 便估计 $\lambda_j$。从 $H$ 的描述产生 $U$ 是\emph{哈密顿量模拟}问题，即 \cref{ch:lec11} 的主题；此处我们暂且假设 $U$ 可被精确获得，并计数对它的查询。
+
+症结在于我们无法制备精确的基态 $\ket{\psi_0}$——如果能，问题就基本解决了。相反，我们得到的是一个\emph{近似}的初态，
+\begin{equation}
+  \ket{\phi}=\sum_{k=0}^{N-1} c_k\ket{\psi_k},
+  \qquad p_0\defeq\abs{\braket{\phi|\psi_0}}^{2}=\abs{c_0}^2,
+  \label{eq:lec05-initial}
+\end{equation}
+它与基态的\emph{交叠} $p_0$ 有下界，但一般小于 $1$。由线性性，QPE 独立地作用于 $\ket{\phi}$ 的每个本征分量（\cref{rem:lec04-target}）：单次运行以概率 $p_k=\abs{c_k}^2$ 返回本征相位 $\lambda_k$ 的一个估计，并把系统坍缩到 $\ket{\psi_k}$。特别地，每次运行以概率 $p_0$ 返回基态能量 $\lambda_0$；完整线路见 \cref{fig:lec05-gse}。
+
+\begin{figure}[htbp]
+\centering
+\begin{quantikz}
+\lstick{$\ket0$}      & \gate{H} & \ctrl{3}     & \qw          & \qw      & \gate[3]{\QFT^{-1}} & \meter{} \\
+\lstick{$\ket0$}      & \gate{H} & \qw          & \ctrl{2}     & \qw      &                     & \meter{} \\
+\lstick{$\ket0$}      & \gate{H} & \qw          & \qw          & \ctrl{1} &                     & \meter{} \\
+\lstick{$\ket{\phi}$} & \qw      & \gate{U^{4}} & \gate{U^{2}} & \gate{U} & \qw                 & \qw
+\end{quantikz}
+\caption{基态能量估计：对 $U=\ee^{\ii 2\pi H}$
+（\cref{eq:lec05-Uexp}）作相位估计，并馈入基态交叠为 $p_0$ 的试探态 $\ket{\phi}$
+（\cref{eq:lec05-initial}）。受控幂 $U^{2^{k}}$ 是受控哈密顿量模拟；由线性性，单次运行以概率 $\abs{c_k}^2$ 返回某个本征能量 $\lambda_k$ 的估计，故基态能量 $\lambda_0$ 以概率 $p_0$ 出现。系统寄存器（此处为一根线）承载全部 $n$ 个系统量子比特。}
+\label{fig:lec05-gse}
+\end{figure}
+
+\subsection*{取多次运行最小值的估计量}
+
+因为 $\lambda_0$ 是\emph{最小}的能量，一个自然的策略是：
+
+\begin{definition}[通过重复 QPE 作基态能量估计]
+\label{def:lec05-gsee}
+以输入 $\ket{\phi}$ 对 $U=\ee^{\ii 2\pi H}$ 共运行 QPE $M$ 次，记录相位估计 $\tilde\varphi^{(1)},\dots,\tilde\varphi^{(M)}$。返回最小值 $\min_\ell\tilde\varphi^{(\ell)}$ 作为 $\lambda_0$ 的估计。
+\end{definition}
+
+如果每个 $\lambda_k$ 都有一个精确的 $t$ 比特表示，那么单次运行将以概率 $p_0$ 精确返回 $\lambda_0$，而 $M=\bigo(p_0^{-1}\log\delta^{-1})$ 次运行就足以以概率 $1-\delta$ 至少见到它一次。微妙之处在于\emph{混叠效应}：当 $\lambda_k$ 不是二进分数时，\cref{sec:lec04-4} 的几何级数尾部会把非零权重放到结果 $\tilde\varphi_{k'}<\lambda_0$ 上，也就是说 QPE 会报告一个\emph{低于}真实基态能量的能量。取多次运行的最小值使这类低估变得危险，而控制它们正是驱动代价的因素。
+
+\begin{theorem}[基态能量估计的依赖交叠的代价]
+\label{thm:lec05-gsee}
+设 $H$ 的所有本征值都落在 $(\epsilon,\tfrac12)$ 内，并设 $p_0$ 为 \eqref{eq:lec05-initial} 中的初态交叠。只要使用
+\[
+  t=d+\bigo\bigl(\log p_0^{-1}+\log\delta^{-1}+\log\log\delta^{-1}\bigr)
+\]
+个辅助量子比特（其中 $\epsilon=2^{-d}$）、线路深度
+$T=\bigo\bigl((\epsilon p_0\delta)^{-1}\log\delta^{-1}\bigr)$ 以及
+$M=\bigo(p_0^{-1}\log\delta^{-1})$ 次重复，\cref{def:lec05-gsee} 的估计量就以至少 $1-\delta$ 的概率返回满足 $\abs{\hat\lambda_0-\lambda_0}\le\epsilon$ 的 $\hat\lambda_0$。总查询代价为
+\[
+  \bigo\bigl(\epsilon^{-1}\delta^{-1}p_0^{-2}(\log\delta^{-1})^{2}\bigr).
+\]
+\end{theorem}
+
+\begin{proof}[证明梗概]
+记 $T=2^{t}$，并令 $\tilde\varphi_{k'}=k'/T$ 为测量格点。由 \cref{sec:lec04-4} 的费耶尔核分析，单次运行结果为 $k'$ 的概率是 $\sum_k\abs{c_k}^2 F_T(\lambda_k-\tilde\varphi_{k'})$，其核满足 $F_T(x)\le 1/(4T^2\abs{x}_1^2)$，其中 $\abs{\cdot}_1$ 是环绕距离。\emph{低估：}当
+$\tilde\varphi_{k'}\le\lambda_0-\epsilon$ 时，对每个 $k$ 都有
+$\abs{\lambda_k-\tilde\varphi_{k'}}_1\ge\lambda_0-\tilde\varphi_{k'}\ge\epsilon$，故对尾部求和给出
+\[
+  \Prob(\tilde\varphi_{k'}\le\lambda_0-\epsilon)
+  \le\frac{1}{4T\epsilon}+\frac{1}{4(T\epsilon)^{2}}\le\frac{\delta'}{2},
+\]
+其中取 $T\epsilon=\delta'^{-1}$。在 $M$ 次运行上，最小值发生低估的概率至多为 $M\delta'/2$，故选取 $\delta'=M^{-1}\delta$ 可把它保持在 $\delta/2$ 以下。\emph{高估：}在命中 $\ket{\psi_0}$（概率 $p_0$）的条件下，同一核界给出
+$\Prob(\abs{\tilde\varphi_{k'}-\lambda_0}_1<\epsilon)\ge p_0(1-\delta')$，故单次运行以至多 $1-p_0/2$ 的概率超出 $\epsilon$；在 $M$ 次运行上，最小值高估的概率
+$\le(1-p_0/2)^M\le\ee^{-p_0 M/2}$，一旦
+$M=\lceil 2p_0^{-1}\log(2/\delta)\rceil$ 它便 $\le\delta/2$。把 $\delta'=M^{-1}\delta$ 与
+$T\epsilon=\delta'^{-1}$ 结合，便得到所述的比特数、深度，以及——将深度乘以重复次数——总代价。
+\end{proof}
+
+\begin{remark}[交叠 $p_0$ 是瓶颈]
+\label{rem:lec05-overlap}
+\cref{thm:lec05-gsee} 揭示出一种微妙的相互作用。抑制高估迫使 $M=\bigo(p_0^{-1})$ 次重复；但更多重复会提高\emph{某}次运行低估的机会，这迫使 $\delta'=\bigo(M^{-1})=\bigo(p_0)$，从而线路深度 $T=\bigo(\delta'^{-1})=\bigo(p_0^{-1})$。其乘积为
+$TM=\bigo(p_0^{-2})$：朴素 QPE 对交叠倒数有\emph{平方}依赖。当 $p_0$ 指数地小时——对大型化学体系可能如此——这是难以承受的。\cref{sec:lec05-3} 展示谱滤波 (filtering) 如何把这一依赖改善到 $\bigo(p_0^{-1/2})$。
+\end{remark}
+
+\begin{remark}[能量估计不需要谱隙]
+\label{rem:lec05-nogap}
+估计 $\lambda_0$ 并不要求有一个正的谱隙 $\Delta$：任何满足 $\abs{\lambda-\lambda_0}<\epsilon$ 的估计 $\lambda$ 都是一个好的能量估计，即便它恰好来自一个聚集在基态附近的激发态（Weyl 不等式保证了本征值稳定性）。相比之下，制备基态\emph{本身}在 $\Delta\to0$ 时变成病态的：此时基态与第一激发态的本征向量几乎简并，无法被任何滤波器分离（Davis--Kahan $\sin\theta$ 定理）。这一区分组织起 \cref{sec:lec05-3}。
+\end{remark}
+\section{振幅估计}
+\label{sec:lec05-2}
+
+Grover 算法（\cref{ch:lec03}）将一个态朝着被标记的``好''子空间旋转；而振幅\emph{估计} (amplitude estimation) 则\emph{测量}该子空间的权重，其做法是把 Grover 迭代送入相位估计。其结果是对一大类估计任务都给出相对于经典采样的平方加速 (quadratic speedup)。
+
+\begin{definition}[振幅估计]
+\label{def:lec05-ae}
+设 $U_{\phi}$ 制备一个态 $U_{\phi}\ket{0^n}=\ket{\phi_0}$，它分解为
+\begin{equation}
+  \ket{\phi_0}=\sqrt{P}\,\ket{\phi_{\mathrm{good}}}
+              +\sqrt{1-P}\,\ket{\phi_{\mathrm{bad}}},
+  \qquad \sqrt{P}=\sin\frac{\theta}{2},
+  \label{eq:lec05-aedecomp}
+\end{equation}
+其中 $\ket{\phi_{\mathrm{good}}}\perp\ket{\phi_{\mathrm{bad}}}$。\emph{振幅估计问题}是把 $P$（等价地角度 $\theta$）估计到加性精度 $\epsilon$。
+\end{definition}
+
+从经典的角度看，如果只能采样---即制备 $\ket{\phi_0}$、测量、并检查结果是否为好---那么 $P$ 是一个伯努利均值，由伯努利估计量的方差可知，要把 $P$ 分辨到加性误差 $\epsilon$ 需要 $\bigo(1/\epsilon^2)$ 个样本。量子算法通过相干地工作而做得更好。
+
+\begin{theorem}[振幅估计即对 Grover 迭代做相位估计]
+\label{thm:lec05-ae}
+设 $R_{\mathrm{good}}=\id-2\proj{\phi_{\mathrm{good}}}$ 为关于好子空间的反射 (reflection)，$R_{\phi_0}=\id-2\proj{\phi_0}$ 为关于初始态的反射，并设 $G=R_{\phi_0}R_{\mathrm{good}}$ 为 Grover 迭代。在不变平面 (invariant plane)
+$\mathcal P=\operatorname{span}\{\ket{\phi_{\mathrm{good}}},
+\ket{\phi_{\mathrm{bad}}}\}$ 上，$G$ 的作用是旋转角 $\theta$，并具有本征态
+\[
+  \ket{\phi_{\pm}}=\tfrac{1}{\sqrt2}\bigl(\ket{\phi_{\mathrm{good}}}
+                    \pm\ii\,\ket{\phi_{\mathrm{bad}}}\bigr),
+  \qquad G\ket{\phi_{\pm}}=\ee^{\pm\ii\theta}\ket{\phi_{\pm}}.
+\]
+所制备的态与每个本征态的交叠为 $\abs{\braket{\phi_0|\phi_{\pm}}}^2=\tfrac12$，因此对以 $\ket{\phi_0}$ 为输入的 $G$ 做相位估计，会返回 $+\theta$ 或 $-\theta$ 的估计，各以概率 $\tfrac12$ 出现，且无需后选择。
+\end{theorem}
+
+\begin{proof}
+由 \cref{sec:lec03-4} 的振幅放大 (amplitude amplification) 分析，$G$ 限制到 $\mathcal P$ 上是旋转
+$\left(\begin{smallmatrix}\cos\theta&\sin\theta\\-\sin\theta&\cos\theta
+\end{smallmatrix}\right)$，基为
+$\{\ket{\phi_{\mathrm{good}}},\ket{\phi_{\mathrm{bad}}}\}$。一个角 $\theta$ 的实旋转 (rotation) 具有本征值 $\ee^{\pm\ii\theta}$，对应本征向量
+$\tfrac{1}{\sqrt2}(\ket{\phi_{\mathrm{good}}}\pm\ii\ket{\phi_{\mathrm{bad}}})
+=\ket{\phi_{\pm}}$，如所述。将
+$\ket{\phi_0}=\sin(\theta/2)\ket{\phi_{\mathrm{good}}}
++\cos(\theta/2)\ket{\phi_{\mathrm{bad}}}$ 写出并投影，
+\[
+  \abs{\braket{\phi_{\pm}|\phi_0}}^2
+  =\tfrac12\abs{\sin\tfrac{\theta}{2}\mp\ii\cos\tfrac{\theta}{2}}^2
+  =\tfrac12\bigl(\sin^2\tfrac{\theta}{2}+\cos^2\tfrac{\theta}{2}\bigr)
+  =\tfrac12.
+\]
+于是 $\ket{\phi_0}=\tfrac{1}{\sqrt2}(\ee^{\ii\alpha_+}\ket{\phi_+}
++\ee^{\ii\alpha_-}\ket{\phi_-})$ 是两个本征态的等权叠加 (superposition)；对 $G$ 施加的 QPE（\cref{def:lec04-qpe}）各以概率 $\tfrac12$ 坍缩到 $\ket{\phi_\pm}$，并返回相应本征相位 (eigenphase) $\pm\theta$ 的估计。由于 $P=\sin^2(\theta/2)$ 关于 $\theta$ 为偶，两种结果都能确定 $P$。
+\end{proof}
+
+所得线路---制备 $\ket{\phi_0}=U_{\phi}\ket{0^n}$，然后对 Grover 迭代 $G$ 做相位估计---如 \cref{fig:lec05-ae} 所示。
+
+\begin{figure}[htbp]
+\centering
+\begin{quantikz}
+\lstick{$\ket0$}     & \gate{H} & \qw           & \ctrl{3}     & \qw          & \qw      & \gate[3]{\QFT^{-1}} & \meter{} \\
+\lstick{$\ket0$}     & \gate{H} & \qw           & \qw          & \ctrl{2}     & \qw      &                     & \meter{} \\
+\lstick{$\ket0$}     & \gate{H} & \qw           & \qw          & \qw          & \ctrl{1} &                     & \meter{} \\
+\lstick{$\ket{0^n}$} & \qw      & \gate{U_\phi} & \gate{G^{4}} & \gate{G^{2}} & \gate{G} & \qw                 & \qw
+\end{quantikz}
+\caption{振幅估计：制备 $\ket{\phi_0}=U_{\phi}\ket{0^n}$，然后对 Grover 迭代 $G=R_{\phi_0}R_{\mathrm{good}}$ 运行相位估计，其在不变平面上的本征值为 $\ee^{\pm\ii\theta}$（\cref{thm:lec05-ae}）。所测得的 $\theta$ 的 $t$ 比特估计给出精度为加性误差 $\bigo(2^{-t})$ 的 $P=\sin^2(\theta/2)$，即对 $G$ 做 $\bigo(1/\epsilon)$ 次查询---比经典蒙特卡洛的 $\bigo(1/\epsilon^2)$ 个样本在数量上少平方倍。}
+\label{fig:lec05-ae}
+\end{figure}
+
+\subsection*{查询次数与平方优势}
+
+设 QPE 使用 $t=d+\lceil\log\delta^{-1}\rceil$ 个辅助比特 (ancilla)，从而它以成功概率 $1-\delta$ 把 $\theta$ 估计到精度 $\epsilon'=2^{-d}$（\cref{thm:lec04-precision}）。关系式 $P=\sin^2(\theta/2)$ 把 $\theta$ 中的误差转换为 $P$ 中的误差。
+
+\begin{theorem}[振幅估计的误差与开销]
+\label{thm:lec05-aecost}
+以 $\hat P=\sin^2(\tilde\theta/2)$ 为由 $\theta$ 的 QPE 估计 $\tilde\theta$（满足 $\abs{\tilde\theta-\theta}\le\epsilon'$）构造的估计量，
+\begin{equation}
+  \abs{\hat P-P}\le\sqrt{P(1-P)}\,\epsilon'+\frac{\epsilon'^2}{4}.
+  \label{eq:lec05-aeerr}
+\end{equation}
+因此，若 $P$ 远离 $0$ 和 $1$，则取 $\epsilon'=\bigo(\epsilon)$，对 $G$ 的 QPE 耗费 $\bigo(1/\epsilon)$ 次对 $G$（从而对 $U_\phi$）的查询；若 $P$ 很小，则通过取 $\epsilon'=\sqrt{P}\,\epsilon$ 把它估计到乘性误差 $\epsilon$，开销为 $\bigo(P^{-1/2}\epsilon^{-1})$。两种情形下这都是相对于蒙特卡洛估计的 $\bigo(\epsilon^{-2})$ 与 $\bigo(P^{-1}\epsilon^{-2})$ 样本数的平方改进。
+\end{theorem}
+
+\begin{proof}
+利用积化和差恒等式，
+\[
+  \sin^2\tfrac{\tilde\theta}{2}-\sin^2\tfrac{\theta}{2}
+   =\sin\tfrac{\theta}{2}\cos\tfrac{\theta}{2}\sin(\tilde\theta-\theta)
+    +\bigl(1-2\sin^2\tfrac{\theta}{2}\bigr)\sin^2\tfrac{\tilde\theta-\theta}{2}.
+\]
+由于 $\sin(\theta/2)\cos(\theta/2)=\tfrac12\sin\theta=\sqrt{P(1-P)}$ 且 $\abs{\sin x}\le\abs{x}$，第一项的量级为
+$\sqrt{P(1-P)}\,\abs{\sin(\tilde\theta-\theta)}\le\sqrt{P(1-P)}\,\epsilon'$；第二项以
+$\abs{1-2P}\sin^2(\epsilon'/2)\le\epsilon'^2/4$ 为界。相加即得
+\eqref{eq:lec05-aeerr}。当 $P(1-P)=\Theta(1)$ 时线性项占主导，$\epsilon'=\bigo(\epsilon)$ 即足够，故 QPE 对 $G$ 共查询 $\bigo(1/\epsilon')=\bigo(1/\epsilon)$ 次。当 $P$ 很小时，$\abs{\hat P-P}\approx\sqrt P\,\epsilon'$，要求其 $<P\epsilon$ 则迫使 $\epsilon'=\sqrt P\,\epsilon$，开销为 $\bigo(\epsilon'^{-1})=\bigo(P^{-1/2}\epsilon^{-1})$。经典蒙特卡洛的计数由伯努利方差 $P(1-P)$ 得出。
+\end{proof}
+
+\begin{example}[加速 Hadamard 检验]
+\label{exa:lec05-hadamard}
+回忆 \cref{sec:lec04-1} 的 Hadamard 检验 (Hadamard test)，它通过结果概率
+$p(0)=\tfrac12(1+\Re\braket{\psi|U|\psi})$ 来估计 $\Re\braket{\psi|U|\psi}$。设 $\ket{\psi}=U_\psi\ket{0^n}$。对一个辅助比特施加 $H$、再施加受控 $U_\psi$、然后受控 $U$ 的组合线路，产生
+\[
+  \ket{\phi_0}=\tfrac12\ket{0}\bigl(\ket{\psi}+U\ket{\psi}\bigr)
+              +\tfrac12\ket{1}\bigl(\ket{\psi}-U\ket{\psi}\bigr)
+             =\sqrt{P}\,\ket{\phi_{\mathrm{good}}}
+              +\sqrt{1-P}\,\ket{\phi_{\mathrm{bad}}},
+\]
+好子空间由辅助比特 $\ket{0}$ 标记，故 $P=p(0)$。这里 $R_{\mathrm{good}}=(\id-2\proj{0})\otimes\id^{\otimes n}
+=-Z\otimes\id^{\otimes n}$ 是单比特反射，而 $R_{\phi_0}$ 由态制备酉算符构造而成。对 $G=R_{\phi_0}R_{\mathrm{good}}$ 运行振幅估计，用 $\bigo(1/\epsilon)$ 次查询即可把 $p(0)$---从而把 $\Re\braket{\psi|U|\psi}$---估计到精度 $\epsilon$，而非朴素采样的 $\bigo(1/\epsilon^2)$ 次重复。
+\end{example}
+
+\begin{remark}[振幅估计在何种意义上是``海森堡受限的''？]
+\label{rem:lec05-heisenberg}
+振幅估计常被称为海森堡受限的，因为它归结为对 Grover 本征相位做相位估计，并在``Grover 时间''$\mathcal T=\bigo(2^{t})$ 内达到误差 $\bigo(1/\mathcal T)$---与 \cref{sec:lec04-5} 的计量学海森堡极限 (Heisenberg limit) 相同的 $1/\mathcal T$ 标度。不过其诠释有所不同：计量学极限涉及的是由物理时间演化 $\ee^{-\ii Ht}$ 生成的相位，而这里 $G$ 是一个\emph{构造出来的}酉算符，$\mathcal T$ 计数的是态制备谕示的应用次数。
+\end{remark}
+
+\section{本征值问题与基态制备}
+\label{sec:lec05-3}
+
+现在我们从估计 $\lambda_0$ 转向\emph{制备} $\ket{\psi_0}$。如 \cref{rem:lec05-nogap} 所述，这要求有正的谱隙 (spectral gap) $\Delta$。\cref{sec:lec05-1} 基于 QPE 的方法已经把 $\ket{\psi_0}$ 作为副产品制备出来---当辅助比特读出 $\lambda_k$ 时系统坍缩到 $\ket{\psi_k}$---但在逆交叠上的开销为 $\bigo(p_0^{-2})$。现代方法用一个由 QSVT（\cref{ch:lec09}）实现的\emph{锐利谱滤波器}替换 QPE 中缓慢衰减的 Fej\'er 核，将对交叠的依赖改进到 $\bigo(p_0^{-1/2})$。
+
+\subsection*{滤波思想}
+
+假设我们知道一个把基态能量与其余部分分开的阈值 $\mu$，
+$\lambda_0\le\mu-\tfrac{\Delta}{2}<\mu+\tfrac{\Delta}{2}\le\lambda_1$。考虑（平移后的）阶跃函数
+\[
+  \theta_\mu(x)=\begin{cases}1,& x<\mu,\\ 0,& x>\mu,\end{cases}
+\]
+使得矩阵函数 $\theta_\mu(H)=\proj{\psi_0}$ 恰好是到基态 (ground state) 的投影算符。如果我们能把 $\theta_\mu(H)$ 作用到初始态 $\ket{\phi}$ 上，就会得到 $\theta_\mu(H)\ket{\phi}=c_0\ket{\psi_0}$，归一化之后恰为 $\ket{\psi_0}$。QSVT 让我们应用的不是精确的阶跃函数---它不连续，且需要无穷次的多项式---而是一个在禁止窗口 $(\mu-\tfrac{\Delta}{2},\mu+\tfrac{\Delta}{2})$ 之外逼近它的多项式 $F$。
+
+\begin{definition}[谱滤波多项式]
+\label{def:lec05-filter}
+一个实偶多项式 $F$ 称为 $(\epsilon',\mu,\Delta)$-\emph{基态滤波器 (ground-state filter)}，如果
+\[
+  \abs{F(x)-1}\le\epsilon'\ \ \forall x\in[0,\mu-\tfrac{\Delta}{2}],
+  \qquad
+  \abs{F(x)}\le\epsilon'\ \ \forall x\in[\mu+\tfrac{\Delta}{2},1].
+\]
+这样的 $F$ 可由对符号函数的多项式逼近构造而成，其次数为 $\deg F=\bigo(\Delta^{-1}\log(1/\epsilon'))$。
+\end{definition}
+
+次数界是关键所在：分辨一个谱隙 $\Delta$ 在多项式次数上---从而在块编码查询次数上---耗费 $\bigo(1/\Delta)$，而精度 $\epsilon'$ 只以对数方式进入。将 $F(H)$ 作用到 $\ket{\phi}=\sum_k c_k\ket{\psi_k}$，
+\[
+  F(H)\ket{\phi}=\sum_k c_k F(\lambda_k)\ket{\psi_k}
+   =\underbrace{c_0 F(\lambda_0)}_{\approx c_0}\ket{\psi_0}
+    +\sum_{k\ge1}\underbrace{c_k F(\lambda_k)}_{\bigo(\epsilon')}\ket{\psi_k},
+\]
+从而激发态分量被压制到 $\bigo(\epsilon')$，而基态分量被保留。QSVT 线路将 $F(H)$ 实现为一个块编码：对输入 $\ket{0^m}\ket{\phi}$ 它输出 $\ket{0^m}F(H)\ket{\phi}+\ket{\perp}$，而测量辅助标志 $\ket{0^m}$ 以概率 $\approx p_0$ 成功，使系统处于与 $\ket{\psi_0}$ 保真度为 $1-\bigo(\epsilon'^2/p_0)$ 的态。
+
+\subsection*{近似最优的开销}
+
+朴素地重复直到标志读出 $\ket{0^m}$ 耗费 $\bigo(p_0^{-1})$ 次试验；振幅放大（\cref{sec:lec03-4}）增强成功振幅，将其减少到 $\bigo(p_0^{-1/2})$。这就是近似最优的基态制备 (ground-state preparation) 结果。
+
+\begin{theorem}[已知能量窗口下的基态制备]
+\label{thm:lec05-gsp}
+设 $U_H$ 为 $H$ 的 $(\alpha,m)$-块编码，谱隙为 $\Delta=\lambda_1-\lambda_0>0$，设 $\ket{\phi}=U_I\ket{0^n}$ 的交叠为 $p_0=\abs{\braket{\phi|\psi_0}}^2>0$，并设 $\mu$ 满足
+$\lambda_0\le\mu-\tfrac{\Delta}{2}<\mu+\tfrac{\Delta}{2}\le\lambda_1$。那么基态 $\ket{\psi_0}$ 可被制备到至少 $1-\epsilon$ 的保真度，所用为
+\[
+  \bigo\bigl(\alpha\,\Delta^{-1}\,p_0^{-1/2}\,\log(p_0^{-1}\epsilon^{-1})\bigr)
+\]
+次对 $U_H$ 及其逆的查询，以及 $\bigo(p_0^{-1/2})$ 次对 $U_I$ 及其逆的查询。
+\end{theorem}
+
+\begin{proof}[证明思路]
+取 $F$ 为次数 $\bigo(\Delta^{-1}\log(1/\epsilon'))$ 的 $(\epsilon',\mu,\Delta)$-滤波器（\cref{def:lec05-filter}），并用 QSVT 实现 $F(H)$，后者每次应用使用 $\bigo(\deg F)$ 次对 $U_H,U_H\dg$ 的查询。后选择得到的态与 $\ket{\psi_0}$ 的保真度为 $1-\bigo(\epsilon'^2/p_0)$，故 $\epsilon'=\Theta(\sqrt{\epsilon p_0})$ 给出保真度 $1-\epsilon$，并使 $\log(1/\epsilon')=\bigo(\log(p_0^{-1}\epsilon^{-1}))$。对标志 $\ket{0^m}$ 做振幅放大，其成功振幅为 $\Theta(\sqrt{p_0})$，需要 $\bigo(p_0^{-1/2})$ 轮；把每轮的查询深度 $\bigo(\alpha\Delta^{-1}\log(1/\epsilon'))$ 乘以这些轮数，即得所述的 $U_H$-查询次数，而每轮使用 $\bigo(1)$ 次对 $U_I$ 的调用。
+\end{proof}
+
+\begin{remark}[去掉先验的能量估计]
+\label{rem:lec05-bisection}
+\cref{thm:lec05-gsp} 假设已知窗口 $\mu$。实际中 $\mu$ 未知，必须自行计算。对 $\mu$ 做二分搜索，其中每一步通过用振幅估计来估计 $\norm{F(H)\ket{\phi}}$ 以求解一个\emph{模糊二分}判定问题（``$\lambda_0$ 是在 $\mu-h$ 以下还是在 $\mu+h$ 以上？''），可用
+$\widetilde{\bigo}(\alpha\,\epsilon^{-1}p_0^{-1/2}\log\delta^{-1})$ 次对 $U_H$ 的查询把 $\lambda_0$ 定位到精度 $\epsilon$。精度 $\epsilon$ 扮演了有效谱隙的角色，因此这在能量精度上达到海森堡受限的 $\bigo(1/\epsilon)$ 标度，而\emph{无需}假设正谱隙；当已知谱隙 $\Delta$ 时，只需把它运行到精度 $\Delta/2$，然后调用 \cref{thm:lec05-gsp}。
+\end{remark}
+
+\begin{remark}[为何是 $p_0^{-1/2}$ 而非 $p_0^{-1}$]
+\label{rem:lec05-sqrt}
+相对于朴素 QPE（\cref{rem:lec05-overlap}）的平方根改进，恰是 \cref{sec:lec05-2} 的振幅放大增益：制备基态即是``寻找一个标记项''（$\ket{\phi}$ 中权重为 $p_0$ 的 $\ket{\psi_0}$ 分量），而振幅放大在 $\bigo(p_0^{-1/2})$ 轮内找到它，而非非相干采样的 $\bigo(p_0^{-1})$。锐利的 QSVT 滤波器正是使``标记''足够干净以便振幅放大可以施用的东西。
+\end{remark}
+\section{下界}
+\label{sec:lec05-4}
+
+上述算法是浪费的，还是本质上最优的？三个下界（lower bound）——一个来自计量学，两个来自无结构搜索（unstructured search）——表明它们对关键资源的依赖无法改进。
+
+\subsection*{相位估计的海森堡极限}
+
+对于通过查询 $U(t)=\ee^{-\ii Ht}$ 来估计本征相位（eigenphase）$\varphi$，自然的资源是总演化时间
+$\mathcal T=\sum_p\abs{t_p}$。正如 \cref{sec:lec04-5} 所讨论的，相干的相位
+累积可达到精度 $\epsilon\sim1/\mathcal T$（即\emph{海森堡极限}（Heisenberg
+limit）），比非相干重复的 $\epsilon\sim1/\sqrt{\mathcal T}$
+散粒噪声标度平方地更好。这不仅是可达到的，而且是
+最优的。
+
+\begin{theorem}[海森堡极限下界]
+\label{thm:lec05-hl}
+考虑任意协议，它将受控演化 $U(t_1),\dots,U(t_N)$ 作用于
+一个固定的本征态（eigenstate）$\ket{\psi}$，其中 $U(t)\ket{\psi}=\ee^{\ii t\varphi}\ket{\psi}$，
+并与仅作用于辅助寄存器的任意酉算符交错，
+产生 $\varphi$ 的一个局部无偏估计量 $\hat\varphi$。那么，以总
+演化时间 $\mathcal T=\sum_p\abs{t_p}$ 计，
+\[
+  \Var(\hat\varphi)\ge\frac{1}{4\mathcal T^{2}}.
+\]
+因此该模型中没有协议能超越海森堡标度
+$\epsilon=\Omega(1/\mathcal T)$。
+\end{theorem}
+
+\begin{proof}[证明思路]
+每次受控查询 $U(t_p)$ 在辅助寄存器上印上一个有效的相位旋转
+$V_p(\varphi)=(\id-\Pi_p)+\ee^{\ii t_p\varphi}\Pi_p$，其中 $\Pi_p$
+是到“被激活”子空间上的投影算符，故
+$\norm{\partial_\varphi V_p}=\abs{t_p}\,\norm{\Pi_p}\le\abs{t_p}$。末态
+$\ket{\Psi(\varphi)}$ 是诸 $V_p$ 与辅助酉算符之积；由
+三角不等式有 $\norm{\partial_\varphi\Psi}\le\sum_p\abs{t_p}=\mathcal T$。对于
+一个纯态族，量子 Fisher 信息满足
+$F_Q\le4\norm{\partial_\varphi\Psi}^2\le4\mathcal T^2$，而量子
+Cram\'er--Rao 界（\cref{ch:lec02}）给出
+$\Var(\hat\varphi)\ge1/F_Q\ge1/(4\mathcal T^2)$。
+\end{proof}
+
+Fisher 信息的观点也解释了为什么演化时间的\emph{间距}
+很重要：只有指数增长的时间 $t_p\propto2^{p}$——如 Kitaev
+方法和标准 QPE 中那样——才能累积饱和
+\cref{thm:lec05-hl} 所需的二次 Fisher 信息
+$\sum_p t_p^2=\Theta(\mathcal T^2)$。均匀网格 $t_p=p\tau$ 只给出
+$\sum_p t_p^2=\Theta(\mathcal T^{2}/N)$，并达到精度
+$\epsilon=\Theta(\mathcal T^{-2/3})$，介于散粒噪声与海森堡极限之间。
+
+\subsection*{基态制备基于搜索的下界}
+
+\cref{thm:lec05-gsp} 的代价 $\bigo(p_0^{-1/2}\Delta^{-1})$ 在\emph{两个}
+参数上都是最优的，这可通过将无结构搜索——它需要
+$\Omega(\sqrt N)$ 次查询（\cref{ch:lec03}）——归约到基态制备（ground-state preparation）看出。
+
+\begin{theorem}[交叠下界]
+\label{thm:lec05-lbp0}
+存在一族块编码哈密顿量，具有常数谱隙
+$\Delta=\Omega(1)$ 和交叠 $p_0\to0$，对其而言将 $\ket{\psi_0}$ 制备到
+至少 $\sqrt3/2$ 的保真度需要对 $U_H$ 进行 $\Omega(p_0^{-1/2})$ 次查询。
+\end{theorem}
+
+\begin{proof}[证明思路]
+取 $U_H=U_t=\id-2\proj{t}$，其中 $t$ 为未知的标记串；它是厄米的且
+酉的，是其自身的 $(1,0)$ 块编码，以 $\ket{t}$ 为其唯一的基态
+且谱隙为 $2$，而均匀叠加 $\ket{u}=H^{\otimes n}\ket{0^n}$
+的交叠为 $\abs{\braket{u|t}}^2=1/N$，故 $p_0=1/N$ 且 $\sqrt{p_0}=1/\sqrt N$。
+将基态制备到保真度 $\ge\sqrt3/2$ 并测量，以
+概率 $\ge3/4$ 返回 $t$。如果这只用了 $o(p_0^{-1/2})=o(\sqrt N)$ 次查询，它就能
+以 $o(\sqrt N)$ 次查询解决无结构搜索，这与 Grover 下界
+矛盾。
+\end{proof}
+
+\begin{theorem}[谱隙下界]
+\label{thm:lec05-lbgap}
+存在一族，具有常数交叠 $p_0=\Omega(1)$ 和谱隙 $\Delta\to0$，对其而言
+将 $\ket{\psi_0}$ 制备到至少 $\sqrt3/2$ 的保真度需要
+对 $U_H$ 进行 $\Omega(\Delta^{-1})$ 次查询。
+\end{theorem}
+
+\begin{proof}[证明思路]
+取 $U_t=\id-2\proj{t}$ 和 $D=\id-2\proj{u}$（二者都是可由
+Hadamard 门和一次谕示调用实现的反射），插值哈密顿量
+$H(\tfrac12)=\tfrac12(D+U_t)$ 仅在
+$\operatorname{span}\{\ket{u},\ket{t}\}$ 上非平凡地作用，在其上它有本征值
+$\pm1/\sqrt N$：谱隙为 $\Delta=2/\sqrt N\to0$，而其基态与 $\ket{u}$ 和 $\ket{t}$
+都有常数交叠 $\tfrac12+\bigo(1/\sqrt N)$。
+制备该基态并测量，以常数概率产生 $t$，故
+$o(\Delta^{-1})=o(\sqrt N)$ 次查询将再次打破 Grover 界。
+\end{proof}
+
+\subsection*{不可快进，以及对第三部分的展望}
+
+上面两个界都可追溯到 Grover 搜索的最优性。一个相关而
+更深刻的障碍支配着哈密顿量的\emph{模拟}以及线性系统的
+求解：\emph{不可快进定理}（no-fast-forwarding theorem）指出，在最坏情形下模拟
+一个一般的哈密顿量时间 $t$ 需要 $\Omega(t)$ 次查询——
+人们无法将长时动力学压缩为次线性的代价。这就是为什么
+\cref{ch:lec10} 中预览的量子线性系统求解器继承了对条件数 $\kappa$ 的
+线性依赖（QLSP 下界为
+$\Omega(\kappa)$，通过将哈密顿量模拟编码进一个线性系统来证明），
+以及为什么 \cref{ch:lec11,ch:lec12} 的哈密顿量模拟算法以
+对 $t$ \emph{线性}而非次线性的代价为目标。当我们在第三部分构建这些算法时将
+详细遇到不可快进定理；目前它作为
+相位估计、振幅估计（amplitude estimation）与本征态制备都在逼近的
+基本极限而存在。
+
+\section{阶查找与 Shor 算法}
+\label{sec:lec05-5}
+
+迄今为止的应用都取自科学计算。我们以
+首先使相位估计声名鹊起的算法作结：\emph{Shor 因子分解
+算法}（Shor's factoring algorithm），其唯一的量子要素是\emph{阶查找}（order finding），而其
+阶查找例程不外乎是将 QPE（\cref{ch:lec04}）应用于一个
+模乘酉算符。除了其历史分量，它还是本讲
+反复出现的模式的最清晰的例证——将一个数论量
+编码进一个可高效实现的酉算符的本征相位中，然后用 QPE 读出该相位——
+它也是为什么一台大型容错量子计算机会
+攻破 RSA 密码系统。
+
+\subsection*{数论封装：因子分解归约到阶查找}
+
+设 $N=PQ$ 为两个大素数之积，即一个 RSA 公钥的模。
+经典上已知最好的因子分解算法运行时间为
+$\ee^{\bigo((\log N)^{1/3}(\log\log N)^{2/3})}$（数域筛法），
+关于比特长度 $\log N$ 是超多项式的。Shor 的洞见是因子分解
+在随机化多项式经典时间内归约到计算一个
+\emph{乘法阶}的问题。
+
+\begin{definition}[乘法阶]
+\label{def:lec05-order}
+对于与 $N$ 互素的 $a$（即 $\gcd(a,N)=1$），$a$ 模 $N$ 的
+\emph{阶}是满足
+\[
+  a^{r}\equiv 1 \pmod N
+\]
+的最小正整数 $r$。
+\end{definition}
+
+围绕阶查找的经典封装是：
+\begin{enumerate}[leftmargin=1.6em,nosep]
+  \item 从 $\{2,\dots,N-1\}$ 中均匀随机地选取 $a$。用
+        Euclid 算法计算 $g=\gcd(a,N)$。若 $g>1$，则 $g$ 已经是
+        $N$ 的一个非平凡因子——返回它。否则 $\gcd(a,N)=1$，我们继续。
+  \item 用下面的量子阶查找例程计算
+        $a\bmod N$ 的阶 $r$。\emph{这是唯一的量子步骤。}
+  \item 若 $r$ 为奇数，或者 $a^{r/2}\equiv -1\pmod N$（等价地
+        $a^{r/2}\bmod N=N-1$），则本次运行不走运；丢弃它并以
+        一个新的 $a$ 返回步骤~1。
+  \item 否则计算 $\gcd(a^{r/2}-1,\,N)$ 和 $\gcd(a^{r/2}+1,\,N)$。它们各自
+        是 $N$ 的一个非平凡因子。
+\end{enumerate}
+
+为什么步骤~4 有效？由于 $a^{r}\equiv1$，平方差给出
+\begin{equation}
+  \bigl(a^{r/2}-1\bigr)\bigl(a^{r/2}+1\bigr)=a^{r}-1\equiv 0 \pmod N,
+  \label{eq:lec05-diffsquares}
+\end{equation}
+故 $N\mid(a^{r/2}-1)(a^{r/2}+1)$。$r$ 的最小性禁止
+$a^{r/2}\equiv 1$（那会使 $r/2$ 成为更小的阶），而步骤~3 已排除
+$a^{r/2}\equiv -1$；因此 $N$ 既不单独整除
+\eqref{eq:lec05-diffsquares} 左边的任一因子，故其素因子必定在
+两个因子之间分裂。于是 $\gcd(a^{r/2}\mp1,N)$ 是 $N$ 的一个非平凡
+除数。一个标准的数论估计表明，当 $N$ 有至少两个
+相异的奇素因子时，随机的 $a$ 以至少 $1/2$ 的概率产生一个偶数 $r$ 且
+$a^{r/2}\not\equiv-1$，故平均而言 $\bigo(1)$ 次重复即足够。除阶查找外的
+每一步——随机选取、$\gcd$、奇偶性检验——都是初等的
+经典算术。
+
+\subsection*{阶查找作为相位估计}
+
+固定满足 $\gcd(a,N)=1$ 的 $a$，并在态空间 $\C^{2^n}$ 上工作，其中
+$n=\lceil\log_2 N\rceil$，其计算基标记剩余类
+$\{0,1,\dots,N-1\}$（以及未用到的标记 $\ge N$）。定义
+\emph{模乘酉算符}
+\begin{equation}
+  U_a\ket{y}=\ket{ay\bmod N}\quad(0\le y<N),
+  \qquad U_a\ket{y}=\ket{y}\ (y\ge N).
+  \label{eq:lec05-Ua}
+\end{equation}
+因为乘以 $a$ 置换了与 $N$ 互素的剩余类（其逆为
+乘以 $a^{-1}\bmod N$），$U_a$ 是一个置换矩阵，因而是酉的，
+并且它由模幂运算线路以 $\bigo((\log N)^2)$ 个初等门实现。
+要点在于 $U_a$ 有一个本征基，其本征相位揭示了阶 $r$。
+
+\begin{lemma}[模乘酉算符的本征相位]
+\label{lem:lec05-Ua}
+设 $r$ 为 $a\bmod N$ 的阶。对每个整数 $s\in\{0,1,\dots,r-1\}$，态
+\[
+  \ket{u_s}=\frac{1}{\sqrt r}\sum_{k=0}^{r-1}
+             \ee^{-2\pi\ii\, sk/r}\,\ket{a^{k}\bmod N}
+\]
+是 $U_a$ 的本征态，本征值为 $\ee^{2\pi\ii\, s/r}$：
+\[
+  U_a\ket{u_s}=\ee^{2\pi\ii\, s/r}\ket{u_s}.
+\]
+此外 $\dfrac{1}{\sqrt r}\sum_{s=0}^{r-1}\ket{u_s}=\ket{1}$。
+\end{lemma}
+
+\begin{proof}
+作用 $U_a$ 在由 $a$ 生成的循环群中将 $k\mapsto k+1$ 移位：
+\[
+  U_a\ket{u_s}=\frac{1}{\sqrt r}\sum_{k=0}^{r-1}
+    \ee^{-2\pi\ii sk/r}\ket{a^{k+1}\bmod N}
+   =\ee^{2\pi\ii s/r}\,\frac{1}{\sqrt r}\sum_{k'=0}^{r-1}
+    \ee^{-2\pi\ii sk'/r}\ket{a^{k'}\bmod N},
+\]
+其中我们重新编号 $k'=k+1$ 并用了 $a^{r}\equiv1$ 使得该和以周期 $r$
+周期性；重新编号使每一项乘以 $\ee^{2\pi\ii s/r}$。
+末尾的恒等式成立是因为
+$\frac1r\sum_{s=0}^{r-1}\ee^{-2\pi\ii sk/r}=\delta_{k,0}$ 挑出 $k=0$ 项
+$\ket{a^0\bmod N}=\ket{1}$。
+\end{proof}
+
+\cref{lem:lec05-Ua} 把我们恰好置于 \cref{ch:lec04} 的 QPE 情形中：$U_a$ 在
+$\ket{u_s}$ 上的本征相位是 $\varphi_s=s/r\in[0,1)$。因此在
+$U_a$ 上以 \cref{ch:lec04} 的 $t$ 量子比特辅助寄存器运行 QPE，会返回
+某个 $s/r$ 的 $t$ 比特估计。两个事实使这在不知道
+本征态 $\ket{u_s}$ 的情况下也可行：
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{廉价的输入态。}我们无法制备单独的 $\ket{u_s}$，但
+        \cref{lem:lec05-Ua} 的末尾恒等式表明，平凡可制备的态
+        $\ket{1}$ 是所有 $\ket{u_s}$ 的均匀叠加。由线性
+        （如能量估计的 \cref{eq:lec05-initial} 中那样），以输入
+        $\ket{1}$ 运行 QPE 会返回一个均匀随机的
+        $s\in\{0,\dots,r-1\}$ 对应的 $s/r$ 的估计。
+  \item \emph{受控幂。}QPE 需要受控 $U_a^{2^{j}}$，而
+        $U_a^{2^{j}}\ket{y}=\ket{a^{2^{j}}y\bmod N}$ 又是一个模
+        乘法（乘以可预计算的常数 $a^{2^{j}}\bmod N$），故
+        整个线路即模幂运算，每个受控幂花费
+        $\bigo((\log N)^{2})$ 个门，总共 $\bigo((\log N)^{3})$。
+\end{itemize}
+
+组装这两个要素便给出 \cref{fig:lec05-shor} 的\emph{阶查找线路}，
+即 Shor 算法的量子核心。
+
+\begin{figure}[htbp]
+\centering
+\begin{quantikz}
+\lstick{$\ket0$} & \gate{H} & \ctrl{3}        & \qw             & \qw          & \gate[3]{\QFT^{-1}} & \meter{} \\
+\lstick{$\ket0$} & \gate{H} & \qw             & \ctrl{2}        & \qw          &                     & \meter{} \\
+\lstick{$\ket0$} & \gate{H} & \qw             & \qw             & \ctrl{1}     &                     & \meter{} \\
+\lstick{$\ket1$} & \qw      & \gate{U_a^{4}}  & \gate{U_a^{2}}  & \gate{U_a}   & \qw                 & \qw
+\end{quantikz}
+\caption{通过在模乘酉算符
+$U_a\ket{y}=\ket{ay\bmod N}$（\cref{eq:lec05-Ua}）上做相位估计来进行阶查找。工作寄存器被制备在
+平凡可得的 $\ket{1}=\tfrac{1}{\sqrt r}\sum_{s}\ket{u_s}$（\cref{lem:lec05-Ua}）中，
+而每个受控 $U_a^{2^{k}}$ 是乘以预计算常数
+$a^{2^{k}}\bmod N$ 的模乘法（模幂运算）。一次运行返回一个随机 $s/r$ 的
+$t$ 比特估计；连分数随后恢复阶 $r$。}
+\label{fig:lec05-shor}
+\end{figure}
+
+\subsection*{用连分数恢复 \texorpdfstring{$r$}{r}}
+
+QPE 返回一个二进分数 $\tilde\varphi=k/2^{t}\approx s/r$。有了
+$t=2\log_2 N+\bigo(1)$ 个辅助量子比特，$\tilde\varphi$ 落在
+真实 $s/r$ 的 $1/2N^{2}$ 之内；由于两个分母低于 $N$ 的相异分数相差
+超过 $1/N^{2}$，$\tilde\varphi$ 的连分数（continued fractions）展开有一个
+渐近分数 $s'/r'$（最简形式）恰好等于 $s/r$。当 $\gcd(s,r)=1$
+时，该渐近分数的分母 $r'$ \emph{就是} $r$；否则它是
+$r$ 的一个除数，而检验 $a^{r'}\equiv1$（或 $r'$ 的几个小倍数）恢复 $r$。
+连分数由此将近似的相位读出转换为精确的
+整数阶。
+
+\begin{example}[用 $a=7$ 对 $N=15$ 因子分解]
+\label{exa:lec05-shor15}
+取 $N=15$，并在抽到满足 $\gcd(7,15)=1$ 的 $a=7$ 后，计算阶：
+$7^{1}=7$，$7^{2}=49\equiv4$，$7^{3}\equiv 7\cdot4=28\equiv13$，
+$7^{4}\equiv7\cdot13=91\equiv1\pmod{15}$，故 $r=4$。由 \cref{lem:lec05-Ua}，
+酉算符 $U_7$ 有本征相位 $s/4\in\{0,\tfrac14,\tfrac12,\tfrac34\}$。阶
+查找对剩余类寄存器使用 $n=4$ 个量子比特（因为 $15=1111_2$）。即使用
+一个不大的辅助寄存器，这些相位也是二进的，故以输入 $\ket{1}$ 运行 QPE
+会返回诸读出之一
+\[
+  0.00_2=\tfrac{0}{4},\quad 0.01_2=\tfrac14,\quad
+  0.10_2=\tfrac12,\quad 0.11_2=\tfrac34,
+\]
+各以概率 $\tfrac14$。一个非零结果，比如 $\tilde\varphi=0.01_2=1/4$，
+已经把 $r=4$ 呈现为其分母；此处连分数步骤
+是平凡的。（结果 $0$ 不携带关于 $r$ 的信息，直接丢弃。）
+封装的步骤~3--4 随后完成任务：$r=4$ 为偶且
+$7^{r/2}=7^{2}=49\equiv 4\not\equiv-1\pmod{15}$，故
+\[
+  \gcd\bigl(7^{2}-1,\,15\bigr)=\gcd(48,15)=3,
+  \qquad
+  \gcd\bigl(7^{2}+1,\,15\bigr)=\gcd(50,15)=5,
+\]
+恢复两个素因子，$15=3\times5$。（这些与 Brody 在真实硬件上对
+阶查找线路的实例运行相符，其中对 $a\in\{2,7,8,13\}$ 的主导结果
+恰好是 $\{00,01,10,11\}\!\cdot\!\tfrac14$，给出 $r=4$。）
+\end{example}
+
+连分数机制只有当 $r$ 不是 $2$ 的幂时才派上用场，
+从而 $s/r$ 是一个循环二进分数且 QPE 读出是真正的
+近似。用 $a=2$ 对 $N=21$ 因子分解（阶 $r=6$）是标准的这类
+例子，在 \cref{ex:lec05-7} 中展开。
+
+\subsection*{代价与指数加速}
+
+组装各个部分：剩余类与辅助寄存器使用 $\bigo(\log N)$
+个量子比特；QPE 发出 $\bigo(\log N)$ 次 $U_a$ 的受控幂，每次是门代价为
+$\bigo((\log N)^{2})$ 的模幂运算（或用快速乘法为 $\widetilde{\bigo}(\log N)$），
+总的量子代价为
+$\bigo((\log N)^{3})$；而经典封装——$\gcd$、连分数，
+以及 $\bigo(1)$ 次期望的重试——只增加 $\log N$ 的多项式量。因此整个
+算法以比特长度的多项式时间运行，相对于超多项式的经典数域筛法
+是\emph{指数}加速（exponential speedup）。
+由于 RSA 的安全性恰恰依赖于因子分解 $N=PQ$ 被假定的经典困难性，
+一台运行 Shor 算法的可扩展容错机器将
+从公开的模恢复出私钥——这就是相位估计
+“攻破互联网”的意义所在。阶查找核心是我们在 \cref{sec:lec05-1} 中对能量以及
+在振幅估计（\cref{sec:lec05-2}）中对 Grover 角所用的 QPE 推理的严格
+推广：在每种情形中，一个感兴趣的量都被写成一个可高效实现的
+酉算符的本征相位，并由 \cref{ch:lec04} 的相位估计线路提取。
+
+\exercisesection
+\begin{exercise}\label{ex:lec05-1}
+\emph{能量分辨率与辅助比特数。}设 $H$ 已被重标度使得
+$U=\ee^{\ii 2\pi H}$ 的所有本征相位都在 $[0,1)$ 中，并以 $t$ 个辅助量子比特在
+一个精确本征态上运行 QPE。证明能量 $\lambda$ 的加性分辨率为
+$2^{-t}$，并确定需要多少个辅助量子比特才能把 $\lambda_0$ 分辨到
+$10^{-3}$（以重标度后的单位计）。如果物理能量
+范围为 $[E_{\min},E_{\max}]$ 且 $E_{\max}-E_{\min}=W$，那么以物理单位计的分辨率
+是多少？
+\end{exercise}
+
+\begin{exercise}\label{ex:lec05-2}
+\emph{振幅估计查询次数。}利用 \cref{thm:lec05-aecost}，确定
+将一个满足 $P(1-P)=\Theta(1)$ 的振幅 $P$ 估计到加性精度 $\epsilon=10^{-3}$
+所需的 Grover 迭代 $G$ 的应用次数，
+并与一个经典蒙特卡洛估计量为达到相同精度所需的
+独立样本数作比较。将两种代价之比表示为
+$\epsilon$ 的函数。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec05-3}
+\emph{成功概率 $\ge\tfrac12$ 的交叠要求。}在
+\cref{sec:lec05-1} 基于 QPE 的基态例程中，单次运行以概率 $p_0$ 返回
+（$\lambda_0$ 的一个估计）。证明为了在 $M$ 次独立运行中以 $\ge\tfrac12$ 的概率
+至少获得 $\lambda_0$ 一次，需要
+$M\ge\log 2/\log\bigl((1-p_0)^{-1}\bigr)$，并对小 $p_0$ 加以化简。
+由此得出 $M=\bigo(p_0^{-1})$ 次运行即足够。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec05-4}
+\emph{Grover 迭代的本征相位。}通过直接的矩阵计算验证
+旋转 $\left(\begin{smallmatrix}\cos\theta&\sin\theta\\-\sin\theta&
+\cos\theta\end{smallmatrix}\right)$ 有本征值 $\ee^{\pm\ii\theta}$，
+本征向量为 $\tfrac{1}{\sqrt2}(1,\mp\ii)^{\mathsf T}$，并确认 \cref{thm:lec05-ae} 中所用的
+交叠 $\abs{\braket{\phi_0|\phi_\pm}}^2=\tfrac12$。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec05-5}
+\emph{滤波器次数与谱隙。}一个基态滤波器（\cref{def:lec05-filter}）
+有次数 $\deg F=\bigo(\Delta^{-1}\log(1/\epsilon'))$。解释为什么次数
+必须至少像 $\Delta^{-1}$ 那样增长（提示：一个在 $[-1,1]$ 上被 $1$ 界住的
+次数为 $D$ 的多项式，无法在远短于 $\bigo(1/D)$ 的区间上从 $\approx1$ 变为
+$\approx0$；回忆 Chebyshev 多项式的行为）。推导
+\cref{thm:lec05-gsp} 的查询深度在 $\Delta\to0$ 时如何标度，并将
+此与 \cref{thm:lec05-lbgap} 的谱隙下界联系起来。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec05-6}
+\emph{二次与平方根交叠依赖。}对比朴素的 QPE 基态能量估计
+（\cref{thm:lec05-gsee}，忽略对数为 $\bigo(p_0^{-2})$）与
+\cref{thm:lec05-gsp} 基于 QSVT 的制备（$\bigo(p_0^{-1/2})$）的总代价。
+各用一两句话解释
+哪种机制产生 $p_0$ 的每个幂，以及为什么振幅放大
+是改进的根源（参见 \cref{rem:lec05-sqrt}）。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec05-7}
+\emph{用 $a=2$ 通过连分数对 $N=21$ 因子分解。}验证
+$2\bmod 21$ 的阶为 $r=6$。以一个 $5$ 比特辅助寄存器，在 $U_2$ 上做阶查找
+（\cref{eq:lec05-Ua}）返回近似 $s/6$ 的读出；一个这样的读出是
+$0.00101_2=5/32$。计算 $5/32$ 的连分数展开，列出其
+渐近分数，并辨认分母为阶 $r=6$ 的那个渐近分数
+（检验 $2^{6}\equiv1\pmod{21}$ 且没有更小的候选分母有效）。
+然后完成 Shor 算法：确认 $r$ 为偶且 $2^{r/2}\not\equiv-1$，并
+计算 $\gcd(2^{3}-1,21)$ 和 $\gcd(2^{3}+1,21)$ 以恢复 $21$ 的因子。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec05-8}
+\emph{模乘酉算符的本征相位。}对于 $N=15$ 和 $a=7$，
+列出循环 $\{7^{k}\bmod 15:k=0,1,2,3\}$ 并用它显式写出
+\cref{lem:lec05-Ua} 中 $U_7$ 的四个本征态 $\ket{u_s}$（$s=0,1,2,3$）。
+直接验证 $U_7\ket{u_1}=\ee^{2\pi\ii/4}\ket{u_1}=\ii\ket{u_1}$，
+并确认 $\tfrac12\sum_{s=0}^{3}\ket{u_s}=\ket{1}$，从而制备
+容易的态 $\ket{1}$ 等价于抽样一个均匀随机的本征相位
+$s/4$。
+\end{exercise}
+
+\readingsection
+\begin{itemize}[leftmargin=1.4em]
+  \item Lin Lin, \emph{qasc notes}, Ch.~4（基态能量估计、
+        振幅估计、HHL，以及泊松方程例子）。
+  \item Lin Lin, \emph{live notes}, Ch.~16（振幅估计、海森堡
+        极限，以及 Cram\'er--Rao 观点）。
+  \item Lin Lin, \emph{live notes}, Ch.~18（本征值问题、近最优的
+        基态制备，以及相匹配的下界）。
+  \item J.~Brody, \emph{The Joy of Quantum Computing}, Princeton University
+        Press, 2025, Ch.~10--11（通过相位估计进行阶查找以及 Shor
+        因子分解算法的实操式讲解，包括对 $a\bmod 15$ 的实例阶查找线路
+        以及因子分解 $21$ 时通过连分数恢复 $r$）。
+\end{itemize}

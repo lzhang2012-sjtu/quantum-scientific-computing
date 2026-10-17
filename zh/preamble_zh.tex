@@ -1,0 +1,144 @@
+% preamble_zh.tex — shared packages, macros, and theorem environments for the
+% CHINESE edition. Compile the master main_zh.tex with XeLaTeX.
+%
+% CJK is provided by xeCJK + the bundled Fandol fonts on a plain `book` class
+% (NOT ctexbook). ctexbook clobbers cleveref's \label hook at \begin{document},
+% which breaks every \cref (the notes use \cref heavily); book+xeCJK keeps
+% cleveref fully working. Chinese structural localization (chapter headings,
+% \contentsname, figure/table names) is supplied explicitly below.
+% The pdfLaTeX-only font lines (inputenc/fontenc/lmodern) are intentionally omitted.
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{braket}          % Dirac notation: \ket, \bra, \braket
+\usepackage{bm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{quantikz}
+\usepackage[most]{tcolorbox}
+
+% --- CJK support (xeCJK + Fandol) ---
+\usepackage{xeCJK}
+\setCJKmainfont{FandolSong-Regular.otf}[
+  Path=/usr/local/texlive/2025/texmf-dist/fonts/opentype/public/fandol/,
+  BoldFont=FandolHei-Regular.otf, ItalicFont=FandolKai-Regular.otf]
+\setCJKsansfont{FandolHei-Regular.otf}[
+  Path=/usr/local/texlive/2025/texmf-dist/fonts/opentype/public/fandol/]
+\linespread{1.3}             % a little extra leading for CJK readability
+
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage[capitalize,noabbrev]{cleveref}
+
+% --- Chinese structural localization (replaces what ctexbook would provide) ---
+\renewcommand{\contentsname}{目录}
+\renewcommand{\listfigurename}{插图目录}
+\renewcommand{\listtablename}{表格目录}
+\renewcommand{\bibname}{参考文献}
+\renewcommand{\indexname}{索引}
+\renewcommand{\figurename}{图}
+\renewcommand{\tablename}{表}
+\renewcommand{\appendixname}{附录}
+\makeatletter
+\renewcommand{\@makechapterhead}[1]{%
+  \vspace*{40\p@}{\parindent\z@\raggedright\normalfont
+    \ifnum\c@secnumdepth>\m@ne \huge\bfseries 第\,\thechapter\,章\par\nobreak\vskip 18\p@\fi
+    \Huge\bfseries #1\par\nobreak\vskip 30\p@}}
+\renewcommand{\@makeschapterhead}[1]{%
+  \vspace*{40\p@}{\parindent\z@\raggedright\normalfont
+    \Huge\bfseries #1\par\nobreak\vskip 30\p@}}
+\makeatother
+
+% ---------------------------------------------------------------------------
+% Draft helpers
+% ---------------------------------------------------------------------------
+\newcommand{\todo}[1]{{\color{red}\textbf{[待办: #1]}}}
+\newcommand{\note}[1]{{\color{purple}\small(#1)}}
+\newcommand{\coverage}[1]{%
+  \par\smallskip\noindent
+  \textcolor{teal}{\textbf{本学期讲授（2026--2027 秋季学期）。}}\enspace
+  {\small #1}\par\smallskip}
+
+% ---------------------------------------------------------------------------
+% Notation macros (identical to the English build)
+% ---------------------------------------------------------------------------
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\Hilb}{\mathcal{H}}
+\newcommand{\ii}{\mathrm{i}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\ee}{\mathrm{e}}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\Tr}{Tr}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\Cov}{Cov}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\poly}{poly}
+\DeclareMathOperator{\polylog}{polylog}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\abs}[1]{\left\lvert #1 \right\rvert}
+\newcommand{\bigo}{\mathcal{O}}
+\newcommand{\id}{\mathbb{I}}
+\newcommand{\dg}{^{\dagger}}
+\let\proj\relax
+\newcommand{\proj}[1]{\ket{#1}\!\bra{#1}}
+
+% Pauli / common gates
+\newcommand{\Xgate}{\mathsf{X}}
+\newcommand{\Ygate}{\mathsf{Y}}
+\newcommand{\Zgate}{\mathsf{Z}}
+\newcommand{\Hgate}{\mathsf{H}}
+\newcommand{\CNOT}{\mathrm{CNOT}}
+\newcommand{\Uf}{U_{f}}
+\newcommand{\QFT}{\mathrm{QFT}}
+\newcommand{\defeq}{\vcentcolon=}
+
+% ---------------------------------------------------------------------------
+% Theorem environments (Chinese names)
+% ---------------------------------------------------------------------------
+\theoremstyle{plain}
+\newtheorem{theorem}{定理}[chapter]
+\newtheorem{lemma}[theorem]{引理}
+\newtheorem{proposition}[theorem]{命题}
+\newtheorem{corollary}[theorem]{推论}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{定义}
+\newtheorem{example}[theorem]{例}
+\newtheorem{exercise}{习题}[chapter]
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{注}
+\renewcommand{\proofname}{证明}
+\newenvironment{solution}{\begin{proof}[\normalfont\itshape 解.]}{\end{proof}}
+
+% cleveref: Chinese cross-reference names
+\crefname{theorem}{定理}{定理}      \Crefname{theorem}{定理}{定理}
+\crefname{lemma}{引理}{引理}        \Crefname{lemma}{引理}{引理}
+\crefname{proposition}{命题}{命题}  \Crefname{proposition}{命题}{命题}
+\crefname{corollary}{推论}{推论}    \Crefname{corollary}{推论}{推论}
+\crefname{definition}{定义}{定义}   \Crefname{definition}{定义}{定义}
+\crefname{example}{例}{例}          \Crefname{example}{例}{例}
+\crefname{remark}{注}{注}           \Crefname{remark}{注}{注}
+\crefname{exercise}{习题}{习题}     \Crefname{exercise}{习题}{习题}
+\crefname{chapter}{章}{章}          \Crefname{chapter}{章}{章}
+\crefname{section}{节}{节}          \Crefname{section}{节}{节}
+\crefname{equation}{式}{式}         \Crefname{equation}{式}{式}
+\crefname{figure}{图}{图}           \Crefname{figure}{图}{图}
+\crefname{table}{表}{表}            \Crefname{table}{表}{表}
+
+% ---------------------------------------------------------------------------
+% Per-lecture structural helpers (Chinese)
+% ---------------------------------------------------------------------------
+\newtcolorbox{objectives}{
+  colback=blue!4, colframe=blue!45!black, title={学习目标},
+  fonttitle=\bfseries, boxrule=0.5pt, arc=2pt, left=6pt, right=6pt, top=4pt, bottom=4pt}
+\newcommand{\exercisesection}{\section*{习题}\addcontentsline{toc}{section}{习题}}
+\newcommand{\readingsection}{\section*{延伸阅读}\addcontentsline{toc}{section}{延伸阅读}}

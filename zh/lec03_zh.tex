@@ -1,0 +1,1089 @@
+\chapter{Grover 算法与振幅放大}
+\label{ch:lec03}
+
+\begin{objectives}
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item 梳理从 Deutsch 算法到无结构搜索 (unstructured search) 的历史脉络。
+  \item 从几何角度推导 Grover 迭代。
+  \item 把相位谕示 (phase oracle) 与扩散算符 (diffusion operator) 构造成显式线路。
+  \item 推广到振幅放大 (amplitude amplification) 并陈述其平方加速。
+  \item 勾勒无结构搜索的查询下界。
+\end{itemize}
+\end{objectives}
+
+\coverage{全章（\S3.1--\S3.5）。}
+
+前几讲固定了态、门与测量的语言。本讲用这套语言来构建本学科中两类原型查询算法。我们从谕示 (oracle) 模型出发：在该模型中，访问一个未知布尔函数的唯一途径是一个黑箱酉算符，代价以对该黑箱的\emph{查询} (query) 次数衡量，而非以基本门数衡量。在这个模型内，Deutsch 算法及其后继（Deutsch--Jozsa、Bernstein--Vazirani）展示了一种干净而确定性的量子优势；它们引入的工具——相位回踢 (phase kickback) 与 Hadamard 变换——贯穿整个课程反复出现。随后我们转向其旗舰应用，即用于\emph{无结构搜索}的 Grover 算法，它只需 $\bigo(\sqrt N)$ 次查询便能在 $N$ 个候选中找到一个标记项，相对经典的 $\bigo(N)$ 实现平方加速。其机制可归结为一幅异常简洁的几何图景：搜索栖身于一个二维平面之内，而每次迭代都是朝向解的一次旋转。我们将证明这幅旋转图景，计算最优迭代次数，推广到振幅放大，并以匹配的 $\Omega(\sqrt N)$ 下界收尾，表明该算法是最优的。
+
+\section{Deutsch 算法}
+\label{sec:lec03-1}
+
+给定一个布尔函数 $f:\{0,1\}^n\to\{0,1\}$，其内部结构对我们隐藏。我们没有 $f$ 的代码；只能通过黑箱喂入输入并接收输出。要在量子线路内使用 $f$，我们需要它的作用是可逆的 (reversible)，因为每个量子门都是酉的。为此的标准手段如下。
+
+\begin{definition}[谕示 / 查询模型]
+\label{def:lec03-oracle}
+设 $f:\{0,1\}^n\to\{0,1\}$。$f$ 的\emph{谕示}（或\emph{量子谕示}）是作用于 $n+1$ 个量子比特上的算符 $\Uf$——一个 $n$ 比特的\emph{输入寄存器} (input register) 和一个单比特\emph{目标寄存器} (target register)——在计算基上定义为
+\[
+  \Uf\ket{x}\ket{y}=\ket{x}\ket{y\oplus f(x)},
+  \qquad x\in\{0,1\}^n,\ y\in\{0,1\},
+\]
+其中 $\oplus$ 表示模 $2$ 加法。某任务的\emph{查询复杂度} (query complexity) 是解决它所需（在所有成功的算法上）应用 $\Uf$ 的最少次数。
+
+\end{definition}
+
+目标寄存器上用异或——而非简单地用 $f(x)$ 覆写 $y$——恰恰正是使谕示可逆的原因。
+
+\begin{lemma}[谕示是酉的]
+\label{lem:lec03-unitary}
+对每个 $f:\{0,1\}^n\to\{0,1\}$，\cref{def:lec03-oracle} 中的算符 $\Uf$ 都是酉的，并且是其自身的逆：$\Uf\dg\Uf=\Uf^2=\id$。
+\end{lemma}
+
+\begin{proof}
+在 $x\in\{0,1\}^n$、$y\in\{0,1\}$ 上取遍的集合 $\{\ket{x}\ket{y}\}$ 是这个 $2^{n+1}$ 维态空间的标准正交基。映射 $(x,y)\mapsto(x,\,y\oplus f(x))$ 是指标集到自身的一个双射，因为它被自身所逆转：施加两次给出 $(x,\,y\oplus f(x)\oplus f(x))=(x,y)$，这是由于 $f(x)\oplus f(x)=0$。因此 $\Uf$ 只是置换了一组标准正交基，所以它是酉的，且 $\Uf^2=\id$。等价地，用矩阵形式有 $\braket{x'y'|\Uf\dg\Uf|xy}=\delta_{xx'}\delta_{yy'}$，即 $\Uf\dg\Uf=\id$。
+\end{proof}
+
+\paragraph{经典访问与量子访问之对比。}
+一个经典算法一次只能提交一个输入 $x$ 并读回单个比特 $f(x)$；把目标置为 $y=0$ 给出 $\Uf\ket{x}\ket{0}=\ket{x}\ket{f(x)}$。要以这种方式了解 $f$ 的某个\emph{全局}性质，可能迫使我们检查几乎全部 $2^n$ 个输入。量子算法则可以转而制备所有输入的均匀叠加，并仅施加 $\Uf$ 一次，并行地作用于每个输入：
+\[
+  \Uf\Big(\tfrac{1}{\sqrt{N}}\sum_{x\in\{0,1\}^n}\ket{x}\Big)\ket{0}
+  =\tfrac{1}{\sqrt{N}}\sum_{x}\ket{x}\ket{f(x)},
+  \qquad N=2^n.
+\]
+仅凭并行性是不够的——测量这个态会返回一个随机的对 $(x,f(x))$，并不优于一次经典查询。把并行性转化为优势的额外要素是\emph{干涉}，它通过相位回踢与 Hadamard 变换巧妙设计而成。
+
+\subsection{相位回踢}
+
+谕示把 $f(x)$ 作为一个比特写入目标寄存器。我们更希望 $f(x)$ 以\emph{相位}的形式出现在输入寄存器上，因为相位才是发生干涉的东西。下面这一观察——或许是本讲中最重要的单一技巧——正是通过巧妙地选取目标寄存器来达成这一点。
+
+\begin{lemma}[相位回踢]
+\label{lem:lec03-kickback}
+设 $\ket{-}=\tfrac{1}{\sqrt2}(\ket{0}-\ket{1})$。则对每个 $x\in\{0,1\}^n$，
+\[
+  \Uf\ket{x}\ket{-}=(-1)^{f(x)}\ket{x}\ket{-}.
+\]
+特别地，目标比特保持在 $\ket{-}$ 并可被丢弃，因而在输入寄存器上谕示等效地作为对角酉算符 $\tilde U_f\ket{x}=(-1)^{f(x)}\ket{x}$ 起作用。
+\end{lemma}
+
+\begin{proof}
+展开目标寄存器并对每个分支应用 \cref{def:lec03-oracle}：
+\[
+  \Uf\ket{x}\ket{-}
+  =\tfrac{1}{\sqrt2}\big(\Uf\ket{x}\ket{0}-\Uf\ket{x}\ket{1}\big)
+  =\tfrac{1}{\sqrt2}\big(\ket{x}\ket{f(x)}-\ket{x}\ket{1\oplus f(x)}\big).
+\]
+考虑比特 $f(x)$ 的两种情形。若 $f(x)=0$，目标因子为 $\tfrac{1}{\sqrt2}(\ket{0}-\ket{1})=\ket{-}=(+1)\ket{-}$。若 $f(x)=1$，它为 $\tfrac{1}{\sqrt2}(\ket{1}-\ket{0})=-\ket{-}=(-1)\ket{-}$。两种情形都被单一公式 $(-1)^{f(x)}\ket{-}$ 所刻画，由此 $\Uf\ket{x}\ket{-}=(-1)^{f(x)}\ket{x}\ket{-}$。由于目标因子保持不变且与输入寄存器不纠缠，它可被提出并丢弃。
+\end{proof}
+
+\begin{remark}
+\label{rem:lec03-kickback}
+\emph{回踢}这一名称反映了：目标比特受控作用的本征值 $(-1)^{f(x)}$ 被“踢回”到控制（输入）寄存器上。目标比特纯粹充当一个被动的信号态。这与课程后面（\cref{ch:lec04}）为量子相位估计提供动力的机制相同，只不过那里的目标是某个一般酉算符的本征态。
+\end{remark}
+
+因此，把目标置于 $\ket{-}$ 时对一个均匀叠加施加 $\Uf$，便在输入寄存器上产生
+\[
+  \tfrac{1}{\sqrt{N}}\sum_{x}\ket{x}\;\xmapsto{\ \Uf\ }\;
+  \tfrac{1}{\sqrt{N}}\sum_{x}(-1)^{f(x)}\ket{x}.
+\]
+$f$ 的每个取值现在都记录在一个相对符号中。接下来只需读出这些符号；为此的工具是 Hadamard 变换。
+
+\subsection{Hadamard 变换}
+
+我们将反复用到 $H^{\otimes n}$ 作用于一个基态的行为。回忆对于单个量子比特有 $H\ket{a}=\tfrac{1}{\sqrt2}\sum_{b\in\{0,1\}}(-1)^{ab}\ket{b}$。
+
+\begin{lemma}[Hadamard 恒等式]
+\label{lem:lec03-had}
+对 $x\in\{0,1\}^n$，记 $x\cdot z=\bigoplus_{i=1}^{n}x_i z_i$ 为模 $2$ 的逐位内积，
+\[
+  H^{\otimes n}\ket{x}=\frac{1}{\sqrt{2^{\,n}}}\sum_{z\in\{0,1\}^n}(-1)^{x\cdot z}\ket{z}.
+\]
+\end{lemma}
+
+\begin{proof}
+把单比特规则对 $n$ 个量子比特取张量积：
+\[
+  H^{\otimes n}\ket{x}
+  =\bigotimes_{i=1}^{n}\Big(\tfrac{1}{\sqrt2}\sum_{z_i\in\{0,1\}}(-1)^{x_i z_i}\ket{z_i}\Big)
+  =\frac{1}{\sqrt{2^{\,n}}}\sum_{z\in\{0,1\}^n}(-1)^{\sum_i x_i z_i}\ket{z}.
+\]
+由于相位是 $\pm1$，指数 $\sum_i x_i z_i$ 可以模 $2$ 约化，给出 $(-1)^{x\cdot z}$。
+\end{proof}
+
+我们还记下使干涉精确成立的正交关系：
+\begin{equation}
+  \frac{1}{2^{\,n}}\sum_{x\in\{0,1\}^n}(-1)^{x\cdot w}
+  =\delta_{w,0^n},
+  \qquad w\in\{0,1\}^n,
+  \label{eq:lec03-orthog}
+\end{equation}
+它成立是因为该和式分解为 $\prod_{i=1}^{n}\tfrac12\sum_{x_i}(-1)^{x_i w_i}$，而每个因子在 $w_i=0$ 时等于 $1$、在 $w_i=1$ 时等于 $0$。
+
+\subsection{Deutsch 算法}
+
+考虑最简单的非平凡情形 $n=1$，故 $f:\{0,1\}\to\{0,1\}$。这样的函数共有四个。我们希望用尽可能少的查询来判定 $f$ 的某个全局性质。
+
+\begin{definition}[常值函数与平衡函数]
+\label{def:lec03-constbal}
+若 $f(x)$ 在全部 $2^n$ 个输入上取相同的值，则函数 $f:\{0,1\}^n\to\{0,1\}$ 称为\emph{常值的} (constant)。若 $f(x)=0$ 恰好在一半输入上取到、$f(x)=1$ 在另一半上取到，则称其\emph{平衡的} (balanced)。对 $n=1$，$f$ 常值当且仅当 $f(0)=f(1)$，平衡当且仅当 $f(0)\neq f(1)$。
+\end{definition}
+
+经典地，判定 $n=1$ 时 $f$ 是常值还是平衡需要\emph{两}次查询：仅知道 $f(0)$ 并不能告诉我们任何关于 $f(1)$ 的信息。Deutsch%
+\footnote{David Deutsch（生于 1953 年）是牛津大学克拉伦登实验室量子计算中心的物理学家。他 1985 年的论文\emph{Quantum theory, the Church--Turing principle and the universal quantum computer} 引入了通用量子图灵机和第一个量子算法；他还开创了量子逻辑门和量子纠错，并且是埃弗雷特（“多世界”）诠释的主要倡导者以及构造子理论的创始人。}
+算法用单次查询便能判定它。
+
+\begin{theorem}[Deutsch 算法的正确性]
+\label{thm:lec03-deutsch}
+制备双比特态 $\ket{0}\ket{1}$，对每个量子比特施加 $H$，施加 $\Uf$，对第一个量子比特施加 $H$，然后测量第一个量子比特。若 $f$ 常值则结果为 $0$，若 $f$ 平衡则结果为 $1$。恰好使用一次对 $\Uf$ 的查询。
+\end{theorem}
+
+\begin{proof}
+在第一轮 Hadamard 之后，$H\ket{0}\otimes H\ket{1}=\ket{+}\ket{-}=\tfrac{1}{\sqrt2}(\ket{0}+\ket{1})\ket{-}$。施加 $\Uf$ 并对每个分支使用相位回踢（\cref{lem:lec03-kickback}），
+\[
+  \Uf\,\tfrac{1}{\sqrt2}\big(\ket{0}+\ket{1}\big)\ket{-}
+  =\tfrac{1}{\sqrt2}\big((-1)^{f(0)}\ket{0}+(-1)^{f(1)}\ket{1}\big)\ket{-}.
+\]
+现在对第一个量子比特施加 $H$，使用 $H\ket{0}=\tfrac{1}{\sqrt2}(\ket0+\ket1)$ 和 $H\ket{1}=\tfrac{1}{\sqrt2}(\ket0-\ket1)$：
+\[
+  \tfrac{1}{2}\Big[\big((-1)^{f(0)}+(-1)^{f(1)}\big)\ket{0}
+  +\big((-1)^{f(0)}-(-1)^{f(1)}\big)\ket{1}\Big]\ket{-}.
+\]
+若 $f$ 常值，$f(0)=f(1)$，则 $\ket{1}$ 的振幅消失而 $\ket{0}$ 的振幅为 $\pm1$；第一个量子比特为 $\pm\ket{0}$，测量以确定性给出 $0$。若 $f$ 平衡，$f(0)\neq f(1)$，则 $\ket{0}$ 的振幅消失而第一个量子比特为 $\pm\ket{1}$；测量以确定性给出 $1$。谕示被调用一次。
+\end{proof}
+
+注意答案是从\emph{第一个}量子比特读出的，尽管经典地人们会预期“信息”驻留在接收了 $f(x)$ 的目标比特中。这种倒置正是干涉的标志。
+
+\begin{example}[对 $f(a)=a\oplus 1$ 的 Deutsch 算法]
+\label{exa:lec03-deutsch}
+取 $f(0)=1$，$f(1)=0$，这是平衡的。查询之后第一个寄存器为 $\tfrac{1}{\sqrt2}\big((-1)^{1}\ket0+(-1)^{0}\ket1\big)=\tfrac{1}{\sqrt2}(-\ket0+\ket1)=-\ket{-}$。施加 $H$ 给出 $H(-\ket{-})=-\ket{1}$，故测量返回 $1$，正确地报告“平衡”。相较之下，对于常值函数 $f\equiv 1$，查询后第一个寄存器为 $\tfrac{1}{\sqrt2}(-\ket0-\ket1)=-\ket{+}$，而 $H(-\ket{+})=-\ket0$ 返回 $0$，报告“常值”。
+\end{example}
+
+\begin{example}[显式线路：四个单比特谕示与 Deutsch 线路]
+\label{exa:lec03-deutsch-circuit}
+对 $n=1$ 恰好有四个函数 $f:\{0,1\}\to\{0,1\}$，而每个谕示 $\Uf\ket{x}\ket{y}=\ket{x}\ket{y\oplus f(x)}$ 都是作用于输入比特 $x$（上）与目标比特 $y$（下）的一个小型显式线路：
+\[
+  \begin{array}{llll}
+    f\equiv 0\ (\text{常值}) : & \Uf=\id, &
+    f(x)=x\ (\text{平衡}) : & \Uf=\CNOT_{x\to y},\\[2pt]
+    f\equiv 1\ (\text{常值}) : & \Uf=\id\otimes X, &
+    f(x)=x\oplus1\ (\text{平衡}) : & \Uf=(\id\otimes X)\,\CNOT_{x\to y}.
+  \end{array}
+\]
+取平衡的 $f(x)=x$，其谕示是单个 $\CNOT$。完整的 Deutsch 线路——对两个量子比特施加 $H$、谕示、对输入施加 $H$、然后测量输入——为
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket0$} & \gate{H} & \ctrl{1} & \gate{H} & \meter{} \\
+\lstick{$\ket1$} & \gate{H} & \targ{}  & \qw      & \qw
+\end{quantikz}
+\end{center}
+将其逐步追踪：$\ket0\ket1\xrightarrow{H\otimes H}\ket{+}\ket{-}
+\xrightarrow{\CNOT}\tfrac1{\sqrt2}(\ket0-\ket1)\ket{-}=\ket{-}\ket{-}
+\xrightarrow{H\otimes\id}\ket{1}\ket{-}$，故输入比特测得为 $1$：“平衡”，用一次查询。对于常值的 $f\equiv0$，谕示是恒等，输入比特保持 $\ket{+}\xrightarrow{H}\ket0$，测量返回 $0$：“常值”。
+\end{example}
+
+\subsection{Deutsch--Jozsa 算法}
+
+现在我们在以下\emph{承诺} (promise) 下推广到 $n$ 个量子比特：$f$ 要么常值要么平衡（\cref{def:lec03-constbal}），且保证其中之一成立。任务是判定是哪一个。经典地，在最坏情形下必须查询 $2^{n-1}+1$ 个输入：看到 $2^{n-1}$ 个相同输出之后，函数仍可能是常值或平衡，还需再多一次查询。Deutsch--Jozsa%
+\footnote{Richard Jozsa（生于 1953 年）是剑桥大学（DAMTP）的 Leigh Trapnell 量子物理学教授，在那里主持量子信息与基础中心。他与 Deutsch 一道把 1985 年的结果推广为 Deutsch--Jozsa 算法（\emph{Rapid solution of problems by quantum computation}，1992）——第一个比任何确定性经典算法指数级更快的量子算法——并且他是 1993 年量子隐形传态协议的六位共同作者之一，也是态保真度和交换检验的共同发明者。}
+算法用单次量子查询便能判定它。
+
+该线路就是作用于 $n$ 比特输入寄存器上的统一模式 $H^{\otimes n}$--$\Uf$--$H^{\otimes n}$，其间目标比特保持在 $\ket{-}$。
+
+\begin{theorem}[Deutsch--Jozsa 的正确性]
+\label{thm:lec03-dj}
+在输入寄存器上制备 $\ket{0}^{\otimes n}$，在目标上制备 $\ket{-}$。施加 $H^{\otimes n}$，然后 $\Uf$，再 $H^{\otimes n}$，并测量输入寄存器。若 $f$ 常值则结果以概率 $1$ 为 $0^n$；若 $f$ 平衡则结果 $0^n$ 以概率 $0$ 出现。于是测得全零认证“常值”，而任何非零结果认证“平衡”。使用一次对 $\Uf$ 的查询。
+\end{theorem}
+
+\begin{proof}
+由 \cref{lem:lec03-had}，$H^{\otimes n}\ket{0}^{\otimes n}
+=\tfrac{1}{\sqrt N}\sum_{x}\ket{x}$，其中 $N=2^n$。在目标处于 $\ket{-}$ 时施加 $\Uf$ 会在每个分支上触发相位回踢（\cref{lem:lec03-kickback}），给出（丢弃不变的目标因子）
+\[
+  \tfrac{1}{\sqrt N}\sum_{x}(-1)^{f(x)}\ket{x}.
+\]
+再施加一次 $H^{\otimes n}$ 并再次使用 \cref{lem:lec03-had}：
+\[
+  H^{\otimes n}\tfrac{1}{\sqrt N}\sum_{x}(-1)^{f(x)}\ket{x}
+  =\frac{1}{N}\sum_{z}\Big(\sum_{x}(-1)^{f(x)}(-1)^{x\cdot z}\Big)\ket{z}.
+\]
+结果 $z=0^n$ 的振幅通过置 $z=0^n$ 得到，故 $x\cdot z=0$：
+\[
+  \alpha_{0^n}=\frac{1}{N}\sum_{x\in\{0,1\}^n}(-1)^{f(x)}.
+\]
+若 $f$ 常值，每一项符号相同，$\alpha_{0^n}=\pm1$，故结果以概率 $\abs{\alpha_{0^n}}^2=1$ 为 $0^n$。若 $f$ 平衡，恰有 $N/2$ 项等于 $+1$、$N/2$ 项等于 $-1$，于是它们相消，$\alpha_{0^n}=0$：结果 $0^n$ 永不出现。两种情形下单次查询都足够，且两种情形以确定性区分。
+\end{proof}
+
+\begin{remark}[谕示的门复杂度，以及承诺的作用]
+\label{rem:lec03-dj-gatecost}
+\cref{thm:lec03-dj} 的“一次查询”计的是对 $\Uf$ 的\emph{调用}，查询模型（\cref{def:lec03-oracle}）把它当作单位代价的黑箱。\emph{门}复杂度——\emph{构建} $\Uf$ 所需的基本门数——则是另一个问题，它取决于具体的函数 $f$，\emph{而非}取决于 $f$ 是常值还是平衡。承诺是关于 $f$ 真值表的一个全局性质；它对 $f$ 有多难计算只字未提。
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{常值。} $f\equiv0$ 给出 $\Uf=\id$（无门）；$f\equiv1$ 无条件翻转目标，$\Uf=\id^{\otimes n}\otimes X$（一个门）。常值谕示是平凡的。
+  \item \emph{平衡。} 门数跨越整个范围：单个奇偶 $f(x)=x_i$ 需要一个 $\CNOT$，$f(x)=s\cdot x$ 至多需要 $n$ 个 $\CNOT$（\cref{def:lec03-bv}），但一个\emph{一般的}平衡函数与一个一般布尔函数一样难——按计数（Shannon）论证，几乎所有 $n$ 比特函数都需要 $\Theta(2^n/n)$ 个门。
+\end{itemize}
+所以常值/平衡的分类\emph{并不}固定门代价：两个平衡函数可以相差一个指数因子。因此那惊人的 $1$ 对 $(2^{n-1}{+}1)$ 的 Deutsch--Jozsa 分离仅仅是一个关于\emph{查询}复杂度的陈述。如果 $\Uf$ 必须由门编译而成，那份代价只付一次，并且由\emph{任何}算法——经典的或量子的——所承担，故它不能被计入比较之中；量子优势纯粹在于谕示调用的次数。（相位回踢复用同一个比特谕示 $\Uf$，只是把目标保持在 $\ket{-}$，因此把 $f$ 读作相位除了一次性的 $\ket{-}$ 制备之外不增加任何门。）
+\end{remark}
+
+\subsection{Bernstein--Vazirani 算法}
+
+Deutsch--Jozsa 算法返回单比特信息（常值对平衡）。Bernstein--Vazirani%
+\footnote{该算法归功于 Ethan Bernstein 与 Umesh Vazirani。Vazirani 是加州大学伯克利分校的 Roger A.\ Strauch 电气工程与计算机科学教授，并主持伯克利量子计算中心；Bernstein 曾是他在那里的博士生。他们 1993 年的论文\emph{Quantum complexity theory} 定义了量子图灵机和复杂度类 $\mathsf{BQP}$，而他们的算法——Deutsch--Jozsa 的一个特例——用单次查询恢复一个 $n$ 比特隐藏串，这是 $\mathsf{BPP}$ 与 $\mathsf{BQP}$ 之间第一个谕示分离的种子。}
+算法用完全相同的线路，在 $f$ 具有特殊线性结构的前提下，一次查询便能提取出整个隐藏的 $n$ 比特串。
+
+\begin{definition}[Bernstein--Vazirani 函数]
+\label{def:lec03-bv}
+固定一个隐藏串 $s\in\{0,1\}^n$。相应的\emph{线性}布尔函数为
+\[
+  f_s(x)=s\cdot x=\bigoplus_{i=1}^{n}s_i x_i \pmod 2,
+\]
+即 $s$ 与 $x$ 皆为 $1$ 的位置个数的奇偶。Bernstein--Vazirani 问题是：给定对这样一个 $f_s$ 的 $\Uf$ 的谕示访问，确定 $s$。
+\end{definition}
+
+经典地，人们逐位恢复 $s$。查询 $x=e_i$（在位置 $i$ 上有单个 $1$ 的串）返回 $f_s(e_i)=s_i$；这每次查询确定一个比特，故需要且足以进行 $n$ 次查询。量子算法只需一次。
+
+\begin{theorem}[Bernstein--Vazirani 的正确性]
+\label{thm:lec03-bv}
+对 \cref{def:lec03-bv} 的 $f=f_s$，运行 \cref{thm:lec03-dj} 的线路——$H^{\otimes n}$，然后 $\Uf$，再 $H^{\otimes n}$，目标处于 $\ket{-}$——使输入寄存器处于态 $\ket{s}$。测量以确定性用单次查询恢复 $s$。
+\end{theorem}
+
+\begin{proof}
+如前，在 $H^{\otimes n}$ 以及带相位回踢的单次查询之后，输入寄存器为
+\[
+  \tfrac{1}{\sqrt N}\sum_{x}(-1)^{f_s(x)}\ket{x}
+  =\tfrac{1}{\sqrt N}\sum_{x}(-1)^{s\cdot x}\ket{x}.
+\]
+施加 $H^{\otimes n}$ 并使用 \cref{lem:lec03-had}，
+\[
+  H^{\otimes n}\tfrac{1}{\sqrt N}\sum_{x}(-1)^{s\cdot x}\ket{x}
+  =\frac{1}{N}\sum_{z}\Big(\sum_{x}(-1)^{s\cdot x}(-1)^{x\cdot z}\Big)\ket{z}
+  =\frac{1}{N}\sum_{z}\Big(\sum_{x}(-1)^{x\cdot(s\oplus z)}\Big)\ket{z},
+\]
+其中 $s\cdot x\oplus x\cdot z=x\cdot(s\oplus z)$，因为内积在其第二个变元上模 $2$ 线性。由正交关系 \eqref{eq:lec03-orthog}，$\tfrac{1}{N}\sum_{x}(-1)^{x\cdot(s\oplus z)}
+=\delta_{s\oplus z,\,0^n}=\delta_{z,s}$。于是只有 $z=s$ 一项幸存，寄存器恰为 $\ket{s}$。在计算基中测量以概率 $1$ 返回 $s$。
+\end{proof}
+
+等价地，由 \cref{lem:lec03-had} 有 $H^{\otimes n}\ket{s}=\tfrac{1}{\sqrt N}\sum_x(-1)^{s\cdot x}\ket{x}$，故查询后的态是 $H^{\otimes n}\ket{s}$；第二次 $H^{\otimes n}$ 将其逆转（因为 $H^{\otimes n}$ 是其自身的逆）并返回 $\ket{s}$。
+
+\begin{remark}[统一模式及其局限]
+\label{rem:lec03-significance}
+有几点值得强调。\emph{(i) 确定性优势。}这三个算法都以恰好为 $1$ 的概率成功；优势并非仰赖一次幸运的测量。对 Deutsch--Jozsa，分离是 $1$ 次量子查询对最坏情形 $2^{n-1}+1$ 次经典查询，但这仅在\emph{确定性}设定下成立：少量随机的经典查询便能以高置信区分常值与平衡，故有界误差的经典查询复杂度是 $\bigo(1)$。对 Bernstein--Vazirani，分离是 $1$ 对 $n$，并且即便在有界误差下也依然成立。\emph{(ii) 模板。}这里的每个算法都是把线路 $H^{\otimes n}\,\Uf\,H^{\otimes n}$ 应用于 $\ket{0}^{\otimes n}$、目标处于 $\ket{-}$：相位回踢把 $f$ 写入符号，而两层 Hadamard 通过干涉把这些符号读出。这一模板贯穿量子算法反复出现，从 Simon 问题到 Shor。\emph{(iii) 查询对门。}我们计的是对 $\Uf$ 的调用，把谕示当作单位代价的黑箱；对给定 $f$ \emph{构建} $\Uf$ 的门代价必须单独分析，且不必很小。
+\end{remark}
+\section{无结构搜索问题}
+\label{sec:lec03-2}
+
+现在我们转向这一类查询问题中的旗舰问题。\emph{无结构} (unstructured) 这个词
+至关重要：各项之间不存在次序、索引或任何可资利用的规律性，因此二分查找背后
+的技巧在此无法使用。
+
+\begin{definition}[无结构搜索]
+\label{def:lec03-search}
+设 $N=2^{n}$，并设 $f\colon\{0,1\}^{n}\to\{0,1\}$ 是一个布尔函数，我们只能通过
+\emph{谕示} (oracle)（\cref{def:lec03-oracle}）访问它。我们被允诺存在唯一的
+标记项 (marked item) $x_0\in\{0,1\}^{n}$，满足
+\[
+  f(x)=\begin{cases}1,& x=x_0,\\ 0,& x\neq x_0.\end{cases}
+\]
+目标是用尽可能少的对 $\Uf$ 的查询来确定 $x_0$。
+\end{definition}
+
+每次应用 $\Uf$ 算作一次查询，我们用算法的查询复杂度 (query complexity) 来
+衡量其代价。由于该函数没有结构，谕示是了解 $x_0$ 的唯一途径：字符串 $x_0$
+不能被直接读出。
+
+\begin{proposition}[经典下界]
+\label{prop:lec03-classical}
+任何以常数成功概率辨识出 $x_0$ 的经典（可能是随机化的）算法，在最坏情形下
+必须对 $f$ 做 $\Omega(N)$ 次查询。
+\end{proposition}
+
+\begin{proof}[证明梗概]
+除非 $x=x_0$，否则经典算法从查询 $f(x)$ 中学不到关于 $x_0$ 的任何信息。一个
+对手可以对每个被查询的 $x$ 都回答 $f(x)=0$，直到只剩下一个未被查询的候选项，
+而这与 $x_0$ 恰为那最后一项的情形相符。因此为了确定答案，算法在最坏情形下
+必须探查 $N-1$ 项。一个随机化算法若查询大小为 $k$ 的均匀随机子集，则以概率
+$k/N$ 找到 $x_0$，所以要达到常数成功概率就需要 $k=\Omega(N)$ 次查询。
+\end{proof}
+
+这一抽象任务涵盖了许多具体情形：搜索一个无序数据库、判定某约束问题的可满足性
+（把任何可满足赋值视为标记项，并让谕示去检验赋值），或是对一个函数求逆。在
+每种情形中，共同的结构都是一样的：\emph{把“这个候选项是不是一个解？”打包成一
+个谕示}，而经典的穷举代价为 $\bigo(N)$。Grover 算法 (Grover's algorithm) 一举
+攻克所有这些问题。
+
+\paragraph{相位谕示。}
+正如在 \cref{sec:lec03-1} 中那样，把比特翻转谕示 $\Uf$ 转换成一个\emph{相位}
+谕示是方便的。把目标量子比特制备在 $\ket{-}$ 上并施加相位回踢 (phase kickback)
+（\cref{lem:lec03-kickback}）给出 $\Uf\ket{x}\ket{-}=(-1)^{f(x)}\ket{x}\ket{-}$；
+目标比特因子化分离出来，而在 $n$ 量子比特寄存器上谕示的作用为
+$\ket{x}\mapsto(-1)^{f(x)}\ket{x}$，即只是给标记的基态 $\ket{x_0}$ 附上一个
+负号。
+
+\section{Grover 搜索算法}
+\label{sec:lec03-3}
+
+有两个算符驱动着该算法。两者都是\emph{反射} (reflection)，而它们的乘积是一个
+旋转 (rotation)。我们先定义它们，证明它们确为反射，然后组装出 Grover 迭代
+(Grover iterate) 并对其做几何分析。
+
+全程记
+\[
+  \ket{\psi_0}=H^{\otimes n}\ket{0^{n}}=\frac{1}{\sqrt N}\sum_{x\in\{0,1\}^{n}}\ket{x}
+\]
+为在全部 $N$ 个基态上的均匀叠加 (superposition)。这是算法的初始态；每个候选项
+都携带振幅 (amplitude) $1/\sqrt N$。
+
+\begin{definition}[标记反射与扩散算符]
+\label{def:lec03-reflections}
+\emph{标记反射}（相位谕示）为
+\[
+  R_{x_0}=\id-2\proj{x_0},
+\]
+它翻转 $\ket{x_0}$ 上振幅的符号，并保持其正交补不变。\emph{扩散算符}
+(diffusion operator) 为
+\[
+  R_{\psi_0}=2\proj{\psi_0}-\id,
+\]
+它固定 $\ket{\psi_0}$，并翻转与之正交的一切的符号。它也可以等价地写成
+\[
+  R_{\psi_0}=H^{\otimes n}\bigl(2\proj{0^{n}}-\id\bigr)H^{\otimes n},
+\]
+这就是它作为线路实现的方式。
+\end{definition}
+
+\begin{lemma}[两个算符都是反射]
+\label{lem:lec03-reflections}
+$R_{x_0}$ 与 $R_{\psi_0}$ 各自都是厄米的、酉的，且为对合（$R^2=\id$）；在几何上
+各自都是希尔伯特空间关于某个超平面的反射。
+\end{lemma}
+
+\begin{proof}
+设 $\ket{u}$ 为单位向量，并令 $P=\proj{u}$，于是 $P=P\dg$ 且 $P^{2}=P$（一个
+正交投影）。考虑 $R=\id-2P$。则
+\[
+  R\dg=\id-2P\dg=\id-2P=R,
+\]
+所以 $R$ 是厄米的。此外
+\[
+  R^{2}=(\id-2P)^{2}=\id-4P+4P^{2}=\id-4P+4P=\id,
+\]
+所以 $R$ 是对合。厄米对合是酉的，因为 $R\dg R=R^{2}=\id$。它的作用为
+$R\ket{u}=-\ket{u}$，以及对每个 $\ket{w}\perp\ket{u}$ 有 $R\ket{w}=\ket{w}$，
+这恰好是关于超平面 $\ket{u}^{\perp}$ 的反射。
+
+取 $\ket{u}=\ket{x_0}$ 便直接给出 $R_{x_0}=\id-2\proj{x_0}$。对于扩散算符，注意
+$R_{\psi_0}=2\proj{\psi_0}-\id=-\bigl(\id-2\proj{\psi_0}\bigr)$；由上面的计算，
+$\id-2\proj{\psi_0}$ 是一个厄米酉对合，而对其取负保持这三个性质。明确地，
+$R_{\psi_0}\ket{\psi_0}=\ket{\psi_0}$ 且对 $\ket{w}\perp\ket{\psi_0}$ 有
+$R_{\psi_0}\ket{w}=-\ket{w}$，所以 $R_{\psi_0}$ 是沿轴 $\ket{\psi_0}$ 的反射。
+恒等式 $R_{\psi_0}=H^{\otimes n}(2\proj{0^{n}}-\id)H^{\otimes n}$ 之所以成立，是
+因为 $H^{\otimes n}$ 是酉的且 $H^{\otimes n}\ket{0^{n}}=\ket{\psi_0}$。
+\end{proof}
+
+直观上 $R_{\psi_0}$ 实现了一次“关于均值的翻转”：把一个态写成
+$\sum_x a_x\ket{x}$，其平均振幅为 $\bar a=\tfrac1N\sum_x a_x$，则可验证
+$R_{\psi_0}\sum_x a_x\ket{x}=\sum_x(2\bar a-a_x)\ket{x}$，即把每个振幅关于
+$\bar a$ 反射（习题~\ref{ex:lec03-1}）。
+
+\begin{definition}[Grover 迭代]
+\label{def:lec03-iterate}
+\emph{Grover 迭代}是两个反射的复合，
+\[
+  G=R_{\psi_0}R_{x_0}
+   =\bigl(2\proj{\psi_0}-\id\bigr)\bigl(\id-2\proj{x_0}\bigr).
+\]
+一次迭代先（通过 $R_{x_0}$）标记解，然后（通过 $R_{\psi_0}$）关于均值做反射。
+\end{definition}
+
+\subsection{把两个反射构造为线路}
+\label{sec:lec03-circuits}
+
+到目前为止 $R_{x_0}$ 与 $R_{\psi_0}$ 还是抽象的算符。在分析它们之前，看看二者
+都是由标准门搭建的普通线路是很有启发性的。
+
+\paragraph{作为相位谕示的标记反射。}
+回忆 \cref{sec:lec03-1}：一旦把目标量子比特保持在 $\ket{-}$ 上，比特翻转谕示
+$\Uf$ 就变成相位谕示 $\ket{x}\mapsto(-1)^{f(x)}\ket{x}$：由相位回踢
+（\cref{lem:lec03-kickback}），本征值 $(-1)^{f(x)}$ 被写到输入寄存器上，而辅助
+比特 (ancilla) 仍留在 $\ket{-}$ 上以便在下一次查询中重用。对于
+\cref{def:lec03-search} 的单解谓词，这恰好是 $R_{x_0}=\id-2\proj{x_0}$，即单独
+翻转 $\ket{x_0}$ 符号的那个算符。它有一个透明的门级实现。从 $n$ 量子比特上的
+多重受控 $Z$ 门出发，它把 $\ket{1^n}$ 乘以 $-1$ 并固定其余每个基态，因为
+$Z\ket{1}=-\ket{1}$ 只在全部 $n$ 个量子比特都为 $1$ 时才触发。这正是标记字符串
+$1^n$ 的相位谕示。要改为标记\emph{任意}的 $x_0\in\{0,1\}^n$，就用放置在 $x_0$
+中恰为 $0$ 的那些量子比特上的 $X$（NOT）门来共轭这个多重受控 $Z$：
+\[
+  R_{x_0}=\Bigl(\textstyle\bigotimes_{i:\,(x_0)_i=0}X_i\Bigr)\,
+          \bigl(\text{mult.\ ctrl-}Z\bigr)\,
+          \Bigl(\textstyle\bigotimes_{i:\,(x_0)_i=0}X_i\Bigr).
+\]
+前导的 NOT 把 $\ket{x_0}$ 变成 $\ket{1^n}$；受控 $Z$ 附上 $-1$；尾随的 NOT 恢复
+$\ket{x_0}$。其余每个基态要么没能变成 $\ket{1^n}$（于是不受影响），要么其两层
+NOT 相互抵消，于是原样输出。例如对于 $n=3$ 和 $x_0=\ket{011}$，就在一个双重
+受控 $Z$ 的前后各在那个唯一的 $0$-量子比特上放置一个 $X$，给出 $R_{x_0}$ 的
+线路
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket{x_1}$} & \gate{X} & \ctrl{1} & \gate{X} & \qw \\
+\lstick{$\ket{x_2}$} & \qw      & \ctrl{1} & \qw      & \qw \\
+\lstick{$\ket{x_3}$} & \qw      & \gate{Z} & \qw      & \qw
+\end{quantikz}
+\end{center}
+逐步理解它：$q_1$ 上的前导 $X$ 把 $\ket{011}\mapsto\ket{111}$，双重受控 $Z$ 把
+$\ket{111}$ 乘以 $-1$，尾随的 $X$ 恢复 $\ket{011}$；其余每个基态要么从未到达
+$\ket{111}$，要么其两层 $X$ 相互抵消，于是只有 $\ket{x_0}=\ket{011}$ 获得这个
+符号——恰好是 $R_{x_0}=\id-2\proj{011}$。
+
+\paragraph{用回踢实现受控 $Z$。}
+双重（或多重）受控 $Z$ 本身通常由一个受控 $X$（$n=3$ 时为 Toffoli）在目标比特
+两侧夹上两个 Hadamard 来编译，利用恒等式 $Z=HX H$：目标比特经第一个 $H$ 制备
+在 $\ket{-}$ 上后，多重受控 NOT 恰在全部控制比特都为 $1$ 时回踢出一个因子 $-1$，
+而第二个 $H$ 把目标比特返回到它的计算基值。这正是 \cref{lem:lec03-kickback} 的
+同一相位回踢机制，现在用于合成这个对角相位门，而非用于查询一个外部谕示。
+具体地，上面那个双重受控 $Z$ 为
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket{x_1}$} & \qw      & \ctrl{1} & \qw      & \qw \\
+\lstick{$\ket{x_2}$} & \qw      & \ctrl{1} & \qw      & \qw \\
+\lstick{$\ket{x_3}$} & \gate{H} & \targ{}  & \gate{H} & \qw
+\end{quantikz}
+\end{center}
+即一个在目标线上被 Hadamard 共轭的 Toffoli（$Z=HX H$）。
+
+\begin{remark}[我们从不由 $x_0$ 构造 $R_{x_0}$]
+\label{rem:lec03-oracle-from-f}
+上面的线路把标记字符串硬编码了进去——$X$ 门放在一个\emph{给定}的 $x_0$ 的
+$0$-比特上——所以它仅具说明性；若我们已经知道 $x_0$，那就没有什么可搜索的了。
+在真实的搜索中，$R_{x_0}$ 是从 \cref{def:lec03-search} 的\emph{验证器} $f$ 编译
+出来的相位谕示，即\emph{检验}一个候选项是否为解的那个可逆线路。构造它只需要能
+\emph{识别}一个解的能力，而非\emph{定位}一个解——这就是搜索问题“难找、易验”的
+结构。标记字符串 $x_0$ 就是任何使 $f$ 触发的输入；Grover 在最终测量时把它浮现
+出来，之后对 $f$ 做一次经典求值即可确认它。
+\end{remark}
+
+\begin{example}[从验证器编译 $R_{x_0}$]
+\label{ex:lec03-oracle-compile}
+大多数搜索取“对一个可高效计算的 $g$ 和一个已知目标 $t$，寻找满足 $g(x)=t$ 的
+$x$”这种形式（可满足性、函数求逆以及数据库匹配都符合这一模式）。验证器为
+$f(x)=[\,g(x)=t\,]$，而 $R_{x_0}$ 分三个阶段组装，这三个阶段只用到 $g$ 和 $t$
+——从不用 $x_0$：
+\begin{enumerate}[label=(\arabic*),leftmargin=1.9em,itemsep=1pt,topsep=2pt]
+  \item \emph{计算。}一个可逆线路 $U_g$ 把结果写入一个新的辅助寄存器：
+        $\ket{x}\ket{0^m}\mapsto\ket{x}\ket{g(x)}$。
+  \item \emph{标记。}当且仅当辅助寄存器等于 $t$ 时翻转相位——即前图中被 $X$
+        共轭的多重受控 $Z$，现在作用到\emph{辅助}寄存器上，$X$ 放在 $t_j=0$
+        的那些比特上。只有已知目标 $t$ 进入其中。
+  \item \emph{反计算。}施加 $U_g^{\dagger}$ 把辅助寄存器重置为 $\ket{0^m}$
+        （Bennett），使其与数据解纠缠。
+\end{enumerate}
+在数据寄存器上的净作用为
+$\ket{x}\mapsto(-1)^{[\,g(x)=t\,]}\ket{x}=R_{x_0}\ket{x}$，其中 $x_0=g^{-1}(t)$
+就是我们从未需要去找的那个解：
+\begin{center}
+\begin{quantikz}
+\lstick{$\ket{x_1}$} & \gate[6]{U_g} & \qw & \gate[6]{U_g^{\dagger}} & \qw \\
+\lstick{$\ket{x_2}$} &               & \qw &                         & \qw \\
+\lstick{$\ket{x_3}$} &               & \qw &                         & \qw \\
+\lstick{$\ket{0}$}   &               & \gate[3]{{=}\,t\,?} &         & \qw \\
+\lstick{$\ket{0}$}   &               &     &                         & \qw \\
+\lstick{$\ket{0}$}   &               &     &                         & \qw
+\end{quantikz}
+\end{center}
+例如取 $g(x)=(x_1,\ x_1\oplus x_2,\ x_1x_2\oplus x_3)$——三次写入辅助寄存器的
+$\CNOT$/Toffoli——以及 $t=101$。这个谕示标记唯一的 $x_0=110$，因为
+$g(110)=101$，然而它的构造只涉及 $g$ 的线路和目标 $t$。这里 $g$ 小到可以手工
+求逆，但同一套做法也能为一个千变量的 \textsc{sat} 实例或一个密码学单向函数 $g$
+编译谕示——其规模正比于求值 $f$ 的代价——而 $x_0$ 在振幅放大把它浮现出来之前
+始终遥不可及。
+\end{example}
+
+\begin{remark}[搜索谕示的若干例子]
+\label{rem:lec03-oracle-examples}
+验证器 $g$（等价地 $f=[\,g(x)=t\,]$）可以是\emph{任何}可高效计算的函数——任何
+能写出快速“$x$ 是不是一个解？”检验的函数。当验证容易但问题\emph{无结构}时，
+Grover 就是通用工具。代表性的谕示有：
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt,topsep=2pt]
+  \item \emph{对称密钥搜索。}$x$ 是秘密密钥 $k$，$g(k)=\mathrm{Enc}_k(P_0)$，其中
+        $P_0$ 为已知明文，$t$ 为观测到的密文；$x_0$ 就是密钥。平方加速把有效密钥
+        长度减半（例如 AES-128 的 $2^{128}\!\to\!2^{64}$），这正是后量子指南将对
+        称密钥长度加倍的原因。
+  \item \emph{哈希原像。}$g=H$ 为一个密码学哈希，$t$ 为目标摘要；寻找满足
+        $H(x)=t$ 的 $x$。
+  \item \emph{可满足性 / 约束问题。}$g(x)=\varphi(x)$ 且 $t=1$：“$x$ 是否满足每一
+        条子句？”——同样地还有数独、图着色和排程。
+  \item \emph{无结构表。}$g(x)=L[x]$，$L$ 为固定的无序表；寻找与 $t$ 匹配的索引。
+        例如 $L=[5,2,7,4,1,6,0,3]$ 且 $t=4$ 给出 $x_0=3$：在没有结构的情况下，
+        逐一试表项是唯一的办法——这是最纯粹的 Grover 情形。
+  \item \emph{经由阈值化的优化。}$g(x)=[\,\mathrm{cost}(x)\le\theta\,]$；对 $\theta$
+        做二分查找把最小化问题约化为一系列搜索。
+\end{itemize}
+反之，若 $g$ 具有可资利用的结构（Shor 所用的周期性、Bernstein--Vazirani 所用的
+线性性、经典优化所用的凸性），则量身定制的算法会胜过 Grover；Grover 是通用的
+退路，只要手头仅有一个检验器，它就在盲目搜索之上给出平方加速。
+\end{remark}
+
+\paragraph{作为线路的扩散算符。}
+扩散反射容许 \cref{def:lec03-reflections} 中已经记录的分解，
+\[
+  R_{\psi_0}=H^{\otimes n}\bigl(2\proj{0^{n}}-\id\bigr)H^{\otimes n}.
+\]
+内层算符 $2\proj{0^n}-\id$ 是关于 $\ket{0^n}$ 的反射：它固定 $\ket{0^n}$ 并把
+其余一切取负，而这（相差一个全局 $-1$）正是上面那个多重受控相位门，现在以全 $0$
+字符串为条件，因此通过在\emph{每个}量子比特上用 NOT 包裹受控 $Z$ 得到。两侧的
+Hadamard 层把 $\ket{\psi_0}\leftrightarrow\ket{0^n}$ 相互映射，所以共轭把“关于
+$\ket{0^n}$ 做反射”转化为“关于 $\ket{\psi_0}$ 做反射”——即关于均值的翻转。于是
+一次完整的 Grover 迭代 $G=R_{\psi_0}R_{x_0}$ 为：一次相位谕示调用，然后一层
+$H$、一次关于 $\ket{0^n}$ 的反射，以及最后一层 $H$。
+
+\paragraph{难点所在，以及为何算法仍然有用。}
+如上构造 $R_{x_0}$ 看起来需要知道 $x_0$，而这正是我们要搜索的东西。在真正的
+应用中，人们\emph{并不}把 $x_0$ 硬编码：谕示是针对一个\emph{谓词}
+$f(x)=[\,x\text{ 是一个解}\,]$ 的可逆线路——“这个候选项是否满足约束？”——它可以
+在不知道哪些输入会通过的情况下被求值。相位谕示随后标记恰好满足 $f$ 的那些输入，
+而 Grover 的迭代把它们放大。计数谕示调用次数（\cref{def:lec03-oracle}）而非初等
+门，正是使这种关注点分离变得清晰的原因：把 $f$ 编译成线路的代价被单独计费，恰
+如 \cref{rem:lec03-significance} 中那样。
+\subsection{不变平面与旋转图像}
+
+算法的威力来自这样一个事实：$G$ 从不离开一个固定的
+二维平面，而在其内部它的作用恰如一次普通的旋转。
+
+定义位于“坏”子空间中、与 $\ket{x_0}$ 正交的归一化态：
+\[
+  \ket{\psi_0^{\perp}}
+    =\frac{1}{\sqrt{N-1}}\sum_{x\neq x_0}\ket{x}.
+\]
+于是 $\braket{x_0|\psi_0^{\perp}}=0$，均匀态可分解为
+\begin{equation}
+  \ket{\psi_0}
+    =\frac{1}{\sqrt N}\ket{x_0}+\frac{\sqrt{N-1}}{\sqrt N}\ket{\psi_0^{\perp}}
+    =\sin\frac{\theta}{2}\,\ket{x_0}+\cos\frac{\theta}{2}\,\ket{\psi_0^{\perp}},
+  \label{eq:lec03-initdecomp}
+\end{equation}
+其中角度 $\theta\in(0,\pi)$ 由下式定义
+\begin{equation}
+  \sin\frac{\theta}{2}=\frac{1}{\sqrt N},
+  \qquad
+  \theta=2\arcsin\frac{1}{\sqrt N}\approx\frac{2}{\sqrt N}\quad(N\gg1).
+  \label{eq:lec03-theta}
+\end{equation}
+因此 $\ket{\psi_0}$ 与轴 $\ket{\psi_0^{\perp}}$ 之间
+形成一个小角度 $\theta/2$。
+
+\begin{theorem}[$G$ 是平面 $\mathcal{P}$ 内的旋转]
+\label{thm:lec03-rotation}
+设 $\mathcal{P}=\operatorname{span}\{\ket{x_0},\ket{\psi_0^{\perp}}\}$。那么 $G$
+将 $\mathcal{P}$ 映到自身，且限制在 $\mathcal{P}$ 上（在有序
+标准正交基 $\{\ket{\psi_0^{\perp}},\ket{x_0}\}$ 中）它是绕
+\eqref{eq:lec03-theta} 的角度 $\theta$ 的旋转 (rotation)：
+\[
+  G\big|_{\mathcal{P}}
+    =\begin{pmatrix}\cos\theta & -\sin\theta\\[2pt]\sin\theta & \cos\theta\end{pmatrix}.
+\]
+\end{theorem}
+
+\begin{proof}
+首先注意两个反射 (reflection) 都保持 $\mathcal{P}$ 不变。向量 $\ket{x_0}$
+位于 $\mathcal{P}$ 中，且由 \eqref{eq:lec03-initdecomp} 有 $\ket{\psi_0}\in\mathcal{P}$，
+故 $\ket{\psi_0^{\perp}}\in\mathcal{P}$ 也成立。
+算符 $R_{x_0}$ 使 $\ket{x_0}$ 变号，并固定所有与
+$\ket{x_0}$ 正交的向量；特别地它固定 $\ket{\psi_0^{\perp}}$，故它将
+$\mathcal{P}$ 映到自身。算符 $R_{\psi_0}$ 固定 $\ket{\psi_0}\in\mathcal P$
+而使其正交补变号；$\mathcal P$ 内与 $\ket{\psi_0}$ 正交的平面内向量
+仍留在 $\mathcal P$ 中，故 $R_{\psi_0}$ 也
+保持 $\mathcal{P}$。于是 $G=R_{\psi_0}R_{x_0}$ 保持 $\mathcal{P}$。
+
+现在我们用平面几何的事实：\emph{两个反射的乘积是一个
+绕其轴线之间夹角两倍的旋转}（习题~\ref{ex:lec03-7}）。
+在 $\mathcal P$ 内，$R_{x_0}$ 的镜像线是轴
+$\ket{\psi_0^{\perp}}$（$R_{x_0}$ 在 $\mathcal P$ 内的固定方向），而
+$R_{\psi_0}$ 的镜像线是轴 $\ket{\psi_0}$。由
+\eqref{eq:lec03-initdecomp}，$\ket{\psi_0^{\perp}}$ 与 $\ket{\psi_0}$ 之间
+的夹角为 $\theta/2$，故 $G$ 是绕 $2\cdot(\theta/2)=\theta$ 的旋转。
+
+为给出一个自洽的验证，直接计算该矩阵。利用
+$\sin\tfrac{\theta}{2}=1/\sqrt N$、$\cos\tfrac{\theta}{2}=\sqrt{(N-1)/N}$ 以及
+\eqref{eq:lec03-initdecomp}，施加 $R_{x_0}=\id-2\proj{x_0}$：
+\[
+  R_{x_0}\ket{\psi_0^{\perp}}=\ket{\psi_0^{\perp}},
+  \qquad
+  R_{x_0}\ket{x_0}=-\ket{x_0}.
+\]
+于是在基 $\{\ket{\psi_0^{\perp}},\ket{x_0}\}$ 中，
+$R_{x_0}=\begin{psmallmatrix}1&0\\0&-1\end{psmallmatrix}$，即一个关于
+$\ket{\psi_0^{\perp}}$ 轴的反射。接着 $R_{\psi_0}=2\proj{\psi_0}-\id$ 是关于
+轴 $\ket{\psi_0}$ 的反射，该轴与 $\ket{\psi_0^{\perp}}$ 成角度 $\theta/2$；
+关于与第一个基向量成角度 $\phi$ 的直线的反射，其矩阵为
+$\begin{psmallmatrix}\cos2\phi&\sin2\phi\\\sin2\phi&-\cos2\phi\end{psmallmatrix}$，
+故取 $\phi=\theta/2$，
+\[
+  R_{\psi_0}=\begin{pmatrix}\cos\theta&\sin\theta\\ \sin\theta&-\cos\theta\end{pmatrix}.
+\]
+相乘得
+\[
+  G=R_{\psi_0}R_{x_0}
+   =\begin{pmatrix}\cos\theta&\sin\theta\\ \sin\theta&-\cos\theta\end{pmatrix}
+    \begin{pmatrix}1&0\\0&-1\end{pmatrix}
+   =\begin{pmatrix}\cos\theta&-\sin\theta\\ \sin\theta&\cos\theta\end{pmatrix},
+\]
+这正是绕 $\theta$ 的旋转。
+\end{proof}
+
+\begin{theorem}[$k$ 次迭代后的态]
+\label{thm:lec03-afterk}
+取 $\theta$ 如 \eqref{eq:lec03-theta} 所定义，
+\[
+  G^{k}\ket{\psi_0}
+    =\sin\!\frac{(2k+1)\theta}{2}\,\ket{x_0}
+     +\cos\!\frac{(2k+1)\theta}{2}\,\ket{\psi_0^{\perp}}.
+\]
+因此，经 $k$ 次迭代 (iteration) 后测得标记项 (marked item) 的概率为
+$p_k=\sin^{2}\!\bigl((2k+1)\theta/2\bigr)$。
+\end{theorem}
+
+\begin{proof}
+由 \cref{thm:lec03-rotation}，$G$ 限制在 $\mathcal P$ 上是绕
+$\theta$ 的旋转，故 $G^{k}$ 是绕 $k\theta$ 的旋转。初始态
+\eqref{eq:lec03-initdecomp} 位于从 $\ket{\psi_0^{\perp}}$ 轴量起的角度 $\theta/2$
+处（其 $\ket{x_0}$ 分量为 $\sin(\theta/2)$）。
+绕 $k\theta$ 旋转使该角度增加到 $\theta/2+k\theta=(2k+1)\theta/2$。
+因此 $\ket{x_0}$ 分量变为 $\sin\bigl((2k+1)\theta/2\bigr)$，而
+$\ket{\psi_0^{\perp}}$ 分量变为 $\cos\bigl((2k+1)\theta/2\bigr)$，即为
+所断言的结果。在计算基中测量，以等于 $\ket{x_0}$ 振幅平方的概率
+得到 $x_0$，即
+$p_k=\sin^{2}\bigl((2k+1)\theta/2\bigr)$。
+\end{proof}
+
+\begin{example}[一次完整演算的运行：$N=16$，标记项 $x_0=5$]
+\label{exa:lec03-n8}
+值得把每个振幅的变动都看一遍，所用的例子要小到能逐一写出，
+却又大到需要若干次迭代——并且大到足以看出若运行\emph{过多}次会发生什么。
+取四个量子比特，$N=16$，并标记基态
+$\ket{x_0}=\ket{5}=\ket{0101}$。由 \eqref{eq:lec03-theta}，
+$\sin(\theta/2)=1/\sqrt{16}=1/4$，故 $\theta=2\arcsin(1/4)\approx28.96^{\circ}$ 且
+$(\pi/2\theta)-\tfrac12\approx2.64$；取整给出 $k^{\ast}=3$ 次迭代。由于
+整个过程中十五个未标记态上的振幅始终保持一致，故
+每一步只需追踪两个数：未标记态上的公共振幅 $a$ 和 $\ket{x_0}$ 上的振幅 $g$。
+回顾谕示 (oracle) $R_{x_0}$ 翻转
+$g$ 的符号，而扩散算符 (diffusion operator) $R_{\psi_0}$ 将每个振幅
+$a_x\mapsto 2\bar a-a_x$，即关于均值 $\bar a$ 反射
+（习题~\ref{ex:lec03-1}）。
+
+\emph{起始。} $\ket{\psi_0}=H^{\otimes4}\ket{0000}$ 使每个振幅都等于
+$1/4$，故此时测量以概率 $1/16$ 返回 $\ket{x_0}$。
+
+\emph{迭代~1。} 谕示将 $g\colon\ 1/4\mapsto-1/4$，而十五个
+未标记振幅不变。均值为
+$\bar a=\bigl(15\cdot\tfrac14-\tfrac14\bigr)/16=\tfrac{7}{32}$。关于均值的反演
+对一个未标记振幅给出 $2\bar a-\tfrac14=\tfrac{3}{16}$，对
+标记振幅给出 $2\bar a+\tfrac14=\tfrac{11}{16}$，故
+\[
+  G\ket{\psi_0}=\frac{3}{16}\!\!\sum_{x\neq 5}\ket{x}+\frac{11}{16}\ket{5},
+  \qquad
+  p_1=\Bigl(\tfrac{11}{16}\Bigr)^{2}=\frac{121}{256}\approx0.473.
+\]
+
+\emph{迭代~2。} 谕示将标记振幅翻转为 $-\tfrac{11}{16}$；
+新的均值为 $\bar a=\bigl(15\cdot\tfrac{3}{16}-\tfrac{11}{16}\bigr)/16
+=\tfrac{17}{128}$。反演给出未标记 $2\bar a-\tfrac{3}{16}=\tfrac{5}{64}$
+及标记 $2\bar a+\tfrac{11}{16}=\tfrac{61}{64}$，故
+\[
+  G^{2}\ket{\psi_0}=\frac{5}{64}\!\!\sum_{x\neq5}\ket{x}+\frac{61}{64}\ket{5},
+  \qquad
+  p_2=\Bigl(\tfrac{61}{64}\Bigr)^{2}=\frac{3721}{4096}\approx0.908.
+\]
+
+\emph{迭代~3（最优）。} 谕示将标记振幅翻转为
+$-\tfrac{61}{64}$；均值为
+$\bar a=\bigl(15\cdot\tfrac{5}{64}-\tfrac{61}{64}\bigr)/16=\tfrac{7}{512}$。
+反演给出未标记 $2\bar a-\tfrac{5}{64}=-\tfrac{13}{256}$ 及标记
+$2\bar a+\tfrac{61}{64}=\tfrac{251}{256}$，故
+\[
+  G^{3}\ket{\psi_0}=-\frac{13}{256}\!\!\sum_{x\neq5}\ket{x}+\frac{251}{256}\ket{5},
+  \qquad
+  p_3=\Bigl(\tfrac{251}{256}\Bigr)^{2}=\frac{63001}{65536}\approx0.961.
+\]
+这是最大值：$p_3\approx0.961$ 已经超过 \cref{thm:lec03-kstar} 所保证的
+$1-1/N=15/16$，而未标记态上那个小的\emph{负}振幅
+表明态刚刚越过了 $\ket{x_0}$。
+
+\emph{迭代~4 和~5（过度旋转）。} 没有什么能阻止我们继续，但此时
+几何对我们不利：每多一次 $G$ 都使态再旋转
+$\theta$，将其\emph{带离} $\ket{x_0}$。将同一递推
+再运行两次给出标记振幅 $\tfrac{781}{1024}$，接着 $\tfrac{1451}{4096}$，
+\[
+  p_4=\Bigl(\tfrac{781}{1024}\Bigr)^{2}=\frac{609961}{1048576}\approx0.582,
+  \qquad
+  p_5=\Bigl(\tfrac{1451}{4096}\Bigr)^{2}=\frac{2105401}{16777216}\approx0.126.
+\]
+成功概率从 $0.961$ 又回落向其起始值——这正是
+\cref{rem:lec03-overrotate} 所警示的过度旋转的一个具体实例。
+全部六个阶段汇总于 \cref{tab:lec03-n8}；各项与 \cref{thm:lec03-afterk} 的
+闭式 $p_k=\sin^{2}\bigl((2k+1)\theta/2\bigr)$ 相符。
+\end{example}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{ccccc}
+\toprule
+迭代 $k$ & 角度 $\tfrac{(2k+1)\theta}{2}$ & 未标记振幅 & 标记振幅 ($\ket5$) & $p_k=\abs{g}^2$\\
+\midrule
+$0$（起始）    & $14.5^{\circ}$  & $1/4$       & $1/4$       & $1/16\approx0.063$\\
+$1$            & $43.4^{\circ}$  & $3/16$      & $11/16$     & $121/256\approx0.473$\\
+$2$            & $72.4^{\circ}$  & $5/64$      & $61/64$     & $3721/4096\approx0.908$\\
+$3$（最优）  & $101.3^{\circ}$ & $-13/256$   & $251/256$   & $63001/65536\approx0.961$\\
+$4$            & $130.3^{\circ}$ & $-171/1024$ & $781/1024$  & $609961/1048576\approx0.582$\\
+$5$            & $159.3^{\circ}$ & $-989/4096$ & $1451/4096$ & $2105401/16777216\approx0.126$\\
+\bottomrule
+\end{tabular}
+\caption{$N=16$、$x_0=5$ 时每次 Grover 迭代后的振幅
+（\cref{exa:lec03-n8}）。全部十五个未标记态在每一
+阶段共享一个公共振幅。成功概率在最优 $k^{\ast}=3$ 处攀至峰值，然后
+随着迭代~4 和~5 使态过度旋转越过 $\ket{x_0}$ 而\emph{回落}；
+每一行都与闭式 $p_k=\sin^{2}\bigl((2k+1)\theta/2\bigr)$ 相符。}
+\label{tab:lec03-n8}
+\end{table}
+
+\subsection{选择迭代次数}
+\label{sec:lec03-iterations}
+
+\cref{thm:lec03-afterk} 表明，当角度 $(2k+1)\theta/2$ 尽可能接近 $\pi/2$ 时，
+$\ket{x_0}$ 上的振幅达到最大，即当态
+（近似）对齐于 $\ket{x_0}$ 时。这确定了最优的迭代次数。
+
+\begin{theorem}[最优迭代次数]
+\label{thm:lec03-kstar}
+选取 $k$ 使得 $(2k+1)\theta/2$ 最接近 $\pi/2$；最优选择为
+\[
+  k^{\ast}=\left\lfloor\frac{\pi}{4}\sqrt N\right\rfloor
+  \qquad\bigl(\text{对 } \tfrac{\pi}{2\theta}-\tfrac12 \text{ 取整}\bigr).
+\]
+在此选择下，成功概率满足 $p_{k^{\ast}}\ge 1-1/N$，故
+单次运行以概率 $\approx1$ 成功。因此该算法使用
+$k^{\ast}=\bigo(\sqrt N)$ 次谕示查询。
+\end{theorem}
+
+\begin{proof}
+我们希望 $(2k+1)\theta/2\approx\pi/2$，即 $2k+1\approx\pi/\theta$，即
+$k\approx\pi/(2\theta)-1/2$。利用 \eqref{eq:lec03-theta} 中对大 $N$ 有效的
+近似 $\theta\approx2/\sqrt N$，
+\[
+  k\approx\frac{\pi}{2\theta}-\frac12\approx\frac{\pi}{2}\cdot\frac{\sqrt N}{2}-\frac12
+     =\frac{\pi}{4}\sqrt N-\frac12,
+\]
+取最近的非负整数给出
+$k^{\ast}=\lfloor(\pi/4)\sqrt N\rfloor$。由于 $k$ 是整数，我们一般
+无法精确命中角度 $\pi/2$，但剩余的角度误差至多为
+$\theta/2$（半个旋转步长）：选取 $k^{\ast}$ 使得
+$(2k^{\ast}+1)\theta/2$ 落在 $\pi/2$ 的 $\theta/2$ 范围之内，给出
+\[
+  p_{k^{\ast}}=\sin^{2}\!\frac{(2k^{\ast}+1)\theta}{2}
+    =\cos^{2}\!\Bigl(\frac{\pi}{2}-\frac{(2k^{\ast}+1)\theta}{2}\Bigr)
+    \ge\cos^{2}\!\frac{\theta}{2}=1-\sin^{2}\frac{\theta}{2}=1-\frac1N.
+\]
+每次迭代 $G=R_{\psi_0}R_{x_0}$ 恰好进行一次谕示调用（在
+$R_{x_0}$ 内部），故总查询代价为 $k^{\ast}=\bigo(\sqrt N)$。
+\end{proof}
+
+这就是那个标志性结果：$\bigo(\sqrt N)$ 次查询相比经典的
+$\bigo(N)$，一个平方加速 (quadratic speedup)。这一增益来自对\emph{振幅}
+而非概率进行操作：$G$ 使振幅随 $k$ 线性旋转，而
+概率是其平方，故角度的线性增长产生了
+$k$ 上的平方根标度。
+
+\begin{remark}[不要过度旋转]
+\label{rem:lec03-overrotate}
+迭代次数越多\emph{并非}总是越好。由于
+$p_k=\sin^{2}((2k+1)\theta/2)$ 振荡，一旦 $(2k+1)\theta/2$ 越过 $\pi/2$，
+成功概率便再次减小——态“旋转越过了” $\ket{x_0}$。因此
+必须停在 $k^{\ast}$；将循环运行过久会适得其反。
+若 $N$ 未知，仍可通过对迭代次数尝试几何增长的猜测，
+并在每个猜测范围内随机选取迭代次数，以 $\bigo(\sqrt N)$ 的期望查询次数
+取得成功。
+\end{remark}
+
+\subsection{在实践中运行 Grover}
+
+$k$ 次迭代后态的公式（\cref{thm:lec03-afterk}）与最优次数
+$k^{\ast}$（\cref{thm:lec03-kstar}）就是我们认真进行搜索所需的全部。下面
+两个例子将它们付诸实践，并点明一个在几何图像中容易被忽视的要点：
+算法从不使用标记串 $x_0$ 的\emph{值}，而只使用识别它的谕示。
+
+\begin{example}[在实践中运行 Grover：我们从不使用 $x_0$]
+\label{exa:lec03-practice}
+\cref{exa:lec03-n8} 为示意追踪了 $\ket{x_0}=\ket5$ 上的振幅，但
+算法本身从不知道 $x_0$：对 $f$ 的唯一访问方式是通过
+黑箱谕示 $R_{x_0}$，而标记 $\ket5$ 是由出题进行搜索的人、而非我们，
+预先植入该谕示的。那么我们实际上运行的是什么？
+
+\emph{谕示从何而来。} 我们并没有被交给 $x_0$；我们被交给的是一种
+\emph{识别}它的方式——一个谓词 $f$，当且仅当 $x=x_0$ 时 $f(x)=1$，以
+\cref{def:lec03-oracle} 的可逆\emph{比特}谕示 $\Uf\colon\ket{x}\ket{y}\mapsto\ket{x}\ket{y\oplus
+f(x)}$ 的形式给出，它将 $f$ 的\emph{值}写入一个额外的
+量子比特。另一方面，Grover 需要的是\emph{相位}谕示
+$R_{x_0}=\id-2\proj{x_0}$，它不写入任何比特，而是给 $\ket{x_0}$ 附加一个符号。它们
+是同一个算符经由单个辅助比特观察的两种视角。将该辅助比特制备于
+$\ket-=\tfrac1{\sqrt2}(\ket0-\ket1)$；由于受控翻转 $\ket y\mapsto\ket{y\oplus
+f(x)}$ 要么保持 $\ket-$ 不变（$f(x)=0$），要么将其送为 $-\ket-$（$f(x)=1$），相位
+回踢 (phase kickback)（\cref{lem:lec03-kickback}）给出
+\[
+  \Uf\bigl(\ket{x}\otimes\ket-\bigr)
+    =(-1)^{f(x)}\,\ket{x}\otimes\ket-
+    =\bigl(R_{x_0}\ket{x}\bigr)\otimes\ket-,
+  \qquad
+  R_{x_0}=\sum_{x}(-1)^{f(x)}\proj{x}=\id-2\proj{x_0},
+\]
+最后一个等式成立是因为 $(-1)^{f(x)}=+1$ 处处成立，唯独在单个串
+$x=x_0$ 处为 $-1$。换言之：\emph{在目标被保持于 $\ket-$ 的情况下，比特
+谕示 $\Uf$ 对数据寄存器的作用恰如相位谕示 $R_{x_0}$}——辅助比特
+原样退出并分解出去，将符号带回到 $\ket{x}$ 上。具体地，
+\begin{center}
+\begin{quantikz}[column sep=0.65cm,row sep=0.5cm]
+\lstick{$\ket{x}$ \,($n$ data qubits)} & \qwbundle{n} & \gate[2]{\Uf} & \qwbundle{n} & \rstick{$(-1)^{f(x)}\ket{x}$} \\
+\lstick{$\ket{1}$} & \gate{H} & & \gate{H} & \rstick{$\ket{1}$}
+\end{quantikz}
+\end{center}
+辅助比特的两个 $H$ 门将 $\ket1$ 变为 $\ket-$ 再变回去，故它返回到 $\ket1$
+并可重用或丢弃；两者之间的一切，从顶部寄存器读取，\emph{就是} $R_{x_0}$。注意此线路包含什么：$\Uf$ 的门和一个
+辅助比特，而\emph{从不包含 $x_0$ 本身}——那个负号落在满足 $f$ 的
+那个输入上，无论它恰好在哪里。（若 $\Uf$ 在求值 $f$ 时分配了草稿量子比特，
+事后将它们反计算，使之返回到 $\ket0$ 并使数据
+寄存器保持无纠缠。）这就是 \cref{ex:lec03-oracle-compile} 的编译，而
+下面的 \cref{exa:lec03-unknown} 针对一个具体的、真正未知的 $x_0$ 将其执行一遍。
+
+我们\emph{确实}知道的唯一一个量是搜索空间的大小 $N=16$（并且
+此处知道只有一个解，$M=1$）。这就足够了，因为由
+\cref{thm:lec03-kstar}，最优迭代次数只依赖于 $N$，
+\[
+  k^{\ast}=\Bigl\lfloor\tfrac{\pi}{4}\sqrt{N}\Bigr\rfloor
+         =\Bigl\lfloor\tfrac{\pi}{4}\cdot4\Bigr\rfloor=\lfloor\pi\rfloor=3,
+\]
+而不依赖于\emph{哪一}项被标记。故步骤为：
+\begin{enumerate}[label=(\arabic*),leftmargin=1.9em,itemsep=1pt,topsep=2pt]
+  \item 制备 $\ket{\psi_0}=H^{\otimes4}\ket{0000}$ 并恰好 $k^{\ast}=3$ 次施加 Grover 迭代
+        $G=R_{\psi_0}R_{x_0}$。这里 $R_{x_0}$ 是我们\emph{被交给}的
+        谕示：我们将它作为黑箱运行，尽管其下标
+        $x_0$ 记录了它标记单个项（故 $R_{x_0}=\id-2\proj{x_0}$），该
+        项的值对我们而言是未知的——线路从不读取它。
+  \item 测量这四个量子比特，得到一个候选串 $y\in\{0,1\}^4$。
+  \item \emph{验证}：对谓词求值一次。若 $f(y)=1$，输出 $y$；
+        否则丢弃并从~(1) 重复。
+\end{enumerate}
+步骤~(3) 中的验证是对 $f$ 的单次经典求值，正是它
+使算法在从不涉及 $x_0$ 的情况下仍然可信：错误的猜测会被
+检测出来，代价不过是重复一次。由 \cref{exa:lec03-n8}，步骤~(2) 中的测量
+以概率 $p_3=63001/65536\approx0.961$ 返回真实的 $x_0=5$，故
+期望的尝试次数为 $1/p_3\approx1.04$——几乎总是第一次就成功。
+每次尝试在 Grover 迭代内部使用 $k^{\ast}=3$ 次谕示调用，外加一次
+$f$ 求值以验证，期望总计约四次查询。
+
+将此与蛮力做对比：逐一测试各项平均用 $8$ 次查询找到标记串，
+最坏情况 $15$ 次。即便在 $N=16$ 时 Grover
+已经领先，且该差距随 $\sqrt N$ 对 $N$ 而拉大。
+
+一个告诫：此方法用了 $M=1$ 来确定 $k^{\ast}$。若解的数目 $M$
+\emph{未知}，则无法事先锁定 $k^{\ast}$——迭代太少则
+振幅仍小，太多则会过度旋转
+（\cref{rem:lec03-overrotate}）。标准的补救办法是尝试指数增长的
+猜测 $k=1,2,4,8,\dots$，在每个猜测以下随机抽取实际次数，并
+在每次运行后验证；这仍能以 $\bigo(\sqrt N)$ 的期望查询次数找到一个解。多解情形将在下面处理。
+\end{example}
+
+\begin{example}[一个我们真正不知道其解的搜索：求函数的逆]
+\label{exa:lec03-unknown}
+\cref{exa:lec03-practice} 仍然\emph{说出了}答案 $x_0=5$，以便我们能
+观察振幅的变动；在真实搜索中我们是不会知道它的。下面是同一个
+算法应用于一个其解事先\emph{无法}获得的问题。
+
+设 $g:\{0,1\}^{4}\to\{0,1\}^{4}$ 是一个我们能求值却不易
+求逆的函数——设想一个玩具分组密码 $g(x)=E_x(m_0)$，它在
+$4$ 比特密钥 $x$ 下加密一段固定、已知的明文 $m_0$。某人选择了一个秘密密钥 $x_0$ 并
+公布了密文 $t=g(x_0)$。我们的任务是恢复该密钥：找出满足
+$g(x)=t$ 的 $x$。假设对该 $t$ 密钥是唯一的，故只有一个标记项——但
+\emph{我们完全不知道它是这十六个串中的哪一个}，而且除了搜索之外
+没有任何捷径能找出它。
+
+\emph{在不知道 $x_0$ 的情况下构造谕示。} 谓词
+$f(x)=\mathbf 1[g(x)=t]$ 是我们\emph{能}计算的，尽管我们无法求逆
+$g$：对 $x$ 运行 $g$ 的线路，将输出与公布的 $t$ 比较，并置一个
+标志比特。将这个验证器变为相位谕示 $R_{x_0}=\id-2\proj{x_0}$ 正是
+\cref{ex:lec03-oracle-compile} 的构造——将 $f$ 计算到一个保持于 $\ket-$ 的辅助比特，
+它在恰好那个满足条件的输入上盖上一个负号，然后
+将草稿反计算。此线路在任何时刻都不包含 $x_0$；它包含 $g$ 和
+$t$，而标记\emph{显现}于恰好满足 $g(x)=t$ 的那个输入上。
+
+\emph{运行它。} 现在量子线路与 \cref{exa:lec03-n8} 的\emph{完全相同}：
+制备 $\ket{\psi_0}=H^{\otimes4}\ket{0000}$，施加
+$G=R_{\psi_0}R_{x_0}$ 共 $k^{\ast}=\lfloor(\pi/4)\sqrt{16}\rfloor=3$ 次迭代，并
+测量。由于 \cref{exa:lec03-n8} 的振幅分析从不使用 $x_0$ 的
+\emph{值}——只用了在 $N=16$ 中有一个标记项这一事实——态
+描出的是同一条轨迹，而测量以
+概率 $p_3=63001/65536\approx0.961$ 返回那个隐藏的密钥，\emph{无论该密钥最终是什么}。我们
+随后对测得的串对 $g$ 求值一次，以确认 $g(y)=t$；在罕见的失手时我们
+只需重复。只有在这个验证步骤我们才得知答案——量子部分
+在从未被告知的情况下发现了它。
+
+与经典密钥搜索的对比正是全部要点所在。由于不知道 $x_0$，
+经典攻击者只能逐一尝试密钥，期望需要 $8$ 次、最坏情况 $15$ 次
+对 $g$ 的求值；Grover 需要 $k^{\ast}=3$ 次对基于 $g$ 的谕示的查询外加一次
+验证。这种针对蛮力求逆的平方加速——实际上将对手必须应对的
+密钥长度减半——正是对称密钥尺寸被加倍以
+抵御量子攻击的标准理由。
+\end{example}
+\section{多解情形与振幅放大}
+\label{sec:lec03-4}
+
+单解分析可向两个方向推广：一是同时处理多个标记项 (marked item)，二是更一般地放大\emph{任意}态制备 (state preparation) 的成功振幅 (amplitude)，而不仅限于均匀叠加。两者都原封不动地复用 \cref{thm:lec03-rotation} 的双反射旋转 (rotation)，只是改变了充当“好”子空间的角色。
+
+\subsection{多解}
+
+现在假设有 $M\ge1$ 个标记项，$S=\{x:f(x)=1\}$ 且 $\abs{S}=M$。将“好”子空间替换为标记基态所张成的空间，一切照旧成立。令
+\[
+  \ket{\mathrm{good}}=\frac{1}{\sqrt M}\sum_{x\in S}\ket{x},
+  \qquad
+  \ket{\mathrm{bad}}=\frac{1}{\sqrt{N-M}}\sum_{x\notin S}\ket{x},
+\]
+于是
+$\ket{\psi_0}=\sqrt{M/N}\,\ket{\mathrm{good}}+\sqrt{(N-M)/N}\,\ket{\mathrm{bad}}$。
+定义 $R_S=\id-2\sum_{x\in S}\proj{x}$（相位谕示现在翻转所有标记项），并保持相同的扩散算符 (diffusion operator) $R_{\psi_0}$。同样的论证表明 $G=R_{\psi_0}R_S$ 是在 $\operatorname{span}\{\ket{\mathrm{good}},\ket{\mathrm{bad}}\}$ 中按角度 $\theta$ 的旋转，其中
+\[
+  \sin\frac{\theta}{2}=\sqrt{\frac{M}{N}},
+  \qquad\text{等价地}\qquad
+  \sin\theta=2\sin\frac{\theta}{2}\cos\frac{\theta}{2}
+            =2\sqrt{\frac{M}{N}}\sqrt{\frac{N-M}{N}}\approx 2\sqrt{\frac{M}{N}}.
+\]
+最优迭代 (iteration) 次数变为
+\[
+  k^{\ast}=\left\lfloor\frac{\pi}{4}\sqrt{\frac{N}{M}}\right\rfloor
+  =\bigo\!\left(\sqrt{\frac{N}{M}}\right),
+\]
+因此解越多，搜索越快。
+
+\begin{example}[精确情形 $N=4$，$M=1$]
+\label{exa:lec03-n4}
+此处 $\sin(\theta/2)=1/\sqrt4=1/2$，故 $\theta/2=\pi/6$ 且 $\theta=\pi/3$。经过单次迭代（$k=1$）后，角度为
+\[
+  \frac{(2\cdot1+1)\theta}{2}=\frac{3\theta}{2}=\frac{3}{2}\cdot\frac{\pi}{3}=\frac{\pi}{2},
+\]
+故由 \cref{thm:lec03-afterk} 可知该态为
+$G\ket{\psi_0}=\sin(\pi/2)\ket{x_0}+\cos(\pi/2)\ket{\psi_0^{\perp}}=\ket{x_0}$。
+因此对 $N=4$，\emph{单次} Grover 迭代即可确定无误地找到标记项——这是算法恰好确定性的罕见实例。
+\end{example}
+
+\begin{example}[一个多解估计]
+\label{exa:lec03-satcount}
+假设一个含 $n=30$ 个变量的 SAT 实例在 $N=2^{30}$ 个候选中有 $M=2^{10}$ 个满足赋值。经典穷举搜索需要约 $N/M=2^{20}\approx10^{6}$ 次试探才能命中一个解。而 Grover 只需约
+\[
+  \frac{\pi}{4}\sqrt{\frac{N}{M}}
+    =\frac{\pi}{4}\sqrt{2^{20}}
+    =\frac{\pi}{4}\cdot2^{10}\approx804
+\]
+次谕示查询——平方根改进的实际体现。
+\end{example}
+
+\subsection{振幅放大}
+
+Grover 的构造远远超出搜索的范畴而得以推广。
+
+\begin{theorem}[振幅放大 (amplitude amplification)]
+\label{thm:lec03-aa}
+设 $\mathcal A$ 为任意制备下述态的量子过程
+\[
+  \mathcal A\ket{0}=\sqrt{p_0}\,\ket{\psi_{\mathrm{good}}}+\sqrt{1-p_0}\,\ket{\psi_{\mathrm{bad}}},
+\]
+其中投影算子 $P$ 识别好的部分
+（$P\ket{\psi_{\mathrm{good}}}=\ket{\psi_{\mathrm{good}}}$,
+$P\ket{\psi_{\mathrm{bad}}}=0$），而 $p_0=\braket{0|\mathcal A\dg P\mathcal A|0}$ 是初始成功概率。定义两个反射 (reflection)
+$S_P=\id-2P$ 与 $S_0=\mathcal A(2\proj{0}-\id)\mathcal A\dg$，并令
+$Q=S_0S_P$。则 $Q$ 在 $\operatorname{span}\{\ket{\psi_{\mathrm{good}}},\ket{\psi_{\mathrm{bad}}}\}$ 内按角度 $\theta$ 旋转，其中
+$\sin^{2}(\theta/2)=p_0$，且经过
+\[
+  k^{\ast}=\left\lfloor\frac{\pi}{4\arcsin\sqrt{p_0}}\right\rfloor
+  =\bigo\!\bigl(1/\sqrt{p_0}\bigr)
+\]
+次迭代后，以概率 $\Omega(1)$ 得到好的态。
+\end{theorem}
+
+\begin{proof}[证明梗概]
+态 $\mathcal A\ket{0}$ 在二维空间
+$\operatorname{span}\{\ket{\psi_{\mathrm{good}}},\ket{\psi_{\mathrm{bad}}}\}$
+中的分解，与 $\ket{\psi_0}$ 在 \eqref{eq:lec03-initdecomp} 中的分解完全一致，其中
+$\sin(\theta/2)=\sqrt{p_0}$。反射 $S_P$ 使好的分量变号而固定坏的分量；反射 $S_0=\mathcal A(2\proj{0}-\id)\mathcal A\dg$ 则是通过酉算符 $\mathcal A$ 对初等反射 $2\proj0-\id$ 作共轭，即关于轴 $\mathcal A\ket{0}$ 的反射。\cref{thm:lec03-rotation} 的证明在把 $\ket{x_0}$ 替换为 $\ket{\psi_{\mathrm{good}}}$、把 $\ket{\psi_0}$ 替换为 $\mathcal A\ket{0}$ 后原封不动地适用：两个反射之积是按角度 $\theta$ 的旋转。经过 $k$ 次迭代后，好的振幅为 $\sin((2k+1)\theta/2)$，在
+$k^{\ast}\approx\pi/(2\theta)-1/2$ 处取最大值，其中 $\theta=2\arcsin\sqrt{p_0}$，由于当 $p_0$ 较小时 $\theta\ge2\sqrt{p_0}$，故给出
+$k^{\ast}=\bigo(1/\sqrt{p_0})$。
+\end{proof}
+
+这相较于经典的“制备并检验”策略为见到好的结果所需的 $\bigo(1/p_0)$ 次重复，是一个平方改进 (quadratic improvement)。Grover 搜索是其中 $\mathcal A=H^{\otimes n}$、$p_0=M/N$ 的特例。
+
+\section{查询复杂度下界}
+\label{sec:lec03-5}
+
+Grover 算法不仅是好的；它在渐近意义上是尽可能最好的。
+
+\begin{theorem}[查询下界 (lower bound)]
+\label{thm:lec03-lower}
+任何以常数成功概率找到标记项 $x_0$（甚或仅仅判定是否存在标记项）的量子算法都必须进行
+$\Omega(\sqrt N)$ 次谕示查询。
+\end{theorem}
+
+\begin{proof}[思路]
+将算法分别作用于“空”谕示 $f\equiv0$ 和标记单个项 $x_0$ 的谕示。设 $\ket{\phi_k}$ 为空情形下经 $k$ 次查询后的态，$\ket{\phi_k^{x_0}}$ 为标记情形下的态，并定义总偏差
+\[
+  D_k=\sum_{x_0}\norm{\,\ket{\phi_k^{x_0}}-\ket{\phi_k}\,}^{2}.
+\]
+一个混合论证表明每增加一次查询仅能使 $D_k$ 增加有界的量：$D_k\le 4k^{2}$。另一方面，为可靠地区分哪个项被标记，不同 $x_0$ 对应的标记情形态必须与空情形态近乎正交，这迫使 $D_k=\Omega(N)$。结合
+$\Omega(N)\le D_k\le 4k^{2}$ 即得 $k=\Omega(\sqrt N)$。
+\end{proof}
+
+\begin{remark}[Grover 是最优的]
+\label{rem:lec03-optimal}
+\cref{thm:lec03-kstar} 的上界与上述下界在相差常数因子的意义下相符：二者皆为 $\Theta(\sqrt N)$。因此 Grover 算法对无结构搜索 (unstructured search) 是最优的——没有量子算法能在渐近意义上做得更好。当对问题的唯一访问方式是通过无结构谕示时，平方加速 (quadratic speedup) 是可达到的最佳结果；超多项式加速则需要可利用的结构，如 Shor 算法或 \cref{ch:lec04} 中基于相位估计的方法。
+\end{remark}
+
+\exercisesection
+\begin{exercise}\label{ex:lec03-1}
+证明扩散算符实现了“关于均值的翻转”：对任意态 $\sum_x a_x\ket{x}$，其平均振幅 $\bar a=\tfrac1N\sum_x a_x$，有
+\[
+  R_{\psi_0}\sum_x a_x\ket{x}=\sum_x(2\bar a-a_x)\ket{x}.
+\]
+\end{exercise}
+
+\begin{exercise}\label{ex:lec03-2}
+列出全部四个函数 $f:\{0,1\}\to\{0,1\}$，并将每个分类为常值的或平衡的。对每一个，手算 \cref{thm:lec03-deutsch} 的 Deutsch 算法所产生的第一比特测量结果。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec03-3}
+证明 \cref{def:lec03-oracle} 的 $\Uf$ 是厄米的，并结合 $\Uf^2=\id$ 推断其本征值为 $\pm1$。然后直接证明（不借助 \cref{lem:lec03-kickback}）：若目标量子比特初始化为 $\ket{+}=\tfrac{1}{\sqrt2}(\ket0+\ket1)$ 而非 $\ket{-}$，则对所有 $x$ 有 $\Uf\ket{x}\ket{+}=\ket{x}\ket{+}$，因此没有相位被回踢；解释为什么 $\ket{-}$ 是有用的选择。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec03-4}
+对 $n=2$，令 $f(x_1x_2)=x_1\oplus x_2$。验证 $f$ 是平衡的，并追踪 Deutsch--Jozsa 态依次经过 $H^{\otimes 2}$、$\Uf$、$H^{\otimes 2}$，确认 $\ket{00}$ 的振幅为 $0$。在隐藏串为 $s$ 的 Bernstein--Vazirani 情形中，改设谕示对应仿射函数 $g(x)=s\cdot x\oplus c$，其中 $c$ 为未知常数比特；证明 \cref{thm:lec03-bv} 的算法仍确定无误地输出 $s$，并指出常数 $c$ 的去向。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec03-5}
+取 $N=2$（单量子比特，$n=1$），标记项唯一为 $x_0$。由 \eqref{eq:lec03-theta} 计算 $\theta$，对 $\ket{\psi_0}$ 作用一次 Grover 迭代，并解释结果。为什么 $N=2$ 的情形略为特殊？然后，对一般的 $N$ 且 $k^{\ast}=\lfloor(\pi/4)\sqrt N\rfloor$，证明成功概率满足 $p_{k^{\ast}}\ge1-1/N$（可利用距 $\pi/2$ 的剩余角度至多为 $\theta/2$ 这一事实）。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec03-6}
+考虑 $N=2^{20}$。大约多少次迭代 $k^{\ast}$ 能使成功概率最大？若改为运行 $2k^{\ast}$ 次迭代，成功概率在定性上会发生什么变化？用 $p_k=\sin^2((2k+1)\theta/2)$ 加以解释。另外，对 $N=1024$ 中的 $M=4$ 个标记项，求 $\sin(\theta/2)$、最优迭代次数 $k^{\ast}$，并与相同 $N$ 下的单解次数作比较。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec03-7}
+证明 \cref{thm:lec03-rotation} 中用到的平面几何事实：在实二维平面中，关于直线 $\ell_1$ 的反射与关于直线 $\ell_2$ 的反射（$\ell_2$ 与 $\ell_1$ 成角度 $\alpha$）的复合是按角度 $2\alpha$ 的旋转。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec03-8}
+构造相位谕示。在三个量子比特上，设 $x_0=\ket{101}$ 为标记态。遵循 \cref{sec:lec03-circuits}，将标记反射
+$R_{x_0}=\id-2\proj{x_0}$ 写成由 $X$ 门共轭的双受控 $Z$ 门，指明哪些量子比特承载 $X$ 门。手工验证你的线路将 $\ket{101}$ 乘以 $-1$ 而使其余七个基态保持不变（只需检验 $\ket{101}$、一个在前导 NOT 下变为 $\ket{111}$ 的基态，以及一个不变为 $\ket{111}$ 的基态即可）。然后对均匀态 $\ket{\psi_0}=H^{\otimes3}\ket{000}$ 以此 $x_0$ 运行一次 Grover 迭代，报告 $\ket{x_0}$ 上所得的振幅及成功概率 $p_1$；确认其与 \cref{exa:lec03-n8} 相符。
+\end{exercise}
+
+\readingsection
+\begin{itemize}[leftmargin=1.4em]
+  \item Lin Lin, \emph{qasc notes}, Ch.~2（查询模型、Deutsch--Jozsa 与
+        Bernstein--Vazirani、Grover 算法）--- \texttt{qasc\_notes.pdf}。
+  \item Lin Lin, \emph{live notes}, Ch.~11（振幅放大及其应用）--- \texttt{live\_notes\_0429.pdf}。
+  \item A.~M.~Childs, \emph{Lecture Notes on Quantum Algorithms}（谕示模型、Grover 搜索、振幅放大，以及混合论证给出的
+        $\Omega(\sqrt N)$ 下界）--- \texttt{material/}。
+  \item M.~A.~Nielsen and I.~L.~Chuang, \emph{Quantum Computation and Quantum
+        Information}, Ch.~6（量子搜索算法与搜索下界）。
+  \item D.~Brody, \emph{The Joy of Quantum Computing}, Princeton Univ.\ Press,
+        2025, Ch.~2（Deutsch 算法与相位谕示）与 Ch.~8
+        （Grover 搜索的具体演练：由多受控 $Z$ 门构造谕示、关于均值翻转的几何，以及
+        $N=8$ 的算例）---
+        \texttt{material/Brody\_The\ Joy\ of\ Quantum\ Computing\_Princeton\_2025.pdf}。
+\end{itemize}
