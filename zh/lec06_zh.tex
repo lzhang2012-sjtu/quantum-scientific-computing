@@ -276,30 +276,40 @@ $U_A\in\mathrm{BE}_{1,1}(A)$。
 \label{exa:lec06-2x2}
 考虑单量子比特矩阵
 \[
-  A=\begin{pmatrix} 1 & 1\\ 0 & 1\end{pmatrix},
-  \qquad \norm{A}=\frac{1+\sqrt5}{2}\approx1.618 ,
+  A=\begin{pmatrix} 1 & 1\\ 0 & 1\end{pmatrix}.
 \]
-其谱范数 (spectral norm) 是最大的奇异值（黄金比例）。由于
-$\norm{A}>1$，不存在精确的 $(1,\cdot)$-块编码；取 $\alpha=2\ge\norm{A}$，
-则 $A/\alpha=\left(\begin{smallmatrix}1/2&1/2\\0&1/2\end{smallmatrix}\right)$，它
-满足 $\norm{A/\alpha}=\alpha^{-1}\norm{A}\approx0.809<1$。其 SVD 由 \cref{prop:lec06-svd}
-给出 $A/\alpha$ 的一个 $(1,1)$-块编码；将其视为
-作用在一个标志比特与一个系统比特上的 $2$ 比特酉算符，这便是 $A$ 的一个
-$(2,1)$-块编码。具体地，取 $b=1/2$，
+其奇异值 $\sigma_\pm$ 满足 $\sigma_+\sigma_-=\abs{\det A}=1$ 且
+$\sigma_+^2+\sigma_-^2=\tr(A^\top A)=3$，故 $\sigma_\pm^2=(3\pm\sqrt5)/2$，即
+$\sigma_\pm=\varphi^{\pm1}$，其中 $\varphi=\tfrac{1+\sqrt5}{2}\approx1.618$ 为黄金比例
+(golden ratio)；于是 $\norm{A}=\sigma_+=\varphi$。由于 $\norm{A}>1$，不存在精确的
+$(1,\cdot)$-块编码；取 $\alpha=2\ge\norm{A}$，并令
 \[
-  U_A=\begin{pmatrix}
-        1/2 & 1/2 & \ast & \ast\\
-        0   & 1/2 & \ast & \ast\\
-        \ast& \ast& \ast & \ast\\
-        \ast& \ast& \ast & \ast
+  M\defeq\frac{A}{\alpha}=\begin{pmatrix}1/2&1/2\\0&1/2\end{pmatrix},
+  \qquad \norm{M}=\frac{\varphi}{2}\approx0.809<1 ,
+\]
+它是一个压缩映射 (contraction)。\cref{prop:lec06-svd} 的膨胀 (dilation) 通过添加亏损块
+(defect block) $\sqrt{\id-MM^\top}$ 与 $\sqrt{\id-M^\top M}$ 把 $M$ 补全为一个酉算符：
+\[
+  U_A=\begin{pmatrix} M & \sqrt{\id-MM^\top}\\[3pt]
+                      \sqrt{\id-M^\top M} & -M^\top\end{pmatrix}
+     \approx\begin{pmatrix}
+        0.5 & 0.5 & 0.688 & -0.162\\
+        0   & 0.5 & -0.162 & 0.851\\
+        0.851 & -0.162 & -0.5 & 0\\
+        -0.162 & 0.688 & -0.5 & -0.5
       \end{pmatrix},
 \]
-其中带星的元由要求各列标准正交所确定。将 $U_A$
-作用于 $\ket{0}\ket{b}$ 并在标志 $\ket{0}$ 上进行后选择，便以概率
-$\norm{A\ket{b}}^2/\alpha^2$ 返回
-$A\ket{b}/\norm{A\ket{b}}$；若我们浪费地选取 $\alpha=10$，同样的态仍会出现，但成功
-概率——从而运行时间——会下降 $25$ 倍。这正是
-``让 $\alpha$ 接近 $\norm{A}$''的实践含义。
+这是一个货真价实的 $2$ 比特正交矩阵（一个标志比特与一个系统比特），其左上角的
+$2\times2$ 块恰为 $M=A/\alpha$；这便是 $A$ 的一个 $(2,1)$-块编码。两个亏损块正是上面
+示意形式中带星的元，它们（在膨胀的符号约定下）由要求各列标准正交所确定。
+
+将 $U_A$ 作用于 $\ket{0}\ket{b}$ 并在标志 $\ket{0}$ 上进行后选择，便以概率
+$\norm{A\ket{b}}^2/\alpha^2$ 返回 $A\ket{b}/\norm{A\ket{b}}$。具体地，对
+$\ket{b}=\ket{0}$ 有 $A\ket{0}=\ket{0}$，故 $\norm{A\ket{0}}^2=1$，成功概率为
+$1/\alpha^2=1/4$；对 $\ket{b}=\ket{1}$ 有 $A\ket{1}=\ket{0}+\ket{1}$，故
+$\norm{A\ket{1}}^2=2$，概率为 $2/4=1/2$。倘若我们浪费地选取 $\alpha=10$，同样的输出
+态仍会出现，但这两个概率会降到 $1/100$ 与 $1/50$——小了 $(\alpha/2)^2=25$ 倍，直接拉长
+了运行时间。这正是``让 $\alpha$ 接近 $\norm{A}$''的实践含义。
 \end{example}
 \section{矩阵–向量乘法 (matrix--vector multiplication)：第一个基本操作}
 \label{sec:lec06-matvec}
@@ -395,6 +405,23 @@ $\mathrm{SEL}=\proj0\otimes U_A+\proj1\otimes U_B$。则
 $\propto\sqrt{c_A\alpha},\sqrt{c_B\beta}$ 得到，给出次归一化
 $c_A\alpha+c_B\beta$。
 \end{proposition}
+
+\begin{figure}[ht]
+\centering
+\begin{quantikz}
+  \lstick{控制 $\ket0$} & \gate{\mathrm{PREP}} & \octrl{1} & \ctrl{1}
+    & \gate{\mathrm{PREP}^{\dagger}} & \qw \\
+  \lstick{标志 $\ket{0^a}$、系统 $\ket b$} & \qwbundle{a+n}
+    & \gate{U_A} & \gate{U_B} & \qw & \qw
+\end{quantikz}
+\caption{\cref{prop:lec06-add} 的单辅助比特线路 $W=(\mathrm{PREP}^{\dagger}\otimes\id)\,
+\mathrm{SEL}\,(\mathrm{PREP}\otimes\id)$。$\mathrm{PREP}$ 把权重 $\sqrt\alpha,\sqrt\beta$
+加载到控制比特上；$\mathrm{SEL}$ 在控制为 $\ket0$ 时（空心圆）施加 $U_A$、在控制为
+$\ket1$ 时（实心圆）施加 $U_B$；$\mathrm{PREP}^{\dagger}$ 使两条分支发生干涉。读取扩大后
+的标志 $\ket{0^{a+1}}$（控制比特连同原来的 $a$ 个标志比特）即可取出左上角的块
+$(A+B)/(\alpha+\beta)$，故 $W\in\mathrm{BE}_{\alpha+\beta,\,a+1}(A+B)$。}
+\label{fig:lec06-add}
+\end{figure}
 
 \begin{example}[块编码 $\tfrac12(X+Z)$]
 \label{exa:lec06-add}
