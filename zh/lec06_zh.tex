@@ -76,7 +76,7 @@ $\arg u_i$ 的部分和中读出。至于下界，一般的 $\ket{u}$ 携带 $\T
 
 \begin{example}[态制备何时高效]
 \label{exa:lec06-spgood}
-有三大类结构允许 $\polylog(N)$ 规模的制备。
+有四大类结构允许 $\polylog(N)$ 规模的制备。
 \begin{itemize}[leftmargin=1.4em,nosep]
   \item \emph{乘积（无纠缠）态。}若 $\ket{u}=\bigotimes_{k=1}^{n}
         \ket{v_k}$，其中每个 $\ket{v_k}$ 是单个比特，则 $O_u=\bigotimes_k
@@ -121,6 +121,81 @@ $\poly(n)$ 门块，而共有 $n$ 层。一个告诫 (Herbert, 2021)：若积分
 封闭形式求值，则采样代价可能抵消所加载态本应带来的那一份加速——因此该方法只对真正可积的密度
 （对数凹、高斯及类似者）才有收益。
 \end{remark}
+
+我们把这四类分别落实为具体例子，并给出其制备线路。
+
+\begin{example}[乘积态]
+\label{exa:lec06-prod}
+取三量子比特乘积态
+$\ket{u}=\ket+\otimes\ket0\otimes\bigl(\cos\tfrac\pi8\ket0+\sin\tfrac\pi8\ket1\bigr)$。
+由于它可因式分解，$O_u=\Hgate\otimes\id\otimes R_y(\tfrac\pi4)$ 就是每条线上一个
+单量子比特门（中间那个比特上没有门）——没有两量子比特门，因而没有纠缠。
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$} & \gate{\Hgate}        & \qw \\
+  \lstick{$\ket0$} & \qw                  & \qw \\
+  \lstick{$\ket0$} & \gate{R_y(\pi/4)}    & \qw
+\end{quantikz}
+\end{center}
+乘积态的 $n$ 个振幅只携带 $n$ 个独立角度，故 $n$ 个旋转即足够；均匀叠加
+$\Hgate^{\otimes n}\ket{0^n}$ 就是其中每个门都是 Hadamard 的情形。
+\end{example}
+
+\begin{example}[高效可积：四点上的 Grover--Rudolph]
+\label{exa:lec06-grex}
+在 $n=2$ 个量子比特上加载 $p=(3,1,1,3)/8$，即
+$\ket{u}=\tfrac1{\sqrt8}\bigl(\sqrt3\,\ket{00}+\ket{01}+\ket{10}+\sqrt3\,\ket{11}\bigr)$。
+以 $q_1$ 为最高有效位，两个半区 $\{00,01\}$ 与 $\{10,11\}$ 各携带相等的质量
+$\tfrac12$，故第一层的角度满足 $\cos^2(\theta_1/2)=\tfrac12$，即对 $q_1$ 施加
+$R_y(\pi/2)=\Hgate$。在 $q_1$ 的条件下，第二层的角度再把每一半区细分：
+$q_1{=}0$ 给出 $\cos^2(\theta/2)=p_{00}/(p_{00}{+}p_{01})=\tfrac34$，故为 $R_y(\pi/3)$；
+$q_1{=}1$ 给出 $p_{10}/(p_{10}{+}p_{11})=\tfrac14$，故为 $R_y(2\pi/3)$。于是第二层是一个
+\emph{一致受控}（uniformly controlled）旋转——$q_1$ 的每个取值对应一个角度：
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_1:\ket0$} & \gate{\Hgate} & \octrl{1}          & \ctrl{1}            & \qw \\
+  \lstick{$q_2:\ket0$} & \qw           & \gate{R_y(\pi/3)}  & \gate{R_y(2\pi/3)}  & \qw
+\end{quantikz}
+\end{center}
+$\ket{00}$ 上的振幅为 $\cos\tfrac\pi4\cos\tfrac\pi6
+=\tfrac1{\sqrt2}\cdot\tfrac{\sqrt3}2=\sqrt3/\sqrt8=\sqrt{p_{00}}$，正如所应。对于光滑的
+密度，每一层的角度是在辅助比特上由 $\int_I p$ \emph{计算}得到、而非硬编码的，这正是
+\cref{rem:lec06-gr} 的内容。
+\end{example}
+
+\begin{example}[稀疏向量]
+\label{exa:lec06-sparsevec}
+三量子比特态 $\ket{u}=\tfrac1{\sqrt2}(\ket{000}+\ket{101})$ 只有 $d=2$ 个非零振幅。
+两个字上的相等权重由一个 Hadamard 和一个 $\CNOT$ 产生：对 $q_0$ 施加 $\Hgate$ 得到
+$\tfrac1{\sqrt2}(\ket{000}+\ket{100})$，再用 $\CNOT_{q_0\to q_2}$ 翻转 $\ket{1\cdots}$
+分支的最后一位，得到 $\ket{101}$。
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_0:\ket0$} & \gate{\Hgate} & \ctrl{2} & \qw \\
+  \lstick{$q_1:\ket0$} & \qw           & \qw      & \qw \\
+  \lstick{$q_2:\ket0$} & \qw           & \targ{}  & \qw
+\end{quantikz}
+\end{center}
+一般而言，$d$-稀疏向量逐个振幅地加载：用 $\bigo(n)$ 个门寻址 $d$ 个位置中的每一个并
+设定其大小与相位，共计 $\bigo(dn)$ 个门。
+\end{example}
+
+\begin{example}[矩阵乘积态：GHZ]
+\label{exa:lec06-mps}
+GHZ 态 $\ket{u}=\tfrac1{\sqrt2}(\ket{000}+\ket{111})$ 是最简单的非平凡矩阵乘积态，键维数
+$\chi=2$。它的顺序式 MPS 制备就是教科书上的线路——对第一个量子比特施加 Hadamard，再接
+一条沿寄存器传递键指标的 $\CNOT$ 链：
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_0:\ket0$} & \gate{\Hgate} & \ctrl{1} & \qw      & \qw \\
+  \lstick{$q_1:\ket0$} & \qw           & \targ{}  & \ctrl{1} & \qw \\
+  \lstick{$q_2:\ket0$} & \qw           & \qw      & \targ{}  & \qw
+\end{quantikz}
+\end{center}
+每个门作用在 $\lceil\log_2\chi\rceil+1=2$ 个量子比特上，共有 $n-1$ 个，与
+$\bigo(n\,\poly(\chi))$ 的计数相符；对更大的 $\chi$，这些 $\CNOT$ 换成 \cref{ch:lec15}
+中的键酉算符。
+\end{example}
 
 此后我们将 $O_u$ 视为一个给定的谕示，并计数对它的\emph{查询}，正如我们在 \cref{ch:lec05} 中计数对
 $\ee^{-\ii Ht}$ 的查询那样。态制备谕示是输入模型的向量那一半；本讲余下部分构建矩阵那一半。

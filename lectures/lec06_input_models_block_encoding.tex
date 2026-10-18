@@ -99,7 +99,7 @@ Efficient state preparation is possible only for \emph{structured} vectors.
 
 \begin{example}[When state preparation is efficient]
 \label{exa:lec06-spgood}
-Three broad structures admit $\polylog(N)$-size preparation.
+Four broad structures admit $\polylog(N)$-size preparation.
 \begin{itemize}[leftmargin=1.4em,nosep]
   \item \emph{Product (unentangled) states.} If $\ket{u}=\bigotimes_{k=1}^{n}
         \ket{v_k}$ with each $\ket{v_k}$ a single qubit, then $O_u=\bigotimes_k
@@ -159,6 +159,86 @@ Carlo rather than evaluated in closed form, the sampling cost can cancel the ver
 speedup the loaded state was meant to deliver---so the method pays off only for
 genuinely integrable densities (log-concave, Gaussian, and the like).
 \end{remark}
+
+We make each of the four classes concrete, with its preparation circuit.
+
+\begin{example}[Product state]
+\label{exa:lec06-prod}
+Take the three-qubit product state
+$\ket{u}=\ket+\otimes\ket0\otimes\bigl(\cos\tfrac\pi8\ket0+\sin\tfrac\pi8\ket1\bigr)$.
+Because it factorizes, $O_u=\Hgate\otimes\id\otimes R_y(\tfrac\pi4)$ is one
+single-qubit gate per wire (none on the middle qubit)---no two-qubit gate, hence no
+entanglement.
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$} & \gate{\Hgate}        & \qw \\
+  \lstick{$\ket0$} & \qw                  & \qw \\
+  \lstick{$\ket0$} & \gate{R_y(\pi/4)}    & \qw
+\end{quantikz}
+\end{center}
+The $n$ amplitudes of a product state carry only $n$ independent angles, so $n$
+rotations suffice; the uniform superposition $\Hgate^{\otimes n}\ket{0^n}$ is the case
+in which every gate is a Hadamard.
+\end{example}
+
+\begin{example}[Efficiently integrable: Grover--Rudolph on four points]
+\label{exa:lec06-grex}
+Load $p=(3,1,1,3)/8$ on $n=2$ qubits, i.e.\
+$\ket{u}=\tfrac1{\sqrt8}\bigl(\sqrt3\,\ket{00}+\ket{01}+\ket{10}+\sqrt3\,\ket{11}\bigr)$.
+With $q_1$ the most significant bit, the two halves $\{00,01\}$ and $\{10,11\}$ carry
+equal mass $\tfrac12$, so the level-1 angle obeys $\cos^2(\theta_1/2)=\tfrac12$, i.e.\
+$R_y(\pi/2)=\Hgate$ on $q_1$. Conditioned on $q_1$ the level-2 angle splits each half:
+$q_1{=}0$ gives $\cos^2(\theta/2)=p_{00}/(p_{00}{+}p_{01})=\tfrac34$, so $R_y(\pi/3)$;
+$q_1{=}1$ gives $p_{10}/(p_{10}{+}p_{11})=\tfrac14$, so $R_y(2\pi/3)$. Level~2 is a
+\emph{uniformly controlled} rotation---one angle per value of $q_1$:
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_1:\ket0$} & \gate{\Hgate} & \octrl{1}          & \ctrl{1}            & \qw \\
+  \lstick{$q_2:\ket0$} & \qw           & \gate{R_y(\pi/3)}  & \gate{R_y(2\pi/3)}  & \qw
+\end{quantikz}
+\end{center}
+The amplitude on $\ket{00}$ is $\cos\tfrac\pi4\cos\tfrac\pi6
+=\tfrac1{\sqrt2}\cdot\tfrac{\sqrt3}2=\sqrt3/\sqrt8=\sqrt{p_{00}}$, as it must be. For a
+smooth density the per-level angles are \emph{computed} from $\int_I p$ on an ancilla
+rather than hard-coded, which is the content of \cref{rem:lec06-gr}.
+\end{example}
+
+\begin{example}[Sparse vector]
+\label{exa:lec06-sparsevec}
+The three-qubit state $\ket{u}=\tfrac1{\sqrt2}(\ket{000}+\ket{101})$ has only $d=2$
+nonzero amplitudes. Equal weights on the two words are produced by one Hadamard and one
+$\CNOT$: $\Hgate$ on $q_0$ makes $\tfrac1{\sqrt2}(\ket{000}+\ket{100})$, and
+$\CNOT_{q_0\to q_2}$ flips the last bit of the $\ket{1\cdots}$ branch to give
+$\ket{101}$.
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_0:\ket0$} & \gate{\Hgate} & \ctrl{2} & \qw \\
+  \lstick{$q_1:\ket0$} & \qw           & \qw      & \qw \\
+  \lstick{$q_2:\ket0$} & \qw           & \targ{}  & \qw
+\end{quantikz}
+\end{center}
+In general a $d$-sparse vector is loaded amplitude by amplitude: $\bigo(n)$ gates to
+address each of the $d$ locations and set its magnitude and phase, for $\bigo(dn)$
+total.
+\end{example}
+
+\begin{example}[Matrix product state: GHZ]
+\label{exa:lec06-mps}
+The GHZ state $\ket{u}=\tfrac1{\sqrt2}(\ket{000}+\ket{111})$ is the simplest nontrivial
+matrix product state, of bond dimension $\chi=2$. Its sequential MPS preparation is the
+textbook circuit---a Hadamard on the first qubit, then a $\CNOT$ chain carrying the bond
+index along the register:
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_0:\ket0$} & \gate{\Hgate} & \ctrl{1} & \qw      & \qw \\
+  \lstick{$q_1:\ket0$} & \qw           & \targ{}  & \ctrl{1} & \qw \\
+  \lstick{$q_2:\ket0$} & \qw           & \qw      & \targ{}  & \qw
+\end{quantikz}
+\end{center}
+Each gate acts on $\lceil\log_2\chi\rceil+1=2$ qubits and there are $n-1$ of them,
+matching the $\bigo(n\,\poly(\chi))$ count; for larger $\chi$ the $\CNOT$s become the
+bond unitaries of \cref{ch:lec15}.
+\end{example}
 
 We henceforth treat $O_u$ as a given oracle and count \emph{queries} to it, exactly
 as we counted queries to $\ee^{-\ii Ht}$ in \cref{ch:lec05}. The state-preparation
