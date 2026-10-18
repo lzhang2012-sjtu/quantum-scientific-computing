@@ -113,11 +113,52 @@ Three broad structures admit $\polylog(N)$-size preparation.
   \item \emph{Sparse vectors.} If $u$ has only $d=\poly(n)$ nonzero entries whose
         indices and values are known, $\ket{u}$ can be prepared with $\bigo(dn)$
         gates by loading the $d$ amplitudes one at a time.
+  \item \emph{Matrix product states.} If $\ket{u}$ is a matrix product state (an
+        $\mathrm{MPS}$, i.e.\ a one-dimensional tensor network) of bond dimension
+        $\chi$, it can be prepared \emph{exactly} by $n$ sequential unitaries, each
+        acting on $\lceil\log_2\chi\rceil+1$ qubits---$\bigo(n\,\poly(\chi))$ gates in
+        all. The product-state bullet above is the $\chi=1$ special case. States of
+        bounded bond dimension are the subject of Part~IV (\cref{ch:lec15}); the
+        higher-dimensional analogue (PEPS) is \emph{not} efficiently preparable in
+        general.
 \end{itemize}
 When no such structure is available one may fall back on quantum random-access
 memory (QRAM), which supplies $O_u$ in $\bigo(n)$ \emph{depth} at the price of
 $\bigo(N)$ hardware; whether QRAM is a realistic resource is a standing debate.
 \end{example}
+
+\begin{remark}[The Grover--Rudolph procedure]
+\label{rem:lec06-gr}
+The second class above is the workhorse for loading probability distributions, so it
+is worth spelling out. Suppose the target has real nonnegative amplitudes
+$\ket{u}=\sum_{i}\sqrt{p(i)}\,\ket{i}$, the discretization of a density $p$ on
+$[0,1)$ to the $2^{n}$ dyadic cells (the index $i$ is the binary fraction
+$0.i_1i_2\cdots i_n$). Grover--Rudolph builds $\ket{u}$ qubit by qubit, splitting the
+probability mass as it descends. Once the first $k$ bits are fixed they name a dyadic
+interval $I$ of width $2^{-k}$; the rotation applied to qubit $k{+}1$ is
+\[
+  R_y(\theta_I)\ket0=\cos\tfrac{\theta_I}{2}\ket0+\sin\tfrac{\theta_I}{2}\ket1,
+  \qquad
+  \cos^{2}\tfrac{\theta_I}{2}=\frac{\int_{I_{\mathrm{left}}}p}{\int_{I}p},
+\]
+so the two branches inherit exactly the masses of the left and right halves of $I$.
+Telescoping over all $n$ levels, the squared amplitude on $\ket i$ equals the cell
+mass $\int_{\text{cell }i}p\approx p(i)$, as required.
+
+The point is \emph{why this costs only $\bigo(n)$ rotations}. Hard-coding a separate
+angle for each of the $2^{k-1}$ intervals at level $k$ would cost
+$\sum_{k=1}^{n}2^{k-1}=\bigo(2^{n})$---no better than the generic
+\cref{prop:lec06-sp}. The gain rests entirely on the hypothesis that the integrals
+$\int_{I}p$ are \emph{classically efficiently computable}: instead of enumerating
+intervals, one holds the already-set bits $i_1\cdots i_k$ in a register, computes the
+angle $\theta$ from them \emph{coherently} (arithmetic on an ancilla using the
+cumulative distribution of $p$), applies a rotation by that register-held angle, and
+uncomputes. Each level is one such $\poly(n)$-gate block, and there are $n$ levels.
+A caution (Herbert, 2021): if the integrals can only be \emph{estimated} by Monte
+Carlo rather than evaluated in closed form, the sampling cost can cancel the very
+speedup the loaded state was meant to deliver---so the method pays off only for
+genuinely integrable densities (log-concave, Gaussian, and the like).
+\end{remark}
 
 We henceforth treat $O_u$ as a given oracle and count \emph{queries} to it, exactly
 as we counted queries to $\ee^{-\ii Ht}$ in \cref{ch:lec05}. The state-preparation
