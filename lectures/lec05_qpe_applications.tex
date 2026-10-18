@@ -180,7 +180,52 @@ The single-qubit operators
   \tfrac12(X+\ii Y)=\ket0\!\bra1 \quad(\text{lowering, ``annihilate''}),\qquad
   \tfrac12(X-\ii Y)=\ket1\!\bra0 \quad(\text{raising, ``create''})
 \]
-flip one qubit between filled and empty. On their own, however, operators on
+flip one qubit between filled and empty.
+
+\emph{Why $X\pm\ii Y$ are the ladder operators.} Expand the Paulis in the
+computational basis, $X=\ket0\!\bra1+\ket1\!\bra0$ and
+$Y=-\ii\,\ket0\!\bra1+\ii\,\ket1\!\bra0$ (read off the columns of
+$\left(\begin{smallmatrix}0&1\\1&0\end{smallmatrix}\right)$ and
+$\left(\begin{smallmatrix}0&-\ii\\\ii&0\end{smallmatrix}\right)$). Adding or
+subtracting $\ii Y$ makes the two off-diagonal pieces reinforce in one corner and
+cancel in the other,
+\[
+  \tfrac12(X+\ii Y)=\tfrac12\bigl[(\ket0\!\bra1+\ket1\!\bra0)
+      +(\ket0\!\bra1-\ket1\!\bra0)\bigr]=\ket0\!\bra1,
+  \qquad
+  \tfrac12(X-\ii Y)=\ket1\!\bra0 ,
+\]
+so each is a single ``flip'' outer product, and its action on a qubit is read straight
+off the bra:
+\[
+  \ket0\!\bra1:\quad \ket1\mapsto\ket0,\ \ \ket0\mapsto0 ,
+  \qquad\qquad
+  \ket1\!\bra0:\quad \ket0\mapsto\ket1,\ \ \ket1\mapsto0 .
+\]
+Now invoke the physical identification occupied $\leftrightarrow\ket1$, empty
+$\leftrightarrow\ket0$. Then $\tfrac12(X+\ii Y)=\ket0\!\bra1$ takes a \emph{filled}
+orbital to an \emph{empty} one and kills the already-empty state---precisely the
+defining action of the annihilation operator $\hat a$ (remove a particle, with nothing
+to remove from the vacuum, $\hat a\ket0=0$). Dually, $\tfrac12(X-\ii Y)=\ket1\!\bra0$
+fills an empty orbital and kills the already-filled one, the action of the creation
+operator $\hat a\dg$. The same fact in terms of the occupation-number operator
+\[
+  \hat n=\hat a\dg\hat a=\ket1\!\bra1=\tfrac12(\id-Z)
+\]
+(whose eigenvalue is $f\in\{0,1\}$, since $Z\ket f=(-1)^{f}\ket f$): $\tfrac12(X+\ii Y)$
+\emph{lowers} $\hat n$ from $1$ to $0$ while $\tfrac12(X-\ii Y)$ \emph{raises} it from
+$0$ to $1$, so ``lowering\,$=$\,annihilate'' and ``raising\,$=$\,create'' are two names
+for the same operators.
+
+\emph{A caution on the word ``raising.''} The labels hinge entirely on calling $\ket1$
+the occupied state. Regarded purely as a spin operator, $\tfrac12(X+\ii Y)=\ket0\!\bra1$
+is in fact the spin-\emph{raising} operator $\sigma^{+}$---it raises $S_z$ by carrying
+the lower state $\ket1$ up to $\ket0$. It becomes an \emph{annihilation} operator only
+once we declare that $\ket1$ holds a particle, whereupon raising the spin is the same
+physical motion as lowering the occupation. Second quantization tracks occupation, not
+spin projection, and in that reading $X+\ii Y$ removes a particle and $X-\ii Y$ adds one.
+
+On their own, however, operators on
 different sites \emph{commute}, whereas fermionic operators must \emph{anticommute}.
 The Jordan--Wigner transform fixes this by attaching a string of $Z$'s,
 \[

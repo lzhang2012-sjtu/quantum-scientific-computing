@@ -114,7 +114,47 @@ $V_{ijkl}=\iint\chi_i^{*}(\mathbf r_1)\chi_j^{*}(\mathbf r_2)\,r_{12}^{-1}\,
   \tfrac12(X+\ii Y)=\ket0\!\bra1 \quad(\text{降算符，“湮灭”}),\qquad
   \tfrac12(X-\ii Y)=\ket1\!\bra0 \quad(\text{升算符，“产生”})
 \]
-在满与空之间翻转一个量子比特。然而它们本身在不同格点上的算符是\emph{对易}的，而费米子算符必须\emph{反对易}。Jordan--Wigner 变换通过附加一串 $Z$ 来修正这一点，
+在满与空之间翻转一个量子比特。
+
+\emph{为什么 $X\pm\ii Y$ 是阶梯算符。} 把泡利算符在计算基下展开，
+$X=\ket0\!\bra1+\ket1\!\bra0$ 且 $Y=-\ii\,\ket0\!\bra1+\ii\,\ket1\!\bra0$（读取
+$\left(\begin{smallmatrix}0&1\\1&0\end{smallmatrix}\right)$ 与
+$\left(\begin{smallmatrix}0&-\ii\\\ii&0\end{smallmatrix}\right)$ 的各列）。加上或
+减去 $\ii Y$，使两个非对角部分在一个角上相互加强、在另一个角上相互抵消，
+\[
+  \tfrac12(X+\ii Y)=\tfrac12\bigl[(\ket0\!\bra1+\ket1\!\bra0)
+      +(\ket0\!\bra1-\ket1\!\bra0)\bigr]=\ket0\!\bra1,
+  \qquad
+  \tfrac12(X-\ii Y)=\ket1\!\bra0 ,
+\]
+于是每个都是单个“翻转”外积，其对一个量子比特的作用可直接从左矢读出：
+\[
+  \ket0\!\bra1:\quad \ket1\mapsto\ket0,\ \ \ket0\mapsto0 ,
+  \qquad\qquad
+  \ket1\!\bra0:\quad \ket0\mapsto\ket1,\ \ \ket1\mapsto0 .
+\]
+现在援引物理上的等同：被占据 $\leftrightarrow\ket1$，空的 $\leftrightarrow\ket0$。
+于是 $\tfrac12(X+\ii Y)=\ket0\!\bra1$ 把一个\emph{填满}的轨道变为\emph{空}的，并
+湮灭本已为空的态——这正是湮灭算符 (annihilation operator) $\hat a$ 的定义性作用
+（移除一个粒子，而真空中无粒子可移除，$\hat a\ket0=0$）。对偶地，
+$\tfrac12(X-\ii Y)=\ket1\!\bra0$ 填充一个空轨道并湮灭本已填满的态，即产生算符
+(creation operator) $\hat a\dg$ 的作用。用占据数算符 (occupation-number operator)
+\[
+  \hat n=\hat a\dg\hat a=\ket1\!\bra1=\tfrac12(\id-Z)
+\]
+表述同一事实（其本征值为 $f\in\{0,1\}$，因为 $Z\ket f=(-1)^{f}\ket f$）：
+$\tfrac12(X+\ii Y)$ 把 $\hat n$ 从 $1$ \emph{降}到 $0$，而 $\tfrac12(X-\ii Y)$ 把它
+从 $0$ \emph{升}到 $1$，所以“降$\,=\,$湮灭”与“升$\,=\,$产生”不过是同一对算符的两个
+名字。
+
+\emph{关于“升”字的一点提醒。} 这些标签完全取决于把 $\ket1$ 称作被占据的态。若把
+$\tfrac12(X+\ii Y)=\ket0\!\bra1$ 纯粹看作一个自旋算符，它其实是自旋\emph{升}算符
+$\sigma^{+}$——它把较低的态 $\ket1$ 抬升到 $\ket0$，从而升高 $S_z$。只有当我们声明
+$\ket1$ 携带一个粒子时，它才成为\emph{湮灭}算符；此时升高自旋与降低占据恰是同一个
+物理动作。二次量子化追踪的是占据数，而非自旋投影，在这种解读下 $X+\ii Y$ 移除一个
+粒子、$X-\ii Y$ 添加一个粒子。
+
+然而它们本身在不同格点上的算符是\emph{对易}的，而费米子算符必须\emph{反对易}。Jordan--Wigner 变换通过附加一串 $Z$ 来修正这一点，
 \[
   \hat a_i= Z^{\otimes(i-1)}\otimes\tfrac12(X+\ii Y)\otimes\id^{\otimes(n-i)},
   \qquad
