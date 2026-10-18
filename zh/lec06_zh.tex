@@ -207,7 +207,16 @@ $\tfrac1{\sqrt2}(\ket0^{\otimes n}+\ket1^{\otimes n})$ 是具有对角 $2\times2
 $A^0=\proj0$、$A^1=\proj1$，以及边界余向量 $\bra{L}=\bra0+\bra1$、
 $\ket{R}=\ket0+\ket1$ 的 MPS：乘积 $A^{x_1}\cdots A^{x_n}$ 仅当所有比特一致时才不为零
 （任何混合串都含有一个因子 $\proj0\proj1=0$），只剩下两个均匀项。键只传递一个比特
-——属于哪一支——故 $\chi=2$。
+——属于哪一支——故 $\chi=2$。顺序式线路为一个 $\Hgate$ 加上一条由 $n-1$ 个最近邻
+$\CNOT$ 构成的链（此处以 $n=4$ 为例；那个被``携带''的单一量子比特\emph{就是}键）：
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_1:\ket0$} & \gate{\Hgate} & \ctrl{1} & \qw      & \qw      & \qw \\
+  \lstick{$q_2:\ket0$} & \qw           & \targ{}  & \ctrl{1} & \qw      & \qw \\
+  \lstick{$q_3:\ket0$} & \qw           & \qw      & \targ{}  & \ctrl{1} & \qw \\
+  \lstick{$q_4:\ket0$} & \qw           & \qw      & \qw      & \targ{}  & \qw
+\end{quantikz}
+\end{center}
 
 \emph{键维数 $3$（Dicke）。} 权重为 $2$ 的 Dicke 态
 $\ket{D^n_2}=\binom n2^{-1/2}\sum_{\abs x=2}\ket x$ 是这样一个 MPS：其键指标
@@ -226,6 +235,16 @@ $(A^1)^{\abs x}$，而 $\bra{2}(A^1)^{\abs x}\ket0=\delta_{\abs x,2}$ 恰好挑�
 $\lceil\log_2\chi\rceil+1$ 个量子比特上：GHZ（$\chi=2$，即上面的 $\Hgate$ 加 $\CNOT$
 链）用两量子比特门，$\ket{D^n_2}$（$\chi=3$，一个 $\lceil\log_2 3\rceil=2$ 比特的键
 寄存器依次与每个发射出的量子比特耦合）用三量子比特门——两种情形都是 $\bigo(n)$ 个门。
+通用的单步复用键寄存器并发射一个物理量子比特：
+\begin{center}
+\begin{quantikz}
+  \lstick{键 $\ket0$}   & \gate[3]{V_k} & \qw \\
+  \lstick{键 $\ket0$}   &               & \qw \\
+  \lstick{新鲜 $\ket0$} &               & \rstick{$q_k$}\qw
+\end{quantikz}
+\end{center}
+依次施加 $V_1,\dots,V_n$ 并最终把键寄存器复位到 $\ket{00}$，便得到 $\ket{D^n_2}$；当
+$\chi=2$ 时键是单个量子比特，每个 $V_k$ 即上面链中的那个两量子比特门。
 \end{remark}
 
 此后我们将 $O_u$ 视为一个给定的谕示，并计数对它的\emph{查询}，正如我们在 \cref{ch:lec05} 中计数对
