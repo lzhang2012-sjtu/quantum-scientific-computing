@@ -745,6 +745,25 @@ $2^{p}\ge2+1/(2\epsilon)$，故 $t=n+\lceil\log_2(2+1/(2\epsilon))\rceil$。
 超出 $n$ 个分辨比特的那额外 $\lceil\log_2(2+1/(2\epsilon))\rceil$ 个量子比特，
 恰恰是为抑制几何级数求和的尾项所付出的开销。
 
+\emph{$T$ 的选取。} 该界中 $T$ 与精度只通过乘积 $T\epsilon$ 出现，因此设计上的问题是
+把它取多大——而这里的“大”指的是一个足够大的\emph{常数}，而非 $T\epsilon\to\infty$。
+把精度 $\epsilon$ 与可容忍的失败概率 $\delta$ 区分开（上面的命题用 $\epsilon$ 同时
+担当了这两个角色），主导项给出
+\[
+  \text{失败概率}\approx\frac{1}{2T\epsilon}\le\delta
+  \quad\Longleftrightarrow\quad
+  T\gtrsim\frac{1}{2\,\epsilon\,\delta},
+\]
+因此对固定的置信度 $\delta$，寄存器只随精度之倒数\emph{线性}增长，$T=\bigo(1/\epsilon)$。
+这就是海森堡极限 (Heisenberg limit) 的标度律 $\epsilon\sim1/T$（用 \cref{sec:lec04-5}
+的总演化时间语言即 $\epsilon\sim1/\mathcal{T}$）。反过来若取 $T\sim\epsilon^{-2}$，
+它同样使 $T\epsilon$ 很大，却是浪费的：它把失败概率压到 $\approx\epsilon/2$——远低于
+任何固定目标——代价是查询数与量子比特数的二次方增长，而这恰好是 \cref{sec:lec04-1}
+中采样估计器的散粒噪声 (shot noise) 速率 $\epsilon\sim1/\sqrt{T}$。耗费 QPE 的相干性
+只为退回到经典速率，便抹杀了它的意义；稳妥的选择是 $T\approx1/(2\epsilon\delta)$——让
+$T$ 按 $1/\epsilon$ 标度，再仅付出上面那额外的 $\lceil\log_2(2+1/(2\delta))\rceil$
+个量子比特来提高置信度。
+
 \subsection*{Kitaev 的逐比特方法}
 
 除完整的辅助寄存器外，另一种做法是通过 $U$ 的幂次放大相位，从而逐位读取 $\varphi$
@@ -839,7 +858,9 @@ $\tilde\varphi_0=0$（结果 $000$）或 $\tilde\varphi_1=\tfrac12$（当 $t=3$ 
 $\varphi$，在下一个受控幂次 $U^{2^{k}}$ 之前将每个恢复的比特作为经典相位修正反馈到辅助比特上。
 这以一个辅助比特加经典前馈重现了 QFT 读出，代价是一个自适应的、顺序执行的线路。
 标准 QPE 与迭代 QPE 都达到随\emph{总}演化时间
-$\mathcal{T}=\sum_k 2^{k}=\bigo(1/\epsilon)$ 按 $\epsilon\sim1/\mathcal{T}$ 标度的精度，
+$\mathcal{T}=\sum_{k=0}^{t-1} 2^{k}=2^{t}-1$ 按 $\epsilon\sim1/\mathcal{T}$ 标度的精度——
+它正是 \cref{thm:lec04-precision} 的寄存器大小 $T=2^{t}$（相差一个无害的 $-1$），
+故同样有 $\mathcal{T}=\bigo(1/\epsilon)$——
 而非 \cref{sec:lec04-1} 中基于采样的估计器的 $\epsilon\sim1/\sqrt{\mathcal{T}}$。
 这种 $1/\mathcal{T}$ 标度就是\emph{海森堡极限}，即量子力学所允许的最优精度–资源权衡；
 散粒噪声的 $1/\sqrt{\mathcal{T}}$ 标度则是人们从独立重复中所得到的。
