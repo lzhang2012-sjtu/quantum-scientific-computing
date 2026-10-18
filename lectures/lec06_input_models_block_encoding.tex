@@ -323,29 +323,42 @@ small factor $\alpha$, so that the whole pipeline stays efficient.
 \label{exa:lec06-2x2}
 Consider the single-qubit matrix
 \[
-  A=\begin{pmatrix} 1 & 1\\ 0 & 1\end{pmatrix},
-  \qquad \norm{A}=\frac{1+\sqrt5}{2}\approx1.618 ,
+  A=\begin{pmatrix} 1 & 1\\ 0 & 1\end{pmatrix}.
 \]
-whose spectral norm is the largest singular value (the golden ratio). Since
-$\norm{A}>1$, no exact $(1,\cdot)$-block-encoding exists; take $\alpha=2\ge\norm{A}$
-and $A/\alpha=\left(\begin{smallmatrix}1/2&1/2\\0&1/2\end{smallmatrix}\right)$, which
-has $\norm{A/\alpha}=\alpha^{-1}\norm{A}\approx0.809<1$. Its SVD gives a
-$(1,1)$-block-encoding of $A/\alpha$ by \cref{prop:lec06-svd}; regarded as a
-$2$-qubit unitary acting on one flag qubit and one system qubit, this is a
-$(2,1)$-block-encoding of $A$. Concretely, with $b=1/2$,
+Its singular values $\sigma_\pm$ satisfy $\sigma_+\sigma_-=\abs{\det A}=1$ and
+$\sigma_+^2+\sigma_-^2=\tr(A^\top A)=3$, so $\sigma_\pm^2=(3\pm\sqrt5)/2$ and
+$\sigma_\pm=\varphi^{\pm1}$ with $\varphi=\tfrac{1+\sqrt5}{2}\approx1.618$ the golden
+ratio; hence $\norm{A}=\sigma_+=\varphi$. Since $\norm{A}>1$, no exact
+$(1,\cdot)$-block-encoding exists; take $\alpha=2\ge\norm{A}$ and
 \[
-  U_A=\begin{pmatrix}
-        1/2 & 1/2 & \ast & \ast\\
-        0   & 1/2 & \ast & \ast\\
-        \ast& \ast& \ast & \ast\\
-        \ast& \ast& \ast & \ast
+  M\defeq\frac{A}{\alpha}=\begin{pmatrix}1/2&1/2\\0&1/2\end{pmatrix},
+  \qquad \norm{M}=\frac{\varphi}{2}\approx0.809<1 ,
+\]
+a contraction. The dilation of \cref{prop:lec06-svd} completes $M$ to a unitary by
+appending the defect blocks $\sqrt{\id-MM^\top}$ and $\sqrt{\id-M^\top M}$:
+\[
+  U_A=\begin{pmatrix} M & \sqrt{\id-MM^\top}\\[3pt]
+                      \sqrt{\id-M^\top M} & -M^\top\end{pmatrix}
+     \approx\begin{pmatrix}
+        0.5 & 0.5 & 0.688 & -0.162\\
+        0   & 0.5 & -0.162 & 0.851\\
+        0.851 & -0.162 & -0.5 & 0\\
+        -0.162 & 0.688 & -0.5 & -0.5
       \end{pmatrix},
 \]
-where the starred entries are fixed by demanding orthonormal columns. Applying $U_A$
-to $\ket{0}\ket{b}$ and post-selecting on the flag $\ket{0}$ returns
-$A\ket{b}/\norm{A\ket{b}}$ with probability $\norm{A\ket{b}}^2/\alpha^2$; had we been
-wasteful and chosen $\alpha=10$, the same state would still emerge but the success
-probability---and hence the runtime---would drop by a factor $25$. This is the
+a genuine $2$-qubit orthogonal matrix (one flag qubit, one system qubit) whose
+top-left $2\times2$ block is exactly $M=A/\alpha$; this is a $(2,1)$-block-encoding of
+$A$. The defect blocks are the ``starred'' entries of the schematic form above, fixed
+(up to the sign convention of the dilation) by demanding orthonormal columns.
+
+Applying $U_A$ to $\ket{0}\ket{b}$ and post-selecting the flag $\ket{0}$ returns
+$A\ket{b}/\norm{A\ket{b}}$ with probability $\norm{A\ket{b}}^2/\alpha^2$. Explicitly,
+for $\ket{b}=\ket{0}$ we have $A\ket{0}=\ket{0}$, so $\norm{A\ket{0}}^2=1$ and the
+success probability is $1/\alpha^2=1/4$; for $\ket{b}=\ket{1}$ we have
+$A\ket{1}=\ket{0}+\ket{1}$, so $\norm{A\ket{1}}^2=2$ and the probability is
+$2/4=1/2$. Had we been wasteful and chosen $\alpha=10$, the identical output states
+would still emerge, but these probabilities would fall to $1/100$ and $1/50$---smaller
+by the factor $(\alpha/2)^2=25$, directly lengthening the runtime. This is the
 practical meaning of ``keep $\alpha$ close to $\norm{A}$.''
 \end{example}
 
