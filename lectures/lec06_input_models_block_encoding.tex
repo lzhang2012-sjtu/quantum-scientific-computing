@@ -458,6 +458,24 @@ $\propto\sqrt{c_A\alpha},\sqrt{c_B\beta}$, giving subnormalization
 $c_A\alpha+c_B\beta$.
 \end{proposition}
 
+\begin{figure}[ht]
+\centering
+\begin{quantikz}
+  \lstick{control $\ket0$} & \gate{\mathrm{PREP}} & \octrl{1} & \ctrl{1}
+    & \gate{\mathrm{PREP}^{\dagger}} & \qw \\
+  \lstick{flag $\ket{0^a}$, system $\ket b$} & \qwbundle{a+n}
+    & \gate{U_A} & \gate{U_B} & \qw & \qw
+\end{quantikz}
+\caption{The one-ancilla circuit $W=(\mathrm{PREP}^{\dagger}\otimes\id)\,\mathrm{SEL}\,
+(\mathrm{PREP}\otimes\id)$ of \cref{prop:lec06-add}. $\mathrm{PREP}$ loads the weights
+$\sqrt\alpha,\sqrt\beta$ onto the control qubit; $\mathrm{SEL}$ applies $U_A$ when the
+control is $\ket0$ (open circle) and $U_B$ when it is $\ket1$ (filled circle);
+$\mathrm{PREP}^{\dagger}$ interferes the two branches. Reading the enlarged flag
+$\ket{0^{a+1}}$ (the control together with the original $a$ flag qubits) extracts the
+top-left block $(A+B)/(\alpha+\beta)$, so $W\in\mathrm{BE}_{\alpha+\beta,\,a+1}(A+B)$.}
+\label{fig:lec06-add}
+\end{figure}
+
 \begin{example}[Block-encoding $\tfrac12(X+Z)$]
 \label{exa:lec06-add}
 Both $X$ and $Z$ are unitary, hence trivially $(1,0)$-block-encodings of themselves.
