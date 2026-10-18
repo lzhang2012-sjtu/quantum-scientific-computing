@@ -240,6 +240,40 @@ matching the $\bigo(n\,\poly(\chi))$ count; for larger $\chi$ the $\CNOT$s becom
 bond unitaries of \cref{ch:lec15}.
 \end{example}
 
+\begin{remark}[Bond dimension for general $n$: GHZ ($\chi=2$) and Dicke ($\chi=3$)]
+\label{rem:lec06-mpschi}
+Both families extend to any number of qubits, the bond index carrying exactly the
+information the left block must pass to the right across a cut.
+
+\emph{Bond dimension $2$ (GHZ).} The $n$-qubit GHZ state
+$\tfrac1{\sqrt2}(\ket0^{\otimes n}+\ket1^{\otimes n})$ is the MPS with the diagonal
+$2\times2$ tensors $A^0=\proj0$, $A^1=\proj1$ and boundary covectors
+$\bra{L}=\bra0+\bra1$, $\ket{R}=\ket0+\ket1$: the product $A^{x_1}\cdots A^{x_n}$
+survives only when all bits agree (any mixed string contains a factor
+$\proj0\proj1=0$), leaving the two uniform terms. The bond transmits a single bit
+---which branch---so $\chi=2$.
+
+\emph{Bond dimension $3$ (Dicke).} The weight-$2$ Dicke state
+$\ket{D^n_2}=\binom n2^{-1/2}\sum_{\abs x=2}\ket x$ is the MPS whose bond index
+$m\in\{0,1,2\}$ counts the $1$s placed so far, with the $3\times3$ tensors
+\[
+  A^0=\id_3,\qquad
+  A^1=\begin{pmatrix}0&0&0\\ 1&0&0\\ 0&1&0\end{pmatrix},
+\]
+read from the start bond $m=0$ to the end bond $m=2$. Because the $A^0$ factors are
+identities, the product reduces to $(A^1)^{\abs x}$, and
+$\bra{2}(A^1)^{\abs x}\ket0=\delta_{\abs x,2}$ selects exactly the weight-$2$ strings.
+Across any cut the left block must announce how many $1$s it has used---$0$, $1$, or
+$2$, three distinguishable messages---so the Schmidt rank, hence the bond dimension, is
+$3$. (More generally $\ket{D^n_k}$ has $\chi=k+1$: the bond counts up to $k$.)
+
+\emph{Cost.} A $\chi$-MPS is prepared by $n$ sequential unitaries on
+$\lceil\log_2\chi\rceil+1$ qubits each: $2$-qubit gates for GHZ ($\chi=2$, the
+$\Hgate$-plus-$\CNOT$ chain above) and $3$-qubit gates for $\ket{D^n_2}$ ($\chi=3$,
+one bond register of $\lceil\log_2 3\rceil=2$ qubits coupled to each emitted qubit in
+turn)---in both cases $\bigo(n)$ gates.
+\end{remark}
+
 We henceforth treat $O_u$ as a given oracle and count \emph{queries} to it, exactly
 as we counted queries to $\ee^{-\ii Ht}$ in \cref{ch:lec05}. The state-preparation
 oracle is the vector half of the input model; the rest of the lecture builds the
