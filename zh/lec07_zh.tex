@@ -1,0 +1,619 @@
+\chapter{酉算符线性组合与块编码算术}
+\label{ch:lec07}
+
+\begin{objectives}
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item 用 \textsc{prepare}--\textsc{select}--\textsc{prepare}$\dg$（LCU）线路实现酉算符的加权求和，并读出其块编码（block encoding）参数。
+  \item 通过 LCU 把矩阵与向量加法实现为一个块编码，其次归一化（subnormalization）等于系数的 $\ell^1$-范数。
+  \item 复合多个块编码以实现矩阵乘法，并解释为何朴素堆叠会失败，而复制辅助比特（ancilla）与压缩小工具两种构造能够成功。
+  \item 对比相干的 LCU 线路与混合式重要性采样估计量，并比较它们的开销。
+  \item 追踪加法中的 $\ell^1$ 开销 $\norm{c}_1$ 与乘法中的乘积 $\prod\alpha_j$，并了解振幅放大何时能消除与之相关的成功概率代价。
+\end{itemize}
+\end{objectives}
+
+上一讲（\cref{ch:lec06}）给出了两种输入模型：针对向量的态制备谕示，以及针对矩阵的块编码。然而，单个块编码的用处，仅在于我们能在其之上构建的算术。科学计算中出现的几乎每一个矩阵，都是以若干更简单部件的\emph{组合}形式给出的——哈密顿量是局部项之和，离散化的微分算符是移位之和，传播子是指数算符之积——因此我们需要一些规则，把各部件的块编码转化为整体的块编码。\cref{ch:lec06} 构造了\emph{单个}块编码，并把其中一个作用到向量上（\cref{sec:lec06-matvec}）；本讲则提供将它们\emph{组合}起来的算术——矩阵与向量加法、矩阵--矩阵乘法——并在完全一般的情形下处理任意多项，以及它们的误差传播与 $\ell^1$ 开销。我们会给出其中最重要的一条规则，即\emph{酉算符线性组合}（linear combination of unitaries，LCU），以及它所生成的复合演算：矩阵与向量\emph{和}（\cref{sec:lec07-2}）与\emph{积}（\cref{sec:lec07-3}）的块编码。LCU 就是 \cref{exa:lec06-lcu} 中已经预览过的
+\textsc{prepare}--\textsc{select}--\textsc{prepare}$\dg$ 三明治夹层结构；此处我们完整地推导它，量化其成功概率与重复次数，并指出当目标（近似）为等距算符时，无意识振幅放大（\cref{ch:lec03}）如何消除次归一化带来的代价。随后我们把这一相干线路与一种纯经典的\emph{混合}替代方案——对各项做重要性采样——相对比，并在 \cref{sec:lec07-4} 分析其吸引力与方差。贯穿始终、并在 \cref{sec:lec07-5} 中精确刻画的主题是：LCU 的开销由组合系数的 $\ell^1$-范数 $\norm{c}_1=\sum_j\abs{c_j}$ 所支配，正如单个块编码的开销由其次归一化因子 $\alpha$ 所支配一样。全讲中，$A$ 是一个 $n$ 量子比特矩阵（$N=2^n$），并沿用 \cref{def:lec06-be} 的块编码记号 $\mathrm{BE}_{\alpha,a}(A,\epsilon)$。
+
+\section{酉算符线性组合的构造}
+\label{sec:lec07-1}
+
+设一个目标算符以 $K$ 个酉算符的加权和形式给出，
+\begin{equation}
+  T=\sum_{j=0}^{K-1}c_j\,U_j,\qquad U_j\in\mathrm{U}(2^n),\quad c_j>0,\quad K=2^a.
+  \label{eq:lec07-Tdef}
+\end{equation}
+（我们暂且取系数为正；相位 $c_j=\abs{c_j}\ee^{\ii\phi_j}$ 可被吸收进 $U_j\mapsto\ee^{\ii\phi_j}U_j$，后者仍为酉的，因此一般的实或复情形都可化归为此。）LCU 的思想是：把系数编码到一个 $a$ 量子比特\emph{控制}寄存器的振幅中，受该寄存器控制地叠加施加各 $U_j$，然后相干地把叠加态“折叠”回来，使得旗标 $\ket{0^a}$ 恰好挑出 $T$。两个要素是 \textsc{select} 与 \textsc{prepare} 谕示。
+
+\begin{definition}[\textsc{select} 与 \textsc{prepare} 谕示]
+\label{def:lec07-oracles}
+算符族 $\{U_j\}_{j\in[K]}$ 的\emph{选择谕示}（select oracle）是如下 $(a+n)$ 量子比特酉算符
+\begin{equation}
+  \mathrm{SEL}\defeq\sum_{j\in[K]}\proj{j}\otimes U_j,
+  \label{eq:lec07-sel}
+\end{equation}
+它在控制寄存器处于 $\ket{j}$ 的条件下对系统施加 $U_j$。系数 $c=(c_0,\dots,c_{K-1})$（$c_j\ge0$）的\emph{制备谕示}（prepare oracle）是任意满足下式的 $a$ 量子比特酉算符 $\mathrm{PREP}$：
+\begin{equation}
+  \mathrm{PREP}\ket{0^a}=\frac{1}{\sqrt{\norm{c}_1}}\sum_{j\in[K]}\sqrt{c_j}\,\ket{j},
+  \qquad \norm{c}_1=\sum_{j\in[K]}\abs{c_j}.
+  \label{eq:lec07-prep}
+\end{equation}
+\end{definition}
+
+式 \eqref{eq:lec07-prep} 只固定了 $\mathrm{PREP}$ 的第一列；其余各列可以是任意补全成酉算符的方式（其存在性有保证，因为被指定的那一列是单位向量）。下面的引理是第~II 部分的主力工具。
+
+\begin{theorem}[酉算符线性组合]
+\label{thm:lec07-lcu}
+设 $T=\sum_{j\in[K]}c_j U_j$，其中 $c_j\ge0$，$K=2^a$，并设 $\mathrm{SEL},\mathrm{PREP}$ 如 \cref{def:lec07-oracles} 所定义。则
+\begin{equation}
+  W\defeq\bigl(\mathrm{PREP}\dg\otimes\id_n\bigr)\,\mathrm{SEL}\,
+          \bigl(\mathrm{PREP}\otimes\id_n\bigr)
+  \label{eq:lec07-W}
+\end{equation}
+是 $T$ 的一个精确 $(\norm{c}_1,a)$-块编码，即
+$W\in\mathrm{BE}_{\norm{c}_1,a}(T)$。
+\end{theorem}
+
+\begin{proof}
+固定任意一个 $n$ 量子比特态 $\ket{\psi}$，并把带旗标的输入 $\ket{0^a}\ket{\psi}$ 依次通过三个因子。首先 $\mathrm{PREP}$ 用系数振幅装饰控制寄存器，
+\begin{equation}
+  \bigl(\mathrm{PREP}\otimes\id\bigr)\ket{0^a}\ket{\psi}
+  =\frac{1}{\sqrt{\norm{c}_1}}\sum_{j}\sqrt{c_j}\,\ket{j}\ket{\psi}.
+  \label{eq:lec07-step1}
+\end{equation}
+接着 $\mathrm{SEL}$ 在每个分支上施加 $U_j$：
+\begin{equation}
+  \mathrm{SEL}\,\frac{1}{\sqrt{\norm{c}_1}}\sum_{j}\sqrt{c_j}\,\ket{j}\ket{\psi}
+  =\frac{1}{\sqrt{\norm{c}_1}}\sum_{j}\sqrt{c_j}\,\ket{j}\,U_j\ket{\psi}.
+  \label{eq:lec07-step2}
+\end{equation}
+最后 $\mathrm{PREP}\dg$ 作用于控制寄存器。我们不需要整个像；只需要旗标 $\ket{0^a}$ 的振幅，它可通过用 $\bra{0^a}$ 投影得到。利用
+$\bra{0^a}\mathrm{PREP}\dg=\bigl(\mathrm{PREP}\ket{0^a}\bigr)\dg
+=\frac{1}{\sqrt{\norm{c}_1}}\sum_{j}\sqrt{c_j}\,\bra{j}$ 以及
+$\braket{j'|j}=\delta_{jj'}$，
+\begin{equation}
+  \bigl(\bra{0^a}\otimes\id\bigr)W\bigl(\ket{0^a}\otimes\id\bigr)\ket{\psi}
+  =\frac{1}{\norm{c}_1}\sum_{j,j'}\sqrt{c_{j'}}\sqrt{c_j}\,
+   \braket{j'|j}\,U_j\ket{\psi}
+  =\frac{1}{\norm{c}_1}\sum_{j}c_j U_j\ket{\psi}
+  =\frac{T}{\norm{c}_1}\ket{\psi}.
+  \label{eq:lec07-block}
+\end{equation}
+由于 $\ket{\psi}$ 是任意的，
+$(\bra{0^a}\otimes\id)W(\ket{0^a}\otimes\id)=T/\norm{c}_1$，这正是带次归一化因子 $\alpha=\norm{c}_1$ 与 $a$ 个辅助比特的精确块编码关系 \eqref{eq:lec06-bealt}。
+\end{proof}
+
+\begin{figure}[ht]
+\centering
+\begin{quantikz}
+  \lstick{control $\ket{0^a}$} & \gate{\mathrm{PREP}} & \gate[2]{\mathrm{SEL}}
+    & \gate{\mathrm{PREP}^{\dagger}} & \qw \\
+  \lstick{system $\ket{\psi}$} & \qwbundle{n} &  & \qw & \qw
+\end{quantikz}
+\caption{\cref{thm:lec07-lcu} 中的 LCU 线路 $W=(\mathrm{PREP}^{\dagger}\otimes\id)\,\mathrm{SEL}\,
+(\mathrm{PREP}\otimes\id)$。$\mathrm{PREP}$ 把系数振幅
+$\sqrt{c_j}/\sqrt{\norm{c}_1}$ 写入 $a$ 量子比特的控制
+寄存器；$\mathrm{SEL}=\sum_j\proj{j}\otimes U_j$ 在分支
+$\ket{j}$ 上施加 $U_j$；$\mathrm{PREP}^{\dagger}$ 把各分支折叠回来，使得旗标
+$\ket{0^a}$ 携带 $T/\norm{c}_1$。\cref{sec:lec07-2,sec:lec07-3} 中两项示例以下的全部内容，都是这一张图的特例。}
+\label{fig:lec07-lcu}
+\end{figure}
+
+三条注记确定了这一构造的含义。
+
+\begin{remark}[解读线路；为何是 $\ell^1$]
+\label{rem:lec07-read}
+$W$ 作用于 $\ket{0^a}\ket{\psi}$ 的输出，在保留全部分支的情况下，为
+\begin{equation}
+  W\ket{0^a}\ket{\psi}
+  =\frac{1}{\norm{c}_1}\ket{0^a}\,T\ket{\psi}+\ket{\perp},
+  \qquad \bigl(\proj{0^a}\otimes\id\bigr)\ket{\perp}=0,
+  \label{eq:lec07-output}
+\end{equation}
+因此旗标 $\ket{0^a}$ 以概率 $\norm{T\ket{\psi}}^2/\norm{c}_1^2$ 被测得，且在此条件下系统持有归一化的 $T\ket{\psi}/\norm{T\ket{\psi}}$，这与一般块编码图景（\cref{sec:lec06-2}）完全一致。次归一化是 $\ell^1$-范数 $\norm{c}_1$，\emph{而非} $\norm{T}$：因为
+$\norm{T}\le\sum_j c_j\norm{U_j}=\norm{c}_1$，LCU 永远不会优于
+$\alpha=\norm{c}_1$，且当各 $U_j$“同相”相加（例如全部 $U_j=\id$）时取到紧界。减小 $\norm{c}_1$——通过为 $T$ 选取一个更高效的酉算符分解——是控制开销的核心旋钮，也是 \cref{sec:lec07-5} 的主题。
+\end{remark}
+
+\begin{remark}[开销关于项数是对数的]
+\label{rem:lec07-log}
+承载该组合的寄存器只有 $a=\log_2 K$ 个量子比特，因此 LCU 能用线性数目的辅助比特叠加指数多的项。真正的开销藏在两个谕示里：$\mathrm{PREP}$ 必须装载这些 $\sqrt{c_j}$ 振幅（\cref{def:lec06-sp}，并受与任何态制备相同的结构性要求约束），而 $\mathrm{SEL}$ 必须施加一个 $K$ 路多路复用的酉算符。二者的直接实现都关于 $K$ 线性增长；因此一个\emph{高效}的 LCU 需要额外的结构——例如各 $U_j$ 是以其二进制标签寻址的泡利串，从而 $\mathrm{SEL}$ 是 $a$ 层受控泡利门的序列。
+\end{remark}
+
+\begin{remark}[系数的非对称拆分]
+\label{rem:lec07-split}
+没有任何东西强迫“装载”与“卸载”谕示互为共轭。将 $c_j=\beta_j\gamma_j$ 并用两个制备
+$\mathrm{PREP}\ket{0^a}=\frac{1}{\norm{\beta}_2}\sum_j\beta_j\ket{j}$ 与
+$\widetilde{\mathrm{PREP}}\ket{0^a}=\frac{1}{\norm{\gamma}_2}\sum_j\gamma_j\ket{j}$，
+则夹层 $W=(\widetilde{\mathrm{PREP}}\dg\otimes\id)\,\mathrm{SEL}\,
+(\mathrm{PREP}\otimes\id)$ 是 $T$ 的一个 $(\norm{\beta}_2\norm{\gamma}_2,a)$-块编码。由 Cauchy--Schwarz 不等式 $\norm{c}_1=\sum_j\abs{\beta_j\gamma_j}\le
+\norm{\beta}_2\norm{\gamma}_2$，故对称选取
+$\beta_j=\gamma_j=\sqrt{c_j}$（从而
+$\widetilde{\mathrm{PREP}}=\mathrm{PREP}$）把次归一化最小化到 $\norm{c}_1$。当两个制备中有一个比其共轭更易构造时，这一自由度偶尔有用。
+\end{remark}
+
+\begin{example}[两个泡利矩阵的 LCU]
+\label{exa:lec07-twopauli}
+取单量子比特厄米算符 $T=\tfrac12\Xgate+\tfrac12\Zgate$，于是
+$K=2$，$a=1$，$c_0=c_1=\tfrac12$，$U_0=\Xgate$，$U_1=\Zgate$，且
+$\norm{c}_1=1$。制备谕示必须满足
+$\mathrm{PREP}\ket{0}=\tfrac{1}{\sqrt1}\bigl(\sqrt{\tfrac12}\ket{0}
++\sqrt{\tfrac12}\ket{1}\bigr)=\tfrac{1}{\sqrt2}(\ket0+\ket1)$，这正是 Hadamard 门 $\mathrm{PREP}=\Hgate$（自逆，故
+$\mathrm{PREP}\dg=\Hgate$）。选择谕示是
+$\mathrm{SEL}=\proj{0}\otimes\Xgate+\proj{1}\otimes\Zgate$，即一个受控 $\Xgate$ 后接一个控制于 $\ket1$ 的 $\Zgate$。于是
+$W=(\Hgate\otimes\id)\,\mathrm{SEL}\,(\Hgate\otimes\id)$，并且由
+\eqref{eq:lec07-block}，
+\[
+  (\bra0\otimes\id)W(\ket0\otimes\id)
+  =\tfrac12\Xgate+\tfrac12\Zgate
+  =\begin{pmatrix}\tfrac12&\tfrac12\\[2pt]\tfrac12&-\tfrac12\end{pmatrix}=T,
+\]
+因此 $W\in\mathrm{BE}_{1,1}(T)$。此处 $\alpha=\norm{c}_1=1$ 是最优的：这两个泡利算符在 Hilbert--Schmidt 内积下正交，$\norm{T}=\tfrac{1}{\sqrt2}
+\cdot\sqrt2=1$（其奇异值都是 $1/\sqrt2\cdot\sqrt2$；明确地说，
+$T/\!\sqrt2$ 是一个反射，$\norm{T}=1$），因此没有任何块编码能做到优于
+$\alpha=1$。把 $W$ 作用于 $\ket0\ket\psi$ 以概率
+$\norm{T\ket\psi}^2$ 成功，而对每个 $\ket\psi$ 该概率都等于 $1$，因为 $T$（至多相差一个标量）是酉的；此处 LCU 无需重复。
+\end{example}
+
+\begin{remark}[无意识振幅放大（oblivious amplitude amplification）]
+\label{rem:lec07-oaa}
+当 $T$ 自身是酉算符（或等距算符）时，如 \cref{exa:lec07-twopauli} 中 $\norm{c}_1=1$ 的情形，旗标 $\ket{0^a}$ 仍只以概率
+$\norm{T\ket\psi}^2/\norm{c}_1^2$ 出现，只要 $\norm{c}_1>1$ 该概率就 $<1$。朴素地看，人们会用振幅放大（\cref{ch:lec03}）来放大旗标，但标准流程需要关于\emph{输入}态 $\ket{\psi}$ 作反射，而该态是未知的且可能处于纠缠。\emph{无意识}振幅放大消除了这一障碍：因为 $W$ 在由 $\ket{0^a}\ket\psi$ 与 $\ket\perp$ 张成的二维子空间上、\emph{对每个} $\ket\psi$ 同时地，表现为固定的 $2\times2$ 旋转
+$\bigl(\begin{smallmatrix}\sin\theta&\cos\theta\\ \cos\theta&-\sin\theta
+\end{smallmatrix}\bigr)$（当 $T$ 正比于一个等距算符时 $\sin\theta=\norm{T}/\norm{c}_1$），故可以\emph{仅}在辅助比特上关于 $\ket{0^a}$ 作反射，并在 $\bigo(\norm{c}_1/\norm{T})$ 轮内将旗标驱动至确定，与 $\ket\psi$ 无关。这正是为什么一个写成 $H=\sum_j c_j P_j$（$P_j$ 为泡利串）的哈密顿量能够确定性地施加，只差一个 $\ell^1$ 开销。我们在 \cref{ch:lec12} 的泰勒级数模拟方法中会反复用到这一点。
+\end{remark}
+
+\begin{example}[横场伊辛哈密顿量的 LCU 块编码]
+\label{exa:lec07-tfim}
+\cref{exa:lec05-tfim} 的哈密顿量
+\[
+  H=-\sum_{i=1}^{n-1}Z_iZ_{i+1}-g\sum_{i=1}^{n}X_i,
+\]
+\emph{本身已经}是一个酉算符线性组合：每个 $Z_iZ_{i+1}$ 和每个
+$X_i$ 都是泡利串，因而是酉的。共有 $K=(n-1)+n=2n-1$ 项，其中 $n-1$ 个耦合项的系数 $c_j=1$，$n$ 个场项的系数 $c_j=g$（负号是相位 $-P=\ee^{\ii\pi}P$，被吸收进酉算符，而 $K$ 用零权重项补齐到 $2$ 的幂）。由 \cref{thm:lec07-lcu}，用 $a=\lceil\log_2(2n-1)\rceil$ 个控制量子比特，
+$\mathrm{PREP}\ket{0^a}=\tfrac{1}{\sqrt{\norm{c}_1}}\sum_j\sqrt{c_j}\,\ket{j}$
+装载这些权重（每个耦合标签上振幅为 $1$，每个场标签上为 $\sqrt g$），而 $\mathrm{SEL}=\sum_j\proj{j}\otimes P_j$ 施加泡利串 $P_j$，则线路 $W=(\mathrm{PREP}\dg\otimes\id)\,\mathrm{SEL}\,(\mathrm{PREP}\otimes\id)$
+是 $H$ 的一个精确块编码，其次归一化为
+\[
+  \alpha=\norm{c}_1=(n-1)+gn=\bigo(n).
+\]
+这正是为 \cref{sec:lec05-1} 的基态能量估计供料的输入模型：对 $\ee^{\ii 2\pi H/\alpha}$ 做 QPE，或者由 \cref{ch:lec09} 中 QSVT 构造的本征值滤波器，都在 $W$ 上运行，且其开销关于 $\alpha$ 线性增长。这种 $\ell^1$ 增长是一般的局部哈密顿量图景——一个带 $\bigo(n)$ 项、每项权重 $\bigo(1)$ 的 $n$ 量子比特哈密顿量，以 $\alpha=\bigo(n)$ 被块编码——正是 \cref{sec:lec07-5} 中所预算的开销。
+\end{example}
+\section{矩阵与向量的加法}
+\label{sec:lec07-2}
+
+\cref{sec:lec07-1} 的 LCU 引理可以直接特殊化到矩阵与向量的\emph{加法}。当其中的
+``酉算符'' $U_j$ 本身是块编码（block encoding）或态制备谕示（state-preparation
+oracle）时，该引理逐字成立：块编码的外层寄存器并入 LCU 标志位，而存活下来的块正是
+所要的和——此时项数可以是\emph{任意}多，而且误差也被一并追踪。
+
+\begin{proposition}[块编码矩阵之和]
+\label{prop:lec07-sum}
+设 $M=2^m$，并设 $A_0,\dots,A_{M-1}$ 为 $n$ 比特矩阵，各自由一个块编码
+$U_{A_j}\in\mathrm{BE}_{\alpha_j,a}(A_j,\epsilon_j)$ 给出，其中 $\alpha_j\ge0$。令
+$\gamma\defeq\sum_{j\in[M]}\alpha_j$。设
+$\mathrm{SEL}=\sum_{j\in[M]}\proj{j}\otimes U_{A_j}$ 作用在一个 $m$ 比特控制
+寄存器以及共享的 $a$ 比特标志位与系统上，并设 $\mathrm{PREP}$ 为任一满足
+$\mathrm{PREP}\ket{0^m}=\frac{1}{\sqrt\gamma}\sum_{j\in[M]}\sqrt{\alpha_j}\,\ket{j}$
+的 $m$ 比特酉算符。那么
+\begin{equation}
+  W\defeq\bigl(\mathrm{PREP}\dg\otimes\id\bigr)\,\mathrm{SEL}\,
+          \bigl(\mathrm{PREP}\otimes\id\bigr)
+  \in\mathrm{BE}_{\gamma,\,a+m}\!\Bigl(\textstyle\sum_{j\in[M]}A_j,\;
+     \sum_{j\in[M]}\epsilon_j\Bigr).
+  \label{eq:lec07-summBE}
+\end{equation}
+更一般地，对于加权和 $\sum_j c_j A_j$（$c_j\ge0$），只需将所制备的振幅重标度为
+$\sqrt{c_j\alpha_j}$，即可得到次归一化（subnormalization）$\sum_j c_j\alpha_j$。
+\end{proposition}
+
+\begin{proof}
+记 $B_j\defeq(\bra{0^a}\otimes\id)U_{A_j}(\ket{0^a}\otimes\id)$，即 $U_{A_j}$ 的块，
+从而 $\norm{A_j-\alpha_j B_j}\le\epsilon_j$，且（作为酉算符的一个块）
+$\norm{B_j}\le1$。$W$ 的标志位是联合态 $\ket{0^m}\ket{0^a}$。完全按照
+\cref{thm:lec07-lcu} 中那样运行三个因子，只是现在每个分支的系统算符是块 $B_j$ 而非
+完整的酉算符，便得到
+\begin{equation}
+  \bigl(\bra{0^m}\bra{0^a}\otimes\id\bigr)W
+  \bigl(\ket{0^m}\ket{0^a}\otimes\id\bigr)
+  =\frac{1}{\gamma}\sum_{j\in[M]}\alpha_j B_j.
+  \label{eq:lec07-sumblock}
+\end{equation}
+唯一的新要点是 $\mathrm{SEL}$ 将 $U_{A_j}$ 的 $a$ 比特标志位原样保留，因此
+$\ket{0^m}\ket{0^a}$ 投影在每个分支中都提取出 $\alpha_j B_j/\gamma$；对
+$\ket{j}$ 寄存器的记账与 \eqref{eq:lec07-block} 完全相同。与目标
+$\gamma^{-1}\sum_j A_j$ 相比较，并利用三角不等式，
+\begin{equation}
+  \Bigl\lVert\,\sum_{j}A_j-\gamma\cdot\tfrac1\gamma\sum_j\alpha_j B_j\Bigr\rVert
+  =\Bigl\lVert\sum_j(A_j-\alpha_j B_j)\Bigr\rVert
+  \le\sum_j\norm{A_j-\alpha_j B_j}\le\sum_j\epsilon_j,
+  \label{eq:lec07-sumerr}
+\end{equation}
+这正是块编码论断 \eqref{eq:lec07-summBE}。加权情形只需在 $\mathrm{PREP}$ 中把
+$\alpha_j$ 替换为 $c_j\alpha_j$ 即可。
+\end{proof}
+
+和的次归一化等于各次归一化之和，而误差相加。对于固定的项数，这种线性增长是良性的，
+但它恰恰是我们必须纳入预算的 $\ell^1$ 开销；见 \cref{sec:lec07-5}。
+
+\begin{remark}[凸权重不产生次归一化]
+\label{rem:lec07-average}
+当权重构成凸组合时，次归一化惩罚消失：对两个精确编码的平均 $\tfrac12(A+B)$，取
+$M=2$、$\mathrm{PREP}=\Hgate$ 以及权重 $c_0=c_1=\tfrac12$，于是
+$\gamma=\sum_j c_j=1$——求平均不付出任何代价。（\cref{exa:lec07-twopauli} 正是这个
+线路，它块编码了 $\tfrac12(X+Z)$。）而\emph{未加权}的和 $A+B$ 则有 $\gamma=2$，这
+反映出 $\norm{A+B}$ 可以达到 $\norm A+\norm B$。一般地，$\gamma=\norm{c}_1$ 就是
+\cref{sec:lec07-5} 所分析的那种开销。
+\end{remark}
+
+\subsection*{向量加法}
+
+当所选取的算符是态制备谕示而非块编码时，同样的构造便实现\emph{向量}的加法。对一般
+非负权重 $c_j$，取 $\mathrm{SEL}=\sum_j\proj{j}\otimes O_j$ 以及
+$\mathrm{PREP}\ket{0^m}=\norm{c}_1^{-1/2}\sum_j\sqrt{c_j}\ket{j}$，对标志位
+$\ket{0^m}$ 做后选择后，留下
+\[
+  \frac{1}{\norm{c}_1}\ket{0^m}\sum_{j}c_j\ket{u_j}+\ket{\perp},
+\]
+其出现概率为 $\norm{\sum_j c_j\ket{u_j}}^2/\norm{c}_1^2$。例如，它正是在基于傅里叶的
+矩阵函数算法中构造 $\sum_k \hat f(k)\,\ee^{\ii k H}\ket{\psi}$ 背后的基本构件——这是
+一个真正的多项叠加，对它而言需要的是一般的 \cref{prop:lec07-sum}，而非两项的图景。
+
+\begin{example}[通过将 $\ket0$ 与 $\ket1$ 相加来制备 $\ket+$]
+\label{exa:lec07-vecadd}
+取 $\ket{u_0}=\ket0$（$O_0=\id$）与 $\ket{u_1}=\ket1$（$O_1=X$），并取相等的权重
+$c_0=c_1=1$（故 $\norm{c}_1=2$）。用一个控制比特，$\mathrm{PREP}=\Hgate$ 且
+$\mathrm{SEL}=\proj0\otimes\id+\proj1\otimes X$，在对标志位 $\ket0$ 做后选择后，给出
+系统态 $(\ket0+\ket1)/\sqrt2=\ket+$，其概率为
+$\norm{\ket0+\ket1}^2/\norm{c}_1^2=2/4=\tfrac12$。这是 \cref{exa:lec07-twopauli} 的
+向量类比：\emph{态}之和必须重新归一化，正如矩阵之和带有次归一化 $\norm{c}_1$ 一样。
+\end{example}
+
+\section{块编码的乘法}
+\label{sec:lec07-3}
+
+加法是把块编码并排组合，共享系统寄存器。而要\emph{相乘} $A$ 与 $B$，我们必须把一个的
+输出送入另一个的输入；下面给出一般规则、其辅助比特代价，以及朴素堆叠为何失败的原因。
+其中的微妙之处在于，块编码关系只在带标志的子空间上成立，因此我们不能简单地先作用
+$U_A$ 再在同一批标志比特上作用 $U_B$。
+
+\begin{remark}[朴素堆叠为何失败]
+\label{rem:lec07-naive}
+设 $U_A\in\mathrm{BE}_{\alpha,a}(A)$ 与 $U_B\in\mathrm{BE}_{\beta,a}(B)$ 共享
+\emph{同一}批 $a$ 比特标志位。依次作用它们给出
+\[
+  U_B U_A\ket{0^a}\ket\psi
+  =U_B\Bigl(\tfrac{1}{\alpha}\ket{0^a}A\ket\psi+\ket{\perp_A}\Bigr),
+\]
+而 $\ket{\perp_A}$ 分支——它\emph{并不}被 $\ket{0^a}$ 标记——会被 $U_B$ 以不受控的
+方式映射回带标志的子空间。具体地，
+$(\bra{0^a}\otimes\id)U_BU_A(\ket{0^a}\otimes\id)$ 会从 $\ket{\perp_A}$ 中带入交叉项，
+从而\emph{不}等于 $\frac{1}{\alpha\beta}BA$。补救之道是让两个标志寄存器\emph{分离}，
+使得回到联合标志 $\ket{0^{a}}\ket{0^{b}}$ 时，强迫\emph{两个}块编码都已经作用在各自的
+带标志子空间上。
+\end{remark}
+
+\begin{proposition}[两个块编码矩阵之积]
+\label{prop:lec07-prod}
+设 $U_A\in\mathrm{BE}_{\alpha,a}(A)$ 与 $U_B\in\mathrm{BE}_{\beta,b}(B)$ 作用在
+不相交的辅助寄存器（大小分别为 $a$ 与 $b$）以及一个公共的 $n$ 比特系统上。那么
+\begin{equation}
+  U_{AB}\defeq\bigl(U_A\otimes\id_b\bigr)\bigl(\id_a\otimes U_B\bigr)
+  \in\mathrm{BE}_{\alpha\beta,\,a+b}(AB),
+  \label{eq:lec07-prod}
+\end{equation}
+用到 $a+b$ 个辅助比特。（这里 $U_A$ 作用在标志寄存器 $a$ 与系统上，$U_B$ 作用在
+标志寄存器 $b$ 与系统上，且两个标志寄存器互不重叠。）
+\end{proposition}
+
+\begin{figure}[ht]
+\centering
+\begin{quantikz}
+  \lstick{flag $a$: $\ket{0^a}$} & \qw           & \gate[2]{U_A} & \qw \\
+  \lstick{system $\ket{\psi}$}   & \gate[2]{U_B} &               & \qw \\
+  \lstick{flag $b$: $\ket{0^b}$} &               & \qw           & \qw
+\end{quantikz}
+\caption{两个块编码相乘（\cref{prop:lec07-prod}）：
+$U_{AB}=(U_A\otimes\id_b)(\id_a\otimes U_B)$。先由 $U_B$ 作用在其标志 $\ket{0^b}$
+与系统上，再由 $U_A$ 作用在其标志 $\ket{0^a}$ 与同一系统上。由于两个标志\emph{不相交}，
+要求二者都回到 $\ket{0}$ 就强迫每个因子都已作用在各自的带标志子空间上，于是联合带标志的
+块为 $(A/\alpha)(B/\beta)=AB/(\alpha\beta)$。若改为共享一个标志，则会让 $U_B$ 的
+拒绝分支重新进入 $U_A$ 的块（\cref{rem:lec07-naive}）。}
+\label{fig:lec07-prod}
+\end{figure}
+
+\begin{proof}
+联合标志是 $\ket{0^a}\ket{0^b}$。由于两个标志寄存器不相交，
+$(\bra{0^a}\otimes\id)$ 与 $(\bra{0^b}\otimes\id)$ 彼此可交换，而乘积的块因子化为：
+\begin{align}
+  \bigl(\bra{0^a}\bra{0^b}\otimes\id\bigr)U_{AB}
+  \bigl(\ket{0^a}\ket{0^b}\otimes\id\bigr)
+  &=\bigl(\bra{0^a}\otimes\id\bigr)U_A\bigl(\ket{0^a}\otimes\id\bigr)\;
+    \bigl(\bra{0^b}\otimes\id\bigr)U_B\bigl(\ket{0^b}\otimes\id\bigr)\notag\\
+  &=\frac{A}{\alpha}\cdot\frac{B}{\beta}=\frac{AB}{\alpha\beta}.
+  \label{eq:lec07-prodblock}
+\end{align}
+中间一步是关键：$\id_a\otimes U_B$ 不触碰标志寄存器 $a$，所以在 $U_B$ 之前和之后把它
+投影到 $\ket{0^a}$ 可以穿过 $U_B$ 交换；同理 $U_A\otimes\id_b$ 不触碰标志寄存器 $b$。
+于是两个块分离并相乘。与精确编码关系 \eqref{eq:lec06-bealt} 相比较即得
+$U_{AB}\in\mathrm{BE}_{\alpha\beta,a+b}(AB)$。（若带有误差 $\epsilon_A,\epsilon_B$，
+与 \cref{prop:lec07-sum} 中相同的伸缩求和界给出误差为 $\alpha\beta$ 乘以乘积规则的
+展开；对我们而言精确情形已足够。）
+\end{proof}
+
+乘积把次归一化相乘为 $\alpha\beta$，并把辅助比特数\emph{相加}为 $a+b$。对 $L$ 个因子
+迭代 \eqref{eq:lec07-prod} 给出次归一化 $\prod_{j}\alpha_j$ 与辅助比特数
+$\sum_j a_j$——结果正确，但辅助比特消耗很大。
+
+\begin{remark}[重复辅助比特与压缩小工具的代价对比]
+\label{rem:lec07-compress}
+有两种改进可以降低 $L$ 个块编码之积所需的辅助比特数，其中每个都在
+$\mathrm{BE}_{\alpha,a}(A_i)$ 中。
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{重复辅助比特。}一种延迟测量技巧用单个额外比特记录\emph{所有}标志寄存器
+        是否都回到了 $\ket{0^a}$；于是可以在 $L$ 个因子之间复用标志寄存器，只需
+        $a+(L-1)$ 个辅助比特（除第一个因子外每个因子一个记账比特），即可得到一个属于
+        $\mathrm{BE}_{\alpha^{L},\,a+L-1}(A_L\cdots A_1)$ 的酉算符。
+  \item \emph{压缩小工具（compression gadget）。}那些记账比特高度冗余——我们只需知道
+        \emph{是否有任何}因子离开了标志子空间，这是一个计数器就能保存的单比特信息。
+        压缩小工具用一个 $\lceil\log_2(L+1)\rceil$ 比特的计数器取代那 $L-1$ 个记账
+        比特，给出 $\mathrm{BE}_{\alpha^{L},\,a+\lceil\log_2(L+1)\rceil}(A_L\cdots A_1)$。
+        这种辅助比特上的指数级节省，正是使长乘积（例如 QSVT 内部的
+        Chebyshev/单项式展开，\cref{ch:lec09}）变得可行的原因。
+\end{itemize}
+两种改进都让次归一化保持在 $\alpha^L$。这种随 $L$ 的指数增长是乘积规则所固有的，并
+\emph{不是}人为的假象：即使一个矩阵的谱半径 $\rho(A)<1$，从而 $\sup_L\norm{A^L}\le C<\infty$，
+它仍可能有 $\norm{A}>1$，因而需要 $\alpha\ge\norm{A}>1$；用这种方式编码 $A^L$ 会带有
+次归一化 $\alpha^L$，尽管 $\norm{A^L}$ 保持有界。调和这两个事实——幂次有界、次归一化
+爆炸——正是专门的线性 ODE 算法（\cref{ch:lec13}）所要解决的困难。
+\end{remark}
+
+\begin{example}[两项之积]
+\label{exa:lec07-prod2}
+设 $A,B$ 是 $1$ 稀疏的，且 $\norm{A}_{\max},\norm{B}_{\max}\le1$，按
+\cref{prop:lec06-1sparse} 由 $U_A\in\mathrm{BE}_{1,1}(A)$ 与
+$U_B\in\mathrm{BE}_{1,1}(B)$ 块编码。使用\emph{两个}标志比特（寄存器 $a$ 与 $b$），
+线路 $U_{AB}=(U_A\otimes\id)(\id\otimes U_B)$ 是 $AB$ 的一个 $(1,2)$-块编码：在标志
+$\ket0\ket0$ 上它返回 $AB\ket\psi$，并使两个标志比特回到 $\ket0$。如果我们转而试图复用
+单个标志比特（在同一辅助比特上作 $U_AU_B$），则 $U_B$ 产生的 $\ket1$ 分支会被送入
+$U_A$ 并重新进入 $\ket0$ 块，从而破坏答案——这就是 \cref{rem:lec07-naive} 所述的失败。
+那个额外的辅助比特恰恰就是使两个编码互不干扰的记账。
+\end{example}
+
+\begin{example}[对 $\tfrac12(X+Z)$ 求平方]
+\label{exa:lec07-sq}
+取 $M=\tfrac12(X+Z)$，用 \cref{exa:lec07-twopauli} 的 $(1,1)$-块编码 $W$，并在两个
+不相交的标志比特上将两份副本相乘：
+$W_{M^2}=(W\otimes\id)(\id\otimes W)\in\mathrm{BE}_{1,2}(M^2)$。由于 $X$ 与 $Z$
+反对易（$\{X,Z\}=XZ+ZX=0$）且 $X^2=Z^2=\id$，
+\[
+  M^2=\frac{(X+Z)^2}{4}=\frac{X^2+XZ+ZX+Z^2}{4}=\frac{\id+0+\id}{4}=\frac{\id}{2},
+\]
+因此 $W_{M^2}$ 是 $\tfrac12\id$ 的一个 $(1,2)$-块编码（次归一化 $1\cdot1=1$，辅助比特数
+$1+1=2$）。更长的乘积 $A_k\cdots A_1$ 只需迭代该规则，把次归一化相乘为 $\prod_j\alpha_j$
+并把辅助比特相加——这就是压缩小工具（\cref{rem:lec07-compress}）所驯服的那种指数级辅助
+比特增长。
+\end{example}
+\section{混合 LCU 与重要性采样}
+\label{sec:lec07-4}
+
+\cref{thm:lec07-lcu} 的线路 $W$ 以\emph{相干}方式实现 $T=\sum_j c_j U_j$：
+所有 $K$ 个分支同时以叠加形式存在，单次运行即施加整个组合。然而，我们往往
+并不需要态 $T\ket{\psi}$ 本身，而只需要某个可观测量 $O$ 在（未归一化）输出
+$u=T\ket{u_0}=\sum_j c_j U_j\ket{u_0}$ 中的某个\emph{期望值} $u\dg O u$。此时就
+可以采用\emph{混合}策略——在量子计算机上一次运行一项，再经典地加以组合——它可以
+用线路深度换取重复次数。
+
+展开该二次型，
+\begin{equation}
+  u\dg O u
+  =\sum_{j,j'}c_j c_{j'}\,\bra{u_0}U_j\dg\,O\,U_{j'}\ket{u_0}.
+  \label{eq:lec07-hybrid}
+\end{equation}
+其中每一项 $\bra{u_0}U_j\dg O U_{j'}\ket{u_0}$ 都是一个非对角矩阵元，量子计算机可用
+\emph{Hadamard 检验}来估计它：制备 $\ket{u_0}$，施加受控对 $U_j\dg O U_{j'}$（或者，
+对于单个酉算符 $O$，施加受控的 $U_{j'}$ 与 $U_j$），然后读取辅助比特。此处无需对 $j$
+作叠加——每次运行只出现两个 $U$——因此线路与单项一样浅，代价是要估计一个含
+$\bigo(K^2)$ 项的求和。
+
+\begin{proposition}[$u\dg Ou$ 的重要性采样估计量]
+\label{prop:lec07-is}
+设 $c_j\ge0$，$\norm{c}_1=\sum_j c_j$，并在 $[K]$ 上定义概率分布
+$p_j=c_j/\norm{c}_1$。独立抽取数对 $(j,j')$，使得
+$\Prob[(j,j')]=p_j p_{j'}$，并对每一对构造 $h_{jj'}\defeq\bra{u_0}U_j\dg O U_{j'}\ket{u_0}$
+的（Hadamard 检验）无偏估计 $\widehat{h}_{jj'}$。则
+\begin{equation}
+  \widehat{\mathcal E}\defeq\norm{c}_1^2\,\widehat{h}_{jj'}
+  \qquad\text{是 } u\dg Ou \text{ 的无偏估计量},
+  \label{eq:lec07-isest}
+\end{equation}
+并且对 $R$ 个独立样本取平均得到方差
+$\Var[\tfrac1R\sum\widehat{\mathcal E}]=\bigo(\norm{c}_1^4\,\norm{O}^2/R)$。因此
+$\bigo(\norm{c}_1^4\norm{O}^2/\varepsilon^2)$ 个样本足以把 $u\dg Ou$ 估计到加性误差
+$\varepsilon$。
+\end{proposition}
+
+\begin{proof}
+无偏性：由 $(j,j')\sim p_jp_{j'}$ 且 $\widehat h_{jj'}$ 条件地对 $h_{jj'}$ 无偏，
+\[
+  \E[\widehat{\mathcal E}]
+  =\norm{c}_1^2\sum_{j,j'}p_j p_{j'}\,h_{jj'}
+  =\norm{c}_1^2\sum_{j,j'}\frac{c_j}{\norm{c}_1}\frac{c_{j'}}{\norm{c}_1}h_{jj'}
+  =\sum_{j,j'}c_j c_{j'}h_{jj'}
+  =u\dg Ou,
+\]
+此即由 \eqref{eq:lec07-hybrid}。至于方差，每个 $\abs{h_{jj'}}\le\norm{O}$
+（因为 $\norm{U_j\ket{u_0}}=1$），故单个估计满足
+$\abs{\widehat{\mathcal E}}\le\norm{c}_1^2\norm{O}$（至多相差 $\bigo(1)$ 的 Hadamard 检验
+方差），从而 $\Var[\widehat{\mathcal E}]=\bigo(\norm{c}_1^4\norm{O}^2)$；对 $R$ 个样本取
+平均则把它除以 $R$。令标准差等于 $\varepsilon$ 便得到
+$R=\bigo(\norm{c}_1^4\norm{O}^2/\varepsilon^2)$。
+\end{proof}
+
+\begin{remark}[相干 vs.\ 混合：权衡取舍]
+\label{rem:lec07-tradeoff}
+这两种实现方式位于深度--重复权衡的两个极端。
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{相干 LCU}（\cref{thm:lec07-lcu}）使用一条深线路，通过 $\mathrm{SEL}$
+        将全部 $K$ 项包含其中，带有一个辅助寄存器，并且（若需要该态）作
+        $\bigo(\norm{c}_1/\norm{u})$ 次放大；它产生量子态 $u/\norm{u}$，并保持相干性
+        以供后续处理。
+  \item \emph{混合重要性采样}（\cref{prop:lec07-is}）使用许多条浅线路，每条至多两项，
+        且\emph{不}含复用的 $\mathrm{SEL}$，但代价是对 $\ell^1$ 范数 ($\ell^1$-norm)
+        的依赖更差——样本数中是 $\norm{c}_1^4$，而相干方案的重复次数中只是
+        $\norm{c}_1$——并且只能给出标量 $u\dg Ou$，而非态。
+\end{itemize}
+混合路线在近期硬件上颇具吸引力，因为那里线路深度与干净的辅助比特都稀缺，并且当最终
+关心的量只是单个期望值时尤为合适；相干路线则在渐近意义上取胜，且当输出态必须被馈入
+下游量子子程序时取胜。
+\end{remark}
+
+\section{代价：\texorpdfstring{$\ell^1$}{l1} 开销}
+\label{sec:lec07-5}
+
+上面每一种构造都由一个标量所支配：组合系数的 $\ell^1$ 范数。汇总这笔账：
+
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item 块编码的\emph{加法}，若其次归一化 (subnormalization) 为 $\alpha_j$，则产生
+        次归一化 $\gamma=\sum_j\alpha_j$（\cref{prop:lec07-sum}）；对于满足
+        $\norm{A_j}\le1$ 的加权和 $\sum_j c_j A_j$，其次归一化为 $\norm{c}_1$。为看到
+        标志位，相干线路必须运行的次数为 $\bigo(\gamma/\norm{T\ket{\psi}})$
+        （\cref{rem:lec07-read}），当 $T$ 正比于一个等距算符时，由无意识振幅放大
+        （oblivious amplitude amplification）将其降为 $\bigo(\gamma/\norm{T})$
+        （\cref{rem:lec07-oaa}）。
+  \item $L$ 个块编码的\emph{乘法}产生次归一化 $\prod_j\alpha_j$
+        （\cref{prop:lec07-prod}，\cref{rem:lec07-compress}）。当 $\alpha_j\equiv\alpha$
+        时这就是 $\alpha^L$，是因子数的指数。
+  \item \emph{混合采样}耗费 $\bigo(\norm{c}_1^4\norm{O}^2/\varepsilon^2)$ 次浅运行
+        （\cref{prop:lec07-is}）。
+\end{itemize}
+
+其寓意是：$\norm{c}_1$ 之于 LCU，正如 $\alpha$ 之于单个块编码（\cref{ch:lec06}）：
+它是一个次归一化，使成功概率平方地缩小，并把每一个下游查询次数线性地（对于乘积则是
+随因子数指数地）成倍放大。因此将其最小化就是首要的设计问题。
+
+\begin{remark}[算术的量子优势——及其代价]
+\label{rem:lec07-advantage}
+与经典代价相比，其胜出之处和单个块编码（\cref{sec:lec06-advantage}）一样，仍是维数
+指数级的那套故事，只不过现在是针对\emph{组合}。经典地看，对 $K$ 个结构化的
+$N\times N$ 项构造 $\sum_{j} c_j A_j\ket{b}$ 耗费 $\bigo(K\,sN)$，而乘积
+$A_L\cdots A_1\ket{b}$ 耗费 $\bigo(L\,sN)$——随指数大的维数 $N=2^n$ 线性增长。LCU 线路
+则改为在仅 $\lceil\log_2 K\rceil$ 个控制比特上对各项块编码作 $\bigo(K)$ 次调用，
+对结构化项每次调用为 $\polylog(N)$，而乘法规则以 $\bigo(\log L)$ 个辅助比特串接 $L$
+个编码（压缩小工具，\cref{rem:lec07-compress}）。于是该算术在维数上以 $\polylog(N)$
+时间运行——一种指数优势——而组合的\emph{代价}则体现在次归一化上：和为 $\norm{c}_1$，
+积为 $\prod_j\alpha_j$，各自使成功概率平方地缩小，并成倍放大下游查询次数（对和为线性，
+对积为随因子数指数）。\cref{sec:lec06-advantage} 中关于输入与输出的告诫原封不动地适用：
+只有当各项可被高效编码且最终读出为简洁摘要时，优势才是真实的。这正是量子线性系统求解器
+（\cref{ch:lec10}）和哈密顿量模拟（\cref{ch:lec11}）所处的情形，其中 LCU 提供算术，而答案
+是一个期望值或一个采样比特，而非完整的解向量。
+\end{remark}
+
+\begin{example}[$\ell^1$ 范数依赖于分解方式]
+\label{exa:lec07-l1decomp}
+给定的 $T$ 可以用多种方式写成酉算符的线性组合，由此得到的 $\norm{c}_1$ 也各不相同。
+考虑 $n$ 个量子比特上的对角矩阵 $T=\diag(1,1,\dots,1,-1)$（仅在最后一个基态上翻一个
+符号）。一种分解写作 $T=\id-2\proj{N-1}$；由于 $\proj{N-1}$ 不是酉的，把它展开成泡利项，
+$\proj{N-1}=\prod_{k}\tfrac{\id-\Zgate_k}{2}$，其展开含 $2^n$ 个泡利项，每项系数为
+$2^{-n}$，在抵消之后给出 $\norm{c}_1=\id\text{-项}+2\cdot2^{-n}\cdot 2^n=1+2=3$——但朴素
+的逐项上界为 $\norm{c}_1=1+2\sum_k\ldots$，若不加小心会指数地更糟。一个远为更好的分解
+认识到 $T$ 本身就是单个\emph{反射}（它既是酉的又是厄米的），故 $T=1\cdot T$，
+$\norm{c}_1=1$，完全没有 LCU 开销。教训在于：在调用 LCU 之前，先检查目标是否已经是
+（一个标量乘以）一个酉算符，否则就去寻求 $\ell^1$ 范数最小的分解。这正是为什么要把哈密顿量
+归并成尽可能少的泡利项，也是为什么乘积公式（\cref{ch:lec11}）在模拟中有时会胜过 LCU。
+\end{example}
+
+\begin{remark}[LCU 在工具箱中的位置]
+\label{rem:lec07-toolbox}
+LCU 与单矩阵块编码（\cref{ch:lec06}）合在一起生成了块编码的完整算术：可编码矩阵的和、
+加权和与积都是可编码的，遵循本讲的记账规则。LCU 所\emph{不}直接给出的，是超出可表示为
+短 LCU 的多项式（如截断的 Chebyshev 或 Fourier 级数）之外的一般\emph{函数} $f(A)$。
+为此我们需要量子比特化与量子信号处理（\cref{ch:lec08}）以及量子奇异值变换
+（\cref{ch:lec09}），它们以一个与多项式次数无关的次归一化来实现本质上任意的 $A$ 的有界
+多项式——往往比对应 LCU 的 $\norm{c}_1$ 要显著更好。一旦掌握了 QSVT，我们将回过头来比较
+这两种方法。
+\end{remark}
+
+\exercisesection
+
+\begin{exercise}\label{ex:lec07-1}
+\emph{推导 LCU 块。} 设 $T=\sum_{j\in[K]}c_j U_j$，其中 $c_j\ge0$，
+$K=2^a$，并如 \cref{thm:lec07-lcu} 那样设 $W=(\mathrm{PREP}\dg\otimes\id)\,\mathrm{SEL}\,(\mathrm{PREP}
+\otimes\id)$。复现三行计算
+\eqref{eq:lec07-step1}--\eqref{eq:lec07-block}，以证明
+$(\bra{0^a}\otimes\id)W(\ket{0^a}\otimes\id)=T/\norm{c}_1$。然后证明：若输入标志位
+为 $\ket{k}\ne\ket{0^a}$ 而非 $\ket{0^a}$，则存留的 $\bra{0^a}$ 块一般为
+$\frac{1}{\norm{c}_1}\sum_j\sqrt{c_j}\,
+\overline{(\mathrm{PREP})_{jk}}\,\sqrt{c_j}\,U_j$——即只有 $\mathrm{PREP}$ 的
+$\ket{0^a}$ 列才对被编码的算符起作用。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec07-2}
+\emph{$\norm{c}_1$ 的最优性。} 利用 \cref{rem:lec07-split} 证明：对任意
+因子分解 $c_j=\beta_j\gamma_j$，非对称线路以次归一化 $\norm{\beta}_2\norm{\gamma}_2$
+块编码 $T$，并通过柯西--施瓦茨不等式证明它在 $\beta_j=\gamma_j=\sqrt{c_j}$ 处取到最小值
+$\norm{c}_1$。据此得出结论：在对固定 $\{U_j\}$ 的所有
+\textsc{prepare}--\textsc{select}--\textsc{unprepare} 线路中，对称者的次归一化最小。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec07-3}
+\emph{三个泡利项的 LCU。} 考虑单量子比特上的 $T=\Xgate+\Ygate+2\Zgate$。
+确定 $\norm{c}_1$、控制比特数 $a$，并明确写出制备态 $\mathrm{PREP}\ket{0^a}$ 与选择谕示
+$\mathrm{SEL}=\sum_j\proj{j}\otimes U_j$（你可以使用一个有一个标签未用的 $2$ 比特控制寄存器，
+并把未用标签的系数设为 $0$）。写出所得的块编码参数 $(\alpha,a)$，并计算 $\norm{T}$ 以验证
+此处 $\alpha=\norm{c}_1$ 超出了 $\norm{T}$。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec07-4}
+\emph{对加权和作块编码。} 设 $U_A\in\mathrm{BE}_{\alpha_A,a}(A)$ 与
+$U_B\in\mathrm{BE}_{\alpha_B,a}(B)$ 共享一个标志寄存器。遵循
+\cref{prop:lec07-sum}，构造一条对 $C=A+B$ 作块编码的线路，并指明其次归一化与辅助比特数。
+然后对一般的 $\alpha_A\ne\alpha_B$ 做同样的事，写出所需的 $\mathrm{PREP}$ 振幅
+$\propto(\sqrt{\alpha_A},\sqrt{\alpha_B})$，并确认次归一化为
+$\alpha_A+\alpha_B$。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec07-5}
+\emph{为什么朴素乘法会失败。} 设 $U_A\in\mathrm{BE}_{1,1}(A)$ 与
+$U_B\in\mathrm{BE}_{1,1}(B)$ 共享\emph{单个}标志比特。写出 $U_B\ket0\ket
+\psi=\ket0 B\ket\psi+\ket1\ket{\chi}$ 与 $U_A(\ket0 B\ket\psi+\ket1\ket\chi)$，并
+通过一个明确的 $2\times2$ 例子（比如取 $A=B=\tfrac12\Xgate$，使得
+$\norm{A}=\norm{B}=\tfrac12$）证明：由于 $\ket1\ket\chi$ 交叉项，一般有
+$(\bra0\otimes\id)U_AU_B(\ket0\otimes\id)\ne AB$。然后验证：将 $U_A,U_B$ 放在\emph{不相交}的
+标志比特上（\cref{prop:lec07-prod}）会恢复 $(\bra{00}\otimes\id)U_{AB}
+(\ket{00}\otimes\id)=AB$。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec07-6}
+\emph{幂的次归一化。} 设 $A$ 由
+$U_A\in\mathrm{BE}_{\alpha,a}(A)$ 块编码，其中 $\alpha=\norm{A}$。迭代地使用
+\cref{prop:lec07-prod}（或 \cref{rem:lec07-compress} 的压缩小工具），给出
+$A^L$ 的一个块编码及其次归一化。
+给出一个满足 $\rho(A)<1$ 但 $\norm{A}>1$ 的 $2\times2$ 矩阵 $A$（提示：取一个
+非正规矩阵，如 $\bigl(\begin{smallmatrix}0&2\\0&0\end{smallmatrix}\bigr)$
+作缩放使得 $\rho=0$，或取一个 Jordan 型块），并解释为何即便 $\norm{A^L}$ 不然，
+次归一化 $\alpha^L$ 仍无界地增长。
+\end{exercise}
+
+\begin{exercise}\label{ex:lec07-7}
+\emph{混合估计量的代价。} 在 \cref{prop:lec07-is} 的情形下，假设
+$K=100$ 项且所有 $c_j=1$（故 $\norm{c}_1=100$），并有一个有界可观测量
+$\norm{O}\le1$。要把 $u\dg Ou$ 估计到加性误差 $\varepsilon=10^{-2}$，需要多少次浅
+Hadamard 检验运行 $R$？将其与相干 LCU 的重复次数 $\bigo(\norm{c}_1/\norm{u})$ 作比较
+（假设 $\norm{u}=\Theta(\norm{c}_1)$），并评论你会选择哪种实现方式：(i) 在浅的近期设备上，
+以及 (ii) 若需要态 $u/\norm{u}$ 用于后续量子子程序。
+\end{exercise}
+
+\readingsection
+\begin{itemize}[leftmargin=1.4em]
+  \item Lin Lin, \emph{qasc notes}, Sec.~7.3（酉算符的线性组合）。
+  \item Lin Lin, \emph{live notes}, Ch.~9（LCU 引理、矩阵加法与乘法的块编码，以及
+        包括高振荡积分和 Fourier/本征值变换在内的若干算例）。
+  \item Dong An, \emph{Quantum Numerical Linear Algebra} tutorial talk（将 LCU 视作
+        \textsc{prepare}--\textsc{select}--\textsc{unprepare}、矩阵与向量加法、
+        借助重复辅助比特与压缩小工具实现矩阵乘法，以及混合重要性采样估计量）。
+  \item G.~H.~Low and I.~L.~Chuang, \emph{Hamiltonian simulation by qubitization},
+        Quantum \textbf{3}, 163 (2019), and A.~M.~Childs and N.~Wiebe,
+        \emph{Hamiltonian simulation using linear combinations of unitary
+        operations}, Quantum Inf.\ Comput.\ \textbf{12}, 901 (2012)，给出了最初的
+        LCU 与无意识振幅放大论证。
+\end{itemize}
