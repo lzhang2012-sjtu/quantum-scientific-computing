@@ -892,6 +892,29 @@ $2^{p}\ge2+1/(2\epsilon)$, hence $t=n+\lceil\log_2(2+1/(2\epsilon))\rceil$.
 The extra $\lceil\log_2(2+1/(2\epsilon))\rceil$ qubits beyond the $n$ bits of
 resolution are exactly the overhead paid to suppress the geometric-sum tails.
 
+\emph{Choosing $T$.} The bound depends on $T$ and the precision only through the
+product $T\epsilon$, so the design question is how large to make it---and ``large''
+means a sufficiently large \emph{constant}, not $T\epsilon\to\infty$. Keeping the
+precision $\epsilon$ distinct from the tolerated failure probability $\delta$ (the
+statement above overloads $\epsilon$ for both roles), the dominant term gives
+\[
+  \text{failure}\approx\frac{1}{2T\epsilon}\le\delta
+  \quad\Longleftrightarrow\quad
+  T\gtrsim\frac{1}{2\,\epsilon\,\delta},
+\]
+so for a fixed target confidence $\delta$ the register grows only \emph{linearly} in
+the inverse precision, $T=\bigo(1/\epsilon)$. This is the Heisenberg-limited law
+$\epsilon\sim1/T$ (equivalently $\epsilon\sim1/\mathcal{T}$ in the
+total-evolution-time language of \cref{sec:lec04-5}). Choosing instead
+$T\sim\epsilon^{-2}$ also makes $T\epsilon$ large, but wastefully: it forces the
+failure probability down to $\approx\epsilon/2$---far below any fixed target---at
+quadratic cost in queries and qubits, which is precisely the shot-noise
+($\epsilon\sim1/\sqrt{T}$) rate of the sampling estimator of \cref{sec:lec04-1}.
+Spending the coherence of QPE only to land back at the classical rate defeats its
+purpose; the sound choice is $T\approx1/(2\epsilon\delta)$---scale $T$ like $1/\epsilon$,
+and pay only the extra $\lceil\log_2(2+1/(2\delta))\rceil$ qubits found above to
+sharpen the confidence.
+
 \subsection*{Kitaev's bit-by-bit method}
 
 An alternative to the full ancilla register reads the binary digits of $\varphi$
@@ -1000,8 +1023,9 @@ as a classical phase correction on the ancilla before the next controlled power
 $U^{2^{k}}$. This reproduces the QFT readout with one ancilla and classical
 feed-forward, at the cost of an adaptive, sequential circuit. Both standard and
 iterative QPE reach a precision that scales as $\epsilon\sim1/\mathcal{T}$ with
-the \emph{total} evolution time $\mathcal{T}=\sum_k 2^{k}=\bigo(1/\epsilon)$,
-rather than the $\epsilon\sim1/\sqrt{\mathcal{T}}$ of the sampling-based estimator
+the \emph{total} evolution time $\mathcal{T}=\sum_{k=0}^{t-1} 2^{k}=2^{t}-1$---the
+register size $T=2^{t}$ of \cref{thm:lec04-precision} up to a harmless $-1$, so again
+$\mathcal{T}=\bigo(1/\epsilon)$---rather than the $\epsilon\sim1/\sqrt{\mathcal{T}}$ of the sampling-based estimator
 of \cref{sec:lec04-1}. This $1/\mathcal{T}$ scaling is the \emph{Heisenberg
 limit}, the optimal precision-versus-resource tradeoff permitted by quantum
 mechanics; the shot-noise $1/\sqrt{\mathcal{T}}$ scaling is what one obtains from
