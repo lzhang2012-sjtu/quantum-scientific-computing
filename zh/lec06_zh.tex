@@ -376,129 +376,12 @@ $(\ket{0}+\ket{1})/\sqrt2$。输出范数越大，成功概率
 概率都会下降 $25$ 倍。
 \end{example}
 
-\section{块编码的相加与相乘}
-\label{sec:lec06-arith}
+块编码与态制备谕示也可以\emph{组合}出新的编码：人们可以把两个块编码的矩阵相加、把
+两个制备好的向量相加，以及把两个块编码的矩阵相乘，使得输出再次是一个块编码（或一个
+态），可供下一步使用。每一条这样的规则都是\emph{酉算符线性组合} (linear combination
+of unitaries, LCU) 的特例，因此我们把它们放在一起处理——面向任意多个项，连同其线路、
+误差传播与 $\ell^1$ 范数代价——详见 \cref{ch:lec07}。
 
-矩阵–向量乘法（\cref{sec:lec06-matvec}）是在这些输入模型上的第一个运算；
-块编码与态制备谕示还可以\emph{组合}
-出新的块编码。我们记录三条这样的规则，每条配一个具体实例：把
-两个块编码的矩阵相加、把两个被制备的向量相加、把两个
-块编码的矩阵相乘——使得输出仍是一个块编码（或一个态），
-为下一步做好准备。对任意多个项的一般构造——
-酉算符线性组合 (LCU)——及其 $\ell^1$ 范数代价
-将在 \cref{ch:lec07} 中展开。
-
-\subsection*{矩阵加法}
-
-\begin{proposition}[两个块编码之和]
-\label{prop:lec06-add}
-设 $U_A\in\mathrm{BE}_{\alpha,a}(A)$ 和 $U_B\in\mathrm{BE}_{\beta,a}(B)$ 共享一个
-$a$ 量子比特标志位。附加一个控制量子比特，令 $\mathrm{PREP}$ 作用于它为
-$\mathrm{PREP}\ket0=\tfrac{1}{\sqrt{\alpha+\beta}}\bigl(\sqrt\alpha\,\ket0
-+\sqrt\beta\,\ket1\bigr)$，并置
-$\mathrm{SEL}=\proj0\otimes U_A+\proj1\otimes U_B$。则
-\[
-  W=(\mathrm{PREP}\dg\otimes\id)\,\mathrm{SEL}\,(\mathrm{PREP}\otimes\id)
-  \in\mathrm{BE}_{\alpha+\beta,\,a+1}(A+B).
-\]
-加权和 $c_AA+c_BB$（$c_A,c_B\ge0$）通过加载权重
-$\propto\sqrt{c_A\alpha},\sqrt{c_B\beta}$ 得到，给出次归一化
-$c_A\alpha+c_B\beta$。
-\end{proposition}
-
-\begin{figure}[ht]
-\centering
-\begin{quantikz}
-  \lstick{控制 $\ket0$} & \gate{\mathrm{PREP}} & \octrl{1} & \ctrl{1}
-    & \gate{\mathrm{PREP}^{\dagger}} & \qw \\
-  \lstick{标志 $\ket{0^a}$、系统 $\ket b$} & \qwbundle{a+n}
-    & \gate{U_A} & \gate{U_B} & \qw & \qw
-\end{quantikz}
-\caption{\cref{prop:lec06-add} 的单辅助比特线路 $W=(\mathrm{PREP}^{\dagger}\otimes\id)\,
-\mathrm{SEL}\,(\mathrm{PREP}\otimes\id)$。$\mathrm{PREP}$ 把权重 $\sqrt\alpha,\sqrt\beta$
-加载到控制比特上；$\mathrm{SEL}$ 在控制为 $\ket0$ 时（空心圆）施加 $U_A$、在控制为
-$\ket1$ 时（实心圆）施加 $U_B$；$\mathrm{PREP}^{\dagger}$ 使两条分支发生干涉。读取扩大后
-的标志 $\ket{0^{a+1}}$（控制比特连同原来的 $a$ 个标志比特）即可取出左上角的块
-$(A+B)/(\alpha+\beta)$，故 $W\in\mathrm{BE}_{\alpha+\beta,\,a+1}(A+B)$。}
-\label{fig:lec06-add}
-\end{figure}
-
-\begin{example}[块编码 $\tfrac12(X+Z)$]
-\label{exa:lec06-add}
-$X$ 和 $Z$ 都是酉的，因此平凡地是它们自身的 $(1,0)$-块编码。
-为构造它们的平均，取一个控制量子比特，$\mathrm{PREP}=\Hgate$
-（故 $\mathrm{PREP}\ket0=\ket+$，等权重）且
-$\mathrm{SEL}=\proj0\otimes X+\proj1\otimes Z$。则
-\[
-  (\bra0\otimes\id)\,W\,(\ket0\otimes\id)
-  =\tfrac12 X+\tfrac12 Z=\frac{X+Z}{2}
-  =\begin{pmatrix}\tfrac12&\tfrac12\\[2pt]\tfrac12&-\tfrac12\end{pmatrix}
-  =\frac{1}{\sqrt2}\,\Hgate,
-\]
-即被 $1/\sqrt2$ 重新标度的 Hadamard 矩阵。于是
-$W\in\mathrm{BE}_{1,1}\!\bigl(\tfrac12(X+Z)\bigr)$：次归一化为 $\alpha=1$
-（权重之和为一），轻松地高于 $\norm{\tfrac12(X+Z)}=1/\sqrt2$。
-\end{example}
-
-\subsection*{向量加法}
-
-当被选中的算符是态制备谕示（\cref{def:lec06-sp}）而非块编码时，同样的
-控制量子比特技巧可用来相加\emph{向量}。
-
-\begin{proposition}[被制备向量之和]
-\label{prop:lec06-vecadd}
-设 $O_0,\dots,O_{L-1}$ 制备归一化态 $\ket{u_j}=O_j\ket{0^n}$，并设
-$c_j\ge0$。用一个 $\lceil\log_2 L\rceil$ 量子比特控制寄存器，
-$\mathrm{PREP}\ket{0}=\tfrac1{\sqrt{\norm{c}_1}}\sum_j\sqrt{c_j}\,\ket{j}$ 以及
-$\mathrm{SEL}=\sum_j\proj{j}\otimes O_j$，将
-$\mathrm{SEL}\,(\mathrm{PREP}\otimes\id)$ 作用于 $\ket{0}\ket{0^n}$，再作用
-$\mathrm{PREP}\dg$，然后对控制标志位 $\ket{0}$ 做后选择，即得
-归一化的 $\sum_j c_j\ket{u_j}\big/\norm{\sum_j c_j\ket{u_j}}$，成功
-概率为 $\norm{\sum_j c_j\ket{u_j}}^2/\norm{c}_1^2$。
-\end{proposition}
-
-\begin{example}[通过相加 $\ket0$ 和 $\ket1$ 制备 $\ket+$]
-\label{exa:lec06-vecadd}
-取 $\ket{u_0}=\ket0$（$O_0=\id$）和 $\ket{u_1}=\ket1$（$O_1=X$），权重相等
-$c_0=c_1=1$（故 $\norm{c}_1=2$）。一个控制量子比特配 $\mathrm{PREP}=\Hgate$ 和
-$\mathrm{SEL}=\proj0\otimes\id+\proj1\otimes X$，在对标志位 $\ket0$ 做后选择后，给出
-系统态 $(\ket0+\ket1)/\sqrt2=\ket+$，概率为
-$\norm{\ket0+\ket1}^2/\norm{c}_1^2=2/4=\tfrac12$。这是
-\cref{exa:lec06-add} 的向量类比：\emph{态}之和必须重新归一化，正如矩阵
-之和携带次归一化 $\norm{c}_1$ 那样。
-\end{example}
-
-\subsection*{矩阵–矩阵乘法}
-
-\begin{proposition}[两个块编码之积]
-\label{prop:lec06-mult}
-设 $U_A\in\mathrm{BE}_{\alpha,a}(A)$ 和 $U_B\in\mathrm{BE}_{\beta,b}(B)$ 作用在
-\emph{不相交}的辅助比特寄存器（大小为 $a$ 和 $b$）和一个共享系统上。以
-联合标志位 $\ket{0^a}\ket{0^b}$，
-\[
-  U_{AB}=(U_A\otimes\id_b)(\id_a\otimes U_B)\in\mathrm{BE}_{\alpha\beta,\,a+b}(AB),
-\]
-因为两个标志位相互独立且块分离，
-$(\bra{0^a}\bra{0^b}\otimes\id)\,U_{AB}\,(\ket{0^a}\ket{0^b}\otimes\id)
-=(A/\alpha)(B/\beta)$。次归一化相乘而辅助比特相加。（复用
-\emph{单个}标志位会失败：$U_B$ 的垃圾分支会重新进入 $U_A$ 被标志的块；
-不相交的标志位避免了这一点。）
-\end{proposition}
-
-\begin{example}[对 $\tfrac12(X+Z)$ 求平方]
-\label{exa:lec06-mult}
-取 $M=\tfrac12(X+Z)$，用 \cref{exa:lec06-add} 的 $(1,1)$-块编码 $W$，并
-在两个不相交的标志量子比特上相乘两个副本：
-$W_{M^2}=(W\otimes\id)(\id\otimes W)\in\mathrm{BE}_{1,2}(M^2)$。由于 $X$ 和 $Z$
-反对易（$\{X,Z\}=XZ+ZX=0$）且 $X^2=Z^2=\id$，
-\[
-  M^2=\frac{(X+Z)^2}{4}=\frac{X^2+XZ+ZX+Z^2}{4}=\frac{\id+0+\id}{4}=\frac{\id}{2},
-\]
-故 $W_{M^2}$ 是 $\tfrac12\id$ 的 $(1,2)$-块编码（次归一化
-$1\cdot1=1$，辅助比特数 $1+1=2$）。更长的乘积 $A_k\cdots A_1$ 只需迭代该
-规则，将次归一化相乘为 $\prod_j\alpha_j$ 并把辅助比特相加——一种
-指数式的辅助比特增长，\cref{ch:lec07} 用一个压缩小工具来驯服它。
-\end{example}
 \section{\texorpdfstring{$s$}{s}-稀疏矩阵的块编码}
 \label{sec:lec06-3}
 
@@ -774,7 +657,7 @@ $A/\alpha$。块编码的乘积使算符相乘（投影算符随之复合），�
 $\polylog(N)$ 个门的线路就能把 $A/\alpha$ 作用到 $\ket{b}$ 上（\cref{sec:lec06-3} 对稀疏
 的 $A$ 做到了这一点）。经典地，将一个向量乘以稠密的 $N\times N$ 矩阵要花费 $\bigo(N^2)$，
 乘以 $s$-稀疏矩阵则要花费 $\bigo(sN)$——二者都至少与指数级大的维数成线性关系。因此矩阵-向
-量乘法，以及同样地 \cref{sec:lec06-arith} 中的那些和与积，都在 $\polylog(N)$ 的时间内作用
+量乘法，以及同样地 \cref{ch:lec07} 中的那些和与积，都在 $\polylog(N)$ 的时间内作用
 于 $2^n$ 维对象之上：这是一个\emph{关于维数的指数优势}。而是否该优势货真价实，则由三条告
 诫来裁定。
 

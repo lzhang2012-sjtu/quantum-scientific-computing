@@ -428,130 +428,13 @@ probability; and had we used the wasteful $\alpha=10$ of \cref{exa:lec06-2x2}, b
 probabilities would drop by a factor $25$.
 \end{example}
 
-\section{Adding and multiplying block encodings}
-\label{sec:lec06-arith}
-
-Matrix--vector multiplication (\cref{sec:lec06-matvec}) was the first operation on
-these input models; block encodings and state-preparation oracles also \emph{combine}
-to make new ones. We record three such rules, each with a concrete instance: adding
-two block-encoded matrices, adding two prepared vectors, and multiplying two
-block-encoded matrices---so that the output is again a block encoding (or a state)
-ready for the next step. The general construction for an arbitrary number of
-terms---the linear combination of unitaries (LCU)---and its $\ell^1$-norm cost are
-developed in \cref{ch:lec07}.
-
-\subsection*{Matrix addition}
-
-\begin{proposition}[Sum of two block encodings]
-\label{prop:lec06-add}
-Let $U_A\in\mathrm{BE}_{\alpha,a}(A)$ and $U_B\in\mathrm{BE}_{\beta,a}(B)$ share an
-$a$-qubit flag. Adjoin one control qubit, let $\mathrm{PREP}$ act on it by
-$\mathrm{PREP}\ket0=\tfrac{1}{\sqrt{\alpha+\beta}}\bigl(\sqrt\alpha\,\ket0
-+\sqrt\beta\,\ket1\bigr)$, and set
-$\mathrm{SEL}=\proj0\otimes U_A+\proj1\otimes U_B$. Then
-\[
-  W=(\mathrm{PREP}\dg\otimes\id)\,\mathrm{SEL}\,(\mathrm{PREP}\otimes\id)
-  \in\mathrm{BE}_{\alpha+\beta,\,a+1}(A+B).
-\]
-A weighted sum $c_AA+c_BB$ ($c_A,c_B\ge0$) follows by loading weights
-$\propto\sqrt{c_A\alpha},\sqrt{c_B\beta}$, giving subnormalization
-$c_A\alpha+c_B\beta$.
-\end{proposition}
-
-\begin{figure}[ht]
-\centering
-\begin{quantikz}
-  \lstick{control $\ket0$} & \gate{\mathrm{PREP}} & \octrl{1} & \ctrl{1}
-    & \gate{\mathrm{PREP}^{\dagger}} & \qw \\
-  \lstick{flag $\ket{0^a}$, system $\ket b$} & \qwbundle{a+n}
-    & \gate{U_A} & \gate{U_B} & \qw & \qw
-\end{quantikz}
-\caption{The one-ancilla circuit $W=(\mathrm{PREP}^{\dagger}\otimes\id)\,\mathrm{SEL}\,
-(\mathrm{PREP}\otimes\id)$ of \cref{prop:lec06-add}. $\mathrm{PREP}$ loads the weights
-$\sqrt\alpha,\sqrt\beta$ onto the control qubit; $\mathrm{SEL}$ applies $U_A$ when the
-control is $\ket0$ (open circle) and $U_B$ when it is $\ket1$ (filled circle);
-$\mathrm{PREP}^{\dagger}$ interferes the two branches. Reading the enlarged flag
-$\ket{0^{a+1}}$ (the control together with the original $a$ flag qubits) extracts the
-top-left block $(A+B)/(\alpha+\beta)$, so $W\in\mathrm{BE}_{\alpha+\beta,\,a+1}(A+B)$.}
-\label{fig:lec06-add}
-\end{figure}
-
-\begin{example}[Block-encoding $\tfrac12(X+Z)$]
-\label{exa:lec06-add}
-Both $X$ and $Z$ are unitary, hence trivially $(1,0)$-block-encodings of themselves.
-To form their average, take one control qubit with $\mathrm{PREP}=\Hgate$
-(so $\mathrm{PREP}\ket0=\ket+$, equal weights) and
-$\mathrm{SEL}=\proj0\otimes X+\proj1\otimes Z$. Then
-\[
-  (\bra0\otimes\id)\,W\,(\ket0\otimes\id)
-  =\tfrac12 X+\tfrac12 Z=\frac{X+Z}{2}
-  =\begin{pmatrix}\tfrac12&\tfrac12\\[2pt]\tfrac12&-\tfrac12\end{pmatrix}
-  =\frac{1}{\sqrt2}\,\Hgate,
-\]
-the Hadamard matrix rescaled by $1/\sqrt2$. So
-$W\in\mathrm{BE}_{1,1}\!\bigl(\tfrac12(X+Z)\bigr)$: the subnormalization is $\alpha=1$
-(the weights sum to one), comfortably above $\norm{\tfrac12(X+Z)}=1/\sqrt2$.
-\end{example}
-
-\subsection*{Vector addition}
-
-The same control-qubit trick adds \emph{vectors} when the selected operators are
-state-preparation oracles (\cref{def:lec06-sp}) rather than block encodings.
-
-\begin{proposition}[Sum of prepared vectors]
-\label{prop:lec06-vecadd}
-Let $O_0,\dots,O_{L-1}$ prepare normalized states $\ket{u_j}=O_j\ket{0^n}$, and let
-$c_j\ge0$. With an $\lceil\log_2 L\rceil$-qubit control register,
-$\mathrm{PREP}\ket{0}=\tfrac1{\sqrt{\norm{c}_1}}\sum_j\sqrt{c_j}\,\ket{j}$ and
-$\mathrm{SEL}=\sum_j\proj{j}\otimes O_j$, applying
-$\mathrm{SEL}\,(\mathrm{PREP}\otimes\id)$ to $\ket{0}\ket{0^n}$, then
-$\mathrm{PREP}\dg$, and post-selecting the control flag $\ket{0}$ yields the
-normalized $\sum_j c_j\ket{u_j}\big/\norm{\sum_j c_j\ket{u_j}}$ with success
-probability $\norm{\sum_j c_j\ket{u_j}}^2/\norm{c}_1^2$.
-\end{proposition}
-
-\begin{example}[Preparing $\ket+$ by adding $\ket0$ and $\ket1$]
-\label{exa:lec06-vecadd}
-Take $\ket{u_0}=\ket0$ ($O_0=\id$) and $\ket{u_1}=\ket1$ ($O_1=X$) with equal weights
-$c_0=c_1=1$ (so $\norm{c}_1=2$). One control qubit with $\mathrm{PREP}=\Hgate$ and
-$\mathrm{SEL}=\proj0\otimes\id+\proj1\otimes X$ gives, after post-selecting the flag
-$\ket0$, the system state $(\ket0+\ket1)/\sqrt2=\ket+$, with probability
-$\norm{\ket0+\ket1}^2/\norm{c}_1^2=2/4=\tfrac12$. This is the vector analogue of
-\cref{exa:lec06-add}: a sum of \emph{states} must be renormalized, exactly as a sum of
-matrices carries the subnormalization $\norm{c}_1$.
-\end{example}
-
-\subsection*{Matrix--matrix multiplication}
-
-\begin{proposition}[Product of two block encodings]
-\label{prop:lec06-mult}
-Let $U_A\in\mathrm{BE}_{\alpha,a}(A)$ and $U_B\in\mathrm{BE}_{\beta,b}(B)$ act on
-\emph{disjoint} ancilla registers (sizes $a$ and $b$) and a shared system. With the
-joint flag $\ket{0^a}\ket{0^b}$,
-\[
-  U_{AB}=(U_A\otimes\id_b)(\id_a\otimes U_B)\in\mathrm{BE}_{\alpha\beta,\,a+b}(AB),
-\]
-because the two flags are independent and the blocks separate,
-$(\bra{0^a}\bra{0^b}\otimes\id)\,U_{AB}\,(\ket{0^a}\ket{0^b}\otimes\id)
-=(A/\alpha)(B/\beta)$. The subnormalizations multiply and the ancillas add. (Reusing a
-\emph{single} flag fails: the junk branch of $U_B$ re-enters the flagged block of
-$U_A$; disjoint flags prevent this.)
-\end{proposition}
-
-\begin{example}[Squaring $\tfrac12(X+Z)$]
-\label{exa:lec06-mult}
-Take $M=\tfrac12(X+Z)$ with the $(1,1)$-block-encoding $W$ of \cref{exa:lec06-add}, and
-multiply two copies on two disjoint flag qubits:
-$W_{M^2}=(W\otimes\id)(\id\otimes W)\in\mathrm{BE}_{1,2}(M^2)$. Since $X$ and $Z$
-anticommute ($\{X,Z\}=XZ+ZX=0$) and $X^2=Z^2=\id$,
-\[
-  M^2=\frac{(X+Z)^2}{4}=\frac{X^2+XZ+ZX+Z^2}{4}=\frac{\id+0+\id}{4}=\frac{\id}{2},
-\]
-so $W_{M^2}$ is a $(1,2)$-block-encoding of $\tfrac12\id$ (subnormalization
-$1\cdot1=1$, ancilla count $1+1=2$). Longer products $A_k\cdots A_1$ just iterate the
-rule, multiplying subnormalizations to $\prod_j\alpha_j$ and adding ancillas---an
-exponential ancilla growth that \cref{ch:lec07} tames with a compression gadget.
-\end{example}
+Block encodings and state-preparation oracles also \emph{combine} to make new ones:
+one can add two block-encoded matrices, add two prepared vectors, and multiply two
+block-encoded matrices, so that the output is again a block encoding (or a state)
+ready for the next step. Each such rule is a special case of the \emph{linear
+combination of unitaries} (LCU), so we develop them all together---for an arbitrary
+number of terms, with their circuits, error propagation, and $\ell^1$-norm
+cost---in \cref{ch:lec07}.
 
 \section{Block encoding of \texorpdfstring{$s$}{s}-sparse matrices}
 \label{sec:lec06-3}
@@ -877,7 +760,7 @@ oracle applies $A/\alpha$ to $\ket{b}$ with a circuit of only $\polylog(N)$ gate
 (\cref{sec:lec06-3} does this for sparse $A$). Classically, multiplying a vector by a
 dense $N\times N$ matrix costs $\bigo(N^2)$, and by an $s$-sparse one $\bigo(sN)$---
 both at least linear in the exponentially large dimension. So matrix--vector
-multiplication, and likewise the sums and products of \cref{sec:lec06-arith}, act on
+multiplication, and likewise the sums and products of \cref{ch:lec07}, act on
 $2^n$-dimensional objects in time $\polylog(N)$: an \emph{exponential advantage in the
 dimension}. Three caveats decide whether that advantage is real.
 

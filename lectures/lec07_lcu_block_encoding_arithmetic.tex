@@ -18,10 +18,11 @@ on top of it. Almost every matrix that arises in scientific computing is present
 as a \emph{combination} of simpler pieces---a Hamiltonian is a sum of local terms,
 a discretized differential operator is a sum of shifts, a propagator is a product
 of exponentials---so we need rules that turn block encodings of the pieces into a
-block encoding of the whole. \cref{sec:lec06-arith} introduced these operations---%
-matrix and vector addition, matrix--matrix multiplication---through one concrete
-example apiece; this lecture gives the \emph{general} construction for arbitrarily
-many terms, together with its error propagation and $\ell^1$ cost. We develop the
+block encoding of the whole. \cref{ch:lec06} built \emph{single} block encodings and
+applied one to a vector (\cref{sec:lec06-matvec}); this lecture supplies the arithmetic
+that \emph{combines} them---matrix and vector addition, matrix--matrix
+multiplication---in full generality, for arbitrarily many terms and with their error
+propagation and $\ell^1$ cost. We develop the
 single most important such rule, the \emph{linear combination of unitaries} (LCU), and
 the composition
 calculus it generates: block encodings of matrix and vector \emph{sums}
@@ -126,6 +127,23 @@ $(\bra{0^a}\otimes\id)W(\ket{0^a}\otimes\id)=T/\norm{c}_1$, which is exactly the
 exact-block-encoding relation \eqref{eq:lec06-bealt} with subnormalization factor
 $\alpha=\norm{c}_1$ and $a$ ancilla qubits.
 \end{proof}
+
+\begin{figure}[ht]
+\centering
+\begin{quantikz}
+  \lstick{control $\ket{0^a}$} & \gate{\mathrm{PREP}} & \gate[2]{\mathrm{SEL}}
+    & \gate{\mathrm{PREP}^{\dagger}} & \qw \\
+  \lstick{system $\ket{\psi}$} & \qwbundle{n} &  & \qw & \qw
+\end{quantikz}
+\caption{The LCU circuit $W=(\mathrm{PREP}^{\dagger}\otimes\id)\,\mathrm{SEL}\,
+(\mathrm{PREP}\otimes\id)$ of \cref{thm:lec07-lcu}. $\mathrm{PREP}$ writes the
+coefficient amplitudes $\sqrt{c_j}/\sqrt{\norm{c}_1}$ onto the $a$-qubit control
+register; $\mathrm{SEL}=\sum_j\proj{j}\otimes U_j$ applies $U_j$ in the branch
+$\ket{j}$; $\mathrm{PREP}^{\dagger}$ folds the branches back so that the flag
+$\ket{0^a}$ carries $T/\norm{c}_1$. Everything below the two-term examples of
+\cref{sec:lec07-2,sec:lec07-3} is a specialization of this one picture.}
+\label{fig:lec07-lcu}
+\end{figure}
 
 Three remarks fix the meaning of the construction.
 
@@ -257,8 +275,8 @@ $\alpha=\bigo(n)$---exactly the overhead budgeted in \cref{sec:lec07-5}.
 \section{Matrix and vector addition}
 \label{sec:lec07-2}
 
-\cref{sec:lec06-arith} introduced matrix and vector addition by two-term example; the
-LCU lemma of \cref{sec:lec07-1} promotes them to the general rule. It applies verbatim
+The LCU lemma of \cref{sec:lec07-1} specializes directly to \emph{adding} matrices and
+vectors. It applies verbatim
 when the ``unitaries'' $U_j$ are themselves block encodings or state-preparation
 oracles: the outer register of the block encoding merges into the LCU flag, and the
 surviving block is the desired sum---now for an \emph{arbitrary} number of terms, and
@@ -322,7 +340,7 @@ $\ell^1$ overhead that we must budget for; see \cref{sec:lec07-5}.
 When the weights form a convex combination the subnormalization penalty vanishes: for
 the average $\tfrac12(A+B)$ of two exact encodings one takes $M=2$,
 $\mathrm{PREP}=\Hgate$, and weights $c_0=c_1=\tfrac12$, so $\gamma=\sum_j c_j=1$---%
-averaging costs nothing. (\cref{exa:lec06-add} is exactly this circuit, block-encoding
+averaging costs nothing. (\cref{exa:lec07-twopauli} is exactly this circuit, block-encoding
 $\tfrac12(X+Z)$.) The \emph{unweighted} sum $A+B$ instead has $\gamma=2$, reflecting
 that $\norm{A+B}$ can reach $\norm A+\norm B$. In general $\gamma=\norm{c}_1$ is the
 overhead that \cref{sec:lec07-5} analyzes.
@@ -331,10 +349,8 @@ overhead that \cref{sec:lec07-5} analyzes.
 \subsection*{Vector addition}
 
 The same construction adds \emph{vectors} when the selected operators are
-state-preparation oracles rather than block encodings;
-\cref{prop:lec06-vecadd,exa:lec06-vecadd} gave the two-term case
-$\ket0+\ket1\to\ket+$. For general nonnegative weights $c_j$, with
-$\mathrm{SEL}=\sum_j\proj{j}\otimes O_j$ and
+state-preparation oracles rather than block encodings. For general nonnegative
+weights $c_j$, with $\mathrm{SEL}=\sum_j\proj{j}\otimes O_j$ and
 $\mathrm{PREP}\ket{0^m}=\norm{c}_1^{-1/2}\sum_j\sqrt{c_j}\ket{j}$, post-selecting the
 flag $\ket{0^m}$ leaves
 \[
@@ -343,16 +359,25 @@ flag $\ket{0^m}$ leaves
 seen with probability $\norm{\sum_j c_j\ket{u_j}}^2/\norm{c}_1^2$. It is the primitive
 behind, for example, forming $\sum_k \hat f(k)\,\ee^{\ii k H}\ket{\psi}$ in
 Fourier-based matrix-function algorithms---a genuinely many-term superposition for
-which the general \cref{prop:lec07-sum}, not the two-term picture of
-\cref{sec:lec06-arith}, is what is needed.
+which the general \cref{prop:lec07-sum}, not a two-term picture, is what is needed.
+
+\begin{example}[Preparing $\ket+$ by adding $\ket0$ and $\ket1$]
+\label{exa:lec07-vecadd}
+Take $\ket{u_0}=\ket0$ ($O_0=\id$) and $\ket{u_1}=\ket1$ ($O_1=X$) with equal weights
+$c_0=c_1=1$ (so $\norm{c}_1=2$). One control qubit with $\mathrm{PREP}=\Hgate$ and
+$\mathrm{SEL}=\proj0\otimes\id+\proj1\otimes X$ gives, after post-selecting the flag
+$\ket0$, the system state $(\ket0+\ket1)/\sqrt2=\ket+$, with probability
+$\norm{\ket0+\ket1}^2/\norm{c}_1^2=2/4=\tfrac12$. This is the vector analogue of
+\cref{exa:lec07-twopauli}: a sum of \emph{states} must be renormalized, exactly as a
+sum of matrices carries the subnormalization $\norm{c}_1$.
+\end{example}
 
 \section{Block-encoding multiplication}
 \label{sec:lec07-3}
 
 Addition composed block encodings side by side, sharing the system register. To
 \emph{multiply} $A$ and $B$ we must feed the output of one into the input of the
-other---\cref{exa:lec06-mult} did this for one concrete product (squaring
-$\tfrac12(X+Z)$); here we give the general rule, its ancilla cost, and the reason
+other; here we give the general rule, its ancilla cost, and the reason
 naive stacking fails. The subtlety is that the block-encoding relation only holds on
 the flagged subspace, so we cannot simply apply $U_A$ and then $U_B$ on the same flag
 qubits.
@@ -388,6 +413,23 @@ using $a+b$ ancilla qubits. (Here $U_A$ acts on flag register $a$ and the system
 $U_B$ on flag register $b$ and the system, and the two flag registers do not
 overlap.)
 \end{proposition}
+
+\begin{figure}[ht]
+\centering
+\begin{quantikz}
+  \lstick{flag $a$: $\ket{0^a}$} & \qw           & \gate[2]{U_A} & \qw \\
+  \lstick{system $\ket{\psi}$}   & \gate[2]{U_B} &               & \qw \\
+  \lstick{flag $b$: $\ket{0^b}$} &               & \qw           & \qw
+\end{quantikz}
+\caption{Multiplying two block encodings (\cref{prop:lec07-prod}):
+$U_{AB}=(U_A\otimes\id_b)(\id_a\otimes U_B)$. First $U_B$ acts on its flag $\ket{0^b}$
+and the system, then $U_A$ on its flag $\ket{0^a}$ and the same system. Because the two
+flags are \emph{disjoint}, demanding that both return to $\ket{0}$ forces each factor
+to have acted on its flagged subspace, and the joint-flagged block is
+$(A/\alpha)(B/\beta)=AB/(\alpha\beta)$. Sharing one flag instead would let $U_B$'s
+reject branch re-enter $U_A$'s block (\cref{rem:lec07-naive}).}
+\label{fig:lec07-prod}
+\end{figure}
 
 \begin{proof}
 The joint flag is $\ket{0^a}\ket{0^b}$. Because the two flag registers are disjoint,
@@ -455,6 +497,22 @@ $\ket0$. If instead we tried to reuse a single flag qubit
 into $U_A$ and re-enter the $\ket0$ block, corrupting the answer---the failure of
 \cref{rem:lec07-naive}. The extra ancilla is precisely the bookkeeping that keeps the
 two encodings from interfering.
+\end{example}
+
+\begin{example}[Squaring $\tfrac12(X+Z)$]
+\label{exa:lec07-sq}
+Take $M=\tfrac12(X+Z)$ with the $(1,1)$-block-encoding $W$ of
+\cref{exa:lec07-twopauli}, and multiply two copies on two disjoint flag qubits:
+$W_{M^2}=(W\otimes\id)(\id\otimes W)\in\mathrm{BE}_{1,2}(M^2)$. Since $X$ and $Z$
+anticommute ($\{X,Z\}=XZ+ZX=0$) and $X^2=Z^2=\id$,
+\[
+  M^2=\frac{(X+Z)^2}{4}=\frac{X^2+XZ+ZX+Z^2}{4}=\frac{\id+0+\id}{4}=\frac{\id}{2},
+\]
+so $W_{M^2}$ is a $(1,2)$-block-encoding of $\tfrac12\id$ (subnormalization
+$1\cdot1=1$, ancilla count $1+1=2$). Longer products $A_k\cdots A_1$ just iterate the
+rule, multiplying subnormalizations to $\prod_j\alpha_j$ and adding ancillas---the
+exponential ancilla growth that the compression gadget of
+\cref{rem:lec07-compress} tames.
 \end{example}
 
 \section{Hybrid LCU and importance sampling}
