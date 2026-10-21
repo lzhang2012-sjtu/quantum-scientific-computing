@@ -446,11 +446,31 @@ $\omega^{ak}=\prod_l\bigl(\ee^{\ii 2\pi a2^{\,n-l}/N}\bigr)^{k_l}$，这恰好
 $\ket{a}\ket{j}\mapsto\ket{a}\ket{(j+a)\bmod N}$，把每个中间相位
 $P_l^{(a)}$ 提升为由第一个寄存器的量子比特\emph{控制}的相位：
 写 $a=\sum_r a_r 2^{\,n-r}$，相位 $\ee^{\ii 2\pi a2^{\,n-l}/N}$ 由各 $a_r$
-用受控-$R_k$ 门逐比特构建，恰好是 QFT 本身的那一类门。双寄存器加法器
-于是在这对 QFT 之间使用 $\bigo(n^2)$ 个受控相位
+用受控-$R_k$ 门逐比特构建，恰好是 QFT 本身的那一类门。具体地（取 $N=2^n$，故
+$\bmod\,N$ 的约化自动发生），控制比特 $a_r$ 作用在傅里叶模式比特 $j_l$ 上贡献一个受控
+$R_{\,r+l-n}$，其中 $R_k=\diag\bigl(1,\ee^{\ii 2\pi/2^{k}}\bigr)$；只有 $r+l>n$ 的那些对
+才非平凡地起作用，共给出 $\tfrac12 n(n+1)$ 个受控相位门（\cref{fig:lec04-draper2}）。
+双寄存器加法器于是在这对 QFT 之间使用 $\bigo(n^2)$ 个受控相位
 门，且无需\emph{进位辅助比特}——这与行波进位加法器 (ripple-carry adder) 形成对比，后者
 通过 Toffoli 门传播进位，并需要一个
 额外的寄存器。
+
+\begin{figure}[ht]
+\centering
+\begin{quantikz}
+  \lstick{$\ket{a_1}$} & \qw            & \qw        & \qw        & \qw        & \ctrl{5}   & \qw        & \qw        & \qw \\
+  \lstick{$\ket{a_2}$} & \qw            & \qw        & \ctrl{3}   & \qw        & \qw        & \ctrl{4}   & \qw        & \qw \\
+  \lstick{$\ket{a_3}$} & \qw            & \ctrl{1}   & \qw        & \ctrl{2}   & \qw        & \qw        & \ctrl{3}   & \qw \\
+  \lstick{$\ket{j_1}$} & \gate[3]{\QFT} & \gate{R_1} & \qw        & \qw        & \qw        & \qw        & \qw        & \gate[3]{\QFT\dg} \\
+  \lstick{$\ket{j_2}$} &                & \qw        & \gate{R_1} & \gate{R_2} & \qw        & \qw        & \qw        & \\
+  \lstick{$\ket{j_3}$} &                & \qw        & \qw        & \qw        & \gate{R_1} & \gate{R_2} & \gate{R_3} &
+\end{quantikz}
+\caption{双寄存器 Draper 加法器 $\ket{a}\ket{j}\mapsto\ket{a}\ket{(j+a)\bmod N}$ 在
+$n=3$（$N=2^3$）时的线路。先对目标寄存器做傅里叶变换，再施加受控相位 $R_{\,r+l-n}$
+（控制 $a_r$、目标 $j_l$；仅 $r+l>n$ 才起作用），最后做逆 QFT。第一个寄存器保持不变，
+且无需进位辅助比特；两次 QFT 之间的整块是对角的，故这些受控相位彼此对易、可任意重排。}
+\label{fig:lec04-draper2}
+\end{figure}
 
 \begin{remark}[从加法器到循环矩阵：通往 \cref{ch:lec07} 的桥梁]
 \label{rem:lec04-adder-lcu}
