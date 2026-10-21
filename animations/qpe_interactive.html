@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Quantum phase estimation — interactive (Example 4.21 &amp; Theorem 4.24)</title>
+<style>
+  :root{ --blue:#1f3a8a; --grey:#c9ccd4; --red:#c0392b; --green:#0b603b; --gold:#d4a017; }
+  body{ font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; margin:0;
+        padding:18px 22px; color:#111; background:#fafbfe; }
+  h1{ color:var(--blue); font-size:22px; margin:0 0 4px; }
+  h2{ color:var(--blue); font-size:16px; margin:18px 0 6px; }
+  .sub{ color:#374151; font-size:13px; margin-bottom:12px; max-width:1000px; line-height:1.5; }
+  .controls{ margin:6px 0 10px; }
+  button{ font-size:14px; padding:6px 12px; margin:2px; border:1px solid var(--blue);
+          background:var(--blue); color:#fff; border-radius:7px; cursor:pointer; }
+  button.sec{ background:#fff; color:var(--blue); }
+  button.case{ background:#fff; color:var(--blue); font-size:13px; }
+  button.case.on{ background:var(--blue); color:#fff; }
+  button:disabled{ opacity:.45; cursor:default; }
+  label{ font-size:13px; margin-left:10px; color:#374151; }
+  .caption{ background:#eef2ff; border-left:4px solid var(--blue); padding:9px 12px;
+            border-radius:6px; font-size:14px; margin:8px 0; min-height:40px; max-width:1000px;
+            line-height:1.5; }
+  .stepno{ font-size:12px; color:#6b7280; margin-bottom:4px; }
+  .wrap{ display:flex; gap:22px; flex-wrap:wrap; align-items:flex-start; }
+  .panel{ background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:12px 14px; }
+  .ptitle{ color:var(--blue); font-weight:600; margin-bottom:6px; font-size:14px; }
+  .ptitle span{ font-weight:400; color:#6b7280; font-size:12px; }
+  svg text{ font-family:ui-monospace,Menlo,Consolas,monospace; }
+  code{ font-family:ui-monospace,Menlo,Consolas,monospace; background:#f1f3f9; padding:1px 4px;
+        border-radius:4px; }
+  .formula{ font-family:ui-monospace,Menlo,Consolas,monospace; font-size:13px; color:#111;
+            background:#f6f8ff; border:1px solid #e5e7eb; border-radius:8px; padding:8px 10px;
+            max-width:1000px; line-height:1.7; }
+  table{ border-collapse:collapse; font-size:13px; } td,th{ padding:3px 10px; text-align:right; }
+  th{ color:#6b7280; font-weight:600; }
+</style>
+</head>
+<body>
+<h1>Quantum phase estimation &mdash; interactive walkthrough</h1>
+<div class="sub">Standard QPE with <b>t&nbsp;=&nbsp;3</b> counting qubits (grid size
+<b>T&nbsp;=&nbsp;2<sup>t</sup>&nbsp;=&nbsp;8</b>) on a unitary with eigenphase &phi;,
+<code>U|&psi;&rang; = e<sup>2&pi;i&phi;</sup>|&psi;&rang;</code>. The three stages
+(Example&nbsp;4.21): (1)&nbsp;Hadamards build the uniform superposition; (2)&nbsp;the controlled
+powers kick back the phase <code>e<sup>2&pi;i&phi;j</sup></code> onto ancilla <code>|j&rang;</code>;
+(3)&nbsp;the inverse QFT concentrates the comb and we measure <code>k</code>. The outcome amplitude
+is exactly the <b>&gamma;<sub>k</sub></b> of Theorem&nbsp;4.24, and the bars below are
+<code>|&gamma;<sub>k</sub>|&sup2;</code>. Dyadic &phi;&nbsp;=&nbsp;k/T give a single deterministic
+outcome; a non-dyadic &phi; spreads over a peaked comb.</div>
+
+<div class="controls">
+  <b style="font-size:13px;color:#374151;">Case:</b>
+  <button class="case on" data-phi="0.125"   data-lab="U = P(&pi;/4) = diag(1, e^{i&pi;/4}),  |&psi;&rang; = |1&rang;.  &phi; = 1/8 = 0.001&#8322;  &rarr; outcome 001 (k=1), deterministic.">P(&pi;/4) on |1&rang;, &phi;=1/8</button>
+  <button class="case" data-phi="0.5"     data-lab="U = Z = diag(1,-1),  |&psi;&rang; = |1&rang;.  &phi; = 1/2  &rarr; outcome 100 (k=4), deterministic.">Z on |1&rang;, &phi;=1/2</button>
+  <button class="case" data-phi="0.0"     data-lab="U = Z,  |&psi;&rang; = |0&rang;.  &phi; = 0  &rarr; outcome 000 (k=0), deterministic.">Z on |0&rang;, &phi;=0</button>
+  <button class="case" data-phi="0.333333333333" data-lab="Non-dyadic &phi; = 1/3 (Remark 4.22). Not any k/8, so the inverse QFT spreads the result: peak at k=3 (&asymp;0.688), then k=2 (&asymp;0.175).">non-dyadic &phi;=1/3</button>
+</div>
+<div class="controls">
+  <label>&phi; = <span id="phival">0.125</span>
+    <input id="phi" type="range" min="0" max="1" value="0.125" step="0.0005" style="width:280px;vertical-align:middle;"/></label>
+</div>
+<div class="controls">
+  <button id="reset" class="sec">&#8635; Reset</button>
+  <button id="step" >Step &#9654;</button>
+  <button id="play" class="sec">&#9654; Play all</button>
+</div>
+
+<div class="stepno" id="stepno"></div>
+<div class="caption" id="caption"></div>
+
+<div class="wrap">
+  <div class="panel">
+    <div class="ptitle">Ancilla register &nbsp;<span>8 basis states |j&rang;, arrow = phase of the amplitude</span></div>
+    <svg id="clocks" width="620" height="150" viewBox="0 0 620 150"></svg>
+  </div>
+  <div class="panel">
+    <div class="ptitle">Measurement &nbsp;<span>probability |&gamma;<sub>k</sub>|&sup2; of reading k (binary below)</span></div>
+    <svg id="bars" width="420" height="230" viewBox="0 0 420 230"></svg>
+  </div>
+</div>
+
+<h2>Theorem 4.24 &mdash; the amplitude &gamma;<sub>k</sub> and the precision bound</h2>
+<div class="formula">
+&gamma;<sub>k</sub> = (1/T) &sum;<sub>j=0</sub><sup>T&minus;1</sup> e<sup>2&pi;i(&phi;&minus;k/T)j</sup>
+ = (1/T) &middot; (1 &minus; e<sup>2&pi;iT(&phi;&minus;k/T)</sup>) / (1 &minus; e<sup>2&pi;i(&phi;&minus;k/T)</sup>)
+ &nbsp;&nbsp;(=&nbsp;1 when &phi; = k/T).<br>
+Tail bound:&nbsp; P(|&phi; &minus; k&#771;/T|<sub>1</sub> &ge; &epsilon;) &le; 1/(2T&epsilon;) + 1/(2(T&epsilon;)&sup2;)
+&nbsp;&nbsp;&mdash; here <code>|&middot;|<sub>1</sub></code> is wrap-around (circular) distance.
+</div>
+<div class="controls">
+  <label>&epsilon; = <span id="epsval">2/8</span>
+    <input id="eps" type="range" min="1" max="4" value="2" step="1" style="vertical-align:middle;"/> &times; (1/T)</label>
+</div>
+<div class="panel" style="display:inline-block;">
+  <table id="boundtab">
+    <tr><th>quantity</th><th>value</th></tr>
+  </table>
+</div>
+
+<p class="sub" style="margin-top:16px;">
+Companion files: <code>qft_period.* </code> and the Chapter&nbsp;4 demo notebook
+(<code>demo/lec04_qft_phase_estimation.ipynb</code>). This page is a noiseless idealization of
+Brody&rsquo;s hardware run, whose histogram is dominated by the outcome <code>001</code>.</p>
+
+<script>
+(function(){
+  const T=8, t=3;
+  let phi=0.125, stage=0, timer=null;
+  const clocks=document.getElementById('clocks'), bars=document.getElementById('bars');
+  const caption=document.getElementById('caption'), stepno=document.getElementById('stepno');
+
+  function bin(k){ return k.toString(2).padStart(t,'0'); }
+  // gamma_k amplitude (complex) and |gamma_k|^2
+  function gamma(k){
+    let re=0, im=0;
+    for(let j=0;j<T;j++){ const a=2*Math.PI*j*(phi-k/T); re+=Math.cos(a); im+=Math.sin(a); }
+    re/=T; im/=T; return {re, im, p: re*re+im*im};
+  }
+  function allProbs(){ const o=[]; for(let k=0;k<T;k++) o.push(gamma(k).p); return o; }
+  function circDist(x){ x=((x%1)+1)%1; return Math.min(x,1-x); }
+
+  function renderClocks(){
+    let s=''; const r=22, gap=78, y=58, x0=42;
+    for(let j=0;j<T;j++){
+      const cx=x0+j*gap;
+      // stage 1: all phases 0 ; stage>=2: phase 2*pi*phi*j
+      const show = stage>=1;
+      const th = stage>=2 ? 2*Math.PI*phi*j : 0;
+      const ex=cx+r*Math.cos(th), ey=y-r*Math.sin(th);
+      s+=`<circle cx="${cx}" cy="${y}" r="${r}" fill="${show?'#eef2ff':'#f3f4f6'}" stroke="#c9ccd4"/>`;
+      if(show){
+        s+=`<line x1="${cx}" y1="${y}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="#1f3a8a" stroke-width="2.4"/>`;
+        s+=`<circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="2.6" fill="#c0392b"/>`;
+      }
+      s+=`<text x="${cx}" y="${y+r+16}" font-size="12" text-anchor="middle" fill="#374151">|${j}&#10217;</text>`;
+    }
+    const lab = stage===0 ? 'register |000&#10217; (not yet in superposition)'
+              : stage===1 ? 'uniform superposition &mdash; all phases aligned'
+              : 'phase kicked back:  arg = 2&#960;&#966;j';
+    s+=`<text x="${x0}" y="22" font-size="12" fill="#6b7280">${lab}</text>`;
+    clocks.innerHTML=s;
+  }
+
+  function renderBars(){
+    const W=420,H=230, x0=36, y0=176, bw=40, gap=6, hmax=150;
+    let s=`<line x1="${x0-6}" y1="${y0}" x2="${W-6}" y2="${y0}" stroke="#9ca3af"/>`;
+    const probs = stage>=3 ? allProbs() : new Array(T).fill(null);
+    let best=0, bestp=-1;
+    if(stage>=3){ const P=allProbs(); for(let k=0;k<T;k++) if(P[k]>bestp){bestp=P[k];best=k;} }
+    for(let k=0;k<T;k++){
+      const cx=x0+k*(bw+gap);
+      s+=`<rect x="${cx}" y="${y0-hmax}" width="${bw}" height="${hmax}" fill="#eef0f4"/>`;
+      if(stage>=3){
+        const h=Math.max(0.5,probs[k]*hmax);
+        const col = k===best ? '#d4a017' : '#0b603b';
+        s+=`<rect x="${cx}" y="${(y0-h).toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" fill="${col}"/>`;
+        if(probs[k]>0.012) s+=`<text x="${cx+bw/2}" y="${(y0-h-5).toFixed(1)}" font-size="11" text-anchor="middle" fill="#111">${probs[k].toFixed(2)}</text>`;
+      }
+      s+=`<text x="${cx+bw/2}" y="${y0+15}" font-size="11" text-anchor="middle" fill="#374151">${k}</text>`;
+      s+=`<text x="${cx+bw/2}" y="${y0+29}" font-size="10" text-anchor="middle" fill="#6b7280">${bin(k)}</text>`;
+    }
+    if(stage>=3){
+      // continuous envelope |gamma(kappa)|^2 (Fejer kernel) that the integer-k bars sample
+      let pts=[];
+      for(let kk=0; kk<=T-1+0.5; kk+=0.04){
+        let re=0,im=0; for(let j=0;j<T;j++){const a=2*Math.PI*j*(phi-kk/T); re+=Math.cos(a); im+=Math.sin(a);}
+        const p=(re*re+im*im)/(T*T);
+        const cx=x0+kk*(bw+gap)+bw/2, yy=y0-Math.max(0,Math.min(1,p))*hmax;
+        pts.push(cx.toFixed(1)+','+yy.toFixed(1));
+      }
+      s+=`<polyline points="${pts.join(' ')}" fill="none" stroke="#c0392b" stroke-width="1.6" opacity="0.9"/>`;
+      s+=`<text x="${W-8}" y="16" font-size="11" text-anchor="end" fill="#c0392b">|&#947;(&#954;)|&sup2; envelope</text>`;
+    }
+    if(stage<3) s+=`<text x="${W/2}" y="90" font-size="13" text-anchor="middle" fill="#9ca3af">(apply inverse QFT to read out)</text>`;
+    bars.innerHTML=s;
+  }
+
+  function renderBound(){
+    const m=+document.getElementById('eps').value, eps=m/T;
+    document.getElementById('epsval').value;
+    document.getElementById('epsval').textContent=m+'/8';
+    const P=allProbs();
+    let tail=0; for(let k=0;k<T;k++){ if(circDist(k/T-phi)>=eps-1e-9) tail+=P[k]; }
+    const bound=Math.min(1, 1/(2*T*eps)+1/(2*(T*eps)*(T*eps)));
+    // best outcome
+    let best=0,bp=-1; for(let k=0;k<T;k++) if(P[k]>bp){bp=P[k];best=k;}
+    const g=gamma(best);
+    const rows=[
+      ['&phi;', phi.toFixed(4)],
+      ['best outcome k&#771;', best+' = '+bin(best)+'  (k&#771;/T = '+(best/T).toFixed(3)+')'],
+      ['&gamma;<sub>k&#771;</sub>', g.re.toFixed(3)+(g.im>=0?' + ':' &minus; ')+Math.abs(g.im).toFixed(3)+'i'],
+      ['|&gamma;<sub>k&#771;</sub>|&sup2; (success prob.)', bp.toFixed(4)],
+      ['&epsilon;', eps.toFixed(3)+'  (= '+m+'/T)'],
+      ['actual P(error &ge; &epsilon;)', tail.toFixed(4)],
+      ['Thm 4.24 upper bound', bound.toFixed(4)],
+      ['bound holds?', (tail<=bound+1e-9)?'&#10003; yes':'&#10007;']
+    ];
+    let s='<tr><th>quantity</th><th>value</th></tr>';
+    for(const [a,b] of rows) s+=`<tr><td style="text-align:left;color:#374151;">${a}</td><td><b>${b}</b></td></tr>`;
+    document.getElementById('boundtab').innerHTML=s;
+  }
+
+  function renderAll(){ renderClocks(); renderBars(); renderBound();
+    stepno.textContent = 'Stage '+stage+' of 3';
+    const caps=[
+      'Press <b>Step</b> to run the three QPE stages, or drag &#966; / pick a case. The amplitude &#947;<sub>k</sub> and the Theorem&nbsp;4.24 bound below update live.',
+      '<b>Stage 1 &mdash; superposition.</b> Hadamards on the 3 counting qubits give (1/&#8730;8)&#8721;<sub>j</sub>|j&#10217;&#8855;|&#968;&#10217;. All eight phases point the same way.',
+      '<b>Stage 2 &mdash; controlled powers.</b> Controlled-U, U&sup2;, U&#8308; kick back e<sup>2&#960;i&#966;j</sup> onto |j&#10217;; the ancilla becomes (1/&#8730;8)&#8721;<sub>j</sub>e<sup>2&#960;i&#966;j</sup>|j&#10217; = QFT|T&#966;&#10217; when T&#966; is an integer.',
+      '<b>Stage 3 &mdash; inverse-QFT readout.</b> Measuring gives k with probability |&#947;<sub>k</sub>|&sup2;. Dyadic &#966; collapses to one outcome; a non-dyadic &#966; peaks at the nearest k/T, with the tail controlled by Theorem&nbsp;4.24.'
+    ];
+    caption.innerHTML=caps[stage];
+    document.getElementById('step').disabled = stage>=3;
+  }
+
+  // controls
+  document.getElementById('step').onclick=()=>{ if(stage<3){stage++; renderAll();} };
+  document.getElementById('reset').onclick=()=>{ if(timer){clearInterval(timer);timer=null;} stage=0; renderAll(); };
+  document.getElementById('play').onclick=()=>{ if(timer){clearInterval(timer);timer=null;} stage=0; renderAll();
+    timer=setInterval(()=>{ if(stage>=3){clearInterval(timer);timer=null;return;} stage++; renderAll(); },1100); };
+  const phiSlider=document.getElementById('phi');
+  phiSlider.oninput=()=>{ phi=+phiSlider.value; document.getElementById('phival').textContent=phi.toFixed(4);
+    document.querySelectorAll('button.case').forEach(b=>b.classList.remove('on')); renderAll(); };
+  document.getElementById('eps').oninput=renderBound;
+  document.querySelectorAll('button.case').forEach(btn=>{
+    btn.onclick=()=>{ document.querySelectorAll('button.case').forEach(b=>b.classList.remove('on')); btn.classList.add('on');
+      phi=+btn.dataset.phi; phiSlider.value=phi; document.getElementById('phival').textContent=phi.toFixed(4);
+      stage=3; renderAll(); caption.innerHTML='<b>'+btn.dataset.lab+'</b>'; };
+  });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
