@@ -284,19 +284,33 @@ $\mathcal P=\operatorname{span}\{\ket{\phi_{\mathrm{good}}},
 由 \cref{sec:lec03-4} 的振幅放大 (amplitude amplification) 分析，$G$ 限制到 $\mathcal P$ 上是旋转
 $\left(\begin{smallmatrix}\cos\theta&\sin\theta\\-\sin\theta&\cos\theta
 \end{smallmatrix}\right)$，基为
-$\{\ket{\phi_{\mathrm{good}}},\ket{\phi_{\mathrm{bad}}}\}$。一个角 $\theta$ 的实旋转 (rotation) 具有本征值 $\ee^{\pm\ii\theta}$，对应本征向量
-$\tfrac{1}{\sqrt2}(\ket{\phi_{\mathrm{good}}}\pm\ii\ket{\phi_{\mathrm{bad}}})
-=\ket{\phi_{\pm}}$，如所述。将
+$\{\ket{\phi_{\mathrm{good}}},\ket{\phi_{\mathrm{bad}}}\}$。平面旋转不能用任何实向量对角化，而要用
+\emph{手征}（circular）向量
+$\ket{\phi_\pm}=\tfrac{1}{\sqrt2}(\ket{\phi_{\mathrm{good}}}\pm\ii\ket{\phi_{\mathrm{bad}}})$：
+作用该矩阵并利用
+$-\sin\theta\pm\ii\cos\theta=\pm\ii(\cos\theta\pm\ii\sin\theta)=\pm\ii\,\ee^{\pm\ii\theta}$，
+\[
+  G\ket{\phi_\pm}
+  =\tfrac{1}{\sqrt2}\bigl[(\cos\theta\pm\ii\sin\theta)\ket{\phi_{\mathrm{good}}}
+      +(-\sin\theta\pm\ii\cos\theta)\ket{\phi_{\mathrm{bad}}}\bigr]
+  =\ee^{\pm\ii\theta}\ket{\phi_\pm}.
+\]
+（等价地，$\ket{\phi_\pm}$ 是旋转生成元 $J=\left(\begin{smallmatrix}0&1\\-1&0\end{smallmatrix}\right)$
+的本征向量，满足 $J\ket{\phi_\pm}=\mp\ii\ket{\phi_\pm}$ 且 $G=\ee^{\theta J}$；旋转对手征组合
+$\ket{\phi_{\mathrm{good}}}\pm\ii\ket{\phi_{\mathrm{bad}}}$ 的作用纯粹是一个相位。）这就是所断言的本征关系。将
 $\ket{\phi_0}=\sin(\theta/2)\ket{\phi_{\mathrm{good}}}
 +\cos(\theta/2)\ket{\phi_{\mathrm{bad}}}$ 写出并投影，
 \[
-  \abs{\braket{\phi_{\pm}|\phi_0}}^2
-  =\tfrac12\abs{\sin\tfrac{\theta}{2}\mp\ii\cos\tfrac{\theta}{2}}^2
-  =\tfrac12\bigl(\sin^2\tfrac{\theta}{2}+\cos^2\tfrac{\theta}{2}\bigr)
-  =\tfrac12.
+  \braket{\phi_{\pm}|\phi_0}
+  =\tfrac{1}{\sqrt2}\bigl(\sin\tfrac{\theta}{2}\mp\ii\cos\tfrac{\theta}{2}\bigr)
+  =\tfrac{1}{\sqrt2}\,\ee^{\ii\alpha_\pm},
+  \qquad \alpha_\pm=\mp\bigl(\tfrac{\pi}{2}-\tfrac{\theta}{2}\bigr),
 \]
-于是 $\ket{\phi_0}=\tfrac{1}{\sqrt2}(\ee^{\ii\alpha_+}\ket{\phi_+}
-+\ee^{\ii\alpha_-}\ket{\phi_-})$ 是两个本征态的等权叠加 (superposition)；对 $G$ 施加的 QPE（\cref{def:lec04-qpe}）各以概率 $\tfrac12$ 坍缩到 $\ket{\phi_\pm}$，并返回相应本征相位 (eigenphase) $\pm\theta$ 的估计。由于 $P=\sin^2(\theta/2)$ 关于 $\theta$ 为偶，两种结果都能确定 $P$。
+故 $\abs{\braket{\phi_{\pm}|\phi_0}}^2=\tfrac12$。于是
+$\ket{\phi_0}=\tfrac{1}{\sqrt2}(\ee^{\ii\alpha_+}\ket{\phi_+}+\ee^{\ii\alpha_-}\ket{\phi_-})$
+是两个本征态的等权叠加 (superposition)——其中交叠相位 $\alpha_\pm$ 对下文无关紧要。因此对 $G$
+施加的 QPE（\cref{def:lec04-qpe}）各以概率 $\tfrac12$ 坍缩到 $\ket{\phi_\pm}$，并返回相应本征相位
+(eigenphase) $\pm\theta$ 的估计。由于 $P=\sin^2(\theta/2)$ 关于 $\theta$ 为偶，两种结果都能确定 $P$。
 \end{proof}
 
 所得线路---制备 $\ket{\phi_0}=U_{\phi}\ket{0^n}$，然后对 Grover 迭代 $G$ 做相位估计---如 \cref{fig:lec05-ae} 所示。

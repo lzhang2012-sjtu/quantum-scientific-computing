@@ -440,24 +440,38 @@ By the amplitude-amplification analysis of \cref{sec:lec03-4}, $G$ restricted to
 $\mathcal P$ is the rotation
 $\left(\begin{smallmatrix}\cos\theta&\sin\theta\\-\sin\theta&\cos\theta
 \end{smallmatrix}\right)$ in the basis
-$\{\ket{\phi_{\mathrm{good}}},\ket{\phi_{\mathrm{bad}}}\}$. A real rotation by
-$\theta$ has eigenvalues $\ee^{\pm\ii\theta}$ with eigenvectors
-$\tfrac{1}{\sqrt2}(\ket{\phi_{\mathrm{good}}}\pm\ii\ket{\phi_{\mathrm{bad}}})
-=\ket{\phi_{\pm}}$, as stated. Writing
+$\{\ket{\phi_{\mathrm{good}}},\ket{\phi_{\mathrm{bad}}}\}$. A planar rotation is
+diagonalized not by any real pair but by the \emph{circular} vectors
+$\ket{\phi_\pm}=\tfrac{1}{\sqrt2}(\ket{\phi_{\mathrm{good}}}
+\pm\ii\ket{\phi_{\mathrm{bad}}})$: applying the matrix and using
+$-\sin\theta\pm\ii\cos\theta=\pm\ii(\cos\theta\pm\ii\sin\theta)=\pm\ii\,\ee^{\pm\ii\theta}$,
+\[
+  G\ket{\phi_\pm}
+  =\tfrac{1}{\sqrt2}\bigl[(\cos\theta\pm\ii\sin\theta)\ket{\phi_{\mathrm{good}}}
+      +(-\sin\theta\pm\ii\cos\theta)\ket{\phi_{\mathrm{bad}}}\bigr]
+  =\ee^{\pm\ii\theta}\ket{\phi_\pm}.
+\]
+(Equivalently, $\ket{\phi_\pm}$ are the eigenvectors of the rotation generator
+$J=\left(\begin{smallmatrix}0&1\\-1&0\end{smallmatrix}\right)$, with
+$J\ket{\phi_\pm}=\mp\ii\ket{\phi_\pm}$ and $G=\ee^{\theta J}$; a rotation acts on the
+chiral combinations $\ket{\phi_{\mathrm{good}}}\pm\ii\ket{\phi_{\mathrm{bad}}}$ purely
+as a phase.) This is the eigen-relation claimed. Writing
 $\ket{\phi_0}=\sin(\theta/2)\ket{\phi_{\mathrm{good}}}
 +\cos(\theta/2)\ket{\phi_{\mathrm{bad}}}$ and projecting,
 \[
-  \abs{\braket{\phi_{\pm}|\phi_0}}^2
-  =\tfrac12\abs{\sin\tfrac{\theta}{2}\mp\ii\cos\tfrac{\theta}{2}}^2
-  =\tfrac12\bigl(\sin^2\tfrac{\theta}{2}+\cos^2\tfrac{\theta}{2}\bigr)
-  =\tfrac12.
+  \braket{\phi_{\pm}|\phi_0}
+  =\tfrac{1}{\sqrt2}\bigl(\sin\tfrac{\theta}{2}\mp\ii\cos\tfrac{\theta}{2}\bigr)
+  =\tfrac{1}{\sqrt2}\,\ee^{\ii\alpha_\pm},
+  \qquad \alpha_\pm=\mp\bigl(\tfrac{\pi}{2}-\tfrac{\theta}{2}\bigr),
 \]
-Thus $\ket{\phi_0}=\tfrac{1}{\sqrt2}(\ee^{\ii\alpha_+}\ket{\phi_+}
-+\ee^{\ii\alpha_-}\ket{\phi_-})$ is an equal superposition of the two
-eigenstates; QPE (\cref{def:lec04-qpe}) applied to $G$ collapses onto
-$\ket{\phi_\pm}$ with probability $\tfrac12$ each and returns an estimate of the
-corresponding eigenphase $\pm\theta$. Since $P=\sin^2(\theta/2)$ is even in
-$\theta$, either outcome determines $P$.
+so $\abs{\braket{\phi_{\pm}|\phi_0}}^2=\tfrac12$. Thus
+$\ket{\phi_0}=\tfrac{1}{\sqrt2}(\ee^{\ii\alpha_+}\ket{\phi_+}
++\ee^{\ii\alpha_-}\ket{\phi_-})$ is an equal-weight superposition of the two
+eigenstates---the overlap phases $\alpha_\pm$ are immaterial to what follows. QPE
+(\cref{def:lec04-qpe}) applied to $G$ therefore collapses onto $\ket{\phi_\pm}$ with
+probability $\tfrac12$ each and returns an estimate of the corresponding eigenphase
+$\pm\theta$. Since $P=\sin^2(\theta/2)$ is even in $\theta$, either outcome determines
+$P$.
 \end{proof}
 
 The resulting circuit---prepare $\ket{\phi_0}=U_{\phi}\ket{0^n}$, then phase-estimate the
