@@ -269,7 +269,7 @@ Grover 算法（\cref{ch:lec03}）将一个态朝着被标记的``好''子空间
 
 \begin{theorem}[振幅估计即对 Grover 迭代做相位估计]
 \label{thm:lec05-ae}
-设 $R_{\mathrm{good}}=\id-2\proj{\phi_{\mathrm{good}}}$ 为关于好子空间的反射 (reflection)，$R_{\phi_0}=\id-2\proj{\phi_0}$ 为关于初始态的反射，并设 $G=R_{\phi_0}R_{\mathrm{good}}$ 为 Grover 迭代。在不变平面 (invariant plane)
+设 $R_{\mathrm{good}}=\id-2\proj{\phi_{\mathrm{good}}}$ 为关于好子空间的反射 (reflection)，$R_{\phi_0}=2\proj{\phi_0}-\id$ 为关于初始态的反射（采用 \cref{def:lec03-reflections} 中 Grover 扩散的符号约定，正是它使 $G$ 成为转角 $+\theta$、本征值为 $\ee^{\pm\ii\theta}$ 的旋转），并设 $G=R_{\phi_0}R_{\mathrm{good}}$ 为 Grover 迭代。在不变平面 (invariant plane)
 $\mathcal P=\operatorname{span}\{\ket{\phi_{\mathrm{good}}},
 \ket{\phi_{\mathrm{bad}}}\}$ 上，$G$ 的作用是旋转角 $\theta$，并具有本征态
 \[
