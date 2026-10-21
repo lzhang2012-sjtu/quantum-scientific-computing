@@ -587,10 +587,33 @@ $\ket{a}\ket{j}\mapsto\ket{a}\ket{(j+a)\bmod N}$, promote each middle phase
 $P_l^{(a)}$ to a phase \emph{controlled} by the qubits of the first register:
 writing $a=\sum_r a_r 2^{\,n-r}$, the phase $\ee^{\ii 2\pi a2^{\,n-l}/N}$ is built
 bit by bit from the $a_r$ using controlled-$R_k$ gates, exactly the gate family of
-the QFT itself. The two-register adder then uses $\bigo(n^2)$ controlled-phase
-gates between the QFT pair and needs \emph{no carry ancillas}---in contrast to a
-ripple-carry adder, which propagates carries through Toffoli gates and requires an
-extra register.
+the QFT itself. Concretely (with $N=2^n$, so the reduction $\bmod\,N$ is automatic),
+the control $a_r$ acting on the Fourier-mode qubit $j_l$ contributes a controlled
+$R_{\,r+l-n}$, where $R_k=\diag\bigl(1,\ee^{\ii 2\pi/2^{k}}\bigr)$; only the pairs with
+$r+l>n$ act nontrivially, giving $\tfrac12 n(n+1)$ controlled-phase gates
+(\cref{fig:lec04-draper2}). The two-register adder thus uses $\bigo(n^2)$
+controlled-phase gates between the QFT pair and needs \emph{no carry ancillas}---in
+contrast to a ripple-carry adder, which propagates carries through Toffoli gates and
+requires an extra register.
+
+\begin{figure}[ht]
+\centering
+\begin{quantikz}
+  \lstick{$\ket{a_1}$} & \qw            & \qw        & \qw        & \qw        & \ctrl{5}   & \qw        & \qw        & \qw \\
+  \lstick{$\ket{a_2}$} & \qw            & \qw        & \ctrl{3}   & \qw        & \qw        & \ctrl{4}   & \qw        & \qw \\
+  \lstick{$\ket{a_3}$} & \qw            & \ctrl{1}   & \qw        & \ctrl{2}   & \qw        & \qw        & \ctrl{3}   & \qw \\
+  \lstick{$\ket{j_1}$} & \gate[3]{\QFT} & \gate{R_1} & \qw        & \qw        & \qw        & \qw        & \qw        & \gate[3]{\QFT\dg} \\
+  \lstick{$\ket{j_2}$} &                & \qw        & \gate{R_1} & \gate{R_2} & \qw        & \qw        & \qw        & \\
+  \lstick{$\ket{j_3}$} &                & \qw        & \qw        & \qw        & \gate{R_1} & \gate{R_2} & \gate{R_3} &
+\end{quantikz}
+\caption{The two-register Draper adder $\ket{a}\ket{j}\mapsto\ket{a}\ket{(j+a)\bmod N}$
+for $n=3$ ($N=2^3$). Fourier-transform the target register, apply the controlled
+phases $R_{\,r+l-n}$ (control $a_r$, target $j_l$; only $r+l>n$ contribute), then invert
+the QFT. The first register is untouched and no carry ancillas are needed; the whole
+block between the QFTs is diagonal, so the controlled phases commute and may be
+reordered freely.}
+\label{fig:lec04-draper2}
+\end{figure}
 
 \begin{remark}[From adders to circulant matrices: a bridge to \cref{ch:lec07}]
 \label{rem:lec04-adder-lcu}
