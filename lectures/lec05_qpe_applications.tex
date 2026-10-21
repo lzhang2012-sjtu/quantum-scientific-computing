@@ -418,7 +418,9 @@ coherently.
 \begin{theorem}[Amplitude estimation as phase estimation of the Grover iterate]
 \label{thm:lec05-ae}
 Let $R_{\mathrm{good}}=\id-2\proj{\phi_{\mathrm{good}}}$ reflect about the good
-subspace and $R_{\phi_0}=\id-2\proj{\phi_0}$ reflect about the initial state, and
+subspace and $R_{\phi_0}=2\proj{\phi_0}-\id$ reflect about the initial state (the
+Grover-diffusion sign convention of \cref{def:lec03-reflections}, which is what makes
+$G$ a rotation by $+\theta$ with eigenvalues $\ee^{\pm\ii\theta}$), and
 let $G=R_{\phi_0}R_{\mathrm{good}}$ be the Grover iterate. On the invariant plane
 $\mathcal P=\operatorname{span}\{\ket{\phi_{\mathrm{good}}},
 \ket{\phi_{\mathrm{bad}}}\}$, $G$ acts as rotation by $\theta$ and has eigenstates
