@@ -691,6 +691,25 @@ $k=3$（$\tfrac38$，$0.333\ldots$ 的最近三比特近似）上、
 $\approx0.175$ 放在 $k=2$ 上，其余放在另外六个结果上。因此单次
 运行以高概率——但不再是单位概率——返回最佳三比特估计，
 恰是接下来分析的那个峰状分布。
+
+\begin{center}
+\begin{tikzpicture}[x=0.92cm,y=4.6cm]
+  \draw[->] (-0.4,0) -- (8.1,0) node[right,font=\small]{$k$};
+  \draw[->] (-0.4,0) -- (-0.4,0.78) node[above,font=\small]{$|\gamma_k|^2$};
+  \foreach \y in {0,0.2,0.4,0.6}
+    \draw (-0.46,\y)--(-0.4,\y) node[left,font=\scriptsize]{$\y$};
+  \foreach \k/\p/\c in {0/0.016/blue!55,1/0.032/blue!55,2/0.175/teal!70,3/0.688/orange!85,%
+                        4/0.047/blue!55,5/0.019/blue!55,6/0.013/blue!55,7/0.012/blue!55}{
+    \fill[\c] (\k-0.3,0) rectangle (\k+0.3,\p);
+    \node[below,font=\scriptsize] at (\k,-0.008){$\k$};
+  }
+  \node[above,font=\scriptsize] at (3,0.688){$0.69$};
+  \node[above,font=\scriptsize] at (2,0.175){$0.17$};
+\end{tikzpicture}
+\end{center}
+\noindent\small 对 $\varphi=\tfrac13$、$T=8$ 的逆 QFT 输出概率 $|\gamma_k|^2$：这个梳状分布是
+\emph{峰状}的，集中在最接近的三比特格点 $k=3$（$\tfrac38$）上，其余主要溢出到相邻的
+$k=2$——这正是 \cref{thm:lec04-precision} 所界定的非二进分数相位的特征。
 \end{remark}
 
 \begin{remark}[从比特读出本征值；叠加的本征态]

@@ -835,6 +835,27 @@ $k=3$ ($\tfrac38$, the closest three-bit approximation to $0.333\ldots$),
 $\approx0.175$ on $k=2$, and the remainder on the other six outcomes. A single
 run therefore returns the best three-bit estimate with high---but no longer
 unit---probability, exactly the peaked distribution analyzed next.
+
+\begin{center}
+\begin{tikzpicture}[x=0.92cm,y=4.6cm]
+  \draw[->] (-0.4,0) -- (8.1,0) node[right,font=\small]{$k$};
+  \draw[->] (-0.4,0) -- (-0.4,0.78) node[above,font=\small]{$|\gamma_k|^2$};
+  \foreach \y in {0,0.2,0.4,0.6}
+    \draw (-0.46,\y)--(-0.4,\y) node[left,font=\scriptsize]{$\y$};
+  \foreach \k/\p/\c in {0/0.016/blue!55,1/0.032/blue!55,2/0.175/teal!70,3/0.688/orange!85,%
+                        4/0.047/blue!55,5/0.019/blue!55,6/0.013/blue!55,7/0.012/blue!55}{
+    \fill[\c] (\k-0.3,0) rectangle (\k+0.3,\p);
+    \node[below,font=\scriptsize] at (\k,-0.008){$\k$};
+  }
+  \node[above,font=\scriptsize] at (3,0.688){$0.69$};
+  \node[above,font=\scriptsize] at (2,0.175){$0.17$};
+\end{tikzpicture}
+\end{center}
+\noindent\small The inverse-QFT output probabilities $|\gamma_k|^2$ for
+$\varphi=\tfrac13$, $T=8$: the comb is \emph{peaked}, concentrating on the nearest
+three-bit grid point $k=3$ ($\tfrac38$), with the rest spilling mainly onto its
+neighbor $k=2$---the signature of a non-dyadic phase that
+\cref{thm:lec04-precision} bounds.
 \end{remark}
 
 \begin{remark}[Reading the eigenvalue off the bits; superposed eigenstates]
