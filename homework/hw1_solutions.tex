@@ -1,0 +1,278 @@
+\documentclass[11pt]{article}
+
+% ---- packages ----
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{braket}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
+
+% ---- macros (subset of the course preamble) ----
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\ii}{\mathrm{i}}
+\newcommand{\ee}{\mathrm{e}}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\Tr}{Tr}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\diag}{diag}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\abs}[1]{\left\lvert #1 \right\rvert}
+\newcommand{\bigo}{\mathcal{O}}
+\newcommand{\id}{\mathbb{I}}
+\newcommand{\dg}{^{\dagger}}
+\newcommand{\proj}[1]{\ket{#1}\!\bra{#1}}
+\newcommand{\CNOT}{\mathrm{CNOT}}
+\newcommand{\QFT}{\mathrm{QFT}}
+\newcommand{\defeq}{\vcentcolon=}
+
+\newcommand{\sol}{\smallskip\noindent\textit{Solution.}\ }
+\newcommand{\problem}[1]{\bigskip\noindent\textbf{Problem #1.}\ }
+
+\title{\textbf{Quantum Scientific Computing (QSC2026)}\\[0.3em]\large Homework~1 --- Solutions}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-2.4em}
+\noindent\small These solutions show the intended level of detail; many admit
+equivalent routes. Numerical answers are exact where a closed form exists and
+rounded to four digits otherwise.
+\normalsize
+
+% ======================================================================
+\problem{1 (Single qubit)}
+$\ket{\psi}=a\ket0+b\ket1$ with $a=\cos\tfrac\pi8$, $b=\ee^{\ii\pi/4}\sin\tfrac\pi8$.
+
+\sol
+\textbf{(a)} $\abs a^2+\abs b^2=\cos^2\tfrac\pi8+\sin^2\tfrac\pi8=1$. The
+computational-basis probabilities are
+$\Prob(0)=\cos^2\tfrac\pi8=\tfrac{2+\sqrt2}{4}\approx0.8536$ and
+$\Prob(1)=\sin^2\tfrac\pi8=\tfrac{2-\sqrt2}{4}\approx0.1464$.
+
+\textbf{(b)} With $\bar a b=\cos\tfrac\pi8\sin\tfrac\pi8\,\ee^{\ii\pi/4}
+=\tfrac12\sin\tfrac\pi4\,\ee^{\ii\pi/4}=\tfrac{\sqrt2}{4}\ee^{\ii\pi/4}$,
+\[
+ \braket{X}=2\Re(\bar a b)=\tfrac{\sqrt2}{4}\cdot 2\cos\tfrac\pi4=\tfrac12,\quad
+ \braket{Y}=2\Im(\bar a b)=\tfrac12,\quad
+ \braket{Z}=\abs a^2-\abs b^2=\cos\tfrac\pi4=\tfrac{\sqrt2}{2}.
+\]
+Bloch vector $\mathbf r=(\tfrac12,\tfrac12,\tfrac{\sqrt2}{2})$, with
+$\abs{\mathbf r}^2=\tfrac14+\tfrac14+\tfrac12=1$ (pure state).
+
+\textbf{(c)} $\Prob(+)=\abs{\braket{+|\psi}}^2=\tfrac12\abs{a+b}^2
+=\tfrac12\bigl(1+2\Re(\bar a b)\bigr)=\tfrac12(1+\braket{X})=\tfrac12(1+\tfrac12)=\tfrac34$.
+(The identity $\Prob(+)=\tfrac12(1+\braket{X})$ is the general rule for an $X$-basis
+measurement.)
+
+\textbf{(d)} A $Z$-measurement returns $\pm1$ with variance
+$\Var=1-\braket{Z}^2=1-\tfrac12=\tfrac12$; the empirical mean has error
+$\approx z\sqrt{\Var/N}$ at confidence level set by $z$. Setting this to
+$\epsilon=0.05$ with $z\approx2$ gives $N\approx z^2\Var/\epsilon^2
+=4\cdot0.5/0.0025\approx800$. The point is the shot-noise law $N=\Theta(1/\epsilon^2)$
+(hundreds to a few thousand shots here).
+
+% ======================================================================
+\problem{2 (Separability test)}
+A state $a\ket{00}+b\ket{01}+c\ket{10}+d\ket{11}$ factorizes iff $ad=bc$.
+
+\sol
+\textbf{(a)} $a=b=c=d=\tfrac12$: $ad=\tfrac14=bc$, so it is a \emph{product} state,
+$=\tfrac12(\ket0+\ket1)(\ket0+\ket1)=\ket{+}\otimes\ket{+}$.
+
+\textbf{(b)} $a=\tfrac1{\sqrt2},\,d=-\tfrac1{\sqrt2},\,b=c=0$: $ad=-\tfrac12\neq0=bc$,
+so it is \emph{entangled} (the Bell state $\ket{\Phi^-}$).
+
+\textbf{(c)} $a=b=c=\tfrac12,\,d=-\tfrac12$: $ad=-\tfrac14\neq\tfrac14=bc$, so it is
+\emph{entangled}.
+
+\textbf{(d)} If $\tfrac1{\sqrt2}(\ket{00}+\ket{11})=(\alpha\ket0+\beta\ket1)
+(\gamma\ket0+\delta\ket1)$ then matching coefficients gives
+$\alpha\gamma=\beta\delta=\tfrac1{\sqrt2}$ (so $\alpha,\beta,\gamma,\delta\neq0$) but
+$\alpha\delta=\beta\gamma=0$ (coefficients of $\ket{01},\ket{10}$), a contradiction.
+Hence no factorization exists; equivalently $ad-bc=\tfrac12\neq0$.
+
+% ======================================================================
+\problem{3 (Gates, reversibility, no-cloning)}
+
+\sol
+\textbf{(a)} $(H\otimes\id)\ket{00}=\ket{+}\ket0=\tfrac1{\sqrt2}(\ket{00}+\ket{10})$;
+then $\CNOT$ (control first) sends $\ket{10}\mapsto\ket{11}$, giving
+$\tfrac1{\sqrt2}(\ket{00}+\ket{11})=\ket{\Phi^+}$.
+
+\textbf{(b)} Toffoli: $\ket{a,b,c}\mapsto\ket{a,b,\,c\oplus(a\wedge b)}$, so with
+$c=0$ it writes $a\wedge b$ onto the third qubit. It is its own inverse, hence
+reversible. The bare map $(a,b)\mapsto a\wedge b$ is $2\to1$ and not injective (both
+$01$ and $00$ give $0$), so it cannot be a unitary on two qubits; keeping $a,b$ and
+writing the result on a fresh qubit restores invertibility.
+
+\textbf{(c)} Take $U=\CNOT$ and $\ket{s}=\ket0$: then $U\ket0\ket0=\ket{00}$ and
+$U\ket1\ket0=\ket{11}$ as required. On a general input,
+$U(\alpha\ket0+\beta\ket1)\ket0=\alpha\ket{00}+\beta\ket{11}$, whereas a true copy
+would be $(\alpha\ket0+\beta\ket1)^{\otimes2}
+=\alpha^2\ket{00}+\alpha\beta\ket{01}+\alpha\beta\ket{10}+\beta^2\ket{11}$. These
+agree only when $\alpha\beta=0$, i.e.\ for basis inputs; $U$ entangles instead of
+copying. Linearity forbids a universal cloner---this is the no-cloning theorem.
+
+% ======================================================================
+\problem{4 (Teleportation)}
+Message $\ket\psi=\alpha\ket0+\beta\ket1$ on qubit~1; shared
+$\tfrac1{\sqrt2}(\ket{00}+\ket{11})$ on qubits~2 (Alice) and~3 (Bob).
+
+\sol
+\textbf{(a)} The joint state
+$\tfrac1{\sqrt2}(\alpha\ket{000}+\alpha\ket{011}+\beta\ket{100}+\beta\ket{111})$
+re-expressed in the Bell basis of qubits $1,2$ is
+\[
+ \tfrac12\Bigl[\ket{\Phi^+}(\alpha\ket0+\beta\ket1)+\ket{\Phi^-}(\alpha\ket0-\beta\ket1)
+ +\ket{\Psi^+}(\alpha\ket1+\beta\ket0)+\ket{\Psi^-}(\alpha\ket1-\beta\ket0)\Bigr]_3 .
+\]
+With the standard $\CNOT_{1\to2}$ then $H_1$ measurement giving bits $(m_1,m_2)$, the
+four outcomes and Bob's pre-correction states are
+$(0,0)\!\to\!\ket\psi$, $(0,1)\!\to\! X\ket\psi$, $(1,0)\!\to\! Z\ket\psi$,
+$(1,1)\!\to\! XZ\ket\psi$, each with probability $\tfrac14$.
+
+\textbf{(b)} For $(m_1,m_2)=(1,1)$ the pre-correction state is
+$XZ\ket\psi=\alpha\ket1-\beta\ket0$. Bob applies $X$ then $Z$ (i.e.\ $Z^{m_1}X^{m_2}$):
+$X(\alpha\ket1-\beta\ket0)=\alpha\ket0-\beta\ket1=Z\ket\psi$, then
+$Z(\alpha\ket0-\beta\ket1)=\alpha\ket0+\beta\ket1=\ket\psi$. Restored.
+
+\textbf{(c)} Before the bits arrive, all four outcomes are equally likely, so Bob's
+density operator is $\tfrac14\sum_{P\in\{\id,X,Z,XZ\}}P\proj{\psi}P\dg=\tfrac12\id$,
+the maximally mixed state---independent of $\ket\psi$. Nothing Alice does changes
+Bob's local statistics until the two classical bits (sent no faster than light)
+arrive; hence no faster-than-light signaling.
+
+% ======================================================================
+\problem{5 (Phase kickback; Deutsch; Deutsch--Jozsa)}
+
+\sol
+\textbf{(a)} $U_f\ket{x}\tfrac1{\sqrt2}(\ket0-\ket1)
+=\tfrac1{\sqrt2}\ket x(\ket{f(x)}-\ket{1\oplus f(x)})
+=(-1)^{f(x)}\ket x\tfrac1{\sqrt2}(\ket0-\ket1)=(-1)^{f(x)}\ket x\ket-$, since the pair
+$(\ket{f(x)},\ket{1\oplus f(x)})$ equals $(\ket0,\ket1)$ if $f(x)=0$ and
+$(\ket1,\ket0)$ if $f(x)=1$.
+
+\textbf{(b)} The four functions: $f\equiv0$ and $f\equiv1$ are \emph{constant};
+$f(x)=x$ and $f(x)=1-x$ are \emph{balanced}. Deutsch prepares $\ket+\ket-$; phase
+kickback gives the first qubit $\propto(-1)^{f(0)}\ket0+(-1)^{f(1)}\ket1$. Applying
+$H$: if $f(0)=f(1)$ the qubit is $\pm\ket+\xrightarrow{H}\pm\ket0$ (measure $0$); if
+$f(0)\neq f(1)$ it is $\pm\ket-\xrightarrow{H}\pm\ket1$ (measure $1$). So the single
+query returns $0$ iff $f$ is constant.
+
+\textbf{(c)} In Deutsch--Jozsa the amplitude of $\ket{0^n}$ is
+$2^{-n}\sum_x(-1)^{f(x)}$: it equals $\pm1$ (probability $1$) when $f$ is constant and
+$0$ when $f$ is balanced. The promise ``$f$ is constant or balanced'' is what makes
+the one-query, all-zeros test exact.
+
+% ======================================================================
+\problem{6 (Grover search, $N=16$)}
+
+\sol
+\textbf{(a)} $\sin\tfrac\theta2=\tfrac1{\sqrt{16}}=\tfrac14$, so
+$\theta=2\arcsin\tfrac14\approx0.5054$ ($\approx28.96^\circ$). $R_{x_0}=\id-2\proj{x_0}$
+reflects about the axis $\ket{\psi_0^\perp}$ and $R_{\psi_0}=2\proj{\psi_0}-\id$
+reflects about $\ket{\psi_0}$; a product of two reflections is a rotation by twice the
+angle between their mirror axes. Since $\ket{\psi_0}$ sits at angle $\theta/2$ from
+$\ket{\psi_0^\perp}$, $G=R_{\psi_0}R_{x_0}$ rotates by $\theta$ toward $\ket{x_0}$.
+
+\textbf{(b)} $p_k=\sin^2\!\bigl((2k+1)\theta/2\bigr)$:
+\[
+ p_0=0.0625,\ p_1=0.4727,\ p_2=0.9084,\ p_3=0.9613,\ p_4=0.5817,\ p_5=0.1255 .
+\]
+The optimum is $k^\ast=3$ ($p_3\approx0.961$). At $k=4,5$ the angle
+$(2k+1)\theta/2$ passes $\tfrac\pi2$, so the state rotates \emph{past} $\ket{x_0}$ and
+the success probability falls back (over-rotation).
+
+\textbf{(c)} For $N=2^n$ with one marked item, $\theta/2=\arcsin(1/\sqrt N)\approx
+1/\sqrt N$; maximizing wants $(2k+1)\theta/2\approx\tfrac\pi2$, giving
+$k^\ast\approx\tfrac{\pi}{4}\sqrt N$ and query complexity $\bigo(\sqrt N)$.
+
+% ======================================================================
+\problem{7 (Hadamard test)}
+
+\sol
+\textbf{(a)} After $H$ on the ancilla and controlled-$U$ the state is
+$\tfrac1{\sqrt2}(\ket0\ket\psi+\ket1 U\ket\psi)$; a second $H$ gives
+$\tfrac12\bigl[\ket0(\ket\psi+U\ket\psi)+\ket1(\ket\psi-U\ket\psi)\bigr]$, so
+$p(0)=\tfrac14\norm{\ket\psi+U\ket\psi}^2=\tfrac14(2+2\Re\braket{\psi|U|\psi})
+=\tfrac12(1+\Re\braket{\psi|U|\psi})$. Inserting $S\dg=\diag(1,-\ii)$ on the ancilla
+between the two Hadamards replaces $\Re$ by $\Im$: $p(0)=\tfrac12(1+\Im\braket{\psi|U|\psi})$.
+
+\textbf{(b)} $U=S=\diag(1,\ii)$, $\ket\psi=\ket+$:
+$\braket{+|S|+}=\tfrac12(\braket0+\bra1)(\ket0+\ii\ket1)=\tfrac12(1+\ii)$, so
+$\Re=\Im=\tfrac12$. The real-part test predicts $p(0)=\tfrac12(1+\tfrac12)=\tfrac34$ and
+the imaginary-part variant also $\tfrac34$, consistent with $\braket{+|S|+}=(1+\ii)/2$.
+
+% ======================================================================
+\problem{8 (QFT and phase estimation)}
+
+\sol
+\textbf{(a)} For $n=3$,
+$\QFT\ket{j}=\tfrac1{\sqrt8}\bigl(\ket0+\ee^{2\pi\ii\,0.j_3}\ket1\bigr)
+\bigl(\ket0+\ee^{2\pi\ii\,0.j_2j_3}\ket1\bigr)
+\bigl(\ket0+\ee^{2\pi\ii\,0.j_1j_2j_3}\ket1\bigr)$. The circuit uses $3$ Hadamards and
+$\binom32=3$ controlled-phase gates ($R_2,R_3$), plus the final bit-reversal swap.
+
+\textbf{(b)} $\varphi=\tfrac38$, $t=3$. After the controlled powers the ancilla is
+$\tfrac1{\sqrt8}\sum_{j=0}^{7}\ee^{2\pi\ii(3/8)j}\ket j=\QFT\ket3$, because
+$\varphi=k/8$ with $k=3$. Applying $\QFT^{-1}$ returns $\ket3=\ket{011}$, measured with
+probability $1$. The readout is \emph{exact} because $\varphi=k/2^t$ is a dyadic
+rational with a $t$-bit expansion.
+
+\textbf{(c)} Using $t=n+\lceil\log_2(2+\tfrac1{2\delta})\rceil$ for success
+$\ge1-\delta$: with $n=6$, $\delta=0.1$ we get
+$\lceil\log_2(2+5)\rceil=\lceil\log_2 7\rceil=3$, hence $t=9$ ancilla qubits.
+
+% ======================================================================
+\problem{9 (Ground-state energy estimation)}
+
+\sol
+\textbf{(a)} $U\ket{E_j}=\ee^{-\ii H t}\ket{E_j}=\ee^{-\ii E_j t}\ket{E_j}
+=\ee^{2\pi\ii\varphi_j}\ket{E_j}$ with $\varphi_j=-\tfrac{E_j t}{2\pi}\bmod1$. QPE
+estimates $\varphi_j$; inverting, $E_j=-\tfrac{2\pi}{t}\varphi_j$ (taken in the window
+chosen so $E_j t/2\pi\in[0,1)$).
+
+\textbf{(b)} By linearity QPE on $\ket\phi=\sum_j c_j\ket{E_j}$ collapses onto
+$\ket{E_j}$ (returning $\varphi_j$) with probability $\abs{c_j}^2$; the ground phase
+$\varphi_0$ thus appears with probability $p_0=\abs{c_0}^2=0.4$ per run. For $R$
+independent runs, $\Prob(\text{seen at least once})=1-(1-p_0)^R\ge0.99$ requires
+$(0.6)^R\le0.01$, i.e.\ $R\ge\ln0.01/\ln0.6\approx9.02$, so $R=10$ runs suffice.
+
+\textbf{(c)} Energy estimation only reads \emph{some} eigenvalue each run and keeps
+the smallest observed; it needs the ground state to have nonnegligible overlap, but
+\emph{not} a spectral gap, since one is not trying to resolve neighboring levels.
+Preparing the ground state (filtering out the excited components) does need a gap to
+separate $E_0$ from the rest.
+
+% ======================================================================
+\problem{10 (Amplitude estimation)}
+
+\sol
+\textbf{(a)} Write $A\ket{0^n}=\sin\tfrac\theta2\ket{\phi_{\mathrm{good}}}
++\cos\tfrac\theta2\ket{\phi_{\mathrm{bad}}}$, so $P=\sin^2\tfrac\theta2$. On the plane
+$\operatorname{span}\{\ket{\phi_{\mathrm{good}}},\ket{\phi_{\mathrm{bad}}}\}$ the
+iterate $G=R_{\phi_0}R_{\mathrm{good}}$ is a rotation by $\theta$ with eigenvalues
+$\ee^{\pm\ii\theta}$; the prepared state is an equal superposition of the two
+eigenvectors, so QPE on $G$ returns $\pm\theta$ and hence $P=\sin^2(\theta/2)$.
+
+\textbf{(b)} For $\epsilon=10^{-3}$: amplitude estimation uses
+$\bigo(1/\epsilon)\approx10^{3}$ applications of $A$ (and of $G$), whereas classical
+Monte~Carlo needs $\bigo(1/\epsilon^2)\approx10^{6}$ samples---a factor $\approx10^3$
+fewer queries.
+
+\textbf{(c)} The Hadamard test encodes $\Re\braket{\psi|U|\psi}$ in the bias
+$p(0)=\tfrac12(1+\Re\braket{\psi|U|\psi})$. Estimating $p(0)$ by repetition costs
+$\bigo(1/\epsilon^2)$ runs (shot noise); running amplitude estimation on the very same
+circuit estimates $p(0)$---hence $\Re\braket{\psi|U|\psi}$---to precision $\epsilon$
+with $\bigo(1/\epsilon)$ coherent applications. This is the quadratic
+(Heisenberg-limited) improvement over plain repetition.
+
+\end{document}
