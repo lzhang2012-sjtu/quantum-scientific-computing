@@ -66,9 +66,16 @@ Let $\ket{\psi}=\cos\tfrac{\pi}{8}\,\ket{0}+\ee^{\ii\pi/4}\sin\tfrac{\pi}{8}\,\k
         $\braket{\psi|Z|\psi}$ and hence the Bloch vector; verify it has unit length.
   \item Find the probability of outcome ``$+$'' when $\ket{\psi}$ is measured in the
         $\{\ket{+},\ket{-}\}$ basis, and relate your answer to $\braket{\psi|X|\psi}$.
-  \item You estimate $\braket{Z}$ by repeating the measurement and averaging. Using
-        the shot-noise (standard quantum limit) scaling, roughly how many repetitions
-        are needed for additive error $0.05$? State the scaling law you use.
+  \item \emph{Sampling cost.} In practice $\braket{Z}$ is not read off exactly but
+        \emph{estimated}: each computational-basis measurement returns the eigenvalue
+        $+1$ (outcome $0$) or $-1$ (outcome $1$), and one averages the results of $N$
+        independent repetitions, $\hat Z=\tfrac1N\sum_{i=1}^N m_i$. The single-shot
+        outcome $m_i\in\{\pm1\}$ is random with variance $1-\braket{Z}^2$, so $\hat Z$
+        fluctuates about $\braket{Z}$ with a standard error that shrinks only as
+        $1/\sqrt N$ (the ``shot-noise'' or standard quantum limit). Using this scaling,
+        estimate how many repetitions $N$ are needed to determine $\braket{Z}$ to
+        additive error $\epsilon=0.05$ at about $95\%$ confidence. State the scaling
+        law (how $N$ depends on $\epsilon$) and show how your number follows from it.
 \end{enumerate}
 
 \item \textbf{Tensor products, entanglement, and the separability test.}\pts{10}
