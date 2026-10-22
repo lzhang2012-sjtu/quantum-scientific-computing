@@ -45,101 +45,184 @@
 \maketitle
 \vspace{-2.2em}
 
-\noindent\textbf{Instructions.} Eight problems drawn from Lectures~1, 3, and~4
-(foundations; Grover search; the quantum Fourier transform and phase estimation).
-Each is worth $10$ points. Show your
-work: a correct number with no derivation earns little credit, and a clear
-argument with a small arithmetic slip earns most of it. You may use any result
-stated in the lecture notes, citing it by name. Collaboration is allowed on ideas,
-but write up your solutions independently.
+\noindent\textbf{Instructions.} Ten problems on the fundamental concepts and methods
+of Lectures~1, 3, 4, and~5 (foundations; query algorithms and Grover search; the
+quantum Fourier transform and phase estimation; ground-state energy and amplitude
+estimation). Each is worth $10$ points. Show your work: a correct number with no
+derivation earns little credit, and a clear argument with a small arithmetic slip
+earns most of it. You may use any result stated in the lecture notes, citing it by
+name. Collaboration is allowed on ideas, but write up your solutions independently.
 
 \bigskip
 \noindent\textsc{Part I --- Foundations (Lecture 1)}
 \begin{problems}
 
-\item \textbf{Entanglement and no-cloning.}\pts{10}
-Work entirely with pure states.
+\item \textbf{A single qubit: amplitudes, Bloch vector, and measurement.}\pts{10}
+Let $\ket{\psi}=\cos\tfrac{\pi}{8}\,\ket{0}+\ee^{\ii\pi/4}\sin\tfrac{\pi}{8}\,\ket{1}$.
 \begin{enumerate}[label=(\alph*),nosep,leftmargin=2em]
-  \item Compute $\CNOT\ket{+}\ket{+}$ and decide whether the result is a product
-        state or entangled, justifying your answer.
-  \item Exhibit a unitary $U$ and a fixed ``blank'' state $\ket{s}$ for which
+  \item Check that $\ket{\psi}$ is normalized and give the probabilities of outcomes
+        $0$ and $1$ in a computational-basis measurement.
+  \item Compute the expectation values $\braket{\psi|X|\psi}$, $\braket{\psi|Y|\psi}$,
+        $\braket{\psi|Z|\psi}$ and hence the Bloch vector; verify it has unit length.
+  \item Find the probability of outcome ``$+$'' when $\ket{\psi}$ is measured in the
+        $\{\ket{+},\ket{-}\}$ basis, and relate your answer to $\braket{\psi|X|\psi}$.
+  \item You estimate $\braket{Z}$ by repeating the measurement and averaging. Using
+        the shot-noise (standard quantum limit) scaling, roughly how many repetitions
+        are needed for additive error $0.05$? State the scaling law you use.
+\end{enumerate}
+
+\item \textbf{Tensor products, entanglement, and the separability test.}\pts{10}
+For each two-qubit state, use the separability criterion of \S1.2.2 (a state
+$a\ket{00}+b\ket{01}+c\ket{10}+d\ket{11}$ is a product state iff $ad=bc$) to decide
+whether it is a product state or entangled. If it is a product state, write it as
+$\ket{u}\otimes\ket{v}$; if entangled, say so.
+\begin{enumerate}[label=(\alph*),nosep,leftmargin=2em]
+  \item $\tfrac12(\ket{00}+\ket{01}+\ket{10}+\ket{11})$;
+  \item $\tfrac{1}{\sqrt2}(\ket{00}-\ket{11})$;
+  \item $\tfrac12(\ket{00}+\ket{01}+\ket{10}-\ket{11})$.
+\end{enumerate}
+\emph{(d)} Prove directly that the Bell state $\tfrac{1}{\sqrt2}(\ket{00}+\ket{11})$
+admits no factorization $\ket{u}\otimes\ket{v}$.
+
+\item \textbf{Gates, circuits, reversibility, and no-cloning.}\pts{10}
+\begin{enumerate}[label=(\alph*),nosep,leftmargin=2em]
+  \item Compute $\CNOT\,(H\otimes\id)\ket{00}$ and identify which Bell state it is.
+  \item Show the Toffoli gate acts as $\ket{a,b,0}\mapsto\ket{a,b,\,a\wedge b}$, a
+        reversible \textsc{and}. Why does reversibility require writing the result
+        onto a fresh (ancilla) qubit rather than overwriting an input?
+  \item Exhibit a two-qubit unitary $U$ and a blank state $\ket{s}$ with
         $U\ket{0}\ket{s}=\ket{0}\ket{0}$ and $U\ket{1}\ket{s}=\ket{1}\ket{1}$, and
-        explain why this does \emph{not} let you copy an unknown qubit
-        $\alpha\ket0+\beta\ket1$---that is, why it is consistent with the no-cloning
+        explain why $U$ fails to copy a general unknown qubit
+        $\alpha\ket0+\beta\ket1$---i.e.\ why this is consistent with the no-cloning
         theorem.
 \end{enumerate}
 
-\item \textbf{Quantum teleportation.}\pts{10}
-In the teleportation protocol, suppose Penelope's Bell measurement yields
-$(m_1,m_2)=(1,0)$. Here the \emph{pre-correction state} means the state of
-Odysseus's qubit immediately after Penelope's measurement and the transmission of
-the two classical bits $(m_1,m_2)$, but \emph{before} Odysseus applies any
-correction gate.
+\item \textbf{Quantum teleportation, traced amplitude by amplitude.}\pts{10}
+Alice wishes to teleport $\ket{\psi}=\alpha\ket0+\beta\ket1$ to Bob; they share
+$\tfrac{1}{\sqrt2}(\ket{00}+\ket{11})$.
 \begin{enumerate}[label=(\alph*),nosep,leftmargin=2em]
-  \item Write down Odysseus's pre-correction state and verify it equals $Z\ket{\psi}$.
-  \item State the correction Odysseus applies and confirm it restores $\ket{\psi}$.
-\end{enumerate}
-
-\item \textbf{The reversible two-bit adder.}\pts{10}
-Using the half- and full-adder circuits of \S1.3.6 of the notes (``Worked example:
-a reversible binary adder''):
-\begin{enumerate}[label=(\alph*),nosep,leftmargin=2em]
-  \item trace the two-bit adder on the input $1+2$ (that is, $A_1A_0=01$ and
-        $B_1B_0=10$) and confirm the measured output is $011_2=3$;
-  \item count the Toffoli and $\CNOT$ gates in the complete two-bit adder.
+  \item Write the three-qubit state before Alice's Bell measurement, expanded over
+        her two-qubit measurement basis, and read off Bob's conditional
+        (pre-correction) state for each of the four outcomes $(m_1,m_2)$.
+  \item For the outcome $(m_1,m_2)=(1,1)$, state the correction gate Bob applies and
+        verify it restores $\ket{\psi}$.
+  \item Explain why the two classical bits are indispensable---that is, why Bob's
+        qubit carries no information about $\ket{\psi}$ until the bits arrive (the
+        no-signaling point).
 \end{enumerate}
 \end{problems}
 
 \bigskip
 \noindent\textsc{Part II --- Query algorithms and Grover search (Lecture 3)}
-\begin{problems}\setcounter{problemsi}{3}
+\begin{problems}\setcounter{problemsi}{4}
 
-\item \textbf{The four one-bit functions and Deutsch's algorithm.}\pts{10}
-List all four functions $f:\{0,1\}\to\{0,1\}$ and classify each as constant or
-balanced. For each, compute by hand the first-qubit measurement outcome produced
-by the Deutsch algorithm, and confirm that the outcome distinguishes the constant
-from the balanced functions in a single query.
-
-\item \textbf{Iteration count and over-rotation.}\pts{10}
+\item \textbf{Phase kickback, Deutsch, and Deutsch--Jozsa.}\pts{10}
 \begin{enumerate}[label=(\alph*),nosep,leftmargin=2em]
-  \item For $N=2^{20}$, approximately how many iterations $k^{\ast}$ maximize the
-        success probability? What happens qualitatively to the success probability
-        if one instead runs $2k^{\ast}$ iterations? Explain using
-        $p_k=\sin^2\!\bigl((2k+1)\theta/2\bigr)$.
-  \item For $M=4$ marked items among $N=1024$, find $\sin(\theta/2)$, the optimal
-        iteration count $k^{\ast}$, and compare it with the single-solution count
-        for the same $N$.
+  \item For a Boolean $f$, show the phase-oracle identity
+        $U_f\ket{x}\ket{-}=(-1)^{f(x)}\ket{x}\ket{-}$, where
+        $U_f\ket{x}\ket{y}=\ket{x}\ket{y\oplus f(x)}$ and
+        $\ket{-}=\tfrac{1}{\sqrt2}(\ket0-\ket1)$.
+  \item List the four functions $f:\{0,1\}\to\{0,1\}$, classify each as constant or
+        balanced, and compute by hand the first-qubit measurement outcome produced by
+        Deutsch's algorithm for each. Confirm it separates constant from balanced in a
+        \emph{single} query.
+  \item In Deutsch--Jozsa on $n$ bits, what is the probability of measuring the
+        all-zeros outcome $0^n$ when $f$ is constant? when $f$ is balanced? State the
+        promise that makes the one-query decision exact.
 \end{enumerate}
 
-\item \textbf{Building the phase oracle.}\pts{10}
-On three qubits, let the marked state be $x_0=\ket{101}$. Write the marking
-reflection $R_{x_0}=\id-2\proj{x_0}$ as a doubly controlled $Z$ conjugated by $X$
-gates, specifying which qubits carry the $X$ gates. Verify by hand that your
-circuit multiplies $\ket{101}$ by $-1$ and leaves the other seven basis states
-fixed (it suffices to check $\ket{101}$, one basis state that becomes $\ket{111}$
-under the leading NOTs, and one that does not). Then run \emph{one} Grover iterate
-on the uniform state $\ket{\psi_0}=H^{\otimes3}\ket{000}$ with this $x_0$ and report
-the resulting amplitudes.
+\item \textbf{Grover search: reflections, geometry, and iteration count.}\pts{10}
+Take $N=16$ with a single marked item $x_0$, uniform start
+$\ket{\psi_0}=H^{\otimes4}\ket{0^4}$.
+\begin{enumerate}[label=(\alph*),nosep,leftmargin=2em]
+  \item Writing $\sin(\theta/2)=1/\sqrt N$, give $\theta$ and explain, using the
+        two reflections $R_{x_0}=\id-2\proj{x_0}$ and
+        $R_{\psi_0}=2\proj{\psi_0}-\id$, why one Grover iterate
+        $G=R_{\psi_0}R_{x_0}$ rotates the state by $\theta$ in the plane
+        $\operatorname{span}\{\ket{x_0},\ket{\psi_0}\}$.
+  \item The success probability after $k$ iterates is
+        $p_k=\sin^2\!\bigl((2k+1)\theta/2\bigr)$. Evaluate $p_0,\dots,p_5$, find the
+        optimal $k^\ast$, and describe quantitatively what happens at $k=4,5$
+        (over-rotation).
+  \item For general $N=2^n$ with one marked item, give the leading-order optimal
+        iteration count $k^\ast$ and the resulting query complexity.
+\end{enumerate}
+
 \end{problems}
 
 \bigskip
 \noindent\textsc{Part III --- Quantum Fourier transform and phase estimation (Lecture 4)}
 \begin{problems}\setcounter{problemsi}{6}
 
-\item \textbf{Exact phase estimation.}\pts{10}
-Let $\varphi=0.011_2=\tfrac38$ and take $t=3$ ancilla qubits. Write the ancilla
-state after the controlled powers in standard QPE, identify it as $\QFT\ket{k}$ for
-the correct $k$, and conclude the measurement outcome. Why is the readout exact in
-this case?
+\item \textbf{The Hadamard test.}\pts{10}
+Let $U$ be a unitary and $\ket{\psi}$ a state, with the standard Hadamard-test
+circuit: Hadamard on the ancilla, controlled-$U$, Hadamard, then measure the ancilla.
+\begin{enumerate}[label=(\alph*),nosep,leftmargin=2em]
+  \item Show the ancilla outcome has $p(0)=\tfrac12\bigl(1+\Re\braket{\psi|U|\psi}\bigr)$,
+        and describe the one-gate modification that instead yields
+        $\Im\braket{\psi|U|\psi}$.
+  \item Take $U=S=\diag(1,\ii)$ and $\ket{\psi}=\ket{+}$. Compute $\braket{\psi|U|\psi}$
+        directly, then confirm it is consistent with the $p(0)$ (and the imaginary-part
+        variant) of part~(a).
+\end{enumerate}
 
-\item \textbf{How many ancillas?}\pts{10}
-Using the precision/qubit-count relation of Lecture~4, determine how many ancilla
-qubits $t$ are needed to estimate a phase $\varphi$ to $n=6$ bits of precision with
-success probability at least $0.9$ (so $\epsilon=0.1$). State the general formula
-you use and then evaluate it.
+\item \textbf{QFT and phase estimation.}\pts{10}
+\begin{enumerate}[label=(\alph*),nosep,leftmargin=2em]
+  \item Write the product (tensor-factor) form of $\QFT\ket{j}$ on $n=3$ qubits and
+        count the Hadamard and controlled-phase gates in the circuit.
+  \item Run standard QPE with $t=3$ ancillas on an eigenstate with phase
+        $\varphi=0.011_2=\tfrac38$. Write the ancilla state after the controlled
+        powers, identify it as $\QFT\ket{k}$ for the correct $k$, and give the
+        measurement outcome. Why is the readout exact here?
+  \item Using the precision/qubit-count relation of \S4.3--4.4, determine the number
+        of ancilla qubits $t$ needed to read $n=6$ bits of $\varphi$ with success
+        probability at least $0.9$. State the formula, then evaluate it.
+\end{enumerate}
+
+\end{problems}
+
+\bigskip
+\noindent\textsc{Part IV --- Applications of phase estimation (Lecture 5)}
+\begin{problems}\setcounter{problemsi}{8}
+
+\item \textbf{Ground-state energy estimation.}\pts{10}
+Let $H$ have eigenpairs $\{(E_j,\ket{E_j})\}$ and set $U=\ee^{-\ii H t}$ for a fixed
+$t>0$ chosen so that every $E_j t/(2\pi)\in[0,1)$.
+\begin{enumerate}[label=(\alph*),nosep,leftmargin=2em]
+  \item Show $\ket{E_j}$ is an eigenstate of $U$ with eigenphase
+        $\varphi_j=-E_j t/(2\pi)\bmod 1$, so that a QPE estimate of $\varphi_j$ yields
+        an estimate of $E_j$. Give the formula recovering $E_j$ from $\varphi_j$.
+  \item One prepares an initial guess $\ket{\phi}=\sum_j c_j\ket{E_j}$ with
+        ground-state overlap $p_0=\abs{c_0}^2$ and runs QPE on $U$. Explain why a
+        single run returns the ground-state phase only with probability $p_0$, and
+        compute how many independent runs $R$ guarantee seeing it at least once with
+        probability $\ge0.99$ when $p_0=0.4$.
+  \item Briefly: why does this energy-estimation scheme \emph{not} require a spectral
+        gap, whereas preparing the ground state does?
+\end{enumerate}
+
+\item \textbf{Amplitude estimation and the quadratic advantage.}\pts{10}
+Let $A\ket{0^n}=\sqrt{P}\,\ket{\phi_{\mathrm{good}}}+\sqrt{1-P}\,\ket{\phi_{\mathrm{bad}}}$
+and write $P=\sin^2(\theta/2)$.
+\begin{enumerate}[label=(\alph*),nosep,leftmargin=2em]
+  \item State why phase estimation of the Grover iterate
+        $G=R_{\phi_0}R_{\mathrm{good}}$ (with
+        $R_{\phi_0}=2\proj{\phi_0}-\id$, $R_{\mathrm{good}}=\id-2\proj{\phi_{\mathrm{good}}}$,
+        $\ket{\phi_0}=A\ket{0^n}$) estimates $\theta$, and hence $P$. What are the
+        eigenvalues of $G$ on the invariant plane?
+  \item To estimate $P$ to additive error $\epsilon=10^{-3}$, compare the number of
+        uses of $A$ (and of $G$) for amplitude estimation, $\bigo(1/\epsilon)$, against
+        classical Monte~Carlo sampling, $\bigo(1/\epsilon^2)$. Give both counts.
+  \item Combine with Problem~7: amplitude estimation applied to the Hadamard-test
+        success probability $p(0)=\tfrac12(1+\Re\braket{\psi|U|\psi})$ estimates
+        $\Re\braket{\psi|U|\psi}$. What precision scaling in queries does this achieve,
+        and why is it a quadratic improvement over plain repetition of the Hadamard
+        test?
+\end{enumerate}
+
 \end{problems}
 
 \vfill
-\noindent\footnotesize Problems adapted from the exercise sets of Lectures~1, 3,
-and~4 of the Quantum Scientific Computing course notes.
+\noindent\footnotesize Problems drawn from Lectures~1 (\S1.1--\S1.6), 3 (\S3.1--\S3.3),
+4 (\S4.1--\S4.3), and~5 (\S5.1--\S5.2) of the Quantum Scientific Computing course notes.
 \end{document}
