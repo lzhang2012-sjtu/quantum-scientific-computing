@@ -72,12 +72,23 @@ $\abs{\mathbf r}^2=\tfrac14+\tfrac14+\tfrac12=1$ (pure state).
 (The identity $\Prob(+)=\tfrac12(1+\braket{X})$ is the general rule for an $X$-basis
 measurement.)
 
-\textbf{(d)} A $Z$-measurement returns $\pm1$ with variance
-$\Var=1-\braket{Z}^2=1-\tfrac12=\tfrac12$; the empirical mean has error
-$\approx z\sqrt{\Var/N}$ at confidence level set by $z$. Setting this to
-$\epsilon=0.05$ with $z\approx2$ gives $N\approx z^2\Var/\epsilon^2
-=4\cdot0.5/0.0025\approx800$. The point is the shot-noise law $N=\Theta(1/\epsilon^2)$
-(hundreds to a few thousand shots here).
+\textbf{(d)} Model one $Z$-measurement as a random variable $m\in\{+1,-1\}$ ($+1$ for
+outcome $0$, $-1$ for outcome $1$), so $\E[m]=\Prob(0)-\Prob(1)=\braket{Z}$ and, since
+$m^2=1$ always, $\Var(m)=\E[m^2]-\E[m]^2=1-\braket{Z}^2=1-\tfrac12=\tfrac12$. Averaging
+$N$ independent shots, the estimator $\hat Z=\tfrac1N\sum_{i=1}^N m_i$ is unbiased with
+standard error $\sqrt{\Var(m)/N}=\sqrt{(1-\braket{Z}^2)/N}$. By the central limit
+theorem $\hat Z$ lies within $\pm\epsilon$ of $\braket{Z}$ at a confidence level set by
+$z$ (e.g.\ $z\approx2$ for $\approx95\%$) once $z\sqrt{\Var(m)/N}\le\epsilon$, i.e.
+\[
+ N\ \ge\ \frac{z^2\,(1-\braket{Z}^2)}{\epsilon^2}
+ \ =\ \frac{4\cdot\tfrac12}{(0.05)^2}\ =\ 800 .
+\]
+(A distribution-free Hoeffding bound gives the same order,
+$N\ge\ln(2/\delta)/(2\epsilon^2)$, and the worst case $\Var(m)\le1$ needs at most
+$N\le z^2/\epsilon^2=1600$.) The essential point is the \emph{shot-noise} (standard
+quantum limit) law $N=\Theta(1/\epsilon^2)$: halving the target error \emph{quadruples}
+the number of measurements---exactly the scaling that amplitude estimation
+(Problem~10) improves to $\Theta(1/\epsilon)$.
 
 % ======================================================================
 \problem{2 (Separability test)}
