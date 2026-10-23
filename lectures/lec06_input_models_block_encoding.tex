@@ -295,6 +295,122 @@ $\ket{00}$ produces $\ket{D^n_2}$; for $\chi=2$ the bond is a single qubit and e
 $V_k$ is the two-qubit gate of the chain above.
 \end{remark}
 
+\begin{example}[Encoding $\sin(x_1+\cdots+x_d)$ by a phase gradient]
+\label{exa:lec06-sinvec}
+A function that is \emph{not} a product of per-register factors can still be loaded
+cheaply when its \emph{phase} is. Consider the real vector
+$\ket\psi\propto\sum_{\mathbf x}\sin(x_1+\cdots+x_d)\,\ket{x_1}\cdots\ket{x_d}$ on $d$
+registers of $m$ qubits ($N=2^m$ per axis). Although $\sin(\sum_k x_k)$ does not
+factor, the phase does,
+$\ee^{\ii\sum_k x_k}=\prod_{k}\prod_{b=0}^{m-1}\ee^{\ii 2^b(x_k)_b}$, so the
+\emph{phase-gradient state}
+\[
+  \ket g=\sum_{\mathbf x}\ee^{\ii\sum_k x_k}\ket{\mathbf x}
+   =\bigotimes_{k=1}^{d}\bigotimes_{b=0}^{m-1}\bigl(\ket0+\ee^{\ii 2^b}\ket1\bigr)
+\]
+is a \emph{product} state---one single-qubit phase $P(2^b)=\diag(1,\ee^{\ii2^b})$ on
+each of the $dm$ qubits (after a layer of Hadamards), with no entangling gates. Writing
+$\sin\theta=(\ee^{\ii\theta}-\ee^{-\ii\theta})/2\ii$,
+\[
+  \ket\psi=\frac{1}{2\ii}\bigl(\ket g-\ket{g^{*}}\bigr),\qquad
+  \ket{g^{*}}=\bigotimes_{k,b}\bigl(\ket0+\ee^{-\ii2^b}\ket1\bigr),
+\]
+a two-term combination extracted with one flag qubit exactly as in the Hadamard test
+(\cref{sec:lec04-1}): make the uniform superposition on the data and $\ket+$ on the
+flag, apply the \emph{flag-controlled} phase gradient $\Phi^{\pm}$ (the phases $+2^b$
+if the flag is $\ket0$, $-2^b$ if $\ket1$), then $\Hgate$ on the flag and measure it.
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(flag)}  & \gate{\Hgate}              & \gate[2]{\Phi^{\pm}} & \gate{\Hgate} & \meter{} \\
+  \lstick{$\ket{0^{dm}}$ \,\scriptsize(data)} & \gate{\Hgate^{\otimes dm}} &                      & \qw           & \qw
+\end{quantikz}
+\end{center}
+Outcome $1$ leaves the data in the normalized sine state
+$\propto\sum_{\mathbf x}\sin(\sum_k x_k)\ket{\mathbf x}$ (outcome $0$ gives the cosine
+state), with probability $N^{-d}\sum_{\mathbf x}\sin^2(\sum_k x_k)\approx\tfrac12$, so
+$\bigo(1)$ repetitions suffice. The whole cost is $\bigo(dm)$ single-qubit and
+flag-controlled phase gates---no amplitude loading and no arithmetic. The same device
+encodes any $\sin$ or $\cos$ of a linear form $\sum_k a_k x_k$ (use phases
+$\ee^{\pm\ii a_k2^b}$); only the imaginary-part step needs the flag, since products
+$\prod_k f_k(x_k)$ already factor into single-register preparations.
+\end{example}
+
+\begin{remark}[Separable and phase-polynomial variants]
+\label{rem:lec06-phasepoly}
+The same idea sorts related encodings by how the exponent sits in the qubits.
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{Separable (easiest): $\ee^{\sum_k a_k x_k}$.} A real exponential of a
+        linear form \emph{factors},
+        $\ee^{\sum_k a_k x_k}=\prod_{k,b}\ee^{a_k 2^b (x_k)_b}$, so
+        $\sum_{\mathbf x}\ee^{\sum_k a_k x_k}\ket{\mathbf x}
+        =\bigotimes_{k,b}\bigl(\ket0+\ee^{a_k 2^b}\ket1\bigr)$ is a \emph{product}
+        state---one single-qubit $R_y$ with $\tan(\theta_{k,b}/2)=\ee^{a_k 2^b}$ per
+        qubit, no ancilla and no entangling gate. (The magnitudes span a
+        doubly-exponential range, so one rescales the argument, e.g.\
+        $\ee^{-a_k x_k}$, to avoid a state collapsed onto a single corner.)
+  \item \emph{Phase polynomial: $\sin(x_1x_2\cdots x_d)$.} Here the exponent is a
+        \emph{product}. Expanding bitwise,
+        $x_1\cdots x_d=\sum_{b_1,\dots,b_d}2^{b_1+\cdots+b_d}(x_1)_{b_1}\cdots(x_d)_{b_d}$,
+        so $\ee^{\ii x_1\cdots x_d}$ is a product of $m^d$ multi-controlled phases
+        $C^{d-1}P\bigl(2^{\sum_k b_k}\bigr)$ (a phase imposed only when the $d$ selected
+        bits are all $1$). Thus
+        $\ket g=\sum_{\mathbf x}\ee^{\ii x_1\cdots x_d}\ket{\mathbf x}$ is
+        $\Hgate^{\otimes dm}$ followed by those $m^d$ controlled phases---entangling,
+        but $\poly(m)$ for fixed $d$---and $\sin(x_1\cdots x_d)$ is its imaginary part,
+        read out by the one-flag step of \cref{exa:lec06-sinvec}. The cost is
+        exponential in $d$ (the number of degree-$d$ monomials), the price of a
+        genuinely multilinear exponent.
+\end{itemize}
+In general, if $f(\mathbf x)=\Re$ or $\Im$ of $\ee^{\ii\varphi(\mathbf x)}$ with
+$\varphi$ a multilinear phase polynomial, the phase state is one layer of
+(multi-)controlled phases---one per monomial---and a single flag qubit turns the
+complex phase state into the real $\sin/\cos$ amplitude vector.
+\end{remark}
+
+\begin{example}[A radial amplitude $1/\lvert\mathbf x\rvert$ as a sum of Gaussians]
+\label{exa:lec06-coulomb}
+The Coulomb-like vector $1/\lvert\mathbf x\rvert$ with
+$\lvert\mathbf x\rvert=\sqrt{x_1^2+\cdots+x_d^2}$ is neither separable nor a phase
+polynomial---the square root of a sum defeats both tricks. The standard device is an
+\emph{integral representation} that restores separability:
+\[
+  \frac{1}{\lvert\mathbf x\rvert}
+  =\frac{2}{\sqrt\pi}\int_0^\infty \ee^{-\lvert\mathbf x\rvert^2 t^2}\,dt
+  =\frac{2}{\sqrt\pi}\int_0^\infty \prod_{k=1}^d \ee^{-x_k^2 t^2}\,dt
+  \qquad(\mathbf x\neq0),
+\]
+whose integrand is a \emph{separable} Gaussian. Discretizing $t$ on a geometric grid
+$\{t_q\}$ with weights $\{w_q\}$ (a Gauss-type quadrature with
+$Q=\bigo\bigl(\log\tfrac1\epsilon\,\log\tfrac{r_{\max}}{r_{\min}}\bigr)$ nodes suffices,
+Beylkin--Monz\'on) gives a finite linear combination of product states,
+\[
+  \sum_{\mathbf x}\frac{1}{\lvert\mathbf x\rvert}\ket{\mathbf x}
+  \ \approx\ \sum_{q} w_q\,\bigotimes_{k=1}^{d}
+     \Bigl(\sum_{x_k}\ee^{-x_k^2 t_q^2}\ket{x_k}\Bigr).
+\]
+Each one-dimensional Gaussian register $\sum_{x_k}\ee^{-x_k^2 t_q^2}\ket{x_k}$ is an
+\emph{efficiently integrable} distribution, prepared by Grover--Rudolph
+(\cref{exa:lec06-grex}) in $\bigo(m)$ controlled rotations; the $Q$ terms are combined
+by the vector-addition (LCU) primitive of \cref{ch:lec07}---a
+$\lceil\log_2 Q\rceil$-qubit index register loaded with $\sqrt{w_q}$ by
+$\mathrm{PREP}$, a $\mathrm{SEL}$ preparing the width-$t_q$ Gaussian product controlled
+on the index, and post-selection of the index flag:
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket{0^{\lceil\log Q\rceil}}$ \,\scriptsize(index)} & \gate{\mathrm{PREP}} & \ctrl{1} & \gate{\mathrm{PREP}^{\dagger}} & \meter{} \\
+  \lstick{$\ket{0^{dm}}$ \,\scriptsize(data $x_1,\dots,x_d$)}  & \qwbundle{dm}        & \gate{\mathrm{SEL}} & \qw                    & \qw
+\end{quantikz}
+\end{center}
+where $\mathrm{SEL}=\sum_q\proj{q}\otimes O_q$ and $O_q$ prepares
+$\bigotimes_k(\sum_{x_k}\ee^{-x_k^2 t_q^2}\ket{x_k})$. The total cost is $\bigo(Qdm)$
+gates and the index flag is seen with probability
+$\lVert\sum_{\mathbf x}\lvert\mathbf x\rvert^{-1}\ket{\mathbf x}\rVert^2/\lVert w\rVert_1^2$.
+The same Gaussian-sum recipe encodes any radial $f(\lvert\mathbf x\rvert)$ with a known
+one-dimensional transform---$\lvert\mathbf x\rvert^{-s}$, $\ee^{-\mu\lvert\mathbf x\rvert}$,
+the Yukawa kernel $\ee^{-\mu\lvert\mathbf x\rvert}/\lvert\mathbf x\rvert$---and underlies
+quantum treatments of Coulomb interactions.
+\end{example}
+
 We henceforth treat $O_u$ as a given oracle and count \emph{queries} to it, exactly
 as we counted queries to $\ee^{-\ii Ht}$ in \cref{ch:lec05}. The state-preparation
 oracle is the vector half of the input model; the rest of the lecture builds the
