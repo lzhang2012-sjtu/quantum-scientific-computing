@@ -247,6 +247,105 @@ $\lceil\log_2\chi\rceil+1$ 个量子比特上：GHZ（$\chi=2$，即上面的 $\
 $\chi=2$ 时键是单个量子比特，每个 $V_k$ 即上面链中的那个两量子比特门。
 \end{remark}
 
+\begin{example}[用相位梯度编码 $\sin(x_1+\cdots+x_d)$]
+\label{exa:lec06-sinvec}
+一个\emph{并非}各寄存器函数之乘积的函数，只要它的\emph{相位}是可乘的，仍可廉价地加载。
+考虑 $d$ 个 $m$ 比特寄存器（每轴 $N=2^m$）上的实向量
+$\ket\psi\propto\sum_{\mathbf x}\sin(x_1+\cdots+x_d)\,\ket{x_1}\cdots\ket{x_d}$。尽管
+$\sin(\sum_k x_k)$ 不可因式分解，其相位却可以：
+$\ee^{\ii\sum_k x_k}=\prod_{k}\prod_{b=0}^{m-1}\ee^{\ii 2^b(x_k)_b}$，于是\emph{相位梯度态}
+\[
+  \ket g=\sum_{\mathbf x}\ee^{\ii\sum_k x_k}\ket{\mathbf x}
+   =\bigotimes_{k=1}^{d}\bigotimes_{b=0}^{m-1}\bigl(\ket0+\ee^{\ii 2^b}\ket1\bigr)
+\]
+是一个\emph{乘积}态——在 $dm$ 个量子比特的每一个上施加一个单比特相位
+$P(2^b)=\diag(1,\ee^{\ii2^b})$（在一层 Hadamard 之后），没有任何纠缠门。利用
+$\sin\theta=(\ee^{\ii\theta}-\ee^{-\ii\theta})/2\ii$，
+\[
+  \ket\psi=\frac{1}{2\ii}\bigl(\ket g-\ket{g^{*}}\bigr),\qquad
+  \ket{g^{*}}=\bigotimes_{k,b}\bigl(\ket0+\ee^{-\ii2^b}\ket1\bigr),
+\]
+这是一个两项组合，可用一个标志比特像 Hadamard 检验（\cref{sec:lec04-1}）那样提取：在数据上
+制备均匀叠加、在标志上制备 $\ket+$，施加\emph{受标志控制}的相位梯度 $\Phi^{\pm}$（标志为
+$\ket0$ 时相位取 $+2^b$，为 $\ket1$ 时取 $-2^b$），再对标志作 $\Hgate$ 并测量。
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(标志)}  & \gate{\Hgate}              & \gate[2]{\Phi^{\pm}} & \gate{\Hgate} & \meter{} \\
+  \lstick{$\ket{0^{dm}}$ \,\scriptsize(数据)} & \gate{\Hgate^{\otimes dm}} &                      & \qw           & \qw
+\end{quantikz}
+\end{center}
+测得 $1$ 使数据处于归一化的正弦态
+$\propto\sum_{\mathbf x}\sin(\sum_k x_k)\ket{\mathbf x}$（测得 $0$ 给出余弦态），其概率为
+$N^{-d}\sum_{\mathbf x}\sin^2(\sum_k x_k)\approx\tfrac12$，故 $\bigo(1)$ 次重复即足够。总代价
+是 $\bigo(dm)$ 个单比特与受控相位门——无需振幅加载、无需算术。同样的手法可编码任何线性型
+$\sum_k a_k x_k$ 的 $\sin$ 或 $\cos$（相位取 $\ee^{\pm\ii a_k2^b}$）；只有取虚部这一步需要标志，
+因为乘积 $\prod_k f_k(x_k)$ 本就可分解为单寄存器的制备。
+\end{example}
+
+\begin{remark}[可分离与相位多项式的变体]
+\label{rem:lec06-phasepoly}
+同样的想法按指数如何嵌入量子比特对相关编码作出分类。
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{可分离（最易）：$\ee^{\sum_k a_k x_k}$。}线性型的实指数\emph{可因式分解}，
+        $\ee^{\sum_k a_k x_k}=\prod_{k,b}\ee^{a_k 2^b (x_k)_b}$，于是
+        $\sum_{\mathbf x}\ee^{\sum_k a_k x_k}\ket{\mathbf x}
+        =\bigotimes_{k,b}\bigl(\ket0+\ee^{a_k 2^b}\ket1\bigr)$ 是一个\emph{乘积}态——每个
+        量子比特上一个单比特 $R_y$（$\tan(\theta_{k,b}/2)=\ee^{a_k 2^b}$），既无辅助比特也
+        无纠缠门。（各振幅跨越双指数的量级，故通常对自变量重标度，如 $\ee^{-a_k x_k}$，以免
+        态坍缩到单一角点。）
+  \item \emph{相位多项式：$\sin(x_1x_2\cdots x_d)$。}此时指数是一个\emph{乘积}。按比特展开，
+        $x_1\cdots x_d=\sum_{b_1,\dots,b_d}2^{b_1+\cdots+b_d}(x_1)_{b_1}\cdots(x_d)_{b_d}$，
+        故 $\ee^{\ii x_1\cdots x_d}$ 是 $m^d$ 个多重受控相位
+        $C^{d-1}P\bigl(2^{\sum_k b_k}\bigr)$ 之积（仅当 $d$ 个被选比特全为 $1$ 时才施加相位）。
+        于是 $\ket g=\sum_{\mathbf x}\ee^{\ii x_1\cdots x_d}\ket{\mathbf x}$ 是
+        $\Hgate^{\otimes dm}$ 后接那 $m^d$ 个受控相位——有纠缠，但对固定 $d$ 为 $\poly(m)$——而
+        $\sin(x_1\cdots x_d)$ 是其虚部，用 \cref{exa:lec06-sinvec} 的单标志步骤读出。代价关于
+        $d$ 是指数的（$d$ 次单项式的个数），这是真正多线性指数的代价。
+\end{itemize}
+一般地，若 $f(\mathbf x)=\ee^{\ii\varphi(\mathbf x)}$ 的实部或虚部、而 $\varphi$ 是一个多线性
+相位多项式，则相位态是一层（多重）受控相位——每个单项式一个——而单个标志比特把复相位态
+转为实的 $\sin/\cos$ 振幅向量。
+\end{remark}
+
+\begin{example}[径向振幅 $1/\lvert\mathbf x\rvert$ 作为高斯之和]
+\label{exa:lec06-coulomb}
+库仑型向量 $1/\lvert\mathbf x\rvert$（$\lvert\mathbf x\rvert=\sqrt{x_1^2+\cdots+x_d^2}$）
+既不可分离、也非相位多项式——和的平方根同时挫败了这两种技巧。标准手段是一个恢复可分离性的
+\emph{积分表示}：
+\[
+  \frac{1}{\lvert\mathbf x\rvert}
+  =\frac{2}{\sqrt\pi}\int_0^\infty \ee^{-\lvert\mathbf x\rvert^2 t^2}\,dt
+  =\frac{2}{\sqrt\pi}\int_0^\infty \prod_{k=1}^d \ee^{-x_k^2 t^2}\,dt
+  \qquad(\mathbf x\neq0),
+\]
+其被积函数是一个\emph{可分离}的高斯函数。把 $t$ 离散化到几何网格 $\{t_q\}$ 并配以权重
+$\{w_q\}$（高斯型求积，$Q=\bigo\bigl(\log\tfrac1\epsilon\,\log\tfrac{r_{\max}}{r_{\min}}\bigr)$
+个节点即足够，Beylkin--Monzón），便化为乘积态的有限线性组合，
+\[
+  \sum_{\mathbf x}\frac{1}{\lvert\mathbf x\rvert}\ket{\mathbf x}
+  \ \approx\ \sum_{q} w_q\,\bigotimes_{k=1}^{d}
+     \Bigl(\sum_{x_k}\ee^{-x_k^2 t_q^2}\ket{x_k}\Bigr).
+\]
+每个一维高斯寄存器 $\sum_{x_k}\ee^{-x_k^2 t_q^2}\ket{x_k}$ 是一个\emph{高效可积}分布，由
+Grover--Rudolph（\cref{exa:lec06-grex}）用 $\bigo(m)$ 个受控旋转制备；这 $Q$ 项则由
+\cref{ch:lec07} 的向量加法（LCU）基本操作组合起来——一个 $\lceil\log_2 Q\rceil$ 比特的索引
+寄存器由 $\mathrm{PREP}$ 加载 $\sqrt{w_q}$，一个 $\mathrm{SEL}$ 受索引控制地制备宽度为 $t_q$
+的高斯乘积，最后对索引标志作后选择：
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket{0^{\lceil\log Q\rceil}}$ \,\scriptsize(索引)} & \gate{\mathrm{PREP}} & \ctrl{1} & \gate{\mathrm{PREP}^{\dagger}} & \meter{} \\
+  \lstick{$\ket{0^{dm}}$ \,\scriptsize(数据 $x_1,\dots,x_d$)}  & \qwbundle{dm}        & \gate{\mathrm{SEL}} & \qw                    & \qw
+\end{quantikz}
+\end{center}
+其中 $\mathrm{SEL}=\sum_q\proj{q}\otimes O_q$，而 $O_q$ 制备
+$\bigotimes_k(\sum_{x_k}\ee^{-x_k^2 t_q^2}\ket{x_k})$。总代价为 $\bigo(Qdm)$ 个门，索引标志被
+测得的概率为
+$\lVert\sum_{\mathbf x}\lvert\mathbf x\rvert^{-1}\ket{\mathbf x}\rVert^2/\lVert w\rVert_1^2$。
+同样的高斯求和配方可编码任何具有已知一维变换的径向函数——$\lvert\mathbf x\rvert^{-s}$、
+$\ee^{-\mu\lvert\mathbf x\rvert}$、汤川核 $\ee^{-\mu\lvert\mathbf x\rvert}/\lvert\mathbf x\rvert$——
+并支撑着库仑相互作用的量子处理。
+\end{example}
+
 此后我们将 $O_u$ 视为一个给定的谕示，并计数对它的\emph{查询}，正如我们在 \cref{ch:lec05} 中计数对
 $\ee^{-\ii Ht}$ 的查询那样。态制备谕示是输入模型的向量那一半；本讲余下部分构建矩阵那一半。
 \section{块编码：定义与因子}
