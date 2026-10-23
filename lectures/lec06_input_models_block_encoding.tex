@@ -750,6 +750,98 @@ $O_A\ket{0}\ket{i}\ket{j}=(A_{ij}\ket{0}+\sqrt{1-\abs{A_{ij}}^2}\ket{1})\ket{i}
 immaterial.
 \end{remark}
 
+\subsection*{Two worked encodings: the Laplacian and the Ising model}
+
+The $s$-sparse recipe \eqref{eq:lec06-Uss} turns two physically central operators into
+block encodings with explicit circuits. Both are Hermitian and banded in a product
+basis, so the location oracle is a shift (or a bit flip) and the entry oracle loads a
+handful of constants. In each the circuit is the sandwich
+$U_A=(\id\otimes D)(\id\otimes O_c)\,O_A\,(\id\otimes D)$ of
+\cref{thm:lec06-ssparse}, with $D=\Hgate^{\otimes s'}$ spreading an
+$s'=\lceil\log_2 s\rceil$-qubit index register.
+
+\begin{example}[Finite-difference Laplacian in $\R^d$]
+\label{exa:lec06-laplacian}
+Discretize $-\Delta$ on a periodic $d$-dimensional grid with $N=2^m$ points per axis,
+so the position is $\ket{\mathbf x}=\ket{x_1}\cdots\ket{x_d}$ on $dm$ qubits. With the
+per-axis cyclic shift $S_k\colon x_k\mapsto x_k{+}1\bmod N$, the negative Laplacian is
+the sum of second differences
+\[
+  L=\sum_{k=1}^{d}\bigl(2\id-S_k-S_k\dg\bigr),
+\]
+a real symmetric matrix that is $(2d{+}1)$-sparse: each grid point $\mathbf x$ couples
+to itself (diagonal entry $2d$) and to its $2d$ neighbors $\mathbf x\pm\mathbf e_k$
+(entry $-1$). Hence $\norm{L}_{\max}=2d$; set $\hat L\defeq L/(2d)$, with diagonal $1$
+and off-diagonals $-\tfrac1{2d}$. Index the $s=2d{+}1$ nonzeros by
+$\ell\in\{0\}\cup\{(k,\pm)\}$. The \emph{location oracle} is the $\ell$-controlled
+shift
+\[
+  O_c\ket{\ell}\ket{\mathbf x}=\ket{\ell}\ket{\mathbf x+\delta_\ell},\qquad
+  \delta_0=\mathbf 0,\quad \delta_{(k,\pm)}=\pm\mathbf e_k,
+\]
+a $\pm1$ increment of the \emph{selected} coordinate register---the modular adder of
+\cref{sec:lec04-qftadder}. The \emph{entry oracle} is independent of $\mathbf x$: it
+keeps the signal in $\ket0$ for $\ell=0$ and rotates it to carry amplitude $-\tfrac1{2d}$
+otherwise,
+\[
+  O_{\hat L}\ket0\ket\ell=
+   \begin{cases}\ket0\ket\ell, & \ell=0,\\[2pt]
+   \bigl(-\tfrac1{2d}\ket0+\sqrt{1-\tfrac1{4d^2}}\,\ket1\bigr)\ket\ell, & \ell\neq0.
+   \end{cases}
+\]
+\cref{thm:lec06-ssparse} then gives $U_{\hat L}\in\mathrm{BE}_{2d+1,\,s'+1}(\hat L)$:
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(signal)}        & \qw          & \gate[2]{O_{\hat L}} & \qw           & \qw \\
+  \lstick{$\ket{0^{s'}}$ \,\scriptsize($\ell$)} & \gate{D}     &                      & \gate[2]{O_c} & \gate{D} \\
+  \lstick{$\ket{\mathbf x}$}                    & \qwbundle{dm} & \qw                  &               & \qw
+\end{quantikz}
+\end{center}
+In one dimension ($d=1$, $s=3$) the index is two qubits, $O_c$ is ``increment $x$ if
+$\ell=1$, decrement if $\ell=2$, idle if $\ell=0$,'' and $O_{\hat L}$ is one controlled
+$R_y\!\bigl(2\arccos\tfrac12\bigr)=R_y(2\pi/3)$ (with a sign) on the two off-diagonal
+branches. The cost is $2d$ controlled modular adders and $\bigo(1)$ rotations, and the
+subnormalization is $\alpha=2d{+}1$.
+\end{example}
+
+\begin{example}[Transverse-field Ising model]
+\label{exa:lec06-ising}
+The $n$-spin TFIM $H=-J\sum_i Z_iZ_{i+1}-h\sum_i X_i$ is $(n{+}1)$-sparse in the
+computational basis:
+\[
+  H\ket{\mathbf x}=E(\mathbf x)\,\ket{\mathbf x}-h\sum_{i=1}^{n}\ket{\mathbf x\oplus\mathbf e_i},
+  \qquad E(\mathbf x)=-J\sum_i(-1)^{x_i\oplus x_{i+1}},
+\]
+one diagonal entry plus $n$ single-spin-flip neighbors of amplitude $-h$. So
+$\norm{H}_{\max}=\max\{(n{-}1)J,\,h\}$; write $\hat H=H/\norm{H}_{\max}$. Index the
+nonzeros by $\ell\in\{0,1,\dots,n\}$. The \emph{location oracle} is the
+$\ell$-multiplexed bit flip
+\[
+  O_c\ket{\ell}\ket{\mathbf x}=\ket{\ell}\ket{\mathbf x\oplus\mathbf e_\ell}\ (\ell\ge1),
+  \qquad O_c\ket{0}\ket{\mathbf x}=\ket{0}\ket{\mathbf x},
+\]
+a \textsc{select} of single-qubit $X$ gates. The \emph{entry oracle} loads the
+diagonal energy $E(\mathbf x)/\norm{H}_{\max}$ on the $\ell=0$ branch (a rotation whose
+angle is computed from the nearest-neighbor parities $x_i\oplus x_{i+1}$---say by
+$n{-}1$ \textsc{cnot}s accumulating the parity count) and the constant
+$-h/\norm{H}_{\max}$ on each $\ell\ge1$ branch. \cref{thm:lec06-ssparse} gives
+$U_{\hat H}\in\mathrm{BE}_{n+1,\,s'+1}(\hat H)$ with $s'=\lceil\log_2(n{+}1)\rceil$:
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(signal)}        & \qw         & \gate[3]{O_{\hat H}} & \qw           & \qw \\
+  \lstick{$\ket{0^{s'}}$ \,\scriptsize($\ell$)} & \gate{D}    &                      & \gate[2]{O_c} & \gate{D} \\
+  \lstick{$\ket{\mathbf x}$ \,\scriptsize($n$ spins)} & \qwbundle{n} &                 &               & \qw
+\end{quantikz}
+\end{center}
+Here $O_{\hat H}$ reads the spin register (for the $\ell=0$ diagonal), whereas
+$O_c$ only flips the spin addressed by $\ell$. Because $H$ is \emph{also} a sum of just
+$2n{-}1$ Pauli strings, the LCU route of \cref{ch:lec07} block-encodes it with
+subnormalization $\norm{c}_1=(n{-}1)J+nh$ rather than the sparsity bound
+$\alpha=n{+}1$, and avoids the $\mathbf x$-dependent entry rotation; see
+\cref{exa:lec07-tfim}. Which is cheaper depends on $J,h$, but for local Hamiltonians
+the LCU encoding is usually preferred.
+\end{example}
+
 \section{Hermitian block encoding}
 \label{sec:lec06-4}
 

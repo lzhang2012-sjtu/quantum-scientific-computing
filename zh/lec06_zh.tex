@@ -655,6 +655,87 @@ $U_A\in\mathrm{BE}_{s,n+1}(A)$（这正是 Gily\'en--Su--Low--Wiebe 的构造，
 $O_A\ket{0}\ket{i}\ket{j}=(A_{ij}\ket{0}+\sqrt{1-\abs{A_{ij}}^2}\ket{1})\ket{i}
 \ket{j}$；$A_{ij}=0$ 的条目从不贡献，故那里的旋转无关紧要。
 \end{remark}
+
+\subsection*{两个具体编码：拉普拉斯算子与伊辛模型}
+
+$s$-稀疏配方 \eqref{eq:lec06-Uss} 把两个物理上极为核心的算符化为带显式线路的块编码。
+二者都是厄米的、且在乘积基下带状，故位置谕示是一个移位（或比特翻转），条目谕示只需加载
+少数几个常数。两例的线路都是 \cref{thm:lec06-ssparse} 的夹心
+$U_A=(\id\otimes D)(\id\otimes O_c)\,O_A\,(\id\otimes D)$，其中 $D=\Hgate^{\otimes s'}$
+在 $s'=\lceil\log_2 s\rceil$ 比特的索引寄存器上展开。
+
+\begin{example}[$\R^d$ 中的有限差分拉普拉斯算子]
+\label{exa:lec06-laplacian}
+在每轴 $N=2^m$ 个格点的周期 $d$ 维网格上离散化 $-\Delta$，位置为
+$\ket{\mathbf x}=\ket{x_1}\cdots\ket{x_d}$，共 $dm$ 个量子比特。以逐轴循环移位
+$S_k\colon x_k\mapsto x_k{+}1\bmod N$，负拉普拉斯算子是二阶差分之和
+\[
+  L=\sum_{k=1}^{d}\bigl(2\id-S_k-S_k\dg\bigr),
+\]
+它是一个 $(2d{+}1)$-稀疏的实对称矩阵：每个格点 $\mathbf x$ 与自身耦合（对角元 $2d$），
+并与其 $2d$ 个近邻 $\mathbf x\pm\mathbf e_k$ 耦合（元 $-1$）。因此 $\norm{L}_{\max}=2d$；
+令 $\hat L\defeq L/(2d)$，对角元为 $1$、非对角元为 $-\tfrac1{2d}$。把一列的 $s=2d{+}1$ 个
+非零元用 $\ell\in\{0\}\cup\{(k,\pm)\}$ 编号。\emph{位置谕示}是受 $\ell$ 控制的移位
+\[
+  O_c\ket{\ell}\ket{\mathbf x}=\ket{\ell}\ket{\mathbf x+\delta_\ell},\qquad
+  \delta_0=\mathbf 0,\quad \delta_{(k,\pm)}=\pm\mathbf e_k,
+\]
+即对\emph{被选中}的坐标寄存器做 $\pm1$ 增量——这正是 \cref{sec:lec04-qftadder} 的模加法器。
+\emph{条目谕示}与 $\mathbf x$ 无关：对 $\ell=0$ 保持信号比特为 $\ket0$，否则把它旋转到
+携带振幅 $-\tfrac1{2d}$，
+\[
+  O_{\hat L}\ket0\ket\ell=
+   \begin{cases}\ket0\ket\ell, & \ell=0,\\[2pt]
+   \bigl(-\tfrac1{2d}\ket0+\sqrt{1-\tfrac1{4d^2}}\,\ket1\bigr)\ket\ell, & \ell\neq0.
+   \end{cases}
+\]
+于是 \cref{thm:lec06-ssparse} 给出 $U_{\hat L}\in\mathrm{BE}_{2d+1,\,s'+1}(\hat L)$：
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(信号)}         & \qw          & \gate[2]{O_{\hat L}} & \qw           & \qw \\
+  \lstick{$\ket{0^{s'}}$ \,\scriptsize($\ell$)} & \gate{D}     &                      & \gate[2]{O_c} & \gate{D} \\
+  \lstick{$\ket{\mathbf x}$}                    & \qwbundle{dm} & \qw                  &               & \qw
+\end{quantikz}
+\end{center}
+一维情形（$d=1$，$s=3$）索引为两个比特，$O_c$ 是``若 $\ell=1$ 则 $x$ 自增、$\ell=2$ 则
+自减、$\ell=0$ 则空闲'',而 $O_{\hat L}$ 是作用在两个非对角分支上的一个受控
+$R_y\!\bigl(2\arccos\tfrac12\bigr)=R_y(2\pi/3)$（带一个符号）。代价是 $2d$ 个受控模加法器
+加 $\bigo(1)$ 个旋转，次归一化为 $\alpha=2d{+}1$。
+\end{example}
+
+\begin{example}[横场伊辛模型]
+\label{exa:lec06-ising}
+$n$ 自旋的横场伊辛模型 $H=-J\sum_i Z_iZ_{i+1}-h\sum_i X_i$ 在计算基下是 $(n{+}1)$-稀疏的：
+\[
+  H\ket{\mathbf x}=E(\mathbf x)\,\ket{\mathbf x}-h\sum_{i=1}^{n}\ket{\mathbf x\oplus\mathbf e_i},
+  \qquad E(\mathbf x)=-J\sum_i(-1)^{x_i\oplus x_{i+1}},
+\]
+一个对角元加上 $n$ 个振幅为 $-h$ 的单自旋翻转近邻。故
+$\norm{H}_{\max}=\max\{(n{-}1)J,\,h\}$；记 $\hat H=H/\norm{H}_{\max}$。把非零元用
+$\ell\in\{0,1,\dots,n\}$ 编号。\emph{位置谕示}是受 $\ell$ 多路选择的比特翻转
+\[
+  O_c\ket{\ell}\ket{\mathbf x}=\ket{\ell}\ket{\mathbf x\oplus\mathbf e_\ell}\ (\ell\ge1),
+  \qquad O_c\ket{0}\ket{\mathbf x}=\ket{0}\ket{\mathbf x},
+\]
+即对单量子比特 $X$ 门的一次 \textsc{select}。\emph{条目谕示}在 $\ell=0$ 分支加载对角能量
+$E(\mathbf x)/\norm{H}_{\max}$（其旋转角由近邻奇偶 $x_i\oplus x_{i+1}$ 算出——例如用
+$n{-}1$ 个 \textsc{cnot} 累加奇偶计数），并在每个 $\ell\ge1$ 分支加载常数
+$-h/\norm{H}_{\max}$。\cref{thm:lec06-ssparse} 给出
+$U_{\hat H}\in\mathrm{BE}_{n+1,\,s'+1}(\hat H)$，其中 $s'=\lceil\log_2(n{+}1)\rceil$：
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(信号)}         & \qw         & \gate[3]{O_{\hat H}} & \qw           & \qw \\
+  \lstick{$\ket{0^{s'}}$ \,\scriptsize($\ell$)} & \gate{D}    &                      & \gate[2]{O_c} & \gate{D} \\
+  \lstick{$\ket{\mathbf x}$ \,\scriptsize($n$ 自旋)} & \qwbundle{n} &                 &               & \qw
+\end{quantikz}
+\end{center}
+这里 $O_{\hat H}$ 读取自旋寄存器（用于 $\ell=0$ 的对角元），而 $O_c$ 只翻转由 $\ell$ 寻址
+的那个自旋。由于 $H$ \emph{也}只是 $2n{-}1$ 个泡利串之和，\cref{ch:lec07} 的 LCU 路线以
+次归一化 $\norm{c}_1=(n{-}1)J+nh$ 对其做块编码，而非稀疏界 $\alpha=n{+}1$，且避免了依赖
+$\mathbf x$ 的条目旋转；参见 \cref{exa:lec07-tfim}。孰优取决于 $J,h$，但对局域哈密顿量通常
+更偏好 LCU 编码。
+\end{example}
+
 \section{厄米块编码 (Hermitian block encoding)}
 \label{sec:lec06-4}
 
