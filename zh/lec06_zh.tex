@@ -378,6 +378,37 @@ $\sum_{\mathbf x}\sin(\theta f)\ket{\mathbf x}\approx\theta\sum_{\mathbf x}f\,
 \ket{\mathbf x}$，即目标态，误差为 $\bigo(\theta^2)$、重复开销为 $\bigo(1/\theta^2)$。
 \end{remark}
 
+\begin{remark}[易于制备的振幅向量工具箱]
+\label{rem:lec06-toolbox}
+上面的例子都是少数几种\emph{结构性抓手}的实例，每一种都击败了 \cref{prop:lec06-sp} 的一般
+$\Omega(2^n/n)$ 下界。只要 $f$ 具有以下形式之一，向量
+$\sum_{\mathbf x}f(\mathbf x)\ket{\mathbf x}$ 便可高效制备。
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{可分离}，$f(\mathbf x)=\prod_k f_k(x_k)$：单寄存器制备的张量积——$\bigo(dm)$ 个门、
+        无纠缠（\cref{exa:lec06-prod}；\cref{rem:lec06-phasepoly} 中的 $\ee^{\sum a_kx_k}$）。
+  \item \emph{有界键维数}，即跨每条割缝的施密特秩 $\le\chi$：一个矩阵乘积态，顺序制备，
+        $\bigo(n\,\poly\chi)$ 个门（\cref{exa:lec06-mps,rem:lec06-mpschi}——GHZ、$W$、Dicke）。
+  \item \emph{高效可积的密度}，$f=\sqrt{p}$ 且累积分布可经典计算：Grover--Rudolph，用
+        $\bigo(n)$ 个受控旋转（\cref{exa:lec06-grex}——高斯、对数凹分布）。
+  \item \emph{低次多项式的相位}，$f=\ee^{\ii\varphi}$ 的实部或虚部：一层（多重）受控相位，
+        每个单项式一个，外加一个取实/虚部的标志比特（\cref{exa:lec06-sinvec,rem:lec06-phasepoly}）。
+  \item \emph{在易算函数上的短展开}，$f=\sum_{k} c_k b_k$，其中每个 $b_k$ 是相位梯度（傅里叶
+        模）、高斯或单项式：用 \cref{ch:lec07} 的线性组合（向量加法）基本操作把各项合并。这涵盖
+        截断的傅里叶／切比雪夫级数以及径向积分变换核 $1/\lvert\mathbf x\rvert$、
+        $\ee^{-\mu\lvert\mathbf x\rvert}$（\cref{exa:lec06-coulomb}）。
+  \item \emph{任何高效可计算的振幅}：用一个 $\poly$ 规模的可逆线路算出 $f(\mathbf x)$，按寄存器
+        所存之值旋转一个信号比特，再反计算——即以数据通路实现的条目谕示 $O_A$
+        （\cref{rem:lec06-polyamp}）。只要已知 $f$ 的公式，这便是通用的退路。
+  \item \emph{稀疏}，仅有 $d=\poly(n)$ 个非零元：逐个加载，$\bigo(dn)$ 个门
+        （\cref{exa:lec06-sparsevec}）；若以上皆不适用，QRAM 以 $\bigo(2^n)$ 的硬件代价在
+        $\bigo(n)$ 深度内给出任意向量。
+\end{itemize}
+这些抓手可以\emph{复合}：易因子之积、易项之 LCU、易公式之振幅加载，仍然是易的；因此实践中遇到
+的大多数结构化向量——光滑密度、低秩态、局域哈密顿量基态拟设、离散化的光滑函数——都落入这些类
+之一或其组合。一个\emph{毫无}这些结构的向量（一般单位向量、密码学或伪随机的振幅分布）才是真正
+昂贵的，达到 \cref{prop:lec06-sp} 的界。
+\end{remark}
+
 此后我们将 $O_u$ 视为一个给定的谕示，并计数对它的\emph{查询}，正如我们在 \cref{ch:lec05} 中计数对
 $\ee^{-\ii Ht}$ 的查询那样。态制备谕示是输入模型的向量那一半；本讲余下部分构建矩阵那一半。
 \section{块编码：定义与因子}
