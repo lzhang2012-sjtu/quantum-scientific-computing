@@ -411,6 +411,44 @@ the Yukawa kernel $\ee^{-\mu\lvert\mathbf x\rvert}/\lvert\mathbf x\rvert$---and 
 quantum treatments of Coulomb interactions.
 \end{example}
 
+\begin{remark}[Real polynomial amplitudes by arithmetic: $\sum_{i\neq j}x_ix_j$]
+\label{rem:lec06-polyamp}
+When the target amplitude is a \emph{real polynomial} rather than the real or
+imaginary part of a phase, the phase-gradient trick does not apply directly; the
+general tool is \emph{compute-rotate-uncompute}. Take
+$f(\mathbf x)=\sum_{i\neq j}x_ix_j$. First simplify algebraically,
+\[
+  \sum_{i\neq j}x_ix_j=\Bigl(\sum_i x_i\Bigr)^{\!2}-\sum_i x_i^{2}=S^2-Q,
+\]
+so $f$ needs only the linear form $S=\sum_i x_i$ (a tree of $\bigo(\log d)$-depth
+modular adders, \cref{sec:lec04-qftadder}) and the separable sum of squares
+$Q=\sum_i x_i^2$ (square each register, then add). Compute $f(\mathbf x)=S^2-Q$ into a
+work register by reversible arithmetic, apply a rotation by the register-held value,
+$R_y\!\bigl(2\arcsin(f(\mathbf x)/F)\bigr)$ with $F=\max_{\mathbf x}\abs{f(\mathbf x)}$,
+onto a signal qubit, then uncompute the work register:
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket{\mathbf x}$ \,\scriptsize(data)}   & \gate[2]{\textsc{arith}} & \qw          & \gate[2]{\textsc{arith}^{\dagger}} & \qw \\
+  \lstick{$\ket{0}$ \,\scriptsize(work)}           &                          & \gate[2]{R_y} &                                   & \qw \\
+  \lstick{$\ket{0}$ \,\scriptsize(signal)}         & \qw                      &               & \qw                               & \qw
+\end{quantikz}
+\end{center}
+This is exactly the entry oracle $O_A$ of \eqref{eq:lec06-OA} realized by a reversible
+datapath: it leaves the signal carrying amplitude $f(\mathbf x)/F$, so on the uniform
+data state, post-selecting the signal yields $\propto\sum_{\mathbf x}f(\mathbf x)
+\ket{\mathbf x}$ in $\poly(d,m)$ gates. The same recipe loads any efficiently
+computable real amplitude (the arithmetic is the only part that changes).
+
+A phase-state alternative avoids the arithmetic but is approximate: since each
+$x_ix_j$ is bilinear, $\ee^{\ii\theta f(\mathbf x)}=\prod_{i\neq j}\prod_{a,b}
+\ee^{\ii\theta 2^{a+b}(x_i)_a(x_j)_b}$ is a product of $\bigo(d^2m^2)$ controlled-phase
+gates (the two-register generalization of \cref{rem:lec06-phasepoly}); for small
+$\theta$ the sine state of \cref{exa:lec06-sinvec} gives
+$\sum_{\mathbf x}\sin(\theta f)\ket{\mathbf x}\approx\theta\sum_{\mathbf x}f\,
+\ket{\mathbf x}$, the target up to $\bigo(\theta^2)$ error and an $\bigo(1/\theta^2)$
+repetition overhead.
+\end{remark}
+
 We henceforth treat $O_u$ as a given oracle and count \emph{queries} to it, exactly
 as we counted queries to $\ee^{-\ii Ht}$ in \cref{ch:lec05}. The state-preparation
 oracle is the vector half of the input model; the rest of the lecture builds the

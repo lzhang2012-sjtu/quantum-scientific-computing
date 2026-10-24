@@ -346,6 +346,38 @@ $\ee^{-\mu\lvert\mathbf x\rvert}$、汤川核 $\ee^{-\mu\lvert\mathbf x\rvert}/\
 并支撑着库仑相互作用的量子处理。
 \end{example}
 
+\begin{remark}[用算术加载实多项式振幅：$\sum_{i\neq j}x_ix_j$]
+\label{rem:lec06-polyamp}
+当目标振幅是一个\emph{实多项式}、而非某个相位的实部或虚部时，相位梯度技巧不再直接适用；
+通用工具是\emph{计算–旋转–反计算}。取 $f(\mathbf x)=\sum_{i\neq j}x_ix_j$。先作代数化简，
+\[
+  \sum_{i\neq j}x_ix_j=\Bigl(\sum_i x_i\Bigr)^{\!2}-\sum_i x_i^{2}=S^2-Q,
+\]
+于是 $f$ 只需线性型 $S=\sum_i x_i$（一棵 $\bigo(\log d)$ 深的模加法器之树，
+\cref{sec:lec04-qftadder}）以及可分离的平方和 $Q=\sum_i x_i^2$（对每个寄存器平方后相加）。
+用可逆算术把 $f(\mathbf x)=S^2-Q$ 算入一个工作寄存器，再按寄存器所存之值施加旋转
+$R_y\!\bigl(2\arcsin(f(\mathbf x)/F)\bigr)$（$F=\max_{\mathbf x}\abs{f(\mathbf x)}$）到一个
+信号比特上，最后反计算工作寄存器：
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket{\mathbf x}$ \,\scriptsize(数据)}   & \gate[2]{\textsc{arith}} & \qw          & \gate[2]{\textsc{arith}^{\dagger}} & \qw \\
+  \lstick{$\ket{0}$ \,\scriptsize(工作)}           &                          & \gate[2]{R_y} &                                   & \qw \\
+  \lstick{$\ket{0}$ \,\scriptsize(信号)}           & \qw                      &               & \qw                               & \qw
+\end{quantikz}
+\end{center}
+这正是用可逆数据通路实现的 \eqref{eq:lec06-OA} 之条目谕示 $O_A$：它使信号携带振幅
+$f(\mathbf x)/F$，故在均匀数据态上对信号作后选择即得
+$\propto\sum_{\mathbf x}f(\mathbf x)\ket{\mathbf x}$，用 $\poly(d,m)$ 个门。同一配方可加载
+任何高效可计算的实振幅（唯一改变的是其中的算术部分）。
+
+还有一种避开算术但为近似的相位态方案：由于每个 $x_ix_j$ 是双线性的，
+$\ee^{\ii\theta f(\mathbf x)}=\prod_{i\neq j}\prod_{a,b}
+\ee^{\ii\theta 2^{a+b}(x_i)_a(x_j)_b}$ 是 $\bigo(d^2m^2)$ 个受控相位门之积（\cref{rem:lec06-phasepoly}
+的两寄存器推广）；对小的 $\theta$，\cref{exa:lec06-sinvec} 的正弦态给出
+$\sum_{\mathbf x}\sin(\theta f)\ket{\mathbf x}\approx\theta\sum_{\mathbf x}f\,
+\ket{\mathbf x}$，即目标态，误差为 $\bigo(\theta^2)$、重复开销为 $\bigo(1/\theta^2)$。
+\end{remark}
+
 此后我们将 $O_u$ 视为一个给定的谕示，并计数对它的\emph{查询}，正如我们在 \cref{ch:lec05} 中计数对
 $\ee^{-\ii Ht}$ 的查询那样。态制备谕示是输入模型的向量那一半；本讲余下部分构建矩阵那一半。
 \section{块编码：定义与因子}
