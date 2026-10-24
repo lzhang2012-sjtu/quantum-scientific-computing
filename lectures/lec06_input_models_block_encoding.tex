@@ -449,6 +449,49 @@ $\sum_{\mathbf x}\sin(\theta f)\ket{\mathbf x}\approx\theta\sum_{\mathbf x}f\,
 repetition overhead.
 \end{remark}
 
+\begin{remark}[A toolbox of cheaply preparable amplitude vectors]
+\label{rem:lec06-toolbox}
+The examples above are instances of a handful of \emph{structural handles}, each of
+which defeats the generic $\Omega(2^n/n)$ lower bound of \cref{prop:lec06-sp}. A vector
+$\sum_{\mathbf x}f(\mathbf x)\ket{\mathbf x}$ is efficiently preparable whenever
+$f$ has one of the following forms.
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{Separable}, $f(\mathbf x)=\prod_k f_k(x_k)$: a tensor product of
+        single-register preparations---$\bigo(dm)$ gates, no entanglement
+        (\cref{exa:lec06-prod}; $\ee^{\sum a_kx_k}$ in \cref{rem:lec06-phasepoly}).
+  \item \emph{Bounded bond dimension}, i.e.\ Schmidt rank $\le\chi$ across every cut:
+        a matrix product state, prepared sequentially in $\bigo(n\,\poly\chi)$ gates
+        (\cref{exa:lec06-mps,rem:lec06-mpschi}---GHZ, $W$, Dicke).
+  \item \emph{Efficiently integrable densities}, $f=\sqrt{p}$ with a classically
+        computable cumulative distribution: Grover--Rudolph in $\bigo(n)$ controlled
+        rotations (\cref{exa:lec06-grex}---Gaussians, log-concave laws).
+  \item \emph{A phase of a low-degree polynomial}, $f=\Re$ or $\Im\,\ee^{\ii\varphi}$:
+        one layer of (multi-)controlled phases, one per monomial, plus a single flag
+        for the real/imaginary part (\cref{exa:lec06-sinvec,rem:lec06-phasepoly}).
+  \item \emph{A short expansion in easy functions}, $f=\sum_{k} c_k b_k$ with each
+        $b_k$ a phase gradient (a Fourier mode), a Gaussian, or a monomial: combine the
+        terms by the linear-combination (vector-addition) primitive of \cref{ch:lec07}.
+        This covers truncated Fourier/Chebyshev series and the radial
+        integral-transform kernels $1/\lvert\mathbf x\rvert$, $\ee^{-\mu\lvert\mathbf x\rvert}$
+        (\cref{exa:lec06-coulomb}).
+  \item \emph{Any efficiently computable amplitude}: compute $f(\mathbf x)$ by a
+        $\poly$-size reversible circuit, rotate a signal qubit by the register-held
+        value, and uncompute---the entry oracle $O_A$ realized as a datapath
+        (\cref{rem:lec06-polyamp}). This is the universal fallback whenever a formula
+        for $f$ is known.
+  \item \emph{Sparse}, with only $d=\poly(n)$ nonzero entries: load them one at a time
+        in $\bigo(dn)$ gates (\cref{exa:lec06-sparsevec}); and failing all else, QRAM
+        supplies an arbitrary vector in $\bigo(n)$ depth at $\bigo(2^n)$ hardware.
+\end{itemize}
+These handles \emph{compose}: a product of easy factors, an LCU of easy terms, or an
+amplitude-loading of an easy formula is again easy, so most structured vectors met in
+practice---smooth densities, low-rank states, local-Hamiltonian ground-state ans\"atze,
+discretized smooth functions---fall into one or a combination of these classes. A
+vector with \emph{none} of them (a generic unit vector, a cryptographic or
+pseudorandom amplitude profile) is genuinely expensive, saturating
+\cref{prop:lec06-sp}.
+\end{remark}
+
 We henceforth treat $O_u$ as a given oracle and count \emph{queries} to it, exactly
 as we counted queries to $\ee^{-\ii Ht}$ in \cref{ch:lec05}. The state-preparation
 oracle is the vector half of the input model; the rest of the lecture builds the
