@@ -246,9 +246,39 @@ $q_1{=}1$ gives $p_{10}/(p_{10}{+}p_{11})=\tfrac14$, so $R_y(2\pi/3)$. Level~2 i
 \end{quantikz}
 \end{center}
 The amplitude on $\ket{00}$ is $\cos\tfrac\pi4\cos\tfrac\pi6
-=\tfrac1{\sqrt2}\cdot\tfrac{\sqrt3}2=\sqrt3/\sqrt8=\sqrt{p_{00}}$, as it must be. For a
-smooth density the per-level angles are \emph{computed} from $\int_I p$ on an ancilla
-rather than hard-coded, which is the content of \cref{rem:lec06-gr}.
+=\tfrac1{\sqrt2}\cdot\tfrac{\sqrt3}2=\sqrt3/\sqrt8=\sqrt{p_{00}}$, as it must be.
+
+\emph{Three qubits.} The same bisection extends to $n=3$ ($8$ points). Load
+$p=(6,6,1,3,3,1,6,6)/32$, i.e.\
+\[
+  \ket u=\tfrac1{\sqrt{32}}\bigl(\sqrt6\,\ket{000}+\sqrt6\,\ket{001}+\ket{010}
+  +\sqrt3\,\ket{011}+\sqrt3\,\ket{100}+\ket{101}+\sqrt6\,\ket{110}+\sqrt6\,\ket{111}\bigr).
+\]
+Level~1 has $P(q_1{=}0)=(6{+}6{+}1{+}3)/32=\tfrac12$, so $\Hgate$ on $q_1$. Level~2 is
+as before---$R_y(\pi/3)$ if $q_1{=}0$ (mass ratio $\tfrac{12}{16}=\tfrac34$) and
+$R_y(2\pi/3)$ if $q_1{=}1$ (ratio $\tfrac{4}{16}=\tfrac14$). Level~3 is now a
+\emph{four-way} uniformly controlled rotation whose angle depends on \emph{both}
+$q_1$ and $q_2$,
+\[
+  \cos^2\tfrac{\theta_{q_1q_2}}{2}
+  =\frac{p_{q_1q_2 0}}{p_{q_1q_2 0}+p_{q_1q_2 1}}
+  =\begin{cases}\tfrac12,&q_1q_2{=}00,\\[1pt]\tfrac14,&01,\\[1pt]\tfrac34,&10,\\[1pt]
+    \tfrac12,&11,\end{cases}
+  \quad\Longrightarrow\quad
+  \theta_{q_1q_2}=\pi/2,\ 2\pi/3,\ \pi/3,\ \pi/2 .
+\]
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_1:\ket0$} & \gate{\Hgate} & \octrl{1}         & \ctrl{1}           & \octrl{1}        & \octrl{1}          & \ctrl{1}         & \ctrl{1} \\
+  \lstick{$q_2:\ket0$} & \qw           & \gate{R_y(\pi/3)} & \gate{R_y(2\pi/3)} & \octrl{1}        & \ctrl{1}           & \octrl{1}        & \ctrl{1} \\
+  \lstick{$q_3:\ket0$} & \qw           & \qw               & \qw                & \gate{R_y(\pi/2)}& \gate{R_y(2\pi/3)} & \gate{R_y(\pi/3)}& \gate{R_y(\pi/2)}
+\end{quantikz}
+\end{center}
+The amplitude on $\ket{000}$ is $\cos\tfrac\pi4\cos\tfrac\pi6\cos\tfrac\pi4
+=\tfrac1{\sqrt2}\cdot\tfrac{\sqrt3}2\cdot\tfrac1{\sqrt2}=\tfrac{\sqrt3}4=\sqrt{p_{000}}$.
+Level~$k$ is a $2^{k-1}$-way uniformly controlled rotation ($1+2+4=7$ rotations here),
+and for a smooth density the $2^{k-1}$ angles are \emph{computed} on the fly from
+$\int_I p$ on an ancilla rather than tabulated---the content of \cref{rem:lec06-gr}.
 \end{example}
 
 \begin{example}[Sparse vector]
@@ -362,8 +392,15 @@ $\ket{D^2_1}=\tfrac1{\sqrt2}(\ket{01}+\ket{10})$,
 Prepare it in three steps: $R_y(\theta_1)$ on $q_1$ with
 $\theta_1=2\arccos\sqrt{\tfrac13}$ (so $q_1\mapsto\sqrt{\tfrac13}\ket0+\sqrt{\tfrac23}\ket1$);
 controlled on $q_1{=}0$, set $q_2q_3$ to $\ket{11}$; controlled on $q_1{=}1$, prepare
-$\ket{D^2_1}$ on $q_2q_3$ (one $\Hgate$ and one $\CNOT$, up to a bit flip). Since for
-$n=3$ weight two is the \emph{complement} of weight one, equivalently
+$\ket{D^2_1}$ on $q_2q_3$ by a gate $V$ (one $\Hgate$ and one $\CNOT$, up to a bit flip):
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_1:\ket0$} & \gate{R_y(\theta_1)} & \octrl{1}              & \ctrl{1}    & \qw \\
+  \lstick{$q_2:\ket0$} & \qw                  & \gate[2]{X^{\otimes2}} & \gate[2]{V} & \qw \\
+  \lstick{$q_3:\ket0$} & \qw                  &                        &             & \qw
+\end{quantikz}
+\end{center}
+Since for $n=3$ weight two is the \emph{complement} of weight one, equivalently
 $\ket{D^3_2}=X^{\otimes3}\ket{W_3}$ with
 $\ket{W_3}=\tfrac1{\sqrt3}(\ket{100}+\ket{010}+\ket{001})$.
 
@@ -375,9 +412,18 @@ Hadamard:
 \]
 using $\ket{D^3_1}=\ket{W_3}$. The circuit is $\Hgate$ on $q_1$, then a $q_1$-controlled
 preparation on $q_2q_3q_4$---$\ket{D^3_2}$ if $q_1{=}0$, $\ket{W_3}$ if $q_1{=}1$---each
-a three-qubit block from the $n=3$ case. This is the Bärtschi--Eidenbenz recursion; a
-flat (non-recursive) version reuses a single ``running-weight'' ancilla to reach the
-$\bigo(kn)$-gate, $\bigo(n)$-depth circuit quoted in \cref{rem:lec06-mpschi}.
+a three-qubit block from the $n=3$ case:
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_1:\ket0$} & \gate{\Hgate} & \octrl{1}           & \ctrl{1}         & \qw \\
+  \lstick{$q_2:\ket0$} & \qw           & \gate[3]{D^3_2}     & \gate[3]{W_3}    & \qw \\
+  \lstick{$q_3:\ket0$} & \qw           &                     &                  & \qw \\
+  \lstick{$q_4:\ket0$} & \qw           &                     &                  & \qw
+\end{quantikz}
+\end{center}
+This is the Bärtschi--Eidenbenz recursion; a flat (non-recursive) version reuses a
+single ``running-weight'' ancilla to reach the $\bigo(kn)$-gate, $\bigo(n)$-depth
+circuit quoted in \cref{rem:lec06-mpschi}.
 \end{example}
 
 \begin{example}[Encoding $\sin(x_1+\cdots+x_d)$ by a phase gradient]

@@ -203,9 +203,37 @@ $q_1{=}1$ 给出 $p_{10}/(p_{10}{+}p_{11})=\tfrac14$，故为 $R_y(2\pi/3)$。�
 \end{quantikz}
 \end{center}
 $\ket{00}$ 上的振幅为 $\cos\tfrac\pi4\cos\tfrac\pi6
-=\tfrac1{\sqrt2}\cdot\tfrac{\sqrt3}2=\sqrt3/\sqrt8=\sqrt{p_{00}}$，正如所应。对于光滑的
-密度，每一层的角度是在辅助比特上由 $\int_I p$ \emph{计算}得到、而非硬编码的，这正是
-\cref{rem:lec06-gr} 的内容。
+=\tfrac1{\sqrt2}\cdot\tfrac{\sqrt3}2=\sqrt3/\sqrt8=\sqrt{p_{00}}$，正如所应。
+
+\emph{三个量子比特。} 同样的二分法推广到 $n=3$（$8$ 个点）。加载
+$p=(6,6,1,3,3,1,6,6)/32$，即
+\[
+  \ket u=\tfrac1{\sqrt{32}}\bigl(\sqrt6\,\ket{000}+\sqrt6\,\ket{001}+\ket{010}
+  +\sqrt3\,\ket{011}+\sqrt3\,\ket{100}+\ket{101}+\sqrt6\,\ket{110}+\sqrt6\,\ket{111}\bigr).
+\]
+第一层有 $P(q_1{=}0)=(6{+}6{+}1{+}3)/32=\tfrac12$，故对 $q_1$ 施加 $\Hgate$。第二层一如既往——
+$q_1{=}0$ 时为 $R_y(\pi/3)$（质量比 $\tfrac{12}{16}=\tfrac34$），$q_1{=}1$ 时为 $R_y(2\pi/3)$
+（比 $\tfrac{4}{16}=\tfrac14$）。第三层如今是一个\emph{四路}一致受控旋转，其角度\emph{同时}依赖于
+$q_1$ 与 $q_2$，
+\[
+  \cos^2\tfrac{\theta_{q_1q_2}}{2}
+  =\frac{p_{q_1q_2 0}}{p_{q_1q_2 0}+p_{q_1q_2 1}}
+  =\begin{cases}\tfrac12,&q_1q_2{=}00,\\[1pt]\tfrac14,&01,\\[1pt]\tfrac34,&10,\\[1pt]
+    \tfrac12,&11,\end{cases}
+  \quad\Longrightarrow\quad
+  \theta_{q_1q_2}=\pi/2,\ 2\pi/3,\ \pi/3,\ \pi/2 .
+\]
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_1:\ket0$} & \gate{\Hgate} & \octrl{1}         & \ctrl{1}           & \octrl{1}        & \octrl{1}          & \ctrl{1}         & \ctrl{1} \\
+  \lstick{$q_2:\ket0$} & \qw           & \gate{R_y(\pi/3)} & \gate{R_y(2\pi/3)} & \octrl{1}        & \ctrl{1}           & \octrl{1}        & \ctrl{1} \\
+  \lstick{$q_3:\ket0$} & \qw           & \qw               & \qw                & \gate{R_y(\pi/2)}& \gate{R_y(2\pi/3)} & \gate{R_y(\pi/3)}& \gate{R_y(\pi/2)}
+\end{quantikz}
+\end{center}
+$\ket{000}$ 上的振幅为 $\cos\tfrac\pi4\cos\tfrac\pi6\cos\tfrac\pi4
+=\tfrac1{\sqrt2}\cdot\tfrac{\sqrt3}2\cdot\tfrac1{\sqrt2}=\tfrac{\sqrt3}4=\sqrt{p_{000}}$。第 $k$ 层
+是一个 $2^{k-1}$ 路一致受控旋转（这里共 $1+2+4=7$ 个旋转）；对于光滑的密度，这 $2^{k-1}$ 个角度是在
+辅助比特上由 $\int_I p$ \emph{临时算出}而非列表存储的——这正是 \cref{rem:lec06-gr} 的内容。
 \end{example}
 
 \begin{example}[稀疏向量]
@@ -309,8 +337,16 @@ $\chi=2$ 时键是单个量子比特，每个 $V_k$ 即上面链中的那个两�
 \]
 分三步制备：对 $q_1$ 作 $R_y(\theta_1)$，$\theta_1=2\arccos\sqrt{\tfrac13}$（使
 $q_1\mapsto\sqrt{\tfrac13}\ket0+\sqrt{\tfrac23}\ket1$）；在 $q_1{=}0$ 的条件下把 $q_2q_3$ 置为
-$\ket{11}$；在 $q_1{=}1$ 的条件下在 $q_2q_3$ 上制备 $\ket{D^2_1}$（一个 $\Hgate$ 和一个 $\CNOT$，至多
-差一次比特翻转）。由于对 $n=3$ 权重二是权重一的\emph{补}，等价地
+$\ket{11}$；在 $q_1{=}1$ 的条件下在 $q_2q_3$ 上用一个门 $V$ 制备 $\ket{D^2_1}$（一个 $\Hgate$ 和一个
+$\CNOT$，至多差一次比特翻转）：
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_1:\ket0$} & \gate{R_y(\theta_1)} & \octrl{1}              & \ctrl{1}    & \qw \\
+  \lstick{$q_2:\ket0$} & \qw                  & \gate[2]{X^{\otimes2}} & \gate[2]{V} & \qw \\
+  \lstick{$q_3:\ket0$} & \qw                  &                        &             & \qw
+\end{quantikz}
+\end{center}
+由于对 $n=3$ 权重二是权重一的\emph{补}，等价地
 $\ket{D^3_2}=X^{\otimes3}\ket{W_3}$，其中 $\ket{W_3}=\tfrac1{\sqrt3}(\ket{100}+\ket{010}+\ket{001})$。
 
 \emph{$n=4$。} 此时 $\tfrac{n-k}{n}=\tfrac{k}{n}=\tfrac12$，故第一个旋转是 Hadamard：
@@ -319,8 +355,16 @@ $\ket{D^3_2}=X^{\otimes3}\ket{W_3}$，其中 $\ket{W_3}=\tfrac1{\sqrt3}(\ket{100
   =\tfrac1{\sqrt6}\bigl(\ket{0011}+\ket{0101}+\ket{0110}+\ket{1001}+\ket{1010}+\ket{1100}\bigr),
 \]
 这里用到 $\ket{D^3_1}=\ket{W_3}$。线路是：对 $q_1$ 作 $\Hgate$，再在 $q_1$ 控制下于 $q_2q_3q_4$ 上制备
-——$q_1{=}0$ 时制备 $\ket{D^3_2}$，$q_1{=}1$ 时制备 $\ket{W_3}$——每个都是 $n=3$ 情形的三比特块。这就是
-Bärtschi--Eidenbenz 递推；其扁平（非递归）版本复用单个``运行权重''辅助比特，达到
+——$q_1{=}0$ 时制备 $\ket{D^3_2}$，$q_1{=}1$ 时制备 $\ket{W_3}$——每个都是 $n=3$ 情形的三比特块：
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_1:\ket0$} & \gate{\Hgate} & \octrl{1}           & \ctrl{1}         & \qw \\
+  \lstick{$q_2:\ket0$} & \qw           & \gate[3]{D^3_2}     & \gate[3]{W_3}    & \qw \\
+  \lstick{$q_3:\ket0$} & \qw           &                     &                  & \qw \\
+  \lstick{$q_4:\ket0$} & \qw           &                     &                  & \qw
+\end{quantikz}
+\end{center}
+这就是 Bärtschi--Eidenbenz 递推；其扁平（非递归）版本复用单个``运行权重''辅助比特，达到
 \cref{rem:lec06-mpschi} 所述的 $\bigo(kn)$ 门、$\bigo(n)$ 深度的线路。
 \end{example}
 
