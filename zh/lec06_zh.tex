@@ -71,6 +71,32 @@ $\arg u_i$ 的部分和中读出。至于下界，一般的 $\ket{u}$ 携带 $\T
 比特上由 $g$ 个两比特门构成的线路只有 $\bigo(g)$ 个连续参数；匹配参数个数迫使 $g=\Omega(2^n/n)$。
 \end{proof}
 
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[every node/.style={font=\scriptsize},level distance=11mm,
+  level 1/.style={sibling distance=34mm},level 2/.style={sibling distance=17mm},
+  level 3/.style={sibling distance=8.5mm},
+  rot/.style={circle,draw,fill=blue!8,inner sep=1.6pt}]
+\node[rot]{}
+  child{node[rot]{}
+     child{node[rot]{} child{node{$u_0$}} child{node{$u_1$}}}
+     child{node[rot]{} child{node{$u_2$}} child{node{$u_3$}}}
+     edge from parent node[above left,inner sep=1pt]{$0$}}
+  child{node[rot]{}
+     child{node[rot]{} child{node{$u_4$}} child{node{$u_5$}}}
+     child{node[rot]{} child{node{$u_6$}} child{node{$u_7$}}}
+     edge from parent node[above right,inner sep=1pt]{$1$}};
+\node[anchor=west,font=\scriptsize,gray] at (3.2,0){$1$ 个旋转};
+\node[anchor=west,font=\scriptsize,gray] at (3.2,-1.1){$2$ 个旋转};
+\node[anchor=west,font=\scriptsize,gray] at (3.2,-2.2){$4$ 个旋转};
+\end{tikzpicture}
+\caption{\cref{prop:lec06-sp} 的精确加载器作为一棵受控旋转的二叉树（$n=3$）。每个圆圈是一个单比特
+$R_y$，它在上方比特的条件下把存留的概率质量在其 $0$-分支与 $1$-分支之间分配；第 $k$ 层携带
+$2^{k-1}$ 个这样的旋转，共计 $2^n-1$ 个。$2^n$ 个叶子就是振幅 $u_i$。一般的 $\ket u$ 独立地固定全部
+$2^n$ 个叶子，这正是为何没有线路能胜过 $\Omega(2^n/n)$ 个门。}
+\label{fig:lec06-sptree}
+\end{figure}
+
 \cref{prop:lec06-sp} 的信息是，\emph{任意}振幅加载是指数级昂贵的，并且就其本身而言会摧毁任何量子
 加速的希望。只有对\emph{结构化}向量，高效态制备才是可能的。
 
@@ -97,31 +123,6 @@ $\arg u_i$ 的部分和中读出。至于下界，一般的 $\ket{u}$ 携带 $\T
 在 $\bigo(n)$ \emph{深度}内提供 $O_u$；QRAM 是否是一种现实的资源仍是一个悬而未决的争论。
 \end{example}
 
-\begin{remark}[Grover--Rudolph 程序]
-\label{rem:lec06-gr}
-上面的第二类是加载概率分布的主力，因此值得详细说明。假设目标具有实非负振幅
-$\ket{u}=\sum_{i}\sqrt{p(i)}\,\ket{i}$，它是 $[0,1)$ 上密度 $p$ 到 $2^{n}$ 个二进分格子的离散化
-（指标 $i$ 是二进制小数 $0.i_1i_2\cdots i_n$）。Grover--Rudolph 逐比特地构建 $\ket{u}$，在下降过程中
-分割概率质量。一旦前 $k$ 个比特被固定，它们就命名一个宽度为 $2^{-k}$ 的二进分区间 $I$；作用于第
-$k{+}1$ 个比特的旋转是
-\[
-  R_y(\theta_I)\ket0=\cos\tfrac{\theta_I}{2}\ket0+\sin\tfrac{\theta_I}{2}\ket1,
-  \qquad
-  \cos^{2}\tfrac{\theta_I}{2}=\frac{\int_{I_{\mathrm{left}}}p}{\int_{I}p},
-\]
-于是两个分支恰好继承 $I$ 左半与右半的质量。在所有 $n$ 层上叠套展开，$\ket i$ 上的平方振幅等于格子
-质量 $\int_{\text{cell }i}p\approx p(i)$，正如所要求的。
-
-关键在于\emph{为什么这只花 $\bigo(n)$ 个旋转}。在第 $k$ 层为 $2^{k-1}$ 个区间各硬编码一个单独的角度
-会花掉 $\sum_{k=1}^{n}2^{k-1}=\bigo(2^{n})$——并不比一般的 \cref{prop:lec06-sp} 更好。增益完全
-依赖于积分 $\int_{I}p$ 是\emph{经典可高效计算}这一假设：人们不去枚举区间，而是把已设定的比特
-$i_1\cdots i_k$ 保存在一个寄存器中，由它们\emph{相干地}计算角度 $\theta$（在一个辅助比特上用 $p$ 的
-累积分布做算术），作用一个由该寄存器所持角度决定的旋转，然后反计算。每一层都是一个这样的
-$\poly(n)$ 门块，而共有 $n$ 层。一个告诫 (Herbert, 2021)：若积分只能由蒙特卡洛\emph{估计}而不能以
-封闭形式求值，则采样代价可能抵消所加载态本应带来的那一份加速——因此该方法只对真正可积的密度
-（对数凹、高斯及类似者）才有收益。
-\end{remark}
-
 我们把这四类分别落实为具体例子，并给出其制备线路。
 
 \begin{example}[乘积态]
@@ -140,6 +141,50 @@ $\ket{u}=\ket+\otimes\ket0\otimes\bigl(\cos\tfrac\pi8\ket0+\sin\tfrac\pi8\ket1\b
 乘积态的 $n$ 个振幅只携带 $n$ 个独立角度，故 $n$ 个旋转即足够；均匀叠加
 $\Hgate^{\otimes n}\ket{0^n}$ 就是其中每个门都是 Hadamard 的情形。
 \end{example}
+
+\begin{remark}[Grover--Rudolph 程序]
+\label{rem:lec06-gr}
+第二类是加载概率分布的主力，因此值得详细说明。假设目标具有实非负振幅
+$\ket{u}=\sum_{i}\sqrt{p(i)}\,\ket{i}$，它是 $[0,1)$ 上密度 $p$ 到 $2^{n}$ 个二进分格子的离散化
+（指标 $i$ 是二进制小数 $0.i_1i_2\cdots i_n$）。Grover--Rudolph 逐比特地构建 $\ket{u}$，在下降过程中
+分割概率质量。一旦前 $k$ 个比特被固定，它们就命名一个宽度为 $2^{-k}$ 的二进分区间 $I$；作用于第
+$k{+}1$ 个比特的旋转是
+\[
+  R_y(\theta_I)\ket0=\cos\tfrac{\theta_I}{2}\ket0+\sin\tfrac{\theta_I}{2}\ket1,
+  \qquad
+  \cos^{2}\tfrac{\theta_I}{2}=\frac{\int_{I_{\mathrm{left}}}p}{\int_{I}p},
+\]
+于是两个分支恰好继承 $I$ 左半与右半的质量（\cref{fig:lec06-gr}）。在所有 $n$ 层上叠套展开，
+$\ket i$ 上的平方振幅等于格子质量 $\int_{\text{cell }i}p\approx p(i)$，正如所要求的。
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[scale=1]
+  \draw[->](0,0)--(4.5,0) node[right,font=\scriptsize]{$x$};
+  \draw[->](0,0)--(0,1.95) node[above,font=\scriptsize]{$p(x)$};
+  \draw[thick,blue!60!black,domain=0:1,smooth,variable=\x,samples=50]
+       plot ({4*\x},{1.5*sin(180*\x)});
+  \draw[dashed](2,0)--(2,1.55);
+  \draw[dotted](1,0)--(1,1.25);  \draw[dotted](3,0)--(3,1.25);
+  \foreach \px/\lab in {0/$0$,1/$\frac14$,2/$\frac12$,3/$\frac34$,4/$1$}
+     \node[font=\scriptsize,below] at (\px,0){\lab};
+  \node[font=\scriptsize] at (1,0.6){$\int_{I_{\mathrm{left}}}p$};
+  \node[font=\scriptsize] at (3,0.6){$\int_{I_{\mathrm{right}}}p$};
+\end{tikzpicture}
+\caption{Grover--Rudolph 以二进分二分法分割质量。第一个比特的第一层旋转取
+$\cos^2(\theta/2)=\int_{I_{\mathrm{left}}}p\big/\int_{[0,1)}p$（虚线分隔在 $\tfrac12$ 处）；随后每个
+比特二分存留的区间（点线分隔在 $\tfrac14,\tfrac34$ 处），故第 $k$ 层携带 $2^{k-1}$ 个条件旋转。}
+\label{fig:lec06-gr}
+\end{figure}
+
+关键在于\emph{为什么这只花 $\bigo(n)$ 个旋转}。在第 $k$ 层为 $2^{k-1}$ 个区间各硬编码一个单独的角度
+会花掉 $\sum_{k=1}^{n}2^{k-1}=\bigo(2^{n})$——并不比一般的 \cref{prop:lec06-sp} 更好。增益完全
+依赖于积分 $\int_{I}p$ 是\emph{经典可高效计算}这一假设：人们不去枚举区间，而是把已设定的比特
+$i_1\cdots i_k$ 保存在一个寄存器中，由它们\emph{相干地}计算角度 $\theta$（在一个辅助比特上用 $p$ 的
+累积分布做算术），作用一个由该寄存器所持角度决定的旋转，然后反计算。每一层都是一个这样的
+$\poly(n)$ 门块，而共有 $n$ 层。一个告诫 (Herbert, 2021)：若积分只能由蒙特卡洛\emph{估计}而不能以
+封闭形式求值，则采样代价可能抵消所加载态本应带来的那一份加速——因此该方法只对真正可积的密度
+（对数凹、高斯及类似者）才有收益。
+\end{remark}
 
 \begin{example}[高效可积：四点上的 Grover--Rudolph]
 \label{exa:lec06-grex}
@@ -247,6 +292,38 @@ $\lceil\log_2\chi\rceil+1$ 个量子比特上：GHZ（$\chi=2$，即上面的 $\
 $\chi=2$ 时键是单个量子比特，每个 $V_k$ 即上面链中的那个两量子比特门。
 \end{remark}
 
+\begin{example}[显式的 Dicke 态 $\ket{D^3_2}$ 与 $\ket{D^4_2}$]
+\label{exa:lec06-dicke34}
+顺序式（MPS）制备背后的递推把第一个比特剥离出来：
+\[
+  \ket{D^n_k}=\sqrt{\tfrac{n-k}{n}}\,\ket0\otimes\ket{D^{n-1}_k}
+             +\sqrt{\tfrac{k}{n}}\,\ket1\otimes\ket{D^{n-1}_{k-1}},
+\]
+因为在 $\binom nk$ 个权重为 $k$ 的串中，有 $(n-k)/n$ 的比例以 $0$ 开头、$k/n$ 的比例以 $1$ 开头。
+将它展开即得显式的小线路。
+
+\emph{$n=3$。} 以 $\ket{D^2_2}=\ket{11}$、$\ket{D^2_1}=\tfrac1{\sqrt2}(\ket{01}+\ket{10})$，
+\[
+  \ket{D^3_2}=\sqrt{\tfrac13}\,\ket0\ket{11}+\sqrt{\tfrac23}\,\ket1\ket{D^2_1}
+             =\tfrac1{\sqrt3}\bigl(\ket{011}+\ket{101}+\ket{110}\bigr).
+\]
+分三步制备：对 $q_1$ 作 $R_y(\theta_1)$，$\theta_1=2\arccos\sqrt{\tfrac13}$（使
+$q_1\mapsto\sqrt{\tfrac13}\ket0+\sqrt{\tfrac23}\ket1$）；在 $q_1{=}0$ 的条件下把 $q_2q_3$ 置为
+$\ket{11}$；在 $q_1{=}1$ 的条件下在 $q_2q_3$ 上制备 $\ket{D^2_1}$（一个 $\Hgate$ 和一个 $\CNOT$，至多
+差一次比特翻转）。由于对 $n=3$ 权重二是权重一的\emph{补}，等价地
+$\ket{D^3_2}=X^{\otimes3}\ket{W_3}$，其中 $\ket{W_3}=\tfrac1{\sqrt3}(\ket{100}+\ket{010}+\ket{001})$。
+
+\emph{$n=4$。} 此时 $\tfrac{n-k}{n}=\tfrac{k}{n}=\tfrac12$，故第一个旋转是 Hadamard：
+\[
+  \ket{D^4_2}=\tfrac1{\sqrt2}\,\ket0\ket{D^3_2}+\tfrac1{\sqrt2}\,\ket1\ket{W_3}
+  =\tfrac1{\sqrt6}\bigl(\ket{0011}+\ket{0101}+\ket{0110}+\ket{1001}+\ket{1010}+\ket{1100}\bigr),
+\]
+这里用到 $\ket{D^3_1}=\ket{W_3}$。线路是：对 $q_1$ 作 $\Hgate$，再在 $q_1$ 控制下于 $q_2q_3q_4$ 上制备
+——$q_1{=}0$ 时制备 $\ket{D^3_2}$，$q_1{=}1$ 时制备 $\ket{W_3}$——每个都是 $n=3$ 情形的三比特块。这就是
+Bärtschi--Eidenbenz 递推；其扁平（非递归）版本复用单个``运行权重''辅助比特，达到
+\cref{rem:lec06-mpschi} 所述的 $\bigo(kn)$ 门、$\bigo(n)$ 深度的线路。
+\end{example}
+
 \begin{example}[用相位梯度编码 $\sin(x_1+\cdots+x_d)$]
 \label{exa:lec06-sinvec}
 一个\emph{并非}各寄存器函数之乘积的函数，只要它的\emph{相位}是可乘的，仍可廉价地加载。
@@ -259,7 +336,10 @@ $\ee^{\ii\sum_k x_k}=\prod_{k}\prod_{b=0}^{m-1}\ee^{\ii 2^b(x_k)_b}$，于是\em
    =\bigotimes_{k=1}^{d}\bigotimes_{b=0}^{m-1}\bigl(\ket0+\ee^{\ii 2^b}\ket1\bigr)
 \]
 是一个\emph{乘积}态——在 $dm$ 个量子比特的每一个上施加一个单比特相位
-$P(2^b)=\diag(1,\ee^{\ii2^b})$（在一层 Hadamard 之后），没有任何纠缠门。利用
+$P(2^b)=\diag(1,\ee^{\ii2^b})$（在一层 Hadamard 之后），没有任何纠缠门。\emph{相位梯度}
+这一名称指的是相位在基上的分布方式：$\ket{\mathbf x}$ 的振幅携带相位 $\sum_k x_k$，它关于每个整数
+坐标\emph{线性}增长——一个恒定的斜坡、即梯度——而比特 $b$ 贡献二进制加权的步长 $2^b$，这正是 QFT 与
+Draper 加法器（\cref{sec:lec04-qftadder}）所用的那道相位阶梯。利用
 $\sin\theta=(\ee^{\ii\theta}-\ee^{-\ii\theta})/2\ii$，
 \[
   \ket\psi=\frac{1}{2\ii}\bigl(\ket g-\ket{g^{*}}\bigr),\qquad
@@ -275,9 +355,11 @@ $\ket0$ 时相位取 $+2^b$，为 $\ket1$ 时取 $-2^b$），再对标志作 $\H
 \end{quantikz}
 \end{center}
 测得 $1$ 使数据处于归一化的正弦态
-$\propto\sum_{\mathbf x}\sin(\sum_k x_k)\ket{\mathbf x}$（测得 $0$ 给出余弦态），其概率为
-$N^{-d}\sum_{\mathbf x}\sin^2(\sum_k x_k)\approx\tfrac12$，故 $\bigo(1)$ 次重复即足够。总代价
-是 $\bigo(dm)$ 个单比特与受控相位门——无需振幅加载、无需算术。同样的手法可编码任何线性型
+$\propto\sum_{\mathbf x}\sin(\sum_k x_k)\ket{\mathbf x}$；测得 $0$ 则给出\emph{余弦}态
+$\propto\sum_{\mathbf x}\cos(\sum_k x_k)\ket{\mathbf x}$，即错误的向量——只需丢弃它并重跑这个（廉价的）
+线路。标志读到 $1$ 的概率为 $N^{-d}\sum_{\mathbf x}\sin^2(\sum_k x_k)\approx\tfrac12$，故期望的尝试次数
+为 $\bigo(1)$（约两次）；等价地，对标志作一轮振幅放大（\cref{ch:lec03}）即可使该制备\emph{确定化}、
+无需重复。总代价是 $\bigo(dm)$ 个单比特与受控相位门——无需振幅加载、无需算术。同样的手法可编码任何线性型
 $\sum_k a_k x_k$ 的 $\sin$ 或 $\cos$（相位取 $\ee^{\pm\ii a_k2^b}$）；只有取虚部这一步需要标志，
 因为乘积 $\prod_k f_k(x_k)$ 本就可分解为单寄存器的制备。
 \end{example}
@@ -290,8 +372,10 @@ $\sum_k a_k x_k$ 的 $\sin$ 或 $\cos$（相位取 $\ee^{\pm\ii a_k2^b}$）；�
         $\ee^{\sum_k a_k x_k}=\prod_{k,b}\ee^{a_k 2^b (x_k)_b}$，于是
         $\sum_{\mathbf x}\ee^{\sum_k a_k x_k}\ket{\mathbf x}
         =\bigotimes_{k,b}\bigl(\ket0+\ee^{a_k 2^b}\ket1\bigr)$ 是一个\emph{乘积}态——每个
-        量子比特上一个单比特 $R_y$（$\tan(\theta_{k,b}/2)=\ee^{a_k 2^b}$），既无辅助比特也
-        无纠缠门。（各振幅跨越双指数的量级，故通常对自变量重标度，如 $\ee^{-a_k x_k}$，以免
+        量子比特上一个单比特旋转 $R_y(\theta_{k,b})$，其中 $\theta_{k,b}$ 使寄存器 $k$ 的第 $b$ 个
+        比特倾斜为 $R_y(\theta_{k,b})\ket0\propto\ket0+\ee^{a_k 2^b}\ket1$，即
+        $\tan(\theta_{k,b}/2)=\ee^{a_k 2^b}$，等价地 $\theta_{k,b}=2\arctan(\ee^{a_k 2^b})$；
+        既无辅助比特也无纠缠门。（各振幅跨越双指数的量级，故通常对自变量重标度，如 $\ee^{-a_k x_k}$，以免
         态坍缩到单一角点。）
   \item \emph{相位多项式：$\sin(x_1x_2\cdots x_d)$。}此时指数是一个\emph{乘积}。按比特展开，
         $x_1\cdots x_d=\sum_{b_1,\dots,b_d}2^{b_1+\cdots+b_d}(x_1)_{b_1}\cdots(x_d)_{b_d}$，
@@ -326,7 +410,9 @@ $\{w_q\}$（高斯型求积，$Q=\bigo\bigl(\log\tfrac1\epsilon\,\log\tfrac{r_{\
   \ \approx\ \sum_{q} w_q\,\bigotimes_{k=1}^{d}
      \Bigl(\sum_{x_k}\ee^{-x_k^2 t_q^2}\ket{x_k}\Bigr).
 \]
-每个一维高斯寄存器 $\sum_{x_k}\ee^{-x_k^2 t_q^2}\ket{x_k}$ 是一个\emph{高效可积}分布，由
+这里 $\mathbf x=(x_1,\dots,x_d)$ 是一个格点的 $d$ 个空间\emph{坐标}——$d$ 个数据寄存器的内容，即我们
+所叠加的变量——而 $t_q$ 是\emph{求积节点}（高斯的宽度），一张预先固定的、含 $Q$ 个数的经典列表；二者
+不应混淆。每个一维高斯寄存器 $\sum_{x_k}\ee^{-x_k^2 t_q^2}\ket{x_k}$ 是一个\emph{高效可积}分布，由
 Grover--Rudolph（\cref{exa:lec06-grex}）用 $\bigo(m)$ 个受控旋转制备；这 $Q$ 项则由
 \cref{ch:lec07} 的向量加法（LCU）基本操作组合起来——一个 $\lceil\log_2 Q\rceil$ 比特的索引
 寄存器由 $\mathrm{PREP}$ 加载 $\sqrt{w_q}$，一个 $\mathrm{SEL}$ 受索引控制地制备宽度为 $t_q$
@@ -365,10 +451,15 @@ $R_y\!\bigl(2\arcsin(f(\mathbf x)/F)\bigr)$（$F=\max_{\mathbf x}\abs{f(\mathbf 
   \lstick{$\ket{0}$ \,\scriptsize(信号)}           & \qw                      &               & \qw                               & \qw
 \end{quantikz}
 \end{center}
-这正是用可逆数据通路实现的 \eqref{eq:lec06-OA} 之条目谕示 $O_A$：它使信号携带振幅
-$f(\mathbf x)/F$，故在均匀数据态上对信号作后选择即得
-$\propto\sum_{\mathbf x}f(\mathbf x)\ket{\mathbf x}$，用 $\poly(d,m)$ 个门。同一配方可加载
-任何高效可计算的实振幅（唯一改变的是其中的算术部分）。
+这正是用可逆数据通路实现的 \eqref{eq:lec06-OA} 之条目谕示 $O_A$。方框 $\textsc{arith}$ 就是这条数据
+通路：它读入数据寄存器 $\ket{\mathbf x}$，用普通的可逆整数算术把 $f(\mathbf x)$ 写入一个新鲜的工作
+寄存器——一棵计算 $S=\sum_i x_i$ 的加法器树、对每个 $x_i^2$（以及 $S^2$）的平方电路、以及形成 $S^2-Q$
+的减法器——使得 $\textsc{arith}\,\ket{\mathbf x}\ket0=\ket{\mathbf x}\ket{f(\mathbf x)}$。旋转 $R_y$
+\emph{受工作寄存器所存之值控制}（一个按寄存器编码之角度的旋转，如 \cref{rem:lec06-gr}），而
+$\textsc{arith}^{\dagger}$ 把同一数据通路反向运行，把工作寄存器清回 $\ket0$，不留下与数据纠缠的垃圾。
+净效果使信号携带振幅 $f(\mathbf x)/F$，故在均匀数据态上对信号作后选择即得
+$\propto\sum_{\mathbf x}f(\mathbf x)\ket{\mathbf x}$，用 $\poly(d,m)$ 个门。同一配方可加载任何高效可
+计算的实振幅（唯一改变的是 $\textsc{arith}$）。
 
 还有一种避开算术但为近似的相位态方案：由于每个 $x_ix_j$ 是双线性的，
 $\ee^{\ii\theta f(\mathbf x)}=\prod_{i\neq j}\prod_{a,b}
@@ -807,6 +898,25 @@ $U_A\in\mathrm{BE}_{s,s'+1}(A)$。
 $1/\sqrt s$ 展布到 $s$ 个位置上，两者合起来对存留的块贡献
 $1/s$。这正是为何稀疏性在 QNLA 中决定代价：一个 $s$-稀疏矩阵以 $\alpha=s$ 被块编码，而下游的查询次数随 $\alpha$ 线性增长。
 
+\begin{example}[一个具体的 $2$-稀疏编码：最近邻跃迁]
+\label{exa:lec06-hopping}
+取 $N=4$ 的周期跃迁矩阵 $A=S+S\dg$，其中 $S\ket j=\ket{(j{+}1)\bmod4}$，即 $4$-圈的邻接矩阵，
+\[
+  A=\begin{pmatrix}0&1&0&1\\1&0&1&0\\0&1&0&1\\1&0&1&0\end{pmatrix},
+\]
+厄米、$2$-稀疏、$\norm{A}_{\max}=1$。把每列的两个非零元用 $\ell\in\{0,1\}$ 编号（一个标志比特，
+$s'=1$，$D=\Hgate$）：$c(j,0)=(j{+}1)\bmod4$、$c(j,1)=(j{-}1)\bmod4$，故位置谕示是受 $\ell$ 选择的移位
+$O_c\ket0\ket j=\ket0\ket{(j{+}1)\bmod4}$、$O_c\ket1\ket j=\ket1\ket{(j{-}1)\bmod4}$。所有条目都等于 $1$，
+故条目谕示平凡，且 $U_A=(\id\otimes\Hgate)(\id\otimes O_c)(\id\otimes\Hgate)$（此处无需信号比特）。
+$\ket{0}$ 所标志的块为
+\[
+  \bigl(\bra0\otimes\id\bigr)U_A\bigl(\ket0\otimes\id\bigr)=\tfrac12\bigl(S+S\dg\bigr)=\tfrac{A}{2},
+\]
+因为两个 Hadamard 以各 $\tfrac12$ 的权重平均 $\ell{=}0$ 与 $\ell{=}1$ 两个分支，分别沉积 $\tfrac12 S$ 与
+$\tfrac12 S\dg$。于是 $U_A\in\mathrm{BE}_{2,1}(A)$，$\alpha=s=2$，恰为 \cref{thm:lec06-ssparse}。作为循环
+矩阵，$A$ 由 QFT 对角化，本征值为 $2\cos(2\pi k/4)\in\{2,0,-2,0\}$。
+\end{example}
+
 \begin{remark}[更一般的位置谕示]
 \label{rem:lec06-genloc}
 单谕示模型 \eqref{eq:lec06-Ocs} 具有局限性：它要求行
@@ -957,6 +1067,23 @@ Kronecker delta 都由唯一指标满足。$O_A$ 与 $O_A\dg$ 关于 \textsc{swa
 个线路等于自身的伴随，故 $U_A$ 是厄米的；来自两个扩散算符的因子 $1/s$ 给出
 $\alpha=s$，而寄存器数为 $n+2$。这就是 Childs--Kothari--Somma 的量子游走构造。
 \end{proof}
+
+\begin{example}[一个厄米块编码：有限差分算子]
+\label{exa:lec06-hbe-fd}
+回到 \cref{exa:lec06-hopping} 的 $N=4$ 跃迁矩阵 $A=S+S\dg$——它是一维有限差分算子 $2\id-S-S\dg$ 的
+非对角部分，厄米且 $2$-稀疏。其条目全为 $1$，故平方根取值谕示 \eqref{eq:lec06-OAsqrt} 平凡（两个非零元处
+$\sqrt{A_{ij}}=1$），于是 \cref{thm:lec06-hbe} 以 $s=2$ 适用：由 $D,O_c,O_c\dg,D$ 构成的对称
+$\textsc{swap}$ 夹心给出一个\emph{自伴}的 $U_A=U_A\dg$，其左上角块为 $A/2$，即
+$U_A\in\mathrm{HBE}_{2,n+2}(A)$。由于厄米酉算符平方为恒等，$U_A$ 是一个谱为 $\{\pm1\}$ 的\emph{反射}
+——量子化（\cref{ch:lec08}）正是把它化为 $A$ 的矩阵函数的那种结构。
+
+对角化的基使谱一目了然。作为循环矩阵，$A$ 由傅里叶模 $\ket{f_k}=\tfrac12\sum_j\ii^{jk}\ket{j}$ 对角化，
+本征值为 $2\cos(\pi k/2)=2,0,-2,0$（$k=0,1,2,3$）。最小的有限差分块把这一模式展示得最干净：对 $N=2$，
+移位即 $S=X$，而 $2\id-S-S\dg=2\id-2X$ 由单比特的 $\{\ket+,\ket-\}$（Hadamard）基对角化——$\ket+$ 对应
+本征值 $0$、$\ket-$ 对应本征值 $4$——这正是上述傅里叶模的两点类比。一个真正纠缠的、\emph{Bell}-对角的
+厄米算符，例如交换相互作用 $\tfrac12\bigl(X\!\otimes\!X+Y\!\otimes\!Y+Z\!\otimes\!Z\bigr)$（本征向量为四个
+Bell 态，三重态上本征值 $\tfrac12$、单态上 $-\tfrac32$），由\emph{同一个}厄米构造块编码。
+\end{example}
 
 \section{超越计算基的块编码}
 \label{sec:lec06-5}

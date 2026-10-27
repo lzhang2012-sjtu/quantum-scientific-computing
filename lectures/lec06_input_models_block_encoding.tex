@@ -93,6 +93,34 @@ circuit of $g$ two-qubit gates on $n$ qubits has only $\bigo(g)$ continuous
 parameters; matching the parameter counts forces $g=\Omega(2^n/n)$.
 \end{proof}
 
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[every node/.style={font=\scriptsize},level distance=11mm,
+  level 1/.style={sibling distance=34mm},level 2/.style={sibling distance=17mm},
+  level 3/.style={sibling distance=8.5mm},
+  rot/.style={circle,draw,fill=blue!8,inner sep=1.6pt}]
+\node[rot]{}
+  child{node[rot]{}
+     child{node[rot]{} child{node{$u_0$}} child{node{$u_1$}}}
+     child{node[rot]{} child{node{$u_2$}} child{node{$u_3$}}}
+     edge from parent node[above left,inner sep=1pt]{$0$}}
+  child{node[rot]{}
+     child{node[rot]{} child{node{$u_4$}} child{node{$u_5$}}}
+     child{node[rot]{} child{node{$u_6$}} child{node{$u_7$}}}
+     edge from parent node[above right,inner sep=1pt]{$1$}};
+\node[anchor=west,font=\scriptsize,gray] at (3.2,0){$1$ rotation};
+\node[anchor=west,font=\scriptsize,gray] at (3.2,-1.1){$2$ rotations};
+\node[anchor=west,font=\scriptsize,gray] at (3.2,-2.2){$4$ rotations};
+\end{tikzpicture}
+\caption{The exact loader of \cref{prop:lec06-sp} as a binary tree of controlled
+rotations ($n=3$). Each circle is one single-qubit $R_y$ that splits the surviving
+probability mass between its $0$- and $1$-branch, conditioned on the bits above it;
+level $k$ carries $2^{k-1}$ such rotations, for a total of $2^n-1$. The $2^n$ leaves
+are the amplitudes $u_i$. A generic $\ket u$ fixes all $2^n$ leaves independently,
+which is why no circuit can beat $\Omega(2^n/n)$ gates.}
+\label{fig:lec06-sptree}
+\end{figure}
+
 The message of \cref{prop:lec06-sp} is that \emph{arbitrary} amplitude loading is
 exponentially expensive and destroys any hope of a quantum speedup on its own.
 Efficient state preparation is possible only for \emph{structured} vectors.
@@ -127,39 +155,6 @@ memory (QRAM), which supplies $O_u$ in $\bigo(n)$ \emph{depth} at the price of
 $\bigo(N)$ hardware; whether QRAM is a realistic resource is a standing debate.
 \end{example}
 
-\begin{remark}[The Grover--Rudolph procedure]
-\label{rem:lec06-gr}
-The second class above is the workhorse for loading probability distributions, so it
-is worth spelling out. Suppose the target has real nonnegative amplitudes
-$\ket{u}=\sum_{i}\sqrt{p(i)}\,\ket{i}$, the discretization of a density $p$ on
-$[0,1)$ to the $2^{n}$ dyadic cells (the index $i$ is the binary fraction
-$0.i_1i_2\cdots i_n$). Grover--Rudolph builds $\ket{u}$ qubit by qubit, splitting the
-probability mass as it descends. Once the first $k$ bits are fixed they name a dyadic
-interval $I$ of width $2^{-k}$; the rotation applied to qubit $k{+}1$ is
-\[
-  R_y(\theta_I)\ket0=\cos\tfrac{\theta_I}{2}\ket0+\sin\tfrac{\theta_I}{2}\ket1,
-  \qquad
-  \cos^{2}\tfrac{\theta_I}{2}=\frac{\int_{I_{\mathrm{left}}}p}{\int_{I}p},
-\]
-so the two branches inherit exactly the masses of the left and right halves of $I$.
-Telescoping over all $n$ levels, the squared amplitude on $\ket i$ equals the cell
-mass $\int_{\text{cell }i}p\approx p(i)$, as required.
-
-The point is \emph{why this costs only $\bigo(n)$ rotations}. Hard-coding a separate
-angle for each of the $2^{k-1}$ intervals at level $k$ would cost
-$\sum_{k=1}^{n}2^{k-1}=\bigo(2^{n})$---no better than the generic
-\cref{prop:lec06-sp}. The gain rests entirely on the hypothesis that the integrals
-$\int_{I}p$ are \emph{classically efficiently computable}: instead of enumerating
-intervals, one holds the already-set bits $i_1\cdots i_k$ in a register, computes the
-angle $\theta$ from them \emph{coherently} (arithmetic on an ancilla using the
-cumulative distribution of $p$), applies a rotation by that register-held angle, and
-uncomputes. Each level is one such $\poly(n)$-gate block, and there are $n$ levels.
-A caution (Herbert, 2021): if the integrals can only be \emph{estimated} by Monte
-Carlo rather than evaluated in closed form, the sampling cost can cancel the very
-speedup the loaded state was meant to deliver---so the method pays off only for
-genuinely integrable densities (log-concave, Gaussian, and the like).
-\end{remark}
-
 We make each of the four classes concrete, with its preparation circuit.
 
 \begin{example}[Product state]
@@ -180,6 +175,59 @@ The $n$ amplitudes of a product state carry only $n$ independent angles, so $n$
 rotations suffice; the uniform superposition $\Hgate^{\otimes n}\ket{0^n}$ is the case
 in which every gate is a Hadamard.
 \end{example}
+
+\begin{remark}[The Grover--Rudolph procedure]
+\label{rem:lec06-gr}
+The second class is the workhorse for loading probability distributions, so it is
+worth spelling out. Suppose the target has real nonnegative amplitudes
+$\ket{u}=\sum_{i}\sqrt{p(i)}\,\ket{i}$, the discretization of a density $p$ on
+$[0,1)$ to the $2^{n}$ dyadic cells (the index $i$ is the binary fraction
+$0.i_1i_2\cdots i_n$). Grover--Rudolph builds $\ket{u}$ qubit by qubit, splitting the
+probability mass as it descends. Once the first $k$ bits are fixed they name a dyadic
+interval $I$ of width $2^{-k}$; the rotation applied to qubit $k{+}1$ is
+\[
+  R_y(\theta_I)\ket0=\cos\tfrac{\theta_I}{2}\ket0+\sin\tfrac{\theta_I}{2}\ket1,
+  \qquad
+  \cos^{2}\tfrac{\theta_I}{2}=\frac{\int_{I_{\mathrm{left}}}p}{\int_{I}p},
+\]
+so the two branches inherit exactly the masses of the left and right halves of $I$
+(\cref{fig:lec06-gr}). Telescoping over all $n$ levels, the squared amplitude on
+$\ket i$ equals the cell mass $\int_{\text{cell }i}p\approx p(i)$, as required.
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[scale=1]
+  \draw[->](0,0)--(4.5,0) node[right,font=\scriptsize]{$x$};
+  \draw[->](0,0)--(0,1.95) node[above,font=\scriptsize]{$p(x)$};
+  \draw[thick,blue!60!black,domain=0:1,smooth,variable=\x,samples=50]
+       plot ({4*\x},{1.5*sin(180*\x)});
+  \draw[dashed](2,0)--(2,1.55);
+  \draw[dotted](1,0)--(1,1.25);  \draw[dotted](3,0)--(3,1.25);
+  \foreach \px/\lab in {0/$0$,1/$\frac14$,2/$\frac12$,3/$\frac34$,4/$1$}
+     \node[font=\scriptsize,below] at (\px,0){\lab};
+  \node[font=\scriptsize] at (1,0.6){$\int_{I_{\mathrm{left}}}p$};
+  \node[font=\scriptsize] at (3,0.6){$\int_{I_{\mathrm{right}}}p$};
+\end{tikzpicture}
+\caption{Grover--Rudolph splits the mass by dyadic bisection. The level-1 rotation on
+the first qubit sets $\cos^2(\theta/2)=\int_{I_{\mathrm{left}}}p\big/\int_{[0,1)}p$
+(dashed divider at $\tfrac12$); each later qubit bisects the surviving interval (dotted
+dividers at $\tfrac14,\tfrac34$), so level $k$ carries $2^{k-1}$ conditional rotations.}
+\label{fig:lec06-gr}
+\end{figure}
+
+The point is \emph{why this costs only $\bigo(n)$ rotations}. Hard-coding a separate
+angle for each of the $2^{k-1}$ intervals at level $k$ would cost
+$\sum_{k=1}^{n}2^{k-1}=\bigo(2^{n})$---no better than the generic
+\cref{prop:lec06-sp}. The gain rests entirely on the hypothesis that the integrals
+$\int_{I}p$ are \emph{classically efficiently computable}: instead of enumerating
+intervals, one holds the already-set bits $i_1\cdots i_k$ in a register, computes the
+angle $\theta$ from them \emph{coherently} (arithmetic on an ancilla using the
+cumulative distribution of $p$), applies a rotation by that register-held angle, and
+uncomputes. Each level is one such $\poly(n)$-gate block, and there are $n$ levels.
+A caution (Herbert, 2021): if the integrals can only be \emph{estimated} by Monte
+Carlo rather than evaluated in closed form, the sampling cost can cancel the very
+speedup the loaded state was meant to deliver---so the method pays off only for
+genuinely integrable densities (log-concave, Gaussian, and the like).
+\end{remark}
 
 \begin{example}[Efficiently integrable: Grover--Rudolph on four points]
 \label{exa:lec06-grex}
@@ -295,6 +343,43 @@ $\ket{00}$ produces $\ket{D^n_2}$; for $\chi=2$ the bond is a single qubit and e
 $V_k$ is the two-qubit gate of the chain above.
 \end{remark}
 
+\begin{example}[Dicke states $\ket{D^3_2}$ and $\ket{D^4_2}$ explicitly]
+\label{exa:lec06-dicke34}
+The recursion behind the sequential (MPS) preparation peels off the first qubit:
+\[
+  \ket{D^n_k}=\sqrt{\tfrac{n-k}{n}}\,\ket0\otimes\ket{D^{n-1}_k}
+             +\sqrt{\tfrac{k}{n}}\,\ket1\otimes\ket{D^{n-1}_{k-1}},
+\]
+because of the $\binom nk$ weight-$k$ strings a fraction $(n-k)/n$ begin with $0$ and
+$k/n$ begin with $1$. Unrolling it gives explicit small circuits.
+
+\emph{$n=3$.} With $\ket{D^2_2}=\ket{11}$ and
+$\ket{D^2_1}=\tfrac1{\sqrt2}(\ket{01}+\ket{10})$,
+\[
+  \ket{D^3_2}=\sqrt{\tfrac13}\,\ket0\ket{11}+\sqrt{\tfrac23}\,\ket1\ket{D^2_1}
+             =\tfrac1{\sqrt3}\bigl(\ket{011}+\ket{101}+\ket{110}\bigr).
+\]
+Prepare it in three steps: $R_y(\theta_1)$ on $q_1$ with
+$\theta_1=2\arccos\sqrt{\tfrac13}$ (so $q_1\mapsto\sqrt{\tfrac13}\ket0+\sqrt{\tfrac23}\ket1$);
+controlled on $q_1{=}0$, set $q_2q_3$ to $\ket{11}$; controlled on $q_1{=}1$, prepare
+$\ket{D^2_1}$ on $q_2q_3$ (one $\Hgate$ and one $\CNOT$, up to a bit flip). Since for
+$n=3$ weight two is the \emph{complement} of weight one, equivalently
+$\ket{D^3_2}=X^{\otimes3}\ket{W_3}$ with
+$\ket{W_3}=\tfrac1{\sqrt3}(\ket{100}+\ket{010}+\ket{001})$.
+
+\emph{$n=4$.} Here $\tfrac{n-k}{n}=\tfrac{k}{n}=\tfrac12$, so the first rotation is a
+Hadamard:
+\[
+  \ket{D^4_2}=\tfrac1{\sqrt2}\,\ket0\ket{D^3_2}+\tfrac1{\sqrt2}\,\ket1\ket{W_3}
+  =\tfrac1{\sqrt6}\bigl(\ket{0011}+\ket{0101}+\ket{0110}+\ket{1001}+\ket{1010}+\ket{1100}\bigr),
+\]
+using $\ket{D^3_1}=\ket{W_3}$. The circuit is $\Hgate$ on $q_1$, then a $q_1$-controlled
+preparation on $q_2q_3q_4$---$\ket{D^3_2}$ if $q_1{=}0$, $\ket{W_3}$ if $q_1{=}1$---each
+a three-qubit block from the $n=3$ case. This is the Bärtschi--Eidenbenz recursion; a
+flat (non-recursive) version reuses a single ``running-weight'' ancilla to reach the
+$\bigo(kn)$-gate, $\bigo(n)$-depth circuit quoted in \cref{rem:lec06-mpschi}.
+\end{example}
+
 \begin{example}[Encoding $\sin(x_1+\cdots+x_d)$ by a phase gradient]
 \label{exa:lec06-sinvec}
 A function that is \emph{not} a product of per-register factors can still be loaded
@@ -309,7 +394,12 @@ $\ee^{\ii\sum_k x_k}=\prod_{k}\prod_{b=0}^{m-1}\ee^{\ii 2^b(x_k)_b}$, so the
    =\bigotimes_{k=1}^{d}\bigotimes_{b=0}^{m-1}\bigl(\ket0+\ee^{\ii 2^b}\ket1\bigr)
 \]
 is a \emph{product} state---one single-qubit phase $P(2^b)=\diag(1,\ee^{\ii2^b})$ on
-each of the $dm$ qubits (after a layer of Hadamards), with no entangling gates. Writing
+each of the $dm$ qubits (after a layer of Hadamards), with no entangling gates. The
+name \emph{phase gradient} refers to how the phase sits across the basis: the
+amplitude of $\ket{\mathbf x}$ carries phase $\sum_k x_k$, which grows \emph{linearly}
+in each integer coordinate---a constant ramp, or gradient---and qubit $b$ contributes
+the binary-weighted step $2^b$, exactly the staircase of phases the QFT and the Draper
+adder (\cref{sec:lec04-qftadder}) run on. Writing
 $\sin\theta=(\ee^{\ii\theta}-\ee^{-\ii\theta})/2\ii$,
 \[
   \ket\psi=\frac{1}{2\ii}\bigl(\ket g-\ket{g^{*}}\bigr),\qquad
@@ -326,9 +416,13 @@ if the flag is $\ket0$, $-2^b$ if $\ket1$), then $\Hgate$ on the flag and measur
 \end{quantikz}
 \end{center}
 Outcome $1$ leaves the data in the normalized sine state
-$\propto\sum_{\mathbf x}\sin(\sum_k x_k)\ket{\mathbf x}$ (outcome $0$ gives the cosine
-state), with probability $N^{-d}\sum_{\mathbf x}\sin^2(\sum_k x_k)\approx\tfrac12$, so
-$\bigo(1)$ repetitions suffice. The whole cost is $\bigo(dm)$ single-qubit and
+$\propto\sum_{\mathbf x}\sin(\sum_k x_k)\ket{\mathbf x}$; outcome $0$ instead gives the
+\emph{cosine} state $\propto\sum_{\mathbf x}\cos(\sum_k x_k)\ket{\mathbf x}$, the wrong
+vector---one simply discards it and reruns the (cheap) circuit. The flag reads $1$ with
+probability $N^{-d}\sum_{\mathbf x}\sin^2(\sum_k x_k)\approx\tfrac12$, so the expected
+number of attempts is $\bigo(1)$ (about two); equivalently, one round of amplitude
+amplification (\cref{ch:lec03}) on the flag makes the preparation \emph{deterministic}
+with no repetition. The whole cost is $\bigo(dm)$ single-qubit and
 flag-controlled phase gates---no amplitude loading and no arithmetic. The same device
 encodes any $\sin$ or $\cos$ of a linear form $\sum_k a_k x_k$ (use phases
 $\ee^{\pm\ii a_k2^b}$); only the imaginary-part step needs the flag, since products
@@ -344,8 +438,12 @@ The same idea sorts related encodings by how the exponent sits in the qubits.
         $\ee^{\sum_k a_k x_k}=\prod_{k,b}\ee^{a_k 2^b (x_k)_b}$, so
         $\sum_{\mathbf x}\ee^{\sum_k a_k x_k}\ket{\mathbf x}
         =\bigotimes_{k,b}\bigl(\ket0+\ee^{a_k 2^b}\ket1\bigr)$ is a \emph{product}
-        state---one single-qubit $R_y$ with $\tan(\theta_{k,b}/2)=\ee^{a_k 2^b}$ per
-        qubit, no ancilla and no entangling gate. (The magnitudes span a
+        state---one single-qubit rotation $R_y(\theta_{k,b})$ per qubit, where
+        $\theta_{k,b}$ is chosen to tilt qubit $b$ of register $k$ so that
+        $R_y(\theta_{k,b})\ket0\propto\ket0+\ee^{a_k 2^b}\ket1$, i.e.\
+        $\tan(\theta_{k,b}/2)=\ee^{a_k 2^b}$, equivalently
+        $\theta_{k,b}=2\arctan\!\bigl(\ee^{a_k 2^b}\bigr)$; no ancilla and no entangling
+        gate. (The magnitudes span a
         doubly-exponential range, so one rescales the argument, e.g.\
         $\ee^{-a_k x_k}$, to avoid a state collapsed onto a single corner.)
   \item \emph{Phase polynomial: $\sin(x_1x_2\cdots x_d)$.} Here the exponent is a
@@ -388,7 +486,11 @@ Beylkin--Monz\'on) gives a finite linear combination of product states,
   \ \approx\ \sum_{q} w_q\,\bigotimes_{k=1}^{d}
      \Bigl(\sum_{x_k}\ee^{-x_k^2 t_q^2}\ket{x_k}\Bigr).
 \]
-Each one-dimensional Gaussian register $\sum_{x_k}\ee^{-x_k^2 t_q^2}\ket{x_k}$ is an
+Here $\mathbf x=(x_1,\dots,x_d)$ are the $d$ spatial \emph{coordinates} of a grid
+point---the contents of the $d$ data registers, the variables we superpose over---while
+the $t_q$ are the \emph{quadrature nodes} (the Gaussian widths), a separate classical
+list of $Q$ numbers fixed in advance; the two should not be confused. Each
+one-dimensional Gaussian register $\sum_{x_k}\ee^{-x_k^2 t_q^2}\ket{x_k}$ is an
 \emph{efficiently integrable} distribution, prepared by Grover--Rudolph
 (\cref{exa:lec06-grex}) in $\bigo(m)$ controlled rotations; the $Q$ terms are combined
 by the vector-addition (LCU) primitive of \cref{ch:lec07}---a
@@ -434,10 +536,18 @@ onto a signal qubit, then uncompute the work register:
 \end{quantikz}
 \end{center}
 This is exactly the entry oracle $O_A$ of \eqref{eq:lec06-OA} realized by a reversible
-datapath: it leaves the signal carrying amplitude $f(\mathbf x)/F$, so on the uniform
-data state, post-selecting the signal yields $\propto\sum_{\mathbf x}f(\mathbf x)
-\ket{\mathbf x}$ in $\poly(d,m)$ gates. The same recipe loads any efficiently
-computable real amplitude (the arithmetic is the only part that changes).
+datapath. The box $\textsc{arith}$ is that datapath: it reads the data register
+$\ket{\mathbf x}$ and writes $f(\mathbf x)$ into a fresh work register using ordinary
+reversible integer arithmetic---an adder tree for $S=\sum_i x_i$, a squaring circuit
+for each $x_i^2$ (and for $S^2$), and a subtractor forming $S^2-Q$---so that
+$\textsc{arith}\,\ket{\mathbf x}\ket0=\ket{\mathbf x}\ket{f(\mathbf x)}$. The rotation
+$R_y$ is \emph{controlled on the value} held in the work register (a rotation by a
+register-encoded angle, as in \cref{rem:lec06-gr}), and $\textsc{arith}^{\dagger}$ runs
+the same datapath backward to clear the work register to $\ket0$, leaving no garbage
+entangled with the data. The net effect leaves the signal carrying amplitude
+$f(\mathbf x)/F$, so on the uniform data state, post-selecting the signal yields
+$\propto\sum_{\mathbf x}f(\mathbf x)\ket{\mathbf x}$ in $\poly(d,m)$ gates. The same
+recipe loads any efficiently computable real amplitude (only $\textsc{arith}$ changes).
 
 A phase-state alternative avoids the arithmetic but is approximate: since each
 $x_ix_j$ is bilinear, $\ee^{\ii\theta f(\mathbf x)}=\prod_{i\neq j}\prod_{a,b}
@@ -931,6 +1041,31 @@ them contribute $1/s$ to the surviving block. This is why sparsity controls cost
 QNLA: an $s$-sparse matrix is block-encoded with $\alpha=s$, and downstream query
 counts scale linearly in $\alpha$.
 
+\begin{example}[A worked $2$-sparse encoding: nearest-neighbor hopping]
+\label{exa:lec06-hopping}
+Take the $N=4$ periodic hopping matrix $A=S+S\dg$ with $S\ket j=\ket{(j{+}1)\bmod4}$,
+the adjacency matrix of the $4$-cycle,
+\[
+  A=\begin{pmatrix}0&1&0&1\\1&0&1&0\\0&1&0&1\\1&0&1&0\end{pmatrix},
+\]
+Hermitian, $2$-sparse, with $\norm{A}_{\max}=1$. Index the two nonzeros of each column
+by $\ell\in\{0,1\}$ (one flag qubit, $s'=1$, $D=\Hgate$): $c(j,0)=(j{+}1)\bmod4$ and
+$c(j,1)=(j{-}1)\bmod4$, so the location oracle is the $\ell$-selected shift
+$O_c\ket0\ket j=\ket0\ket{(j{+}1)\bmod4}$, $O_c\ket1\ket j=\ket1\ket{(j{-}1)\bmod4}$.
+All entries equal $1$, so the entry oracle is trivial and
+$U_A=(\id\otimes\Hgate)(\id\otimes O_c)(\id\otimes\Hgate)$ (no signal qubit is needed
+here). The $\ket{0}$-flagged block is
+\[
+  \bigl(\bra0\otimes\id\bigr)U_A\bigl(\ket0\otimes\id\bigr)
+  =\tfrac12\bigl(S+S\dg\bigr)=\tfrac{A}{2},
+\]
+since the two Hadamards average the $\ell{=}0$ and $\ell{=}1$ branches with weight
+$\tfrac12$ each, depositing $\tfrac12 S$ and $\tfrac12 S\dg$. Thus
+$U_A\in\mathrm{BE}_{2,1}(A)$ with $\alpha=s=2$, exactly \cref{thm:lec06-ssparse}. Being
+a circulant, $A$ is diagonalized by the QFT with eigenvalues
+$2\cos(2\pi k/4)\in\{2,0,-2,0\}$.
+\end{example}
+
 \begin{remark}[More general location oracles]
 \label{rem:lec06-genloc}
 The single-oracle model \eqref{eq:lec06-Ocs} is restrictive: it demands that the row
@@ -1108,6 +1243,31 @@ $U_A$ is Hermitian; the factor $1/s$ from the two diffusion operators gives
 $\alpha=s$, and the register count is $n+2$. This is the Childs--Kothari--Somma
 quantum-walk construction.
 \end{proof}
+
+\begin{example}[A Hermitian block encoding: the finite-difference operator]
+\label{exa:lec06-hbe-fd}
+Return to the $N=4$ hopping $A=S+S\dg$ of \cref{exa:lec06-hopping}---the off-diagonal
+part of the one-dimensional finite-difference operator $2\id-S-S\dg$, Hermitian and
+$2$-sparse. Its entries are all $1$, so the square-root value oracle
+\eqref{eq:lec06-OAsqrt} is trivial ($\sqrt{A_{ij}}=1$ on the two nonzeros) and
+\cref{thm:lec06-hbe} applies with $s=2$: the symmetric $\textsc{swap}$-sandwich of
+$D,O_c,O_c\dg,D$ returns a \emph{self-adjoint} $U_A=U_A\dg$ with top-left block
+$A/2$, i.e.\ $U_A\in\mathrm{HBE}_{2,n+2}(A)$. Because a Hermitian unitary squares to
+the identity, $U_A$ is a \emph{reflection} with spectrum $\{\pm1\}$---the structure
+qubitization (\cref{ch:lec08}) turns into matrix functions of $A$.
+
+The diagonalizing basis makes the spectrum transparent. As a circulant, $A$ is
+diagonalized by the Fourier modes $\ket{f_k}=\tfrac12\sum_j\ii^{jk}\ket{j}$ with
+eigenvalues $2\cos(\pi k/2)=2,0,-2,0$ for $k=0,1,2,3$. The smallest finite-difference
+block shows the pattern cleanly: for $N=2$ the shift is $S=X$, and $2\id-S-S\dg
+=2\id-2X$ is diagonalized by the single-qubit $\{\ket+,\ket-\}$ (Hadamard) basis---%
+$\ket+$ at eigenvalue $0$, $\ket-$ at eigenvalue $4$---the two-point analogue of the
+Fourier modes above. A genuinely entangled, \emph{Bell}-diagonal Hermitian operator,
+such as the exchange interaction
+$\tfrac12\bigl(X\!\otimes\!X+Y\!\otimes\!Y+Z\!\otimes\!Z\bigr)$ (eigenvectors the four
+Bell states, eigenvalues $\tfrac12$ on the triplet and $-\tfrac32$ on the singlet), is
+block-encoded by the \emph{same} Hermitian construction.
+\end{example}
 
 \section{Block encoding beyond the computational basis}
 \label{sec:lec06-5}
