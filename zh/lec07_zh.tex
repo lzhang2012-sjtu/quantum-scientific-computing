@@ -139,7 +139,15 @@ $\norm{c}_1=1$。制备谕示必须满足
 $\mathrm{PREP}\ket{0}=\tfrac{1}{\sqrt1}\bigl(\sqrt{\tfrac12}\ket{0}
 +\sqrt{\tfrac12}\ket{1}\bigr)=\tfrac{1}{\sqrt2}(\ket0+\ket1)$，这正是 Hadamard 门 $\mathrm{PREP}=\Hgate$（自逆，故
 $\mathrm{PREP}\dg=\Hgate$）。选择谕示是
-$\mathrm{SEL}=\proj{0}\otimes\Xgate+\proj{1}\otimes\Zgate$，即一个受控 $\Xgate$ 后接一个控制于 $\ket1$ 的 $\Zgate$。于是
+$\mathrm{SEL}=\proj{0}\otimes\Xgate+\proj{1}\otimes\Zgate$，即一个受控 $\Xgate$ 后接一个控制于 $\ket1$ 的 $\Zgate$。明确地说，在一个旗标比特与系统比特 $\ket\psi$ 上，
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(旗标)} & \gate{\Hgate} & \octrl{1}     & \ctrl{1}      & \gate{\Hgate} & \qw \\
+  \lstick{$\ket\psi$}                  & \qw           & \gate{\Xgate} & \gate{\Zgate} & \qw           & \qw
+\end{quantikz}
+\end{center}
+其中空心控制（$\ket0$）施加 $\Xgate$、实心控制（$\ket1$）施加 $\Zgate$，故 $\mathrm{SEL}$ 实现
+$\proj0\otimes\Xgate+\proj1\otimes\Zgate$。于是
 $W=(\Hgate\otimes\id)\,\mathrm{SEL}\,(\Hgate\otimes\id)$，并且由
 \eqref{eq:lec07-block}，
 \[

@@ -207,8 +207,17 @@ $\mathrm{PREP}\ket{0}=\tfrac{1}{\sqrt1}\bigl(\sqrt{\tfrac12}\ket{0}
 Hadamard gate $\mathrm{PREP}=\Hgate$ (self-inverse, so
 $\mathrm{PREP}\dg=\Hgate$). The select oracle is
 $\mathrm{SEL}=\proj{0}\otimes\Xgate+\proj{1}\otimes\Zgate$, a controlled-$\Xgate$
-followed by a control-on-$\ket1$ $\Zgate$. Then
-$W=(\Hgate\otimes\id)\,\mathrm{SEL}\,(\Hgate\otimes\id)$ and, by
+followed by a control-on-$\ket1$ $\Zgate$. Explicitly, on a flag qubit and the system
+qubit $\ket\psi$,
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(flag)} & \gate{\Hgate} & \octrl{1}     & \ctrl{1}      & \gate{\Hgate} & \qw \\
+  \lstick{$\ket\psi$}                  & \qw           & \gate{\Xgate} & \gate{\Zgate} & \qw           & \qw
+\end{quantikz}
+\end{center}
+where the open control ($\ket0$) applies $\Xgate$ and the filled control ($\ket1$)
+applies $\Zgate$, so $\mathrm{SEL}$ realizes $\proj0\otimes\Xgate+\proj1\otimes\Zgate$.
+Then $W=(\Hgate\otimes\id)\,\mathrm{SEL}\,(\Hgate\otimes\id)$ and, by
 \eqref{eq:lec07-block},
 \[
   (\bra0\otimes\id)W(\ket0\otimes\id)
