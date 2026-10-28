@@ -289,6 +289,50 @@ cumulative distribution, rotates by that register-held value, and uncomputes---o
 $\poly(n)$ block per level, $n$ levels in all. The $2^{k-1}$ never materializes because
 the angles come from a formula, not a lookup table; for a \emph{generic} $p$ no such
 formula exists and the cost reverts to the $2^{n}$ of \cref{prop:lec06-sp}.
+
+Concretely, level $k$ is the \emph{compute--rotate--uncompute} block
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket{i_1\cdots i_{k-1}}$} & \gate[2]{A_{\mathrm{cdf}}} & \qw           & \gate[2]{A_{\mathrm{cdf}}^{\dagger}} & \qw \\
+  \lstick{$\ket{0^{w}}$}             &                           & \gate[2]{R_y} &                                      & \qw \\
+  \lstick{$q_k:\ket0$}               & \qw                       &               & \qw                                  & \qw
+\end{quantikz}
+\end{center}
+where $A_{\mathrm{cdf}}$ reads the already-set bits $i_1\cdots i_{k-1}$ and \emph{writes}
+the one angle $\theta(i_1\cdots i_{k-1})=2\arccos\sqrt{\int_{I_{\mathrm{left}}}p/\int_{I}p}$
+into a $w$-qubit work register (a $\poly(n)$-gate arithmetic circuit evaluating the
+cumulative distribution), the controlled $R_y$ rotates the fresh target $q_k$ by that
+register-held value, and $A_{\mathrm{cdf}}^{\dagger}$ uncomputes the work register back to
+$\ket{0^{w}}$. The full Grover--Rudolph circuit is $n$ such blocks in sequence, block $k$
+taking $q_1\cdots q_{k-1}$ as the angle input and producing $q_k$; the total cost is
+$n\cdot\poly(n)=\poly(n)$, with no $2^{k-1}$ anywhere.
+
+For the concrete $p=(6,6,1,3,3,1,6,6)/32$ above the three blocks are tiny. Block~1 has no
+input bits---its angle $\theta_1=\pi/2$ is a constant---so it is just $\Hgate$ on $q_1$.
+Block~2 reads the single bit $q_1$ and loads $\theta_2(q_1)=\pi/3$ (if $q_1{=}0$) or
+$2\pi/3$ (if $q_1{=}1$); block~3 reads $q_1q_2$ and loads
+$\theta_3=\pi/2,\,2\pi/3,\,\pi/3,\,\pi/2$ for $q_1q_2=00,01,10,11$:
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_1$}        & \gate[2]{A^{(2)}} & \qw           & \gate[2]{A^{(2)\dagger}} & \qw \\
+  \lstick{$\ket{0^{w}}$}& \qw               & \gate[2]{R_y} & \qw                      & \qw \\
+  \lstick{$q_2:\ket0$}  & \qw               &               & \qw                      & \qw
+\end{quantikz}
+\qquad
+\begin{quantikz}
+  \lstick{$q_1$}        & \gate[3]{A^{(3)}} & \qw           & \gate[3]{A^{(3)\dagger}} & \qw \\
+  \lstick{$q_2$}        & \qw               & \qw           & \qw                      & \qw \\
+  \lstick{$\ket{0^{w}}$}& \qw               & \gate[2]{R_y} & \qw                      & \qw \\
+  \lstick{$q_3:\ket0$}  & \qw               &               & \qw                      & \qw
+\end{quantikz}
+\end{center}
+Here $A^{(k)}$ is the angle oracle: it reads the set bits (top wires) and writes the
+level-$k$ angle into the work register $\ket{0^{w}}$; the two-qubit $R_y$ rotates the fresh
+target by that register value; $A^{(k)\dagger}$ clears the work register. Composing
+$\Hgate_{q_1}$, block~2, and block~3 reproduces the hard-coded cascade above---for $n=3$
+the angle tables are so small that ``compute'' and ``tabulate'' coincide; the saving
+appears only once $n$ is large enough that writing out $2^{k-1}$ angles per level becomes
+prohibitive.
 \end{example}
 
 \begin{example}[Sparse vector]
@@ -313,9 +357,21 @@ total.
 \begin{example}[Matrix product state: GHZ]
 \label{exa:lec06-mps}
 The GHZ state $\ket{u}=\tfrac1{\sqrt2}(\ket{000}+\ket{111})$ is the simplest nontrivial
-matrix product state, of bond dimension $\chi=2$. Its sequential MPS preparation is the
-textbook circuit---a Hadamard on the first qubit, then a $\CNOT$ chain carrying the bond
-index along the register:
+\emph{matrix product state} (MPS). Recall that an MPS writes the amplitudes as a product
+of matrices,
+\[
+  \ket{u}=\sum_{s_1\cdots s_n}\bra{L}A^{s_1}_1 A^{s_2}_2\cdots A^{s_n}_n\ket{R}\,
+          \ket{s_1\cdots s_n},
+\]
+where each $A^{s_k}_k$ is a $\chi_{k-1}\times\chi_k$ matrix labeled by the physical bit
+$s_k$ (and $\bra L,\ket R$ are boundary vectors). The \emph{bond dimension} is
+$\chi=\max_k\chi_k$, the size of the virtual ``bond'' index threaded between neighboring
+sites. Equivalently---by the Schmidt decomposition---$\chi$ is the largest Schmidt rank
+of $\ket u$ across any cut into a left and a right block, so it measures how much
+entanglement the state carries (a product state has $\chi=1$). GHZ has $\chi=2$: a
+single bond bit records the ``all-$0$ or all-$1$'' branch. Its sequential MPS
+preparation is the textbook circuit---a Hadamard on the first qubit, then a $\CNOT$
+chain carrying the bond index along the register:
 \begin{center}
 \begin{quantikz}
   \lstick{$q_0:\ket0$} & \gate{\Hgate} & \ctrl{1} & \qw      & \qw \\
@@ -323,15 +379,26 @@ index along the register:
   \lstick{$q_2:\ket0$} & \qw           & \qw      & \targ{}  & \qw
 \end{quantikz}
 \end{center}
-Each gate acts on $\lceil\log_2\chi\rceil+1=2$ qubits and there are $n-1$ of them,
-matching the $\bigo(n\,\poly(\chi))$ count; for larger $\chi$ the $\CNOT$s become the
+The bond dimension is \emph{visible} in this circuit as the information carried forward
+along the $\CNOT$ chain. After the Hadamard, $q_0$ holds a single bit recording which
+branch---all-$0$ or all-$1$---the register has committed to, and each $\CNOT$ copies that
+one bit to the next site. That propagating carrier bit \emph{is} the bond index of the
+matrix-product form: it takes $\lceil\log_2\chi\rceil=1$ qubit to carry because $\chi=2$,
+so reading left to right you watch the single bond thread site by site. Each gate acts on
+$\lceil\log_2\chi\rceil+1=2$ qubits and there are $n-1$ of them,
+matching the $\bigo(n\,\poly(\chi))$ count; for larger $\chi$ one would need
+$\lceil\log_2\chi\rceil$ carrier wires and the $\CNOT$s become the
 bond unitaries of \cref{ch:lec15}.
 \end{example}
 
 \begin{remark}[Bond dimension for general $n$: GHZ ($\chi=2$) and Dicke ($\chi=3$)]
 \label{rem:lec06-mpschi}
 Both families extend to any number of qubits, the bond index carrying exactly the
-information the left block must pass to the right across a cut.
+information the left block must pass to the right across a cut. Concretely, the
+\emph{bond dimension} $\chi$ is the dimension of that bond index in the matrix-product
+form of \cref{exa:lec06-mps}---equivalently, by the Schmidt decomposition, the maximum
+number of nonzero Schmidt coefficients of the state over all bipartitions into a left
+and a right block.
 
 \emph{Bond dimension $2$ (GHZ).} The $n$-qubit GHZ state
 $\tfrac1{\sqrt2}(\ket0^{\otimes n}+\ket1^{\otimes n})$ is the MPS with the diagonal
@@ -463,8 +530,14 @@ $\sin\theta=(\ee^{\ii\theta}-\ee^{-\ii\theta})/2\ii$,
 \]
 a two-term combination extracted with one flag qubit exactly as in the Hadamard test
 (\cref{sec:lec04-1}): make the uniform superposition on the data and $\ket+$ on the
-flag, apply the \emph{flag-controlled} phase gradient $\Phi^{\pm}$ (the phases $+2^b$
-if the flag is $\ket0$, $-2^b$ if $\ket1$), then $\Hgate$ on the flag and measure it.
+flag, apply the \emph{flag-controlled} phase gradient $\Phi^{\pm}$, then $\Hgate$ on the
+flag and measure it. Here $\Phi^{+}$ is the \emph{forward} phase gradient---the layer of
+single-qubit phases $P(2^b)=\diag(1,\ee^{\ii 2^b})$ that turns the uniform data register
+into $\ket g$---and $\Phi^{-}=(\Phi^{+})\dg$ is its conjugate (the phases $\ee^{-\ii 2^b}$,
+producing $\ket{g^{*}}$). The flag selects between them,
+$\Phi^{\pm}=\proj0\otimes\Phi^{+}+\proj1\otimes\Phi^{-}$, so with the flag in $\ket+$ the
+pair evolves to $\tfrac1{\sqrt2}(\ket0\ket g+\ket1\ket{g^{*}})$ and the closing $\Hgate$
+interferes the two branches.
 \begin{center}
 \begin{quantikz}
   \lstick{$\ket0$ \,\scriptsize(flag)}  & \gate{\Hgate}              & \gate[2]{\Phi^{\pm}} & \gate{\Hgate} & \meter{} \\

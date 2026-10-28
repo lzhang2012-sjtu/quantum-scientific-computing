@@ -241,6 +241,44 @@ $\ket{000}$ 上的振幅为 $\cos\tfrac\pi4\cos\tfrac\pi6\cos\tfrac\pi4
 $\theta=2\arccos\sqrt{\int_{I_{\mathrm{left}}}p\big/\int_{I}p}$，按该寄存器所持之值旋转，再反计算——每层
 一个 $\poly(n)$ 块，共 $n$ 层。$2^{k-1}$ 从不显现，因为角度来自一个公式而非查找表；对\emph{一般}的 $p$
 不存在这样的公式，代价便退回 \cref{prop:lec06-sp} 的 $2^{n}$。
+
+具体地，第 $k$ 层就是\emph{计算--旋转--反计算}块
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket{i_1\cdots i_{k-1}}$} & \gate[2]{A_{\mathrm{cdf}}} & \qw           & \gate[2]{A_{\mathrm{cdf}}^{\dagger}} & \qw \\
+  \lstick{$\ket{0^{w}}$}             &                           & \gate[2]{R_y} &                                      & \qw \\
+  \lstick{$q_k:\ket0$}               & \qw                       &               & \qw                                  & \qw
+\end{quantikz}
+\end{center}
+其中 $A_{\mathrm{cdf}}$ 读取已设定的比特 $i_1\cdots i_{k-1}$，并把单个角度
+$\theta(i_1\cdots i_{k-1})=2\arccos\sqrt{\int_{I_{\mathrm{left}}}p/\int_{I}p}$
+\emph{写入}一个 $w$ 比特的工作寄存器（一个评估累积分布的 $\poly(n)$ 门算术线路），受控 $R_y$
+按该寄存器所持之值旋转新的目标比特 $q_k$，而 $A_{\mathrm{cdf}}^{\dagger}$ 把工作寄存器反计算回
+$\ket{0^{w}}$。整个 Grover--Rudolph 线路是 $n$ 个这样的块串联，第 $k$ 块以 $q_1\cdots q_{k-1}$
+为角度输入并产出 $q_k$；总代价为 $n\cdot\poly(n)=\poly(n)$，处处不含 $2^{k-1}$。
+
+对上面具体的 $p=(6,6,1,3,3,1,6,6)/32$，这三个块都很小。块~1 没有输入比特——其角度
+$\theta_1=\pi/2$ 是常数——故它就是作用在 $q_1$ 上的 $\Hgate$。块~2 读取单个比特 $q_1$ 并装入
+$\theta_2(q_1)=\pi/3$（若 $q_1{=}0$）或 $2\pi/3$（若 $q_1{=}1$）；块~3 读取 $q_1q_2$ 并装入
+$\theta_3=\pi/2,\,2\pi/3,\,\pi/3,\,\pi/2$，对应 $q_1q_2=00,01,10,11$：
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_1$}        & \gate[2]{A^{(2)}} & \qw           & \gate[2]{A^{(2)\dagger}} & \qw \\
+  \lstick{$\ket{0^{w}}$}& \qw               & \gate[2]{R_y} & \qw                      & \qw \\
+  \lstick{$q_2:\ket0$}  & \qw               &               & \qw                      & \qw
+\end{quantikz}
+\qquad
+\begin{quantikz}
+  \lstick{$q_1$}        & \gate[3]{A^{(3)}} & \qw           & \gate[3]{A^{(3)\dagger}} & \qw \\
+  \lstick{$q_2$}        & \qw               & \qw           & \qw                      & \qw \\
+  \lstick{$\ket{0^{w}}$}& \qw               & \gate[2]{R_y} & \qw                      & \qw \\
+  \lstick{$q_3:\ket0$}  & \qw               &               & \qw                      & \qw
+\end{quantikz}
+\end{center}
+这里 $A^{(k)}$ 是角度谕示：它读取已设定的比特（顶部线路）并把第 $k$ 层的角度写入工作寄存器
+$\ket{0^{w}}$；两比特 $R_y$ 按该寄存器之值旋转新的目标比特；$A^{(k)\dagger}$ 清空工作寄存器。把
+$\Hgate_{q_1}$、块~2、块~3 依次复合，便重现了上面那条硬编码级联——对 $n=3$，角度表小到``计算''与
+``列表''二者合一；节省只在 $n$ 大到每层写出 $2^{k-1}$ 个角度变得不可行时才显现。
 \end{example}
 
 \begin{example}[稀疏向量]
@@ -262,8 +300,17 @@ $\tfrac1{\sqrt2}(\ket{000}+\ket{100})$，再用 $\CNOT_{q_0\to q_2}$ 翻转 $\ke
 
 \begin{example}[矩阵乘积态：GHZ]
 \label{exa:lec06-mps}
-GHZ 态 $\ket{u}=\tfrac1{\sqrt2}(\ket{000}+\ket{111})$ 是最简单的非平凡矩阵乘积态，键维数
-$\chi=2$。它的顺序式 MPS 制备就是教科书上的线路——对第一个量子比特施加 Hadamard，再接
+GHZ 态 $\ket{u}=\tfrac1{\sqrt2}(\ket{000}+\ket{111})$ 是最简单的非平凡\emph{矩阵乘积态} (MPS)。
+回忆：MPS 把振幅写成矩阵之积，
+\[
+  \ket{u}=\sum_{s_1\cdots s_n}\bra{L}A^{s_1}_1 A^{s_2}_2\cdots A^{s_n}_n\ket{R}\,
+          \ket{s_1\cdots s_n},
+\]
+其中每个 $A^{s_k}_k$ 是一个由物理比特 $s_k$ 标记的 $\chi_{k-1}\times\chi_k$ 矩阵（$\bra L,\ket R$ 为
+边界向量）。\emph{键维数}是 $\chi=\max_k\chi_k$，即穿行于相邻格点之间的虚拟``键''指标的大小。等价地
+——由施密特分解——$\chi$ 是 $\ket u$ 在任一（左块/右块）割缝下的最大施密特秩，因而度量该态携带的纠缠量
+（乘积态的 $\chi=1$）。GHZ 的 $\chi=2$：单个键比特记录``全 $0$ 还是全 $1$''这一分支。它的顺序式 MPS
+制备就是教科书上的线路——对第一个量子比特施加 Hadamard，再接
 一条沿寄存器传递键指标的 $\CNOT$ 链：
 \begin{center}
 \begin{quantikz}
@@ -272,15 +319,20 @@ $\chi=2$。它的顺序式 MPS 制备就是教科书上的线路——对第一�
   \lstick{$q_2:\ket0$} & \qw           & \qw      & \targ{}  & \qw
 \end{quantikz}
 \end{center}
-每个门作用在 $\lceil\log_2\chi\rceil+1=2$ 个量子比特上，共有 $n-1$ 个，与
-$\bigo(n\,\poly(\chi))$ 的计数相符；对更大的 $\chi$，这些 $\CNOT$ 换成 \cref{ch:lec15}
-中的键酉算符。
+键维数在这条线路中是\emph{可见}的——它就是沿 $\CNOT$ 链向前传递的信息。Hadamard 之后，$q_0$ 持有一个
+比特，记录寄存器已选定的分支（全 $0$ 还是全 $1$），而每个 $\CNOT$ 把这一个比特复制到下一格点。这个
+传播的载体比特\emph{就是}矩阵乘积形式的键指标：它只需 $\lceil\log_2\chi\rceil=1$ 个量子比特来携带，
+因为 $\chi=2$，于是自左向右读，你看到这单一的键逐格点穿行。每个门作用在
+$\lceil\log_2\chi\rceil+1=2$ 个量子比特上，共有 $n-1$ 个，与
+$\bigo(n\,\poly(\chi))$ 的计数相符；对更大的 $\chi$，需要 $\lceil\log_2\chi\rceil$ 条载体线，
+这些 $\CNOT$ 换成 \cref{ch:lec15} 中的键酉算符。
 \end{example}
 
 \begin{remark}[一般 $n$ 的键维数：GHZ（$\chi=2$）与 Dicke（$\chi=3$）]
 \label{rem:lec06-mpschi}
 这两族都可推广到任意数目的量子比特，键指标恰好携带左块跨过某一割缝时必须传给右块的
-那部分信息。
+那部分信息。具体地，\emph{键维数} $\chi$ 是 \cref{exa:lec06-mps} 矩阵乘积形式中该键指标的维数——
+等价地，由施密特分解，即该态在所有（左块/右块）二分下的最大非零施密特系数个数。
 
 \emph{键维数 $2$（GHZ）。} $n$ 量子比特 GHZ 态
 $\tfrac1{\sqrt2}(\ket0^{\otimes n}+\ket1^{\otimes n})$ 是具有对角 $2\times2$ 张量
@@ -397,8 +449,12 @@ $\sin\theta=(\ee^{\ii\theta}-\ee^{-\ii\theta})/2\ii$，
   \ket{g^{*}}=\bigotimes_{k,b}\bigl(\ket0+\ee^{-\ii2^b}\ket1\bigr),
 \]
 这是一个两项组合，可用一个标志比特像 Hadamard 检验（\cref{sec:lec04-1}）那样提取：在数据上
-制备均匀叠加、在标志上制备 $\ket+$，施加\emph{受标志控制}的相位梯度 $\Phi^{\pm}$（标志为
-$\ket0$ 时相位取 $+2^b$，为 $\ket1$ 时取 $-2^b$），再对标志作 $\Hgate$ 并测量。
+制备均匀叠加、在标志上制备 $\ket+$，施加\emph{受标志控制}的相位梯度 $\Phi^{\pm}$，再对标志作
+$\Hgate$ 并测量。这里 $\Phi^{+}$ 是\emph{正向}相位梯度——那层把均匀数据寄存器变成 $\ket g$ 的
+单比特相位 $P(2^b)=\diag(1,\ee^{\ii 2^b})$——而 $\Phi^{-}=(\Phi^{+})\dg$ 是它的共轭（相位
+$\ee^{-\ii 2^b}$，产生 $\ket{g^{*}}$）。标志在二者之间选择，
+$\Phi^{\pm}=\proj0\otimes\Phi^{+}+\proj1\otimes\Phi^{-}$，于是当标志处于 $\ket+$ 时这一对演化到
+$\tfrac1{\sqrt2}(\ket0\ket g+\ket1\ket{g^{*}})$，收尾的 $\Hgate$ 便让两分支互相干涉。
 \begin{center}
 \begin{quantikz}
   \lstick{$\ket0$ \,\scriptsize(标志)}  & \gate{\Hgate}              & \gate[2]{\Phi^{\pm}} & \gate{\Hgate} & \meter{} \\
