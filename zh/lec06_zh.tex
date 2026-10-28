@@ -1093,6 +1093,28 @@ $\ket{0}$ 所标志的块为
 因为两个 Hadamard 以各 $\tfrac12$ 的权重平均 $\ell{=}0$ 与 $\ell{=}1$ 两个分支，分别沉积 $\tfrac12 S$ 与
 $\tfrac12 S\dg$。于是 $U_A\in\mathrm{BE}_{2,1}(A)$，$\alpha=s=2$，恰为 \cref{thm:lec06-ssparse}。作为循环
 矩阵，$A$ 由 QFT 对角化，本征值为 $2\cos(2\pi k/4)\in\{2,0,-2,0\}$。
+
+明确地说，以 $\ell$ 比特作为唯一标志，$U_A=\Hgate\,O_c\,\Hgate$，其中 $O_c$ 是受 $\ell$ 控制的移位——
+$\ell{=}0$ 时加一、$\ell{=}1$ 时减一。记 $j=2q_1+q_0$，\cref{exa:lec06-shift} 的加一及其逆合并为三个门：
+先 $\CNOT_{q_0\to q_1}$，再 $\CNOT_{\ell\to q_1}$，再对 $q_0$ 作 $X$（净效果为 $q_1\mathrel{\oplus}=q_0\oplus\ell$
+且 $q_0$ 翻转）：
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize($\ell$, 标志)} & \gate{\Hgate} & \qw       & \ctrl{1} & \qw      & \gate{\Hgate} & \qw \\
+  \lstick{$q_1$ \,\scriptsize(最高位)}            & \qw           & \targ{}   & \targ{}  & \qw      & \qw           & \qw \\
+  \lstick{$q_0$ \,\scriptsize(最低位)}            & \qw           & \ctrl{-1} & \qw      & \gate{X} & \qw           & \qw
+\end{quantikz}
+\end{center}
+$\ell{=}0$ 时中间部分就是 \cref{exa:lec06-shift} 的加一 $S$；额外的 $\CNOT_{\ell\to q_1}$（仅在 $\ell{=}1$
+时激活）把它变成减一 $S\dg$。
+
+\emph{把它读作一个 LCU。} 由于 $A=S+S\dg$ 本就是两个酉算符之和，这条线路正是两项\emph{酉算符线性组合}
+(LCU)：开头的 $\Hgate$ 是在标志上造出 $\tfrac1{\sqrt2}(\ket0+\ket1)$ 的 $\mathrm{PREP}$，$O_c$ 是在
+$\ell{=}0$ 时施加 $S$、$\ell{=}1$ 时施加 $S\dg$ 的 $\mathrm{SELECT}$，收尾的 $\mathrm{PREP}\dg=\Hgate$
+让两分支干涉，使 $\ket0$ 标志块中留下 $\tfrac12(S+S\dg)=A/2$。稀疏因子 $\alpha=s=2$ 与 LCU 的
+$\ell^1$ 范数 $\abs1+\abs1=2$ 是同一个数——对单位条目的矩阵，$s$-稀疏构造\emph{就是}其 $s$ 个移位置换的
+等权 LCU。一般的 LCU（任意权重 $c_\ell$，故 $\mathrm{PREP}\ket{0}=\tfrac1{\sqrt{\norm c_1}}
+\sum_\ell\sqrt{c_\ell}\ket\ell$，$\alpha=\norm c_1$）将在 \cref{ch:lec07} 中展开。
 \end{example}
 
 \begin{remark}[更一般的位置谕示]

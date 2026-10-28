@@ -1280,6 +1280,32 @@ $\tfrac12$ each, depositing $\tfrac12 S$ and $\tfrac12 S\dg$. Thus
 $U_A\in\mathrm{BE}_{2,1}(A)$ with $\alpha=s=2$, exactly \cref{thm:lec06-ssparse}. Being
 a circulant, $A$ is diagonalized by the QFT with eigenvalues
 $2\cos(2\pi k/4)\in\{2,0,-2,0\}$.
+
+Explicitly, with the $\ell$-qubit as the single flag, $U_A=\Hgate\,O_c\,\Hgate$ where
+$O_c$ is the $\ell$-controlled shift---increment when $\ell{=}0$, decrement when
+$\ell{=}1$. Writing $j=2q_1+q_0$, the increment of \cref{exa:lec06-shift} and its inverse
+fuse into three gates: $\CNOT_{q_0\to q_1}$, then $\CNOT_{\ell\to q_1}$, then $X$ on
+$q_0$ (net effect $q_1\mathrel{\oplus}=q_0\oplus\ell$ and $q_0$ flips):
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize($\ell$, flag)} & \gate{\Hgate} & \qw       & \ctrl{1} & \qw      & \gate{\Hgate} & \qw \\
+  \lstick{$q_1$ \,\scriptsize(MSB)}            & \qw           & \targ{}   & \targ{}  & \qw      & \qw           & \qw \\
+  \lstick{$q_0$ \,\scriptsize(LSB)}            & \qw           & \ctrl{-1} & \qw      & \gate{X} & \qw           & \qw
+\end{quantikz}
+\end{center}
+For $\ell{=}0$ the middle block is the increment $S$ of \cref{exa:lec06-shift}; the extra
+$\CNOT_{\ell\to q_1}$ (active only when $\ell{=}1$) turns it into the decrement $S\dg$.
+
+\emph{Reading it as an LCU.} Because $A=S+S\dg$ is literally a sum of two unitaries, this
+very circuit is the two-term \emph{linear combination of unitaries}: the opening $\Hgate$
+is the $\mathrm{PREP}$ that makes $\tfrac1{\sqrt2}(\ket0+\ket1)$ on the flag, $O_c$ is the
+$\mathrm{SELECT}$ that applies $S$ on $\ell{=}0$ and $S\dg$ on $\ell{=}1$, and the closing
+$\mathrm{PREP}\dg=\Hgate$ interferes the branches, leaving $\tfrac12(S+S\dg)=A/2$ in the
+$\ket0$-flagged block. The sparse factor $\alpha=s=2$ and the LCU $\ell^1$-norm
+$\abs1+\abs1=2$ are the same number---for a matrix with unit entries the $s$-sparse
+construction \emph{is} the equal-weight LCU of its $s$ shift permutations. The general
+LCU---arbitrary weights $c_\ell$, so $\mathrm{PREP}\ket{0}=\tfrac1{\sqrt{\norm c_1}}
+\sum_\ell\sqrt{c_\ell}\ket\ell$ and $\alpha=\norm c_1$---is developed in \cref{ch:lec07}.
 \end{example}
 
 \begin{remark}[More general location oracles]
