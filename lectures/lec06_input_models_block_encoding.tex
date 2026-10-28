@@ -1017,6 +1017,37 @@ Three features make this the template for all of Part~II.
         to be tracked classically in \cref{sec:lec06-1}.
 \end{itemize}
 
+\begin{remark}[Reading off the norm $\norm{A\ket b}$ to $t$ digits]
+\label{rem:lec06-normcost}
+Because $\norm{A\ket b}=\alpha\sqrt p$ with $p=\norm{A\ket b}^2/\alpha^2$ the probability
+of flagging $\ket{0^a}$, learning the norm is \emph{amplitude estimation}: we estimate the
+amplitude $a=\sqrt p=\norm{A\ket b}/\alpha\in[0,1]$ of the good subspace. ``$t$ digits''
+means additive error $\epsilon=10^{-t}$ on $\norm{A\ket b}$, i.e.\ error
+$\epsilon_a=\epsilon/\alpha$ on $a$.
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{Plain sampling.} Prepare, measure the flag, take the empirical frequency of
+        $\ket{0^a}$. The $1/\sqrt N$ shot noise forces
+        $N=\bigo(\alpha^2/\epsilon^2)=\bigo(\alpha^2\,10^{2t})$ uses of $U_A$ and $O_b$.
+  \item \emph{Amplitude estimation} (\cref{thm:lec05-aecost}; phase estimation of the
+        Grover iterate $G=R_{\mathrm{flag}}R_{\psi}$ built from
+        $U_A,U_A\dg,O_b,O_b\dg$). It reaches additive $\epsilon_a$ with $\bigo(1/\epsilon_a)$
+        uses of $G$, hence
+        \[
+          \bigo\!\Bigl(\tfrac{\alpha}{\epsilon}\Bigr)=\bigo(\alpha\,10^{t})
+          \quad\text{queries},
+        \]
+        the quadratic improvement over sampling---and the same $\alpha/\norm{A\ket b}$
+        saving as amplitude amplification (\cref{thm:lec03-aa}). The counting register
+        needs about $\log_2(\alpha/\epsilon)\approx(\log_2 10)\,t+\log_2\alpha\approx
+        3.32\,t+\log_2\alpha$ qubits to resolve $t$ decimal digits, plus $\bigo(1)$ median
+        repetitions for high confidence.
+\end{itemize}
+Either way the subnormalization $\alpha$ sets the cost---linearly with amplitude
+estimation, quadratically without---one more reason \cref{sec:lec06-2} insists on a small
+$\alpha$. (For $t$ \emph{significant} digits, relative error $\eta=10^{-t}$, set
+$\epsilon=\eta\norm{A\ket b}$: the query count becomes $\bigo(10^{t}/\sqrt p)$.)
+\end{remark}
+
 \begin{example}[Matrix--vector product with the $2\times2$ encoding]
 \label{exa:lec06-matvec}
 Take $A=\left(\begin{smallmatrix}1&1\\0&1\end{smallmatrix}\right)$ with the
@@ -1107,6 +1138,20 @@ $i=c(j)$ and $0$ otherwise). By \cref{rem:lec06-verify},
 $U_A\in\mathrm{BE}_{1,1}(A)$.
 \end{proof}
 
+Explicitly, $U_A$ is just two boxes acting on a flag qubit and the $n$-qubit data
+register:
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(flag)}        & \gate[2]{O_A} & \qw        & \qw \\
+  \lstick{$\ket j$ \,\scriptsize($n$ qubits)} &               & \gate{O_c} & \qw
+\end{quantikz}
+\end{center}
+The entry oracle $O_A$ rotates the flag by $\theta_j=2\arccos\abs{A_{c(j),j}}$,
+conditioned on the column value $\ket j$ and leaving the data register untouched; the
+location oracle $O_c$ then relabels $\ket j\mapsto\ket{c(j)}$. The output is
+$\bigl(A_{c(j),j}\ket0+\sqrt{1-\abs{A_{c(j),j}}^2}\,\ket1\bigr)\ket{c(j)}$, whose
+flag-$\ket0$ part sits in row $c(j)$ with amplitude exactly $A_{c(j),j}$.
+
 \begin{example}[A $1$-sparse worked encoding: the cyclic shift]
 \label{exa:lec06-shift}
 Let $N=4$ and let $A=S$ be the cyclic shift $S\ket{j}=\ket{(j+1)\bmod4}$, a
@@ -1118,7 +1163,19 @@ Then $U_A=(\id\otimes O_c)O_A$ acts as $\ket{0}\ket{j}\mapsto\ket{0}\ket{(j+1)
 \bmod4}$, and $\bra{0,i}U_A\ket{0,j}=\delta_{i,(j+1)\bmod4}=S_{ij}$. Since $S$ is
 already unitary, $U_A$ block-encodes it with $\alpha=1$ and the flag qubit is
 inert---a reassuring sanity check that a unitary is its own $(1,0)$-block-encoding
-(here padded to one idle ancilla).
+(here padded to one idle ancilla). Explicitly, with $O_A=\id$ the whole encoding is
+the increment-by-one permutation $O_c=S$ on the two data qubits $\ket{q_1q_0}$
+($j=2q_1+q_0$, so $q_1$ is the most significant bit), the flag left idle:
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(flag)} & \qw       & \qw       & \qw \\
+  \lstick{$q_1$ \,\scriptsize(MSB)}    & \targ{}   & \qw       & \qw \\
+  \lstick{$q_0$ \,\scriptsize(LSB)}    & \ctrl{-1} & \gate{X}  & \qw
+\end{quantikz}
+\end{center}
+This is the textbook $2$-bit ripple-carry increment: $\CNOT_{q_0\to q_1}$ propagates
+the carry (the high bit flips only when $q_0=1$), then $X$ on $q_0$ toggles the low
+bit, realizing $00\to01\to10\to11\to00$, i.e.\ $\ket j\mapsto\ket{(j+1)\bmod4}$.
 \end{example}
 
 \begin{example}[Block encoding of a diagonal matrix]

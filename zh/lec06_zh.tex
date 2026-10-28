@@ -874,6 +874,31 @@ $(\bra{0^a}\otimes\id)U_A(\ket{0^a}\otimes\id)=A/\alpha$（\cref{def:lec06-be}�
         \cref{sec:lec06-1} 中必须在经典一侧被追踪那样。
 \end{itemize}
 
+\begin{remark}[把范数 $\norm{A\ket b}$ 读到 $t$ 位]
+\label{rem:lec06-normcost}
+由于 $\norm{A\ket b}=\alpha\sqrt p$，其中 $p=\norm{A\ket b}^2/\alpha^2$ 是标志为
+$\ket{0^a}$ 的概率，读取范数就是\emph{振幅估计}：我们估计好子空间的振幅
+$a=\sqrt p=\norm{A\ket b}/\alpha\in[0,1]$。``$t$ 位''意味着对 $\norm{A\ket b}$ 的加性误差
+$\epsilon=10^{-t}$，即对 $a$ 的误差 $\epsilon_a=\epsilon/\alpha$。
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{朴素采样。} 制备、测量标志、取 $\ket{0^a}$ 的经验频率。$1/\sqrt N$ 的散粒噪声迫使
+        $N=\bigo(\alpha^2/\epsilon^2)=\bigo(\alpha^2\,10^{2t})$ 次调用 $U_A$ 与 $O_b$。
+  \item \emph{振幅估计}（\cref{thm:lec05-aecost}；对由 $U_A,U_A\dg,O_b,O_b\dg$ 构造的 Grover
+        迭代 $G=R_{\mathrm{flag}}R_{\psi}$ 作相位估计）。它用 $\bigo(1/\epsilon_a)$ 次 $G$ 达到
+        加性 $\epsilon_a$，故
+        \[
+          \bigo\!\Bigl(\tfrac{\alpha}{\epsilon}\Bigr)=\bigo(\alpha\,10^{t})
+          \quad\text{次查询},
+        \]
+        相对采样有二次改进——与振幅放大（\cref{thm:lec03-aa}）相同的 $\alpha/\norm{A\ket b}$
+        节省。计数寄存器约需 $\log_2(\alpha/\epsilon)\approx(\log_2 10)\,t+\log_2\alpha\approx
+        3.32\,t+\log_2\alpha$ 个量子比特以分辨 $t$ 位十进制数字，另加 $\bigo(1)$ 次中位数重复以保高置信。
+\end{itemize}
+无论哪种方式，次归一化因子 $\alpha$ 都决定代价——用振幅估计时为线性，不用时为二次——这是
+\cref{sec:lec06-2} 坚持取小 $\alpha$ 的又一理由。（若要 $t$ 个\emph{有效}数字，即相对误差
+$\eta=10^{-t}$，取 $\epsilon=\eta\norm{A\ket b}$：查询数变为 $\bigo(10^{t}/\sqrt p)$。）
+\end{remark}
+
 \begin{example}[用 $2\times2$ 编码做矩阵–向量乘积]
 \label{exa:lec06-matvec}
 取 $A=\left(\begin{smallmatrix}1&1\\0&1\end{smallmatrix}\right)$，并用
@@ -949,6 +974,18 @@ $A_{ij}$（当 $i=c(j)$ 时为 $A_{c(j),j}$，否则为 $0$）。由 \cref{rem:l
 $U_A\in\mathrm{BE}_{1,1}(A)$。
 \end{proof}
 
+明确地说，$U_A$ 只是作用在一个标志比特与 $n$ 比特数据寄存器上的两个方框：
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(标志)}        & \gate[2]{O_A} & \qw        & \qw \\
+  \lstick{$\ket j$ \,\scriptsize($n$ 比特)} &               & \gate{O_c} & \qw
+\end{quantikz}
+\end{center}
+条目谕示 $O_A$ 以列值 $\ket j$ 为条件、把标志旋转 $\theta_j=2\arccos\abs{A_{c(j),j}}$，并保持数据寄存器
+不变；位置谕示 $O_c$ 随后把 $\ket j\mapsto\ket{c(j)}$ 重新标号。输出为
+$\bigl(A_{c(j),j}\ket0+\sqrt{1-\abs{A_{c(j),j}}^2}\,\ket1\bigr)\ket{c(j)}$，其标志为 $\ket0$ 的部分
+落在第 $c(j)$ 行，振幅恰为 $A_{c(j),j}$。
+
 \begin{example}[一个 $1$-稀疏的具体编码：循环移位]
 \label{exa:lec06-shift}
 设 $N=4$，令 $A=S$ 为循环移位（cyclic shift）$S\ket{j}=\ket{(j+1)\bmod4}$，它是一个置换矩阵；它是 $1$-稀疏的且所有非零条目都等于 $1$，故
@@ -956,7 +993,16 @@ $c(j)=(j+1)\bmod4$，$A_{c(j),j}=1$。此处的条目谕示 \eqref{eq:lec06-OA} 
 $O_A\ket{0}\ket{i}\ket{j}=\ket{0}\ket{i}\ket{j}$（所有幅值都是
 $1$，故无需旋转到 $\ket{1}$），且 $O_c\ket{j}=\ket{(j+1)\bmod4}=S\ket{j}$。
 于是 $U_A=(\id\otimes O_c)O_A$ 作用为 $\ket{0}\ket{j}\mapsto\ket{0}\ket{(j+1)
-\bmod4}$，且 $\bra{0,i}U_A\ket{0,j}=\delta_{i,(j+1)\bmod4}=S_{ij}$。由于 $S$ 本身已是酉的，$U_A$ 以 $\alpha=1$ 将其块编码，且标志量子比特是惰性的——这是一个令人安心的合理性检验：一个酉算符就是它自身的 $(1,0)$-块编码（此处补足为一个闲置辅助比特）。
+\bmod4}$，且 $\bra{0,i}U_A\ket{0,j}=\delta_{i,(j+1)\bmod4}=S_{ij}$。由于 $S$ 本身已是酉的，$U_A$ 以 $\alpha=1$ 将其块编码，且标志量子比特是惰性的——这是一个令人安心的合理性检验：一个酉算符就是它自身的 $(1,0)$-块编码（此处补足为一个闲置辅助比特）。明确地说，由于 $O_A=\id$，整个编码就是作用在两个数据比特 $\ket{q_1q_0}$ 上的加一置换 $O_c=S$（$j=2q_1+q_0$，故 $q_1$ 为最高位），标志保持闲置：
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(标志)} & \qw       & \qw       & \qw \\
+  \lstick{$q_1$ \,\scriptsize(最高位)}    & \targ{}   & \qw       & \qw \\
+  \lstick{$q_0$ \,\scriptsize(最低位)}    & \ctrl{-1} & \gate{X}  & \qw
+\end{quantikz}
+\end{center}
+这就是教科书上的 $2$ 比特行波进位加一：$\CNOT_{q_0\to q_1}$ 传播进位（高位仅在 $q_0=1$ 时翻转），
+再用作用于 $q_0$ 的 $X$ 翻转低位，实现 $00\to01\to10\to11\to00$，即 $\ket j\mapsto\ket{(j+1)\bmod4}$。
 \end{example}
 
 \begin{example}[对角矩阵的块编码]
