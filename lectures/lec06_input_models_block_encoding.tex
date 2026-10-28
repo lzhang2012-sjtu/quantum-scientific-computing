@@ -276,9 +276,19 @@ $q_1$ and $q_2$,
 \end{center}
 The amplitude on $\ket{000}$ is $\cos\tfrac\pi4\cos\tfrac\pi6\cos\tfrac\pi4
 =\tfrac1{\sqrt2}\cdot\tfrac{\sqrt3}2\cdot\tfrac1{\sqrt2}=\tfrac{\sqrt3}4=\sqrt{p_{000}}$.
-Level~$k$ is a $2^{k-1}$-way uniformly controlled rotation ($1+2+4=7$ rotations here),
-and for a smooth density the $2^{k-1}$ angles are \emph{computed} on the fly from
-$\int_I p$ on an ancilla rather than tabulated---the content of \cref{rem:lec06-gr}.
+
+\emph{Where is the efficiency?} As drawn---with the $2^{k-1}$ angles at level $k$
+\emph{hard-coded} as $2^{k-1}$ separately controlled gates---the circuit uses
+$\sum_{k=1}^{n}2^{k-1}=2^{n}-1$ gates ($1+2+4=7$ for $n=3$), \emph{no} asymptotic
+saving over \cref{prop:lec06-sp}; that is fine only because $n$ is tiny. The genuine
+$\bigo(n)$ cost of \cref{rem:lec06-gr} comes from \emph{not} tabulating those angles:
+for an efficiently integrable $p$ one keeps the already-set bits $i_1\cdots i_{k-1}$ in
+a register and \emph{computes} the single angle
+$\theta=2\arccos\sqrt{\int_{I_{\mathrm{left}}}p\big/\int_{I}p}$ from the (poly-time)
+cumulative distribution, rotates by that register-held value, and uncomputes---one
+$\poly(n)$ block per level, $n$ levels in all. The $2^{k-1}$ never materializes because
+the angles come from a formula, not a lookup table; for a \emph{generic} $p$ no such
+formula exists and the cost reverts to the $2^{n}$ of \cref{prop:lec06-sp}.
 \end{example}
 
 \begin{example}[Sparse vector]
