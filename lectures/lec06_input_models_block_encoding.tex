@@ -333,6 +333,36 @@ $\Hgate_{q_1}$, block~2, and block~3 reproduces the hard-coded cascade above---f
 the angle tables are so small that ``compute'' and ``tabulate'' coincide; the saving
 appears only once $n$ is large enough that writing out $2^{k-1}$ angles per level becomes
 prohibitive.
+
+\emph{Making $A^{(2)}$ and $A^{(3)}$ explicit.} For this particular $p$ the angles are
+an \emph{affine} function of the set bits,
+\[
+  \theta_2(q_1)=\tfrac\pi3+\tfrac\pi3\,q_1,\qquad
+  \theta_3(q_1q_2)=\tfrac\pi2-\tfrac\pi6\,q_1+\tfrac\pi6\,q_2
+\]
+(check: $\theta_3$ gives $\tfrac\pi2,\tfrac{2\pi}3,\tfrac\pi3,\tfrac\pi2$ at
+$q_1q_2=00,01,10,11$). Because $R_y$ rotations about the same axis add,
+$R_y(\alpha)R_y(\beta)=R_y(\alpha+\beta)$, an affine angle factors into a constant
+rotation times \emph{one singly-controlled} $R_y$ per input bit---so the work register
+and the uncompute vanish, and $A^{(k)}$ together with its rotation is just
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_1$}       & \qw               & \ctrl{1}          & \qw \\
+  \lstick{$q_2:\ket0$} & \gate{R_y(\pi/3)} & \gate{R_y(\pi/3)} & \qw
+\end{quantikz}
+\qquad
+\begin{quantikz}
+  \lstick{$q_1$}       & \qw                & \ctrl{2}            & \qw                & \qw \\
+  \lstick{$q_2$}       & \qw                & \qw                 & \ctrl{1}           & \qw \\
+  \lstick{$q_3:\ket0$} & \gate{R_y(\pi/2)}  & \gate{R_y(-\pi/6)}  & \gate{R_y(\pi/6)}  & \qw
+\end{quantikz}
+\end{center}
+the controlled $R_y(\pi/3)$ turning $\theta_2$ from $\pi/3$ into $2\pi/3$ when $q_1{=}1$,
+and the two controlled rotations adding $\mp\pi/6$ to $\theta_3$ as $q_1,q_2$ switch on.
+This affine collapse is special to these angles; a \emph{generic} uniformly controlled
+rotation needs the full Walsh expansion---all $2^{k-1}$ multi-controlled terms, or the
+arithmetic $A^{(k)}$ of the general block above---which is exactly why only an efficiently
+integrable $p$ stays $\poly(n)$.
 \end{example}
 
 \begin{example}[Sparse vector]

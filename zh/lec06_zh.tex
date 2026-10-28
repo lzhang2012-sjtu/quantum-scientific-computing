@@ -279,6 +279,31 @@ $\theta_3=\pi/2,\,2\pi/3,\,\pi/3,\,\pi/2$，对应 $q_1q_2=00,01,10,11$：
 $\ket{0^{w}}$；两比特 $R_y$ 按该寄存器之值旋转新的目标比特；$A^{(k)\dagger}$ 清空工作寄存器。把
 $\Hgate_{q_1}$、块~2、块~3 依次复合，便重现了上面那条硬编码级联——对 $n=3$，角度表小到``计算''与
 ``列表''二者合一；节省只在 $n$ 大到每层写出 $2^{k-1}$ 个角度变得不可行时才显现。
+
+\emph{把 $A^{(2)}$ 与 $A^{(3)}$ 写明。} 对这个特定的 $p$，角度是已设定比特的\emph{仿射}函数，
+\[
+  \theta_2(q_1)=\tfrac\pi3+\tfrac\pi3\,q_1,\qquad
+  \theta_3(q_1q_2)=\tfrac\pi2-\tfrac\pi6\,q_1+\tfrac\pi6\,q_2
+\]
+（验证：$\theta_3$ 在 $q_1q_2=00,01,10,11$ 处给出 $\tfrac\pi2,\tfrac{2\pi}3,\tfrac\pi3,\tfrac\pi2$）。
+由于绕同一轴的 $R_y$ 旋转相加，$R_y(\alpha)R_y(\beta)=R_y(\alpha+\beta)$，仿射角便分解为一个常数旋转
+乘上\emph{每个输入比特一个的单受控} $R_y$——于是工作寄存器与反计算都消失，$A^{(k)}$ 连同它的旋转就只是
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_1$}       & \qw               & \ctrl{1}          & \qw \\
+  \lstick{$q_2:\ket0$} & \gate{R_y(\pi/3)} & \gate{R_y(\pi/3)} & \qw
+\end{quantikz}
+\qquad
+\begin{quantikz}
+  \lstick{$q_1$}       & \qw                & \ctrl{2}            & \qw                & \qw \\
+  \lstick{$q_2$}       & \qw                & \qw                 & \ctrl{1}           & \qw \\
+  \lstick{$q_3:\ket0$} & \gate{R_y(\pi/2)}  & \gate{R_y(-\pi/6)}  & \gate{R_y(\pi/6)}  & \qw
+\end{quantikz}
+\end{center}
+受控的 $R_y(\pi/3)$ 在 $q_1{=}1$ 时把 $\theta_2$ 由 $\pi/3$ 变为 $2\pi/3$，而两个受控旋转随
+$q_1,q_2$ 开启分别给 $\theta_3$ 加上 $\mp\pi/6$。这种仿射坍缩是这些角度特有的；一个\emph{一般}的
+一致受控旋转需要完整的沃尔什展开——全部 $2^{k-1}$ 个多受控项，或上面一般块中的算术 $A^{(k)}$——这正是
+为何只有高效可积的 $p$ 才保持 $\poly(n)$。
 \end{example}
 
 \begin{example}[稀疏向量]
