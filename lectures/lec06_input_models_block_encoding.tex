@@ -1296,6 +1296,21 @@ $q_0$ (net effect $q_1\mathrel{\oplus}=q_0\oplus\ell$ and $q_0$ flips):
 For $\ell{=}0$ the middle block is the increment $S$ of \cref{exa:lec06-shift}; the extra
 $\CNOT_{\ell\to q_1}$ (active only when $\ell{=}1$) turns it into the decrement $S\dg$.
 
+\emph{Why only one $X$?} Split the $\pm1$ shift into its action on the two bits. The low
+bit $q_0$ \emph{always} flips, for both signs: $\pm1$ is odd, so it changes parity on
+every step---under $+1$ the sequence $00\to01\to10\to11$ has LSB pattern $0,1,0,1$, and
+under $-1$ the sequence $00\to11\to10\to01$ has the \emph{same} pattern $0,1,0,1$. Because
+the low-bit rule is identical in both branches it needs no control on $\ell$---hence the
+single, unconditional $X$ on $q_0$. The two signs differ only in the high bit $q_1$, which
+flips on a \emph{carry} for $+1$ (when $q_0{=}1$) and on a \emph{borrow} for $-1$ (when
+$q_0{=}0$): that is $q_1\mathrel{\oplus}=q_0$ when $\ell{=}0$ and
+$q_1\mathrel{\oplus}=q_0\oplus1$ when $\ell{=}1$, i.e.\ $q_1\mathrel{\oplus}=q_0\oplus\ell$,
+realized by $\CNOT_{q_0\to q_1}$ followed by $\CNOT_{\ell\to q_1}$. Both CNOTs act
+\emph{before} the $X$, so the carry/borrow is read from the original $q_0$; flipping $q_0$
+first would compute it from the wrong value. (More generally an $n$-bit $\pm1$ shift always
+toggles the LSB and ripples a carry/borrow up the higher bits through a cascade of
+multi-controlled gates; here $n=2$ leaves only the one controlled flip of $q_1$.)
+
 \emph{Reading it as an LCU.} Because $A=S+S\dg$ is literally a sum of two unitaries, this
 very circuit is the two-term \emph{linear combination of unitaries}: the opening $\Hgate$
 is the $\mathrm{PREP}$ that makes $\tfrac1{\sqrt2}(\ket0+\ket1)$ on the flag, $O_c$ is the
