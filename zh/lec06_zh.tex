@@ -231,9 +231,16 @@ $q_1$ 与 $q_2$，
 \end{quantikz}
 \end{center}
 $\ket{000}$ 上的振幅为 $\cos\tfrac\pi4\cos\tfrac\pi6\cos\tfrac\pi4
-=\tfrac1{\sqrt2}\cdot\tfrac{\sqrt3}2\cdot\tfrac1{\sqrt2}=\tfrac{\sqrt3}4=\sqrt{p_{000}}$。第 $k$ 层
-是一个 $2^{k-1}$ 路一致受控旋转（这里共 $1+2+4=7$ 个旋转）；对于光滑的密度，这 $2^{k-1}$ 个角度是在
-辅助比特上由 $\int_I p$ \emph{临时算出}而非列表存储的——这正是 \cref{rem:lec06-gr} 的内容。
+=\tfrac1{\sqrt2}\cdot\tfrac{\sqrt3}2\cdot\tfrac1{\sqrt2}=\tfrac{\sqrt3}4=\sqrt{p_{000}}$。
+
+\emph{效率在哪里？} 如图所画——把第 $k$ 层的 $2^{k-1}$ 个角度\emph{硬编码}为 $2^{k-1}$ 个分别受控的门
+——线路用了 $\sum_{k=1}^{n}2^{k-1}=2^{n}-1$ 个门（$n=3$ 时为 $1+2+4=7$），相对 \cref{prop:lec06-sp}
+\emph{并无}渐近节省；这只因 $n$ 很小才无妨。\cref{rem:lec06-gr} 真正的 $\bigo(n)$ 代价来自\emph{不}把
+这些角度列表化：对高效可积的 $p$，人们把已设定的比特 $i_1\cdots i_{k-1}$ 保存在寄存器中，并由（多项式
+时间可算的）累积分布\emph{计算}出单个角度
+$\theta=2\arccos\sqrt{\int_{I_{\mathrm{left}}}p\big/\int_{I}p}$，按该寄存器所持之值旋转，再反计算——每层
+一个 $\poly(n)$ 块，共 $n$ 层。$2^{k-1}$ 从不显现，因为角度来自一个公式而非查找表；对\emph{一般}的 $p$
+不存在这样的公式，代价便退回 \cref{prop:lec06-sp} 的 $2^{n}$。
 \end{example}
 
 \begin{example}[稀疏向量]
