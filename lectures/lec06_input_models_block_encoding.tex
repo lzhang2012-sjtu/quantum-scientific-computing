@@ -229,36 +229,51 @@ speedup the loaded state was meant to deliver---so the method pays off only for
 genuinely integrable densities (log-concave, Gaussian, and the like).
 \end{remark}
 
-\begin{example}[Efficiently integrable: Grover--Rudolph on four points]
+\begin{example}[Efficiently integrable: Grover--Rudolph on four and eight points]
 \label{exa:lec06-grex}
-Load $p=(3,1,1,3)/8$ on $n=2$ qubits, i.e.\
-$\ket{u}=\tfrac1{\sqrt8}\bigl(\sqrt3\,\ket{00}+\ket{01}+\ket{10}+\sqrt3\,\ket{11}\bigr)$.
-With $q_1$ the most significant bit, the two halves $\{00,01\}$ and $\{10,11\}$ carry
-equal mass $\tfrac12$, so the level-1 angle obeys $\cos^2(\theta_1/2)=\tfrac12$, i.e.\
-$R_y(\pi/2)=\Hgate$ on $q_1$. Conditioned on $q_1$ the level-2 angle splits each half:
-$q_1{=}0$ gives $\cos^2(\theta/2)=p_{00}/(p_{00}{+}p_{01})=\tfrac34$, so $R_y(\pi/3)$;
-$q_1{=}1$ gives $p_{10}/(p_{10}{+}p_{11})=\tfrac14$, so $R_y(2\pi/3)$. Level~2 is a
-\emph{uniformly controlled} rotation---one angle per value of $q_1$:
+\emph{Two qubits, completely.} Load $p=(3,1,1,3)/8$ on $n=2$ qubits,
+\[
+  \ket{u}=\tfrac1{\sqrt8}\bigl(\sqrt3\,\ket{00}+\ket{01}+\ket{10}+\sqrt3\,\ket{11}\bigr),
+\]
+with $q_1$ the most significant bit. Grover--Rudolph (\cref{rem:lec06-gr}) fixes the
+qubits one at a time. \emph{Level~1} splits the total mass between the halves
+$\{00,01\}$ and $\{10,11\}$, each carrying $\tfrac12$, so $\cos^2(\theta_1/2)=\tfrac12$,
+$\theta_1=\pi/2$: an $R_y(\pi/2)=\Hgate$ on $q_1$. \emph{Level~2} rotates $q_2$ by an
+angle that depends on $q_1$---a \emph{uniformly controlled} rotation: $q_1{=}0$ gives
+$\cos^2(\theta/2)=p_{00}/(p_{00}{+}p_{01})=\tfrac34$, so $\theta=\pi/3$, while $q_1{=}1$
+gives $\tfrac14$, so $\theta=2\pi/3$. The complete two-qubit circuit is
 \begin{center}
 \begin{quantikz}
-  \lstick{$q_1:\ket0$} & \gate{\Hgate} & \octrl{1}          & \ctrl{1}            & \qw \\
-  \lstick{$q_2:\ket0$} & \qw           & \gate{R_y(\pi/3)}  & \gate{R_y(2\pi/3)}  & \qw
+  \lstick{$q_1:\ket0$} & \gate{\Hgate} & \octrl{1}         & \ctrl{1}            & \qw \\
+  \lstick{$q_2:\ket0$} & \qw           & \gate{R_y(\pi/3)} & \gate{R_y(2\pi/3)}  & \qw
 \end{quantikz}
 \end{center}
-The amplitude on $\ket{00}$ is $\cos\tfrac\pi4\cos\tfrac\pi6
-=\tfrac1{\sqrt2}\cdot\tfrac{\sqrt3}2=\sqrt3/\sqrt8=\sqrt{p_{00}}$, as it must be.
+the open control ($q_1{=}0$) applying $R_y(\pi/3)$ and the filled control ($q_1{=}1$)
+applying $R_y(2\pi/3)$. Since the level-2 angle is \emph{affine} in the control bit,
+$\theta_2(q_1)=\tfrac\pi3+\tfrac\pi3\,q_1$, and same-axis rotations add,
+$R_y(\alpha)R_y(\beta)=R_y(\alpha+\beta)$, this multiplexer is just three elementary
+gates---$\Hgate$ on $q_1$, an unconditional $R_y(\pi/3)$ on $q_2$, and one
+singly-controlled $R_y(\pi/3)$ that bumps the angle to $2\pi/3$ when $q_1{=}1$:
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_1:\ket0$} & \gate{\Hgate} & \qw               & \ctrl{1}          & \qw \\
+  \lstick{$q_2:\ket0$} & \qw           & \gate{R_y(\pi/3)} & \gate{R_y(\pi/3)} & \qw
+\end{quantikz}
+\end{center}
+Either form gives amplitude $\cos\tfrac\pi4\cos\tfrac\pi6
+=\tfrac1{\sqrt2}\cdot\tfrac{\sqrt3}2=\sqrt{3/8}=\sqrt{p_{00}}$ on $\ket{00}$, as required.
 
 \emph{Three qubits.} The same bisection extends to $n=3$ ($8$ points). Load
-$p=(6,6,1,3,3,1,6,6)/32$, i.e.\
+$p=(6,6,1,3,3,1,6,6)/32$,
 \[
   \ket u=\tfrac1{\sqrt{32}}\bigl(\sqrt6\,\ket{000}+\sqrt6\,\ket{001}+\ket{010}
   +\sqrt3\,\ket{011}+\sqrt3\,\ket{100}+\ket{101}+\sqrt6\,\ket{110}+\sqrt6\,\ket{111}\bigr).
 \]
-Level~1 has $P(q_1{=}0)=(6{+}6{+}1{+}3)/32=\tfrac12$, so $\Hgate$ on $q_1$. Level~2 is
-as before---$R_y(\pi/3)$ if $q_1{=}0$ (mass ratio $\tfrac{12}{16}=\tfrac34$) and
-$R_y(2\pi/3)$ if $q_1{=}1$ (ratio $\tfrac{4}{16}=\tfrac14$). Level~3 is now a
-\emph{four-way} uniformly controlled rotation whose angle depends on \emph{both}
-$q_1$ and $q_2$,
+Level~1 has $P(q_1{=}0)=(6{+}6{+}1{+}3)/32=\tfrac12$, so $\Hgate$ on $q_1$; level~2 is
+exactly as in the two-qubit case---$R_y(\pi/3)$ if $q_1{=}0$ (ratio
+$\tfrac{12}{16}=\tfrac34$), $R_y(2\pi/3)$ if $q_1{=}1$ (ratio $\tfrac{4}{16}=\tfrac14$);
+and level~3 is a \emph{four-way} uniformly controlled rotation whose angle depends on
+\emph{both} $q_1$ and $q_2$,
 \[
   \cos^2\tfrac{\theta_{q_1q_2}}{2}
   =\frac{p_{q_1q_2 0}}{p_{q_1q_2 0}+p_{q_1q_2 1}}
@@ -290,7 +305,8 @@ $\poly(n)$ block per level, $n$ levels in all. The $2^{k-1}$ never materializes 
 the angles come from a formula, not a lookup table; for a \emph{generic} $p$ no such
 formula exists and the cost reverts to the $2^{n}$ of \cref{prop:lec06-sp}.
 
-Concretely, level $k$ is the \emph{compute--rotate--uncompute} block
+\emph{The efficient block.} Concretely, level $k$ is the
+\emph{compute--rotate--uncompute} block
 \begin{center}
 \begin{quantikz}
   \lstick{$\ket{i_1\cdots i_{k-1}}$} & \gate[2]{A_{\mathrm{cdf}}} & \qw           & \gate[2]{A_{\mathrm{cdf}}^{\dagger}} & \qw \\
@@ -307,62 +323,29 @@ $\ket{0^{w}}$. The full Grover--Rudolph circuit is $n$ such blocks in sequence, 
 taking $q_1\cdots q_{k-1}$ as the angle input and producing $q_k$; the total cost is
 $n\cdot\poly(n)=\poly(n)$, with no $2^{k-1}$ anywhere.
 
-For the concrete $p=(6,6,1,3,3,1,6,6)/32$ above the three blocks are tiny. Block~1 has no
-input bits---its angle $\theta_1=\pi/2$ is a constant---so it is just $\Hgate$ on $q_1$.
-Block~2 reads the single bit $q_1$ and loads $\theta_2(q_1)=\pi/3$ (if $q_1{=}0$) or
-$2\pi/3$ (if $q_1{=}1$); block~3 reads $q_1q_2$ and loads
-$\theta_3=\pi/2,\,2\pi/3,\,\pi/3,\,\pi/2$ for $q_1q_2=00,01,10,11$:
-\begin{center}
-\begin{quantikz}
-  \lstick{$q_1$}        & \gate[2]{A^{(2)}} & \qw           & \gate[2]{A^{(2)\dagger}} & \qw \\
-  \lstick{$\ket{0^{w}}$}& \qw               & \gate[2]{R_y} & \qw                      & \qw \\
-  \lstick{$q_2:\ket0$}  & \qw               &               & \qw                      & \qw
-\end{quantikz}
-\qquad
-\begin{quantikz}
-  \lstick{$q_1$}        & \gate[3]{A^{(3)}} & \qw           & \gate[3]{A^{(3)\dagger}} & \qw \\
-  \lstick{$q_2$}        & \qw               & \qw           & \qw                      & \qw \\
-  \lstick{$\ket{0^{w}}$}& \qw               & \gate[2]{R_y} & \qw                      & \qw \\
-  \lstick{$q_3:\ket0$}  & \qw               &               & \qw                      & \qw
-\end{quantikz}
-\end{center}
-Here $A^{(k)}$ is the angle oracle: it reads the set bits (top wires) and writes the
-level-$k$ angle into the work register $\ket{0^{w}}$; the two-qubit $R_y$ rotates the fresh
-target by that register value; $A^{(k)\dagger}$ clears the work register. Composing
-$\Hgate_{q_1}$, block~2, and block~3 reproduces the hard-coded cascade above---for $n=3$
-the angle tables are so small that ``compute'' and ``tabulate'' coincide; the saving
-appears only once $n$ is large enough that writing out $2^{k-1}$ angles per level becomes
-prohibitive.
-
-\emph{Making $A^{(2)}$ and $A^{(3)}$ explicit.} For this particular $p$ the angles are
-an \emph{affine} function of the set bits,
+\emph{The oracles made explicit.} For the tiny $p$'s above the angle oracles need no work
+register at all, because both angle tables are \emph{affine} in the set bits,
 \[
   \theta_2(q_1)=\tfrac\pi3+\tfrac\pi3\,q_1,\qquad
   \theta_3(q_1q_2)=\tfrac\pi2-\tfrac\pi6\,q_1+\tfrac\pi6\,q_2
 \]
 (check: $\theta_3$ gives $\tfrac\pi2,\tfrac{2\pi}3,\tfrac\pi3,\tfrac\pi2$ at
-$q_1q_2=00,01,10,11$). Because $R_y$ rotations about the same axis add,
-$R_y(\alpha)R_y(\beta)=R_y(\alpha+\beta)$, an affine angle factors into a constant
-rotation times \emph{one singly-controlled} $R_y$ per input bit---so the work register
-and the uncompute vanish, and $A^{(k)}$ together with its rotation is just
+$q_1q_2=00,01,10,11$). By the same adding-angles argument as for $n=2$, an affine angle
+factors into a constant $R_y$ plus \emph{one singly-controlled} $R_y$ per input bit. Thus
+block~1 is $\Hgate$ on $q_1$; block~2 is exactly the elementary two-qubit circuit drawn at
+the start of this example; and block~3 is
 \begin{center}
-\begin{quantikz}
-  \lstick{$q_1$}       & \qw               & \ctrl{1}          & \qw \\
-  \lstick{$q_2:\ket0$} & \gate{R_y(\pi/3)} & \gate{R_y(\pi/3)} & \qw
-\end{quantikz}
-\qquad
 \begin{quantikz}
   \lstick{$q_1$}       & \qw                & \ctrl{2}            & \qw                & \qw \\
   \lstick{$q_2$}       & \qw                & \qw                 & \ctrl{1}           & \qw \\
   \lstick{$q_3:\ket0$} & \gate{R_y(\pi/2)}  & \gate{R_y(-\pi/6)}  & \gate{R_y(\pi/6)}  & \qw
 \end{quantikz}
 \end{center}
-the controlled $R_y(\pi/3)$ turning $\theta_2$ from $\pi/3$ into $2\pi/3$ when $q_1{=}1$,
-and the two controlled rotations adding $\mp\pi/6$ to $\theta_3$ as $q_1,q_2$ switch on.
+the two controlled rotations adding $\mp\pi/6$ to $\theta_3$ as $q_1,q_2$ switch on.
 This affine collapse is special to these angles; a \emph{generic} uniformly controlled
 rotation needs the full Walsh expansion---all $2^{k-1}$ multi-controlled terms, or the
-arithmetic $A^{(k)}$ of the general block above---which is exactly why only an efficiently
-integrable $p$ stays $\poly(n)$.
+arithmetic $A_{\mathrm{cdf}}$ of the general block above---which is exactly why only an
+efficiently integrable $p$ stays $\poly(n)$.
 \end{example}
 
 \begin{example}[Sparse vector]

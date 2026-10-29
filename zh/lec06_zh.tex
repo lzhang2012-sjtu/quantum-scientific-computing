@@ -186,34 +186,45 @@ $\poly(n)$ 门块，而共有 $n$ 层。一个告诫 (Herbert, 2021)：若积分
 （对数凹、高斯及类似者）才有收益。
 \end{remark}
 
-\begin{example}[高效可积：四点上的 Grover--Rudolph]
+\begin{example}[高效可积：四点与八点上的 Grover--Rudolph]
 \label{exa:lec06-grex}
-在 $n=2$ 个量子比特上加载 $p=(3,1,1,3)/8$，即
-$\ket{u}=\tfrac1{\sqrt8}\bigl(\sqrt3\,\ket{00}+\ket{01}+\ket{10}+\sqrt3\,\ket{11}\bigr)$。
-以 $q_1$ 为最高有效位，两个半区 $\{00,01\}$ 与 $\{10,11\}$ 各携带相等的质量
-$\tfrac12$，故第一层的角度满足 $\cos^2(\theta_1/2)=\tfrac12$，即对 $q_1$ 施加
-$R_y(\pi/2)=\Hgate$。在 $q_1$ 的条件下，第二层的角度再把每一半区细分：
-$q_1{=}0$ 给出 $\cos^2(\theta/2)=p_{00}/(p_{00}{+}p_{01})=\tfrac34$，故为 $R_y(\pi/3)$；
-$q_1{=}1$ 给出 $p_{10}/(p_{10}{+}p_{11})=\tfrac14$，故为 $R_y(2\pi/3)$。于是第二层是一个
-\emph{一致受控}（uniformly controlled）旋转——$q_1$ 的每个取值对应一个角度：
+\emph{两个量子比特，完整地。} 在 $n=2$ 个量子比特上加载 $p=(3,1,1,3)/8$，即
+\[
+  \ket{u}=\tfrac1{\sqrt8}\bigl(\sqrt3\,\ket{00}+\ket{01}+\ket{10}+\sqrt3\,\ket{11}\bigr),
+\]
+以 $q_1$ 为最高有效位。Grover--Rudolph（\cref{rem:lec06-gr}）逐个比特地固定。\emph{第一层}把总质量
+在两个半区 $\{00,01\}$ 与 $\{10,11\}$ 之间分配，各携带 $\tfrac12$，故 $\cos^2(\theta_1/2)=\tfrac12$，
+$\theta_1=\pi/2$：对 $q_1$ 施加 $R_y(\pi/2)=\Hgate$。\emph{第二层}按 $q_1$ 的取值旋转 $q_2$——一个
+\emph{一致受控}（uniformly controlled）旋转：$q_1{=}0$ 给出
+$\cos^2(\theta/2)=p_{00}/(p_{00}{+}p_{01})=\tfrac34$，故 $\theta=\pi/3$；$q_1{=}1$ 给出 $\tfrac14$，故
+$\theta=2\pi/3$。于是完整的两比特线路为
 \begin{center}
 \begin{quantikz}
   \lstick{$q_1:\ket0$} & \gate{\Hgate} & \octrl{1}          & \ctrl{1}            & \qw \\
   \lstick{$q_2:\ket0$} & \qw           & \gate{R_y(\pi/3)}  & \gate{R_y(2\pi/3)}  & \qw
 \end{quantikz}
 \end{center}
-$\ket{00}$ 上的振幅为 $\cos\tfrac\pi4\cos\tfrac\pi6
-=\tfrac1{\sqrt2}\cdot\tfrac{\sqrt3}2=\sqrt3/\sqrt8=\sqrt{p_{00}}$，正如所应。
+空心控制（$q_1{=}0$）施加 $R_y(\pi/3)$，实心控制（$q_1{=}1$）施加 $R_y(2\pi/3)$。由于第二层角度是控制
+比特的\emph{仿射}函数，$\theta_2(q_1)=\tfrac\pi3+\tfrac\pi3\,q_1$，且绕同一轴的旋转相加，
+$R_y(\alpha)R_y(\beta)=R_y(\alpha+\beta)$，这个多路复用器就是三个初等门——$q_1$ 上的 $\Hgate$、$q_2$ 上
+一个无条件的 $R_y(\pi/3)$，以及一个在 $q_1{=}1$ 时把角度加到 $2\pi/3$ 的单受控 $R_y(\pi/3)$：
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_1:\ket0$} & \gate{\Hgate} & \qw               & \ctrl{1}          & \qw \\
+  \lstick{$q_2:\ket0$} & \qw           & \gate{R_y(\pi/3)} & \gate{R_y(\pi/3)} & \qw
+\end{quantikz}
+\end{center}
+两种形式都在 $\ket{00}$ 上给出振幅 $\cos\tfrac\pi4\cos\tfrac\pi6
+=\tfrac1{\sqrt2}\cdot\tfrac{\sqrt3}2=\sqrt{3/8}=\sqrt{p_{00}}$，正如所应。
 
-\emph{三个量子比特。} 同样的二分法推广到 $n=3$（$8$ 个点）。加载
-$p=(6,6,1,3,3,1,6,6)/32$，即
+\emph{三个量子比特。} 同样的二分法推广到 $n=3$（$8$ 个点）。加载 $p=(6,6,1,3,3,1,6,6)/32$，
 \[
   \ket u=\tfrac1{\sqrt{32}}\bigl(\sqrt6\,\ket{000}+\sqrt6\,\ket{001}+\ket{010}
   +\sqrt3\,\ket{011}+\sqrt3\,\ket{100}+\ket{101}+\sqrt6\,\ket{110}+\sqrt6\,\ket{111}\bigr).
 \]
-第一层有 $P(q_1{=}0)=(6{+}6{+}1{+}3)/32=\tfrac12$，故对 $q_1$ 施加 $\Hgate$。第二层一如既往——
-$q_1{=}0$ 时为 $R_y(\pi/3)$（质量比 $\tfrac{12}{16}=\tfrac34$），$q_1{=}1$ 时为 $R_y(2\pi/3)$
-（比 $\tfrac{4}{16}=\tfrac14$）。第三层如今是一个\emph{四路}一致受控旋转，其角度\emph{同时}依赖于
+第一层有 $P(q_1{=}0)=(6{+}6{+}1{+}3)/32=\tfrac12$，故对 $q_1$ 施加 $\Hgate$；第二层与两比特情形完全
+相同——$q_1{=}0$ 时为 $R_y(\pi/3)$（比 $\tfrac{12}{16}=\tfrac34$），$q_1{=}1$ 时为 $R_y(2\pi/3)$
+（比 $\tfrac{4}{16}=\tfrac14$）；第三层是一个\emph{四路}一致受控旋转，其角度\emph{同时}依赖于
 $q_1$ 与 $q_2$，
 \[
   \cos^2\tfrac{\theta_{q_1q_2}}{2}
@@ -242,7 +253,7 @@ $\theta=2\arccos\sqrt{\int_{I_{\mathrm{left}}}p\big/\int_{I}p}$，按该寄存�
 一个 $\poly(n)$ 块，共 $n$ 层。$2^{k-1}$ 从不显现，因为角度来自一个公式而非查找表；对\emph{一般}的 $p$
 不存在这样的公式，代价便退回 \cref{prop:lec06-sp} 的 $2^{n}$。
 
-具体地，第 $k$ 层就是\emph{计算--旋转--反计算}块
+\emph{高效的块。} 具体地，第 $k$ 层就是\emph{计算--旋转--反计算}块
 \begin{center}
 \begin{quantikz}
   \lstick{$\ket{i_1\cdots i_{k-1}}$} & \gate[2]{A_{\mathrm{cdf}}} & \qw           & \gate[2]{A_{\mathrm{cdf}}^{\dagger}} & \qw \\
@@ -257,53 +268,25 @@ $\theta(i_1\cdots i_{k-1})=2\arccos\sqrt{\int_{I_{\mathrm{left}}}p/\int_{I}p}$
 $\ket{0^{w}}$。整个 Grover--Rudolph 线路是 $n$ 个这样的块串联，第 $k$ 块以 $q_1\cdots q_{k-1}$
 为角度输入并产出 $q_k$；总代价为 $n\cdot\poly(n)=\poly(n)$，处处不含 $2^{k-1}$。
 
-对上面具体的 $p=(6,6,1,3,3,1,6,6)/32$，这三个块都很小。块~1 没有输入比特——其角度
-$\theta_1=\pi/2$ 是常数——故它就是作用在 $q_1$ 上的 $\Hgate$。块~2 读取单个比特 $q_1$ 并装入
-$\theta_2(q_1)=\pi/3$（若 $q_1{=}0$）或 $2\pi/3$（若 $q_1{=}1$）；块~3 读取 $q_1q_2$ 并装入
-$\theta_3=\pi/2,\,2\pi/3,\,\pi/3,\,\pi/2$，对应 $q_1q_2=00,01,10,11$：
-\begin{center}
-\begin{quantikz}
-  \lstick{$q_1$}        & \gate[2]{A^{(2)}} & \qw           & \gate[2]{A^{(2)\dagger}} & \qw \\
-  \lstick{$\ket{0^{w}}$}& \qw               & \gate[2]{R_y} & \qw                      & \qw \\
-  \lstick{$q_2:\ket0$}  & \qw               &               & \qw                      & \qw
-\end{quantikz}
-\qquad
-\begin{quantikz}
-  \lstick{$q_1$}        & \gate[3]{A^{(3)}} & \qw           & \gate[3]{A^{(3)\dagger}} & \qw \\
-  \lstick{$q_2$}        & \qw               & \qw           & \qw                      & \qw \\
-  \lstick{$\ket{0^{w}}$}& \qw               & \gate[2]{R_y} & \qw                      & \qw \\
-  \lstick{$q_3:\ket0$}  & \qw               &               & \qw                      & \qw
-\end{quantikz}
-\end{center}
-这里 $A^{(k)}$ 是角度谕示：它读取已设定的比特（顶部线路）并把第 $k$ 层的角度写入工作寄存器
-$\ket{0^{w}}$；两比特 $R_y$ 按该寄存器之值旋转新的目标比特；$A^{(k)\dagger}$ 清空工作寄存器。把
-$\Hgate_{q_1}$、块~2、块~3 依次复合，便重现了上面那条硬编码级联——对 $n=3$，角度表小到``计算''与
-``列表''二者合一；节省只在 $n$ 大到每层写出 $2^{k-1}$ 个角度变得不可行时才显现。
-
-\emph{把 $A^{(2)}$ 与 $A^{(3)}$ 写明。} 对这个特定的 $p$，角度是已设定比特的\emph{仿射}函数，
+\emph{把谕示写明。} 对上面这些微小的 $p$，角度谕示根本不需要工作寄存器，因为两张角度表都是已设定比特的
+\emph{仿射}函数，
 \[
   \theta_2(q_1)=\tfrac\pi3+\tfrac\pi3\,q_1,\qquad
   \theta_3(q_1q_2)=\tfrac\pi2-\tfrac\pi6\,q_1+\tfrac\pi6\,q_2
 \]
 （验证：$\theta_3$ 在 $q_1q_2=00,01,10,11$ 处给出 $\tfrac\pi2,\tfrac{2\pi}3,\tfrac\pi3,\tfrac\pi2$）。
-由于绕同一轴的 $R_y$ 旋转相加，$R_y(\alpha)R_y(\beta)=R_y(\alpha+\beta)$，仿射角便分解为一个常数旋转
-乘上\emph{每个输入比特一个的单受控} $R_y$——于是工作寄存器与反计算都消失，$A^{(k)}$ 连同它的旋转就只是
+由与 $n=2$ 相同的角度相加论证，仿射角分解为一个常数 $R_y$ 加上\emph{每个输入比特一个的单受控} $R_y$。
+于是块~1 是 $q_1$ 上的 $\Hgate$；块~2 恰是本例开头画出的那条初等两比特线路；而块~3 为
 \begin{center}
-\begin{quantikz}
-  \lstick{$q_1$}       & \qw               & \ctrl{1}          & \qw \\
-  \lstick{$q_2:\ket0$} & \gate{R_y(\pi/3)} & \gate{R_y(\pi/3)} & \qw
-\end{quantikz}
-\qquad
 \begin{quantikz}
   \lstick{$q_1$}       & \qw                & \ctrl{2}            & \qw                & \qw \\
   \lstick{$q_2$}       & \qw                & \qw                 & \ctrl{1}           & \qw \\
   \lstick{$q_3:\ket0$} & \gate{R_y(\pi/2)}  & \gate{R_y(-\pi/6)}  & \gate{R_y(\pi/6)}  & \qw
 \end{quantikz}
 \end{center}
-受控的 $R_y(\pi/3)$ 在 $q_1{=}1$ 时把 $\theta_2$ 由 $\pi/3$ 变为 $2\pi/3$，而两个受控旋转随
-$q_1,q_2$ 开启分别给 $\theta_3$ 加上 $\mp\pi/6$。这种仿射坍缩是这些角度特有的；一个\emph{一般}的
-一致受控旋转需要完整的沃尔什展开——全部 $2^{k-1}$ 个多受控项，或上面一般块中的算术 $A^{(k)}$——这正是
-为何只有高效可积的 $p$ 才保持 $\poly(n)$。
+两个受控旋转随 $q_1,q_2$ 开启分别给 $\theta_3$ 加上 $\mp\pi/6$。这种仿射坍缩是这些角度特有的；一个
+\emph{一般}的一致受控旋转需要完整的沃尔什展开——全部 $2^{k-1}$ 个多受控项，或上面一般块中的算术
+$A_{\mathrm{cdf}}$——这正是为何只有高效可积的 $p$ 才保持 $\poly(n)$。
 \end{example}
 
 \begin{example}[稀疏向量]
