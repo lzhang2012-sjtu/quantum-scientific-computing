@@ -994,7 +994,24 @@ $1$，故无需旋转到 $\ket{1}$），且 $O_c\ket{j}=\ket{(j+1)\bmod4}=S\ket{
 $c(j)=j$，故 $O_c=\id$，条目谕示退化为
 $O_A\ket{0}\ket{i}=(A_{ii}\ket{0}+\sqrt{1-\abs{A_{ii}}^2}\ket{1})\ket{i}$。取
 $U_A=O_A$ 即得 $\bra{0,i}U_A\ket{0,j}=A_{ii}\delta_{ij}$，故
-$U_A\in\mathrm{BE}_{1,1}(A)$：一个对角矩阵由单个多重受控旋转即可块编码。
+$U_A\in\mathrm{BE}_{1,1}(A)$：一个对角矩阵由单个多重受控旋转即可块编码。明确地说，$U_A=O_A$ 是作用在
+旗标上的一个\emph{一致受控} $R_y$——指标寄存器 $\ket j$ 选出角度 $\theta_j=2\arccos\abs{A_{jj}}$
+（当 $A_{jj}\in[0,1]$；复数条目需在旗标上再加一个受指标控制的相位）。对单个系统比特（$N=2$），
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(旗标)} & \gate{R_y(\theta_0)} & \gate{R_y(\theta_1)} & \qw \\
+  \lstick{$\ket j$ \,\scriptsize(系统)} & \octrl{-1}           & \ctrl{-1}            & \qw
+\end{quantikz}
+\end{center}
+例如 $A=\diag(1,\tfrac12)$ 给出 $\theta_0=0$、$\theta_1=2\pi/3$，于是只剩下受 $\ket1$ 控制的旋转：
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(旗标)} & \gate{R_y(2\pi/3)} & \qw \\
+  \lstick{$\ket j$ \,\scriptsize(系统)} & \ctrl{-1}          & \qw
+\end{quantikz}
+\end{center}
+其中 $O_A\ket0\ket1=(\tfrac12\ket0+\tfrac{\sqrt3}2\ket1)\ket1$，即旗标为 $\ket0$ 的振幅为
+$\tfrac12=A_{11}$（而 $\ket0\ket0$ 不变，振幅 $1=A_{00}$）。
 \end{example}
 
 \subsection*{一般 $s$-稀疏情形}
@@ -1061,7 +1078,7 @@ $1/s$。这正是为何稀疏性在 QNLA 中决定代价：一个 $s$-稀疏矩�
 
 \begin{example}[一个具体的 $2$-稀疏编码：最近邻跃迁]
 \label{exa:lec06-hopping}
-取 $N=4$ 的周期跃迁矩阵 $A=S+S\dg$，其中 $S\ket j=\ket{(j{+}1)\bmod4}$，即 $4$-圈的邻接矩阵，
+\emph{矩阵及其谕示。} 取 $N=4$ 的周期跃迁矩阵 $A=S+S\dg$，其中 $S\ket j=\ket{(j{+}1)\bmod4}$，即 $4$-圈的邻接矩阵，
 \[
   A=\begin{pmatrix}0&1&0&1\\1&0&1&0\\0&1&0&1\\1&0&1&0\end{pmatrix},
 \]
@@ -1074,10 +1091,10 @@ $\ket{0}$ 所标志的块为
   \bigl(\bra0\otimes\id\bigr)U_A\bigl(\ket0\otimes\id\bigr)=\tfrac12\bigl(S+S\dg\bigr)=\tfrac{A}{2},
 \]
 因为两个 Hadamard 以各 $\tfrac12$ 的权重平均 $\ell{=}0$ 与 $\ell{=}1$ 两个分支，分别沉积 $\tfrac12 S$ 与
-$\tfrac12 S\dg$。于是 $U_A\in\mathrm{BE}_{2,1}(A)$，$\alpha=s=2$，恰为 \cref{thm:lec06-ssparse}。作为循环
-矩阵，$A$ 由 QFT 对角化，本征值为 $2\cos(2\pi k/4)\in\{2,0,-2,0\}$。
+$\tfrac12 S\dg$。于是 $U_A\in\mathrm{BE}_{2,1}(A)$，$\alpha=s=2$，恰为 \cref{thm:lec06-ssparse}。（作为循环
+矩阵，$A$ 由 QFT 对角化，本征值为 $2\cos(2\pi k/4)\in\{2,0,-2,0\}$。）
 
-明确地说，以 $\ell$ 比特作为唯一标志，$U_A=\Hgate\,O_c\,\Hgate$，其中 $O_c$ 是受 $\ell$ 控制的移位——
+\emph{显式线路。} 以 $\ell$ 比特作为唯一标志，$U_A=\Hgate\,O_c\,\Hgate$，其中 $O_c$ 是受 $\ell$ 控制的移位——
 $\ell{=}0$ 时加一、$\ell{=}1$ 时减一。记 $j=2q_1+q_0$，\cref{exa:lec06-shift} 的加一及其逆合并为三个门：
 先 $\CNOT_{q_0\to q_1}$，再 $\CNOT_{\ell\to q_1}$，再对 $q_0$ 作 $X$（净效果为 $q_1\mathrel{\oplus}=q_0\oplus\ell$
 且 $q_0$ 翻转）：

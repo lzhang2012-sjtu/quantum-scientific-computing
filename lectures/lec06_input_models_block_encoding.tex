@@ -1168,7 +1168,26 @@ $c(j)=j$, so $O_c=\id$ and the entry oracle collapses to
 $O_A\ket{0}\ket{i}=(A_{ii}\ket{0}+\sqrt{1-\abs{A_{ii}}^2}\ket{1})\ket{i}$. Taking
 $U_A=O_A$ gives $\bra{0,i}U_A\ket{0,j}=A_{ii}\delta_{ij}$, so
 $U_A\in\mathrm{BE}_{1,1}(A)$: a diagonal matrix is block-encoded by a single
-multiply-controlled rotation.
+multiply-controlled rotation. Explicitly $U_A=O_A$ is a \emph{uniformly controlled}
+$R_y$ on the flag---the index register $\ket j$ selects the angle
+$\theta_j=2\arccos\abs{A_{jj}}$ (for $A_{jj}\in[0,1]$; a complex entry needs one extra
+index-controlled phase on the flag). For a single system qubit ($N=2$),
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(flag)} & \gate{R_y(\theta_0)} & \gate{R_y(\theta_1)} & \qw \\
+  \lstick{$\ket j$ \,\scriptsize(sys)} & \octrl{-1}           & \ctrl{-1}            & \qw
+\end{quantikz}
+\end{center}
+and e.g.\ $A=\diag(1,\tfrac12)$ gives $\theta_0=0$, $\theta_1=2\pi/3$, so only the
+$\ket1$-controlled rotation survives:
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(flag)} & \gate{R_y(2\pi/3)} & \qw \\
+  \lstick{$\ket j$ \,\scriptsize(sys)} & \ctrl{-1}          & \qw
+\end{quantikz}
+\end{center}
+with $O_A\ket0\ket1=(\tfrac12\ket0+\tfrac{\sqrt3}2\ket1)\ket1$, i.e.\ flag-$\ket0$
+amplitude $\tfrac12=A_{11}$ (and $\ket0\ket0$ is untouched, amplitude $1=A_{00}$).
 \end{example}
 
 \subsection*{The general $s$-sparse case}
@@ -1242,8 +1261,8 @@ counts scale linearly in $\alpha$.
 
 \begin{example}[A worked $2$-sparse encoding: nearest-neighbor hopping]
 \label{exa:lec06-hopping}
-Take the $N=4$ periodic hopping matrix $A=S+S\dg$ with $S\ket j=\ket{(j{+}1)\bmod4}$,
-the adjacency matrix of the $4$-cycle,
+\emph{The matrix and its oracles.} Take the $N=4$ periodic hopping matrix $A=S+S\dg$
+with $S\ket j=\ket{(j{+}1)\bmod4}$, the adjacency matrix of the $4$-cycle,
 \[
   A=\begin{pmatrix}0&1&0&1\\1&0&1&0\\0&1&0&1\\1&0&1&0\end{pmatrix},
 \]
@@ -1260,15 +1279,16 @@ here). The $\ket{0}$-flagged block is
 \]
 since the two Hadamards average the $\ell{=}0$ and $\ell{=}1$ branches with weight
 $\tfrac12$ each, depositing $\tfrac12 S$ and $\tfrac12 S\dg$. Thus
-$U_A\in\mathrm{BE}_{2,1}(A)$ with $\alpha=s=2$, exactly \cref{thm:lec06-ssparse}. Being
+$U_A\in\mathrm{BE}_{2,1}(A)$ with $\alpha=s=2$, exactly \cref{thm:lec06-ssparse}. (Being
 a circulant, $A$ is diagonalized by the QFT with eigenvalues
-$2\cos(2\pi k/4)\in\{2,0,-2,0\}$.
+$2\cos(2\pi k/4)\in\{2,0,-2,0\}$.)
 
-Explicitly, with the $\ell$-qubit as the single flag, $U_A=\Hgate\,O_c\,\Hgate$ where
-$O_c$ is the $\ell$-controlled shift---increment when $\ell{=}0$, decrement when
-$\ell{=}1$. Writing $j=2q_1+q_0$, the increment of \cref{exa:lec06-shift} and its inverse
-fuse into three gates: $\CNOT_{q_0\to q_1}$, then $\CNOT_{\ell\to q_1}$, then $X$ on
-$q_0$ (net effect $q_1\mathrel{\oplus}=q_0\oplus\ell$ and $q_0$ flips):
+\emph{The explicit circuit.} With the $\ell$-qubit as the single flag,
+$U_A=\Hgate\,O_c\,\Hgate$ where $O_c$ is the $\ell$-controlled shift---increment when
+$\ell{=}0$, decrement when $\ell{=}1$. Writing $j=2q_1+q_0$, the increment of
+\cref{exa:lec06-shift} and its inverse fuse into three gates: $\CNOT_{q_0\to q_1}$, then
+$\CNOT_{\ell\to q_1}$, then $X$ on $q_0$ (net effect $q_1\mathrel{\oplus}=q_0\oplus\ell$
+and $q_0$ flips):
 \begin{center}
 \begin{quantikz}
   \lstick{$\ket0$ \,\scriptsize($\ell$, flag)} & \gate{\Hgate} & \qw       & \ctrl{1} & \qw      & \gate{\Hgate} & \qw \\
