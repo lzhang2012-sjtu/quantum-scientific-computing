@@ -1284,11 +1284,10 @@ a circulant, $A$ is diagonalized by the QFT with eigenvalues
 $2\cos(2\pi k/4)\in\{2,0,-2,0\}$.)
 
 \emph{The explicit circuit.} With the $\ell$-qubit as the single flag,
-$U_A=\Hgate\,O_c\,\Hgate$ where $O_c$ is the $\ell$-controlled shift---increment when
-$\ell{=}0$, decrement when $\ell{=}1$. Writing $j=2q_1+q_0$, the increment of
-\cref{exa:lec06-shift} and its inverse fuse into three gates: $\CNOT_{q_0\to q_1}$, then
-$\CNOT_{\ell\to q_1}$, then $X$ on $q_0$ (net effect $q_1\mathrel{\oplus}=q_0\oplus\ell$
-and $q_0$ flips):
+$U_A=\Hgate\,O_c\,\Hgate$, where $O_c$ is the $\ell$-controlled shift: the increment of
+\cref{exa:lec06-shift} when $\ell{=}0$, and its inverse, the decrement, when $\ell{=}1$.
+Writing $j=2q_1+q_0$, the two branches fuse into just three gates---$\CNOT_{q_0\to q_1}$,
+then $\CNOT_{\ell\to q_1}$, then $X$ on $q_0$:
 \begin{center}
 \begin{quantikz}
   \lstick{$\ket0$ \,\scriptsize($\ell$, flag)} & \gate{\Hgate} & \qw       & \ctrl{1} & \qw      & \gate{\Hgate} & \qw \\
@@ -1296,8 +1295,11 @@ and $q_0$ flips):
   \lstick{$q_0$ \,\scriptsize(LSB)}            & \qw           & \ctrl{-1} & \qw      & \gate{X} & \qw           & \qw
 \end{quantikz}
 \end{center}
-For $\ell{=}0$ the middle block is the increment $S$ of \cref{exa:lec06-shift}; the extra
-$\CNOT_{\ell\to q_1}$ (active only when $\ell{=}1$) turns it into the decrement $S\dg$.
+For $\ell{=}0$ the circuit between the Hadamards is the increment $S$ of
+\cref{exa:lec06-shift}; the lone $\CNOT_{\ell\to q_1}$, active only when $\ell{=}1$,
+converts it into the decrement $S\dg$. Why a $\pm1$ shift collapses to a single,
+unconditional $X$ on $q_0$ plus one controlled flip of $q_1$ is the subject of the next
+paragraph.
 
 \emph{Why only one $X$?} Split the $\pm1$ shift into its action on the two bits. The low
 bit $q_0$ \emph{always} flips, for both signs: $\pm1$ is odd, so it changes parity on
@@ -1314,16 +1316,11 @@ first would compute it from the wrong value. (More generally an $n$-bit $\pm1$ s
 toggles the LSB and ripples a carry/borrow up the higher bits through a cascade of
 multi-controlled gates; here $n=2$ leaves only the one controlled flip of $q_1$.)
 
-\emph{Reading it as an LCU.} Because $A=S+S\dg$ is literally a sum of two unitaries, this
-very circuit is the two-term \emph{linear combination of unitaries}: the opening $\Hgate$
-is the $\mathrm{PREP}$ that makes $\tfrac1{\sqrt2}(\ket0+\ket1)$ on the flag, $O_c$ is the
-$\mathrm{SELECT}$ that applies $S$ on $\ell{=}0$ and $S\dg$ on $\ell{=}1$, and the closing
-$\mathrm{PREP}\dg=\Hgate$ interferes the branches, leaving $\tfrac12(S+S\dg)=A/2$ in the
-$\ket0$-flagged block. The sparse factor $\alpha=s=2$ and the LCU $\ell^1$-norm
-$\abs1+\abs1=2$ are the same number---for a matrix with unit entries the $s$-sparse
-construction \emph{is} the equal-weight LCU of its $s$ shift permutations. The general
-LCU---arbitrary weights $c_\ell$, so $\mathrm{PREP}\ket{0}=\tfrac1{\sqrt{\norm c_1}}
-\sum_\ell\sqrt{c_\ell}\ket\ell$ and $\alpha=\norm c_1$---is developed in \cref{ch:lec07}.
+\emph{An LCU in disguise.} Because $A=S+S\dg$ is literally a sum of two unitaries, this very
+circuit is also a two-term \emph{linear combination of unitaries}: the opening $\Hgate$ is the
+$\mathrm{PREP}$, $O_c$ is the $\mathrm{SELECT}$ applying $S$ on $\ell{=}0$ and $S\dg$ on
+$\ell{=}1$, and the closing $\Hgate$ is $\mathrm{PREP}\dg$. We develop this reading in full,
+and compare it with the sparse one, in \cref{exa:lec07-hopping}.
 \end{example}
 
 \begin{remark}[More general location oracles]
@@ -1398,26 +1395,46 @@ subnormalization is $\alpha=2d{+}1$.
 
 \begin{example}[Transverse-field Ising model]
 \label{exa:lec06-ising}
-The $n$-spin TFIM $H=-J\sum_i Z_iZ_{i+1}-h\sum_i X_i$ is $(n{+}1)$-sparse in the
-computational basis:
+The $n$-spin transverse-field Ising Hamiltonian
+\[
+  H=-J\sum_{i=1}^{n-1} Z_iZ_{i+1}-h\sum_{i=1}^{n} X_i
+\]
+(an open chain with coupling $J$ and field $h$) is the canonical test case for
+sparse access, so it is worth tracing the construction in full. Act with $H$ on a
+computational basis state $\ket{\mathbf x}=\ket{x_1\cdots x_n}$: the Ising term is
+diagonal---$Z_iZ_{i+1}$ multiplies $\ket{\mathbf x}$ by $(-1)^{x_i\oplus x_{i+1}}$---while
+each field term $X_i$ flips the $i$-th spin,
 \[
   H\ket{\mathbf x}=E(\mathbf x)\,\ket{\mathbf x}-h\sum_{i=1}^{n}\ket{\mathbf x\oplus\mathbf e_i},
-  \qquad E(\mathbf x)=-J\sum_i(-1)^{x_i\oplus x_{i+1}},
+  \qquad E(\mathbf x)=-J\sum_{i=1}^{n-1}(-1)^{x_i\oplus x_{i+1}}.
 \]
-one diagonal entry plus $n$ single-spin-flip neighbors of amplitude $-h$. So
-$\norm{H}_{\max}=\max\{(n{-}1)J,\,h\}$; write $\hat H=H/\norm{H}_{\max}$. Index the
-nonzeros by $\ell\in\{0,1,\dots,n\}$. The \emph{location oracle} is the
-$\ell$-multiplexed bit flip
+So every column of $H$ has exactly $n{+}1$ nonzeros---one on the diagonal, carrying the
+Ising energy $E(\mathbf x)$, and $n$ off the diagonal, each equal to $-h$ and sitting at the
+single-spin-flip neighbors $\mathbf x\oplus\mathbf e_i$. The matrix is thus $(n{+}1)$-sparse,
+with $\norm{H}_{\max}=\max\{(n{-}1)J,\,h\}$ (the diagonal energy is at most $(n{-}1)J$, all
+bonds aligned, and the off-diagonal entries have magnitude $h$); write
+$\hat H=H/\norm{H}_{\max}$ for the rescaled matrix the construction encodes.
+
+\emph{The oracles.} Index the $n{+}1$ nonzeros of each column by $\ell\in\{0,1,\dots,n\}$,
+with $\ell=0$ the diagonal and $\ell=i$ the flip of spin $i$. The \emph{location oracle} is
+the $\ell$-multiplexed bit flip
 \[
   O_c\ket{\ell}\ket{\mathbf x}=\ket{\ell}\ket{\mathbf x\oplus\mathbf e_\ell}\ (\ell\ge1),
-  \qquad O_c\ket{0}\ket{\mathbf x}=\ket{0}\ket{\mathbf x},
+  \qquad O_c\ket{0}\ket{\mathbf x}=\ket{0}\ket{\mathbf x}:
 \]
-a \textsc{select} of single-qubit $X$ gates. The \emph{entry oracle} loads the
-diagonal energy $E(\mathbf x)/\norm{H}_{\max}$ on the $\ell=0$ branch (a rotation whose
-angle is computed from the nearest-neighbor parities $x_i\oplus x_{i+1}$---say by
-$n{-}1$ \textsc{cnot}s accumulating the parity count) and the constant
-$-h/\norm{H}_{\max}$ on each $\ell\ge1$ branch. \cref{thm:lec06-ssparse} gives
-$U_{\hat H}\in\mathrm{BE}_{n+1,\,s'+1}(\hat H)$ with $s'=\lceil\log_2(n{+}1)\rceil$:
+a \textsc{select} of single-qubit $X$ gates that applies $X_\ell$ to the spin register when
+$\ell\ge1$ and does nothing on the $\ell=0$ (diagonal) branch. The \emph{entry oracle} loads
+the matching matrix element onto the signal qubit---the constant $-h/\norm{H}_{\max}$ on each
+$\ell\ge1$ branch (an $\mathbf x$-independent rotation) and the energy
+$E(\mathbf x)/\norm{H}_{\max}$ on the $\ell=0$ branch. The diagonal branch is the only
+data-dependent step: $E(\mathbf x)$ is fixed by the $n{-}1$ nearest-neighbor parities
+$x_i\oplus x_{i+1}$, so $n{-}1$ \textsc{cnot}s accumulate the aligned-bond count into an
+ancilla, a single rotation turns that count into the angle $\arccos$ of
+$E(\mathbf x)/\norm{H}_{\max}$, and the \textsc{cnot}s are then uncomputed.
+
+\emph{The circuit.} Pad the flag to $s'=\lceil\log_2(n{+}1)\rceil$ qubits and take the
+diffusion $D=\Hgate^{\otimes s'}$. \cref{thm:lec06-ssparse} assembles the pieces into
+$U_{\hat H}\in\mathrm{BE}_{n+1,\,s'+1}(\hat H)$:
 \begin{center}
 \begin{quantikz}
   \lstick{$\ket0$ \,\scriptsize(signal)}        & \qw         & \gate[3]{O_{\hat H}} & \qw           & \qw \\
@@ -1425,13 +1442,65 @@ $U_{\hat H}\in\mathrm{BE}_{n+1,\,s'+1}(\hat H)$ with $s'=\lceil\log_2(n{+}1)\rce
   \lstick{$\ket{\mathbf x}$ \,\scriptsize($n$ spins)} & \qwbundle{n} &                 &               & \qw
 \end{quantikz}
 \end{center}
-Here $O_{\hat H}$ reads the spin register (for the $\ell=0$ diagonal), whereas
-$O_c$ only flips the spin addressed by $\ell$. Because $H$ is \emph{also} a sum of just
-$2n{-}1$ Pauli strings, the LCU route of \cref{ch:lec07} block-encodes it with
-subnormalization $\norm{c}_1=(n{-}1)J+nh$ rather than the sparsity bound
-$\alpha=n{+}1$, and avoids the $\mathbf x$-dependent entry rotation; see
-\cref{exa:lec07-tfim}. Which is cheaper depends on $J,h$, but for local Hamiltonians
-the LCU encoding is usually preferred.
+Read left to right: $D$ spreads the flag over all $n{+}1$ branches with equal weight; the
+entry oracle $O_{\hat H}$ reads the spin register to load the entries ($E(\mathbf x)$ on the
+diagonal branch, $-h$ on each flip branch); $O_c$ performs the addressed spin flip; and the
+closing $D$ interferes the branches, leaving $\hat H/(n{+}1)$ in the $\ket{0^{s'}}\ket0$-flagged
+block---that is, $U_{\hat H}\in\mathrm{BE}_{n+1}(\hat H)$ with subnormalization $\alpha=s=n{+}1$.
+Note the division of labor: $O_{\hat H}$ touches the whole spin register (for the $\ell=0$
+diagonal), whereas $O_c$ flips only the one spin addressed by $\ell$.
+
+\emph{A concrete instance: $n=3$.} Take the three-spin open chain
+\[
+  H=-J\,(Z_1Z_2+Z_2Z_3)-h\,(X_1+X_2+X_3),
+\]
+an $8\times8$ matrix. Each column has $n{+}1=4$ nonzeros, so $H$ is $4$-sparse, and
+$\norm{H}_{\max}=\max\{(n{-}1)J,h\}=\max\{2J,h\}$. Taking the basis state
+$\ket{\mathbf x}=\ket{000}$ as a representative column: both bonds are aligned
+($x_1\oplus x_2=x_2\oplus x_3=0$), so the diagonal entry is
+$E(000)=-J[(-1)^0+(-1)^0]=-2J$, and the three field terms connect $\ket{000}$ to its
+single-spin-flip neighbors $\ket{100},\ket{010},\ket{001}$, each with entry $-h$:
+\[
+  H\ket{000}=-2J\,\ket{000}-h\,\ket{100}-h\,\ket{010}-h\,\ket{001}.
+\]
+In the computational basis ordered $\ket{000},\ket{001},\dots,\ket{111}$, the full
+$8\times8$ matrix is
+\[
+  H=\begin{pmatrix}
+    -2J & -h  & -h  & 0   & -h  & 0   & 0   & 0  \\
+    -h  & 0   & 0   & -h  & 0   & -h  & 0   & 0  \\
+    -h  & 0   & 2J  & -h  & 0   & 0   & -h  & 0  \\
+    0   & -h  & -h  & 0   & 0   & 0   & 0   & -h \\
+    -h  & 0   & 0   & 0   & 0   & -h  & -h  & 0  \\
+    0   & -h  & 0   & 0   & -h  & 2J  & 0   & -h \\
+    0   & 0   & -h  & 0   & -h  & 0   & 0   & -h \\
+    0   & 0   & 0   & -h  & 0   & -h  & -h  & -2J
+  \end{pmatrix},
+\]
+diagonal $J\cdot(-2,0,2,0,0,2,0,-2)$ (the Ising energies $E(\mathbf x)$) with a $-h$ in
+every single-spin-flip off-diagonal position---four nonzeros per row, as claimed.
+Indexing the four nonzeros by $\ell\in\{0,1,2,3\}$ ($\ell=0$ diagonal, $\ell=i$ the flip
+of spin $i$), the location oracle sends $O_c\ket\ell\ket{000}$ to $\ket\ell\ket{000}$
+($\ell=0$) or $\ket\ell\ket{\mathbf e_\ell}$ ($\ell\ge1$), and the entry oracle loads
+$E(000)/\norm{H}_{\max}$ on the $\ell=0$ branch and $-h/\norm{H}_{\max}$ on each of
+$\ell=1,2,3$. A different column changes only the diagonal: e.g.\ $\ket{010}$ has both
+bonds anti-aligned, $E(010)=-J[(-1)^1+(-1)^1]=+2J$, with the same three off-diagonal
+$-h$'s at $\ket{110},\ket{000},\ket{011}$. The flag is padded to
+$s'=\lceil\log_2 4\rceil=2$ qubits (the fourth address $\ell=3$ uses the full
+$2$-bit register; no padding branch is wasted here since $n{+}1=4$ is a power of two),
+the diagonal rotation reads the $n{-}1=2$ bond parities $x_1\oplus x_2,\,x_2\oplus x_3$
+with two \textsc{cnot}s, and the construction yields
+$U_{\hat H}\in\mathrm{BE}_{4,\,3}(\hat H)$ (subnormalization $\alpha=n{+}1=4$, three flag
+qubits $s'{+}1=3$).
+
+\emph{Sparsity versus LCU.} Because $H$ is \emph{also} a sum of just $2n{-}1$ Pauli
+strings---the $(n{-}1)$ two-local $Z_iZ_{i+1}$ and the $n$ one-local $X_i$, each already
+unitary---the LCU route of \cref{ch:lec07} block-encodes it directly, with no entry oracle
+and subnormalization $\norm{c}_1=(n{-}1)J+nh$. Measured against the same $H$, the sparse route
+carries $\alpha_{\text{sparse}}=(n{+}1)\norm{H}_{\max}=(n{+}1)\max\{(n{-}1)J,h\}=\bigo(n^2)$,
+while the LCU norm is only $(n{-}1)J+nh=\bigo(n)$---a factor of $n$ smaller, and without the
+$\mathbf x$-dependent rotation. For local Hamiltonians the LCU encoding is therefore usually
+preferred; see \cref{exa:lec07-tfim}.
 \end{example}
 
 \section{Hermitian block encoding}

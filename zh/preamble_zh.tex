@@ -106,27 +106,25 @@
 % Theorem environments (Chinese names)
 % ---------------------------------------------------------------------------
 \theoremstyle{plain}
+\usepackage{thmtools}
 \newtheorem{theorem}{定理}[chapter]
-\newtheorem{lemma}[theorem]{引理}
-\newtheorem{proposition}[theorem]{命题}
-\newtheorem{corollary}[theorem]{推论}
+\declaretheorem[sibling=theorem,name=引理,refname={引理,引理},Refname={引理,引理}]{lemma}
+\declaretheorem[sibling=theorem,name=命题,refname={命题,命题},Refname={命题,命题}]{proposition}
+\declaretheorem[sibling=theorem,name=推论,refname={推论,推论},Refname={推论,推论}]{corollary}
 \theoremstyle{definition}
-\newtheorem{definition}[theorem]{定义}
-\newtheorem{example}[theorem]{例}
+\declaretheorem[sibling=theorem,name=定义,refname={定义,定义},Refname={定义,定义}]{definition}
+\declaretheorem[sibling=theorem,name=例,refname={例,例},Refname={例,例}]{example}
 \newtheorem{exercise}{习题}[chapter]
 \theoremstyle{remark}
-\newtheorem{remark}[theorem]{注}
+\declaretheorem[sibling=theorem,name=注,refname={注,注},Refname={注,注}]{remark}
 \renewcommand{\proofname}{证明}
 \newenvironment{solution}{\begin{proof}[\normalfont\itshape 解.]}{\end{proof}}
 
-% cleveref: Chinese cross-reference names
+% cleveref: Chinese cross-reference names. The theorem-like environments share the
+% `theorem` counter, so their names are set by \declaretheorem above (a plain
+% \crefname{lemma}{...} would be keyed off the shared counter and print "定理" for
+% all of them). Only the independently-counted types are set here.
 \crefname{theorem}{定理}{定理}      \Crefname{theorem}{定理}{定理}
-\crefname{lemma}{引理}{引理}        \Crefname{lemma}{引理}{引理}
-\crefname{proposition}{命题}{命题}  \Crefname{proposition}{命题}{命题}
-\crefname{corollary}{推论}{推论}    \Crefname{corollary}{推论}{推论}
-\crefname{definition}{定义}{定义}   \Crefname{definition}{定义}{定义}
-\crefname{example}{例}{例}          \Crefname{example}{例}{例}
-\crefname{remark}{注}{注}           \Crefname{remark}{注}{注}
 \crefname{exercise}{习题}{习题}     \Crefname{exercise}{习题}{习题}
 \crefname{chapter}{章}{章}          \Crefname{chapter}{章}{章}
 \crefname{section}{节}{节}          \Crefname{section}{节}{节}

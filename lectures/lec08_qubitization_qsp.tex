@@ -158,14 +158,23 @@ under $U_A$, and in the ordered basis $\mathcal B_j=\{\ket{0^m}\ket{v_j},
 
 \begin{proof}
 Applying $U_A$ to the flagged eigenstate and using
-$\Pi U_A\Pi=\proj{0^m}\otimes A$,
+$\Pi U_A\Pi=\proj{0^m}\otimes A$ (factor $\Pi=(\ket{0^m}\otimes\id)(\bra{0^m}\otimes\id)$,
+so the middle $(\bra{0^m}\otimes\id)U_A(\ket{0^m}\otimes\id)=A$ is the defining block and
+the outer factors re-attach the $\proj{0^m}$ flag),
 \begin{equation}
   U_A\ket{0^m}\ket{v_j}=\ket{0^m}A\ket{v_j}+\ket{e_j^\perp}
   =\lambda_j\ket{0^m}\ket{v_j}+\ket{e_j^\perp},
   \label{eq:lec08-apply}
 \end{equation}
 where $\ket{e_j^\perp}\defeq(\id-\Pi)U_A\ket{0^m}\ket{v_j}$ satisfies
-$\Pi\ket{e_j^\perp}=0$. Since $U_A$ is unitary the left side is a unit vector, so
+$\Pi\ket{e_j^\perp}=0$. The first equality splits the output into its flagged and
+unflagged parts via $\id=\Pi+(\id-\Pi)$: the input is already flagged
+($\Pi\ket{0^m}\ket{v_j}=\ket{0^m}\ket{v_j}$), so
+$\Pi U_A\ket{0^m}\ket{v_j}=(\proj{0^m}\otimes A)\ket{0^m}\ket{v_j}=\ket{0^m}A\ket{v_j}$,
+while everything orthogonal to the flag is collected into $\ket{e_j^\perp}$; the second
+equality then uses $A\ket{v_j}=\lambda_j\ket{v_j}$. Since $U_A$ is unitary the left side
+is a unit vector, and the two terms are orthogonal (one in the range of $\Pi$, the other
+in its kernel), so $\lambda_j^2+\norm{\ket{e_j^\perp}}^2=1$, i.e.\
 $\norm{\ket{e_j^\perp}}^2=1-\lambda_j^2$ and we may write
 $\ket{e_j^\perp}=\sqrt{1-\lambda_j^2}\,\ket{\perp_j}$ with $\ket{\perp_j}$
 normalized (if $\lambda_j^2=1$ then $\ket{e_j^\perp}=0$ and $\mathcal H_j$ is
@@ -247,14 +256,62 @@ single ancilla and no LCU.
 \label{exa:lec08-T2}
 Take $A=\tfrac12\Xgate$ on one qubit, with the Hermitian block encoding
 $U_A\in\mathrm{HBE}_{1,1}(A)$ of \cref{thm:lec06-hbe}, so $m=1$ and
-$Z_\Pi=\Zgate$ on the flag qubit. The two eigenvalues are $\lambda_\pm=\pm\tfrac12$
+$Z_\Pi=\Zgate$ on the flag qubit. (The scaling is essential: $\Xgate$ alone is
+unitary---its own trivial $(1,0)$-block encoding---whereas $A=\tfrac12\Xgate$ is a
+genuine contraction, $\norm A=\tfrac12<1$, with spectrum $\pm\tfrac12$ strictly inside
+$(-1,1)$, which is exactly where qubitization performs a nontrivial rotation.) The two
+eigenvalues are $\lambda_\pm=\pm\tfrac12$
 (eigenvectors $\ket\pm$), and \cref{thm:lec08-qubit} gives
 $(U_A\Zgate)^2\in\mathrm{BE}_{1,1}(T_2(A))$ with
 $T_2(A)=2A^2-\id=2\cdot\tfrac14\id-\id=-\tfrac12\id$. One checks directly that
 $T_2(\lambda_\pm)=2\cdot\tfrac14-1=-\tfrac12$, consistent with the spectral formula
-$T_2(A)=\sum_\pm T_2(\lambda_\pm)\proj{\pm}=-\tfrac12\id$. Two queries to $U_A$ thus
-block-encode $-\tfrac12\id$ exactly.
+$T_2(A)=\sum_\pm T_2(\lambda_\pm)\proj{\pm}=-\tfrac12\id$. Explicitly, a Hermitian
+$(1,1)$-block encoding of $A=\tfrac12\Xgate$ is the reflection
+\[
+  U_A=\begin{pmatrix}\tfrac12\Xgate & \tfrac{\sqrt3}{2}\,\id\\[3pt]
+      \tfrac{\sqrt3}{2}\,\id & -\tfrac12\Xgate\end{pmatrix}
+    =\tfrac12\,\Zgate\!\otimes\!\Xgate+\tfrac{\sqrt3}{2}\,\Xgate\!\otimes\!\id
+\]
+(flag qubit first), which indeed satisfies $U_A=U_A\dg$, $U_A^2=\id$, and
+$\Pi U_A\Pi=\proj0\otimes\tfrac12\Xgate=\proj0\otimes A$. The off-diagonal blocks are
+$\sqrt{1-\lambda^2}\,\id=\tfrac{\sqrt3}{2}\id$ at $\lambda=\pm\tfrac12$; they would
+vanish if $\norm A=1$, collapsing the walk to the identity---the precise sense in which
+an already-unitary $A$ leaves qubitization nothing to do. With $Z_\Pi=\Zgate$ on the
+flag, the qubitization walk $(U_A\Zgate)^2$ is the four-gate circuit
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(flag)} & \gate[2]{U_A} & \gate{\Zgate} & \gate[2]{U_A} & \gate{\Zgate} & \qw \\
+  \lstick{$\ket\psi$ \,\scriptsize(sys)} &             & \qw           &               & \qw           & \qw
+\end{quantikz}
+\end{center}
+and reading the flag in $\ket0$ at the end returns $T_2(A)=-\tfrac12\id$ on the system.
+Two queries to $U_A$ thus block-encode $-\tfrac12\id$ exactly.
 \end{example}
+
+\begin{remark}[Computing the phase factors in practice: methods and software]
+\label{rem:lec08-phasefactors}
+The toy walk above needs no angles---qubitization delivers the Chebyshev basis
+$T_k(A)$ for free. Realizing a \emph{general} target polynomial by QSP
+(\cref{thm:lec08-qsp}) instead hinges on computing its phase factors $\{\phi_k\}$, and
+that computation---not the circuit---is the practical bottleneck of the whole QSP/QSVT
+pipeline. Three generations of numerical method are now in use:
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{Optimization-based.} Minimize a least-squares objective over the symmetric
+        phase factors; stable to high degree and the usual default
+        (Dong, Meng, Whaley, Lin, \emph{Phys.\ Rev.\ A} \textbf{103}, 042419, 2021).
+  \item \emph{Direct / stable factorization.} Capitalization- and root-finding
+        recurrences that avoid the numerical blow-up of the naive Haah factorization
+        (Haah, \emph{Quantum} \textbf{3}, 190, 2019; Ying, \emph{Quantum} \textbf{6},
+        842, 2022).
+  \item \emph{Nonlinear Fourier transform (NLFT).} The current frontier recasts
+        phase-factor finding as an \emph{inverse} nonlinear FFT, giving provably stable,
+        near-linear-time algorithms and settling the infinite / fully-coherent regime
+        (``Infinite quantum signal processing,'' \emph{Quantum} \textbf{8}, 1558, 2024).
+\end{itemize}
+Two mature open-source packages implement these: \textsf{QSPPACK} (Lin's group---MATLAB
+with a Python port) and \textsf{pyqsp} (Chuang's group---Python). We return to the phase
+factors themselves in \cref{sec:lec08-5}.
+\end{remark}
 
 \section{Qubitization of general matrices}
 \label{sec:lec08-3}
@@ -502,6 +559,67 @@ $O$-convention $\Phi=(0,0,0)$ gives $O(\lambda)^2$ with $(1,1)$-entry
 $2\lambda^2-1$. These small cases are the ones we verify by hand (and, in the
 companion notebook, numerically: the QSP unitary equals the claimed polynomial to
 machine precision).
+\end{example}
+
+\begin{example}[High-dimensional Poisson by eigenvalue QSP]
+\label{exa:lec08-poisson}
+Matrix inversion is usually filed under QSVT (\cref{ch:lec09}) because a generic
+linear system is non-Hermitian. But the discrete Laplacian is Hermitian \emph{positive
+definite}, so its singular values are its eigenvalues and the eigenvalue transformation
+of this chapter inverts it directly---no singular-value machinery needed. This makes the
+$d$-dimensional Poisson equation a clean capstone for QSP.
+
+Discretize $-\Delta u=f$ on $[0,1]^d$ with Dirichlet data, $n$ interior points per axis
+($h=1/(n{+}1)$, $N=n^d$ unknowns). The system is $L_d u=f$ with
+\[
+  L_d=\sum_{k=1}^{d} I^{\otimes(k-1)}\otimes L_1\otimes I^{\otimes(d-k)},\qquad
+  L_1=\tfrac1{h^2}\operatorname{tridiag}(-1,2,-1),
+\]
+Hermitian positive definite.
+
+\emph{Block encoding (input model).} $L_d$ is a $d$-term sum of tensor factors, i.e.\ a
+linear combination of unitaries (\cref{prop:lec07-sum}): a direction register $\ket k$,
+$k\in[d]$, on $\lceil\log_2 d\rceil$ qubits selects which coordinate block the $3$-sparse
+Hermitian $1$D encoding $U_{L_1}$ (\cref{thm:lec06-hbe}) acts on, via
+$\mathrm{SEL}=\sum_{k}\proj k\otimes U_{L_1}^{(k)}$:
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket{0}^{\lceil\log_2 d\rceil}$ \,\scriptsize(direction $k$)} & \gate{\mathrm{PREP}} & \ctrl{1}               & \gate{\mathrm{PREP}\dg} & \qw \\
+  \lstick{$\ket{0}$ \,\scriptsize(flag)}                                & \qw                  & \gate[2]{\mathrm{SEL}} & \qw                     & \qw \\
+  \lstick{$\ket{f}$ \,\scriptsize(grid)}                                & \qwbundle{d\log_2 n}  &                       & \qw                     & \qw
+\end{quantikz}
+\end{center}
+Each $L_1$ is $3$-sparse on $\log_2 n$ qubits, so the resulting $U_A$ uses $O(d\log n)$
+qubits and $O(d)$ elementary calls---no dependence on the exponentially large
+$N=2^{\,d\log_2 n}$.
+
+\emph{The polynomial.} Normalize $A=L_d/\norm{L_d}$, Hermitian with spectrum in
+$[1/\kappa,1]$, $\kappa=\lambda_{\max}/\lambda_{\min}$. By \cref{cor:lec08-real} there is
+an odd $p$ of degree $D=O(\kappa\log(1/\epsilon))$ with $\abs p\le1$ on $[-1,1]$ and
+$p(\lambda)\approx\tfrac{1}{2\kappa\lambda}$ on $[1/\kappa,1]$; the QSP sequence with its
+phases $\Phi$ block-encodes $p(A)\propto A^{-1}\propto L_d^{-1}$.
+
+\emph{The solver.} Load $\ket f$ on the grid, run the degree-$D$ alternation of $U_A$ with
+the flag phase rotations $\ee^{\ii\phi_j Z_\Pi}$ (projector-controlled, $Z_\Pi=2\Pi-\id$),
+and post-select the flag on $\ket{0^m}$:
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket{0^m}$ \,\scriptsize(flag)} & \gate{\ee^{\ii\phi_0 Z_\Pi}} & \gate[2]{U_A} & \gate{\ee^{\ii\phi_1 Z_\Pi}} & \gate[2]{U_A} & \ \cdots\ & \gate[2]{U_A} & \gate{\ee^{\ii\phi_D Z_\Pi}} & \meter{} \\
+  \lstick{$\ket{f}$}                        & \qwbundle{d\log_2 n}         &               & \qw                          &               & \ \cdots\ &               & \qw                          & \rstick{$\ket u$}
+\end{quantikz}
+\end{center}
+leaving the grid in $\ket u\propto L_d^{-1}\ket f$.
+
+\emph{Cost and the catch.} The condition number of the $d$-dimensional Laplacian is
+$\kappa\approx(2n/\pi)^2$, \emph{independent of $d$}: both $\lambda_{\max}\sim4d/h^2$ and
+$\lambda_{\min}\sim d\pi^2$ scale with $d$, so the $d$'s cancel. The solver therefore runs
+in $\tilde O(d\,n^2)$ gates on $O(d\log n)$ qubits, an \emph{exponential} saving in the
+dimension $d$ over any classical method, which must touch all $N=n^d$ unknowns. The usual
+caveats apply: $\ket f$ must be preparable in $\poly(d\log n)$, and the output is the
+\emph{state} $\ket u$---good for an expectation value $\bra u M\ket u$ or a sample, not for
+reading all $n^d$ entries. This is the Hermitian special case of the quantum linear systems
+problem; the general non-Hermitian theory needs QSVT (\cref{ch:lec09}) and is taken up in
+\cref{ch:lec10}.
 \end{example}
 
 \section{Finding phase factors}

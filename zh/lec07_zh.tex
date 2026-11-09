@@ -155,11 +155,81 @@ $W=(\Hgate\otimes\id)\,\mathrm{SEL}\,(\Hgate\otimes\id)$，并且由
   =\tfrac12\Xgate+\tfrac12\Zgate
   =\begin{pmatrix}\tfrac12&\tfrac12\\[2pt]\tfrac12&-\tfrac12\end{pmatrix}=T,
 \]
-因此 $W\in\mathrm{BE}_{1,1}(T)$。此处 $\alpha=\norm{c}_1=1$ 是最优的：这两个泡利算符在 Hilbert--Schmidt 内积下正交，$\norm{T}=\tfrac{1}{\sqrt2}
-\cdot\sqrt2=1$（其奇异值都是 $1/\sqrt2\cdot\sqrt2$；明确地说，
-$T/\!\sqrt2$ 是一个反射，$\norm{T}=1$），因此没有任何块编码能做到优于
-$\alpha=1$。把 $W$ 作用于 $\ket0\ket\psi$ 以概率
-$\norm{T\ket\psi}^2$ 成功，而对每个 $\ket\psi$ 该概率都等于 $1$，因为 $T$（至多相差一个标量）是酉的；此处 LCU 无需重复。
+因此 $W\in\mathrm{BE}_{1,1}(T)$。$\alpha=\norm{c}_1=1$ 到底有多好？由于 $\Xgate$ 与
+$\Zgate$ \emph{反对易}且平方为 $\id$，
+\[
+  T^2=\tfrac14(\Xgate+\Zgate)^2
+     =\tfrac14\bigl(\Xgate^2+\underbrace{\Xgate\Zgate+\Zgate\Xgate}_{=0}+\Zgate^2\bigr)
+     =\tfrac12\id,
+\]
+故 $T$ 的本征值为 $\pm\tfrac1{\sqrt2}$，谱范数为 $\norm{T}=\tfrac1{\sqrt2}$（事实上
+$T=\tfrac1{\sqrt2}\Hgate$，即一个标量乘以 Hadamard 反射）。块编码的下界用的是这个算子
+范数，而非 Frobenius 范数 $\norm{T}_F=\sqrt{\tr T^2}=1$；因此 $\alpha=\norm{c}_1=1$ 在
+这里其实\emph{并非}最优——它比 $\norm{T}=\norm{c}_2=\tfrac1{\sqrt2}$ 大了 $\sqrt2$ 倍，
+而真正的最优 $\alpha=\tfrac1{\sqrt2}$ 可由直接使用 $\Hgate$（零辅助比特编码）达到。这个
+差距 $\norm{c}_1/\norm{c}_2=\sqrt2$ 正是一般性的 $\ell^1$ 过度计数：等权的正交泡利按
+平方相加，而非按绝对值相加。把 $W$ 作用于 $\ket0\ket\psi$，成功概率为
+$\norm{T\ket\psi}^2=\bra\psi T^2\ket\psi=\tfrac12$——对每个 $\ket\psi$ 都是\emph{同一个}
+$\tfrac12$，因为 $T\propto$ 酉算符、没有核——而无意识振幅放大
+（\cref{rem:lec07-oaa}）可在 $\bigo(\norm{c}_1/\norm{T})=\bigo(1)$ 轮内把旗标驱至确定。
+\end{example}
+
+\begin{example}[把跃迁矩阵重新读作 LCU]
+\label{exa:lec07-hopping}
+\emph{这个 LCU。} 两泡利例子把因子 $\tfrac12$ 内置到了算符里；与之相对，\cref{exa:lec06-hopping} 中 $N=4$ 的
+周期跃迁矩阵 $A=S+S\dg$，其求和是\emph{货真价实}的、系数确为 $1$。它是一个两项 LCU，
+\[
+  K=2,\quad U_0=S,\quad U_1=S\dg,\quad c_0=c_1=1,\quad \norm{c}_1=2,
+\]
+其中 $S\ket j=\ket{(j{+}1)\bmod4}$ 是循环移位。两个系数模相等，故 prepare 谕示仍是 Hadamard，
+$\mathrm{PREP}\ket0=\tfrac1{\sqrt2}(\ket0+\ket1)=\Hgate\ket0$，而 select 谕示是受旗标控制的移位
+\[
+  \mathrm{SEL}=\proj0\otimes S+\proj1\otimes S\dg.
+\]
+取 $W=(\Hgate\otimes\id)\,\mathrm{SEL}\,(\Hgate\otimes\id)$，由 \eqref{eq:lec07-block} 得
+$(\bra0\otimes\id)W(\ket0\otimes\id)=\tfrac12(S+S\dg)=A/2$，故 $W\in\mathrm{BE}_{2,1}(A)$，
+$\alpha=\norm{c}_1=2$。这与我们在 \cref{exa:lec06-hopping} 中用 $s$-稀疏配方得到的是\emph{同一个}块：对非零
+条目全为 $1$ 的矩阵，$s$-稀疏构造不过就是其 $s$ 个移位置换的等权 LCU，两个次归一化重合，
+$\alpha=s=\norm{c}_1=2$。这个因子是最优的：$A$ 是循环矩阵，本征值 $2\cos(2\pi k/4)\in\{2,0,-2,0\}$，故
+$\norm{A}=2$，而任何块编码都满足 $\alpha\ge\norm{A}$。在画任何线路之前，有一处与 \cref{exa:lec07-twopauli} 的
+语义对比值得点出：那里 $T\propto\Hgate$ 正比于一个酉算符，成功概率是一个\emph{常数} $\tfrac12$，对每个输入都相同；
+而此处 $A/2$ 的本征值为 $\{1,0,-1,0\}$，\emph{不是}
+等距算符——把 $W$ 作用于 $\ket0\ket\psi$，以概率 $\norm{A\ket\psi}^2/4\le1$ 标记成功，它现在\emph{依赖}于 $\ket\psi$，并在 $A$ 的核上为零。
+
+\emph{标准形式。} 照字面写出，模板与 \cref{exa:lec07-twopauli} 完全一致：每项一个受控模块，$\ket0$ 分支选
+$S$、$\ket1$ 分支选 $S\dg$，恰如那里两分支选 $\Xgate$ 与 $\Zgate$：
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(标志)}     & \gate{\Hgate} & \octrl{1}  & \ctrl{1}      & \gate{\Hgate} & \qw \\
+  \lstick{$\ket j$ \,\scriptsize(指标)}    & \qwbundle{2}  & \gate{S}   & \gate{S\dg}   & \qw           & \qw
+\end{quantikz}
+\end{center}
+
+\emph{为何此处会坍缩（而 \cref{exa:lec07-twopauli} 不会）。} 在两泡利线路里，$\Xgate$ 与 $\Zgate$ 是系统比特
+上互不相干的门，两个受控模块毫无共享，必须都保留。而此处被选中的两个酉算符是一个置换与它的逆，二者几乎完全
+重叠。记 $j=2q_1+q_0$：移位 $S$ 就是 \cref{exa:lec06-shift} 的进位加一——进位 $\CNOT_{q_0\to q_1}$ 接对 $q_0$
+的翻转 $X$——而 $S\dg$ 是减一，
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_1$ \,\scriptsize(最高位)} & \targ{}   & \qw      & \qw \\
+  \lstick{$q_0$ \,\scriptsize(最低位)} & \ctrl{-1} & \gate{X} & \qw
+\end{quantikz}
+\end{center}
+$S$ 与 $S\dg$ 都翻转低位 $q_0$（步长 $\pm1$ 为奇数），且\emph{仅}在高位上有别：$+1$ 时取进位（$q_0{=}1$），
+$-1$ 时取借位（$q_0{=}0$）。于是两个模块中除这一处差别外没有什么需要保持受控：公共的 $X$（在 $q_0$ 上）从控制
+中脱出、成为\emph{无条件}门，而高位更新 $q_1\mathrel{\oplus}=q_0\oplus\ell$ 由一个 $\CNOT_{q_0\to q_1}$（进位）
+加一个 $\CNOT_{\ell\to q_1}$（在 $\ell{=}1$ 分支把进位换成借位）实现。两个模块遂合并为三个门，\emph{不含}任何
+Toffoli：
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize($\ell$, 标志)} & \gate{\Hgate} & \qw       & \ctrl{1} & \qw      & \gate{\Hgate} & \qw \\
+  \lstick{$q_1$ \,\scriptsize(最高位)}            & \qw           & \targ{}   & \targ{}  & \qw      & \qw           & \qw \\
+  \lstick{$q_0$ \,\scriptsize(最低位)}            & \qw           & \ctrl{-1} & \qw      & \gate{X} & \qw           & \qw
+\end{quantikz}
+\end{center}
+这正是 \cref{exa:lec06-hopping} 的线路。其中的道理是一般性的：PREP--SELECT--PREP$\dg$ 模板总是给出每项一个
+受控模块，但当被选酉算符在结构上彼此关联时——此处是一个移位与它的逆——\textsc{select} 编译出的门数远少于
+“受控 $U_\ell$ 之和”的字面形式所暗示的。
 \end{example}
 
 \begin{remark}[无意识振幅放大（oblivious amplitude amplification）]
@@ -177,7 +247,14 @@ $\bigl(\begin{smallmatrix}\sin\theta&\cos\theta\\ \cos\theta&-\sin\theta
   H=-\sum_{i=1}^{n-1}Z_iZ_{i+1}-g\sum_{i=1}^{n}X_i,
 \]
 \emph{本身已经}是一个酉算符线性组合：每个 $Z_iZ_{i+1}$ 和每个
-$X_i$ 都是泡利串，因而是酉的。共有 $K=(n-1)+n=2n-1$ 项，其中 $n-1$ 个耦合项的系数 $c_j=1$，$n$ 个场项的系数 $c_j=g$（负号是相位 $-P=\ee^{\ii\pi}P$，被吸收进酉算符，而 $K$ 用零权重项补齐到 $2$ 的幂）。由 \cref{thm:lec07-lcu}，用 $a=\lceil\log_2(2n-1)\rceil$ 个控制量子比特，
+$X_i$ 都是泡利串，因而是酉的。具体地，这 $K=(n-1)+n=2n-1$ 个泡利串 $P_j$ 是长度为 $n$ 的张量因子
+\[
+  \underbrace{Z_iZ_{i+1}=I\otimes\cdots\otimes\!\!\underset{\;i}{Z}\otimes\underset{\,i+1}{Z}\!\!\otimes\cdots\otimes I}_{n-1\ \text{个耦合项}},
+  \qquad
+  \underbrace{X_i=I\otimes\cdots\otimes\!\!\underset{\;i}{X}\!\!\otimes\cdots\otimes I}_{n\ \text{个场项}},
+\]
+除指定格点外均为恒等。它们与 $H$ 的关系是 $H=\sum_j c_j U_j$，其中带符号酉算符 $U_j=-P_j$，
+非负系数为 $n-1$ 个耦合项的 $c_j=1$ 与 $n$ 个场项的 $c_j=g$（负号是相位 $-P_j=\ee^{\ii\pi}P_j$，被吸收进酉算符，而 $K$ 用零权重项补齐到 $2$ 的幂）。每个 $P_j$ 同时是厄米的与酉的，故可直接充当被选酉算符——无需对每一项再做块编码。由 \cref{thm:lec07-lcu}，用 $a=\lceil\log_2(2n-1)\rceil$ 个控制量子比特，
 $\mathrm{PREP}\ket{0^a}=\tfrac{1}{\sqrt{\norm{c}_1}}\sum_j\sqrt{c_j}\,\ket{j}$
 装载这些权重（每个耦合标签上振幅为 $1$，每个场标签上为 $\sqrt g$），而 $\mathrm{SEL}=\sum_j\proj{j}\otimes P_j$ 施加泡利串 $P_j$，则线路 $W=(\mathrm{PREP}\dg\otimes\id)\,\mathrm{SEL}\,(\mathrm{PREP}\otimes\id)$
 是 $H$ 的一个精确块编码，其次归一化为
@@ -253,6 +330,49 @@ $\gamma=\sum_j c_j=1$——求平均不付出任何代价。（\cref{exa:lec07-t
 \cref{sec:lec07-5} 所分析的那种开销。
 \end{remark}
 
+\begin{example}[块编码紧束缚哈密顿量 $H=T+V$]
+\label{exa:lec07-tightbinding}
+当被求和的各项带有\emph{不同}的次归一化时，\cref{prop:lec07-sum} 才真正显出价值。取
+$N=4$ 的离散薛定谔（紧束缚）哈密顿量
+\[
+  H=T+V,\qquad T=S+S\dg,\qquad V=\diag\!\bigl(1,\tfrac12,0,-\tfrac12\bigr),
+\]
+即一个动能跃迁项加一个在位势。动能部分就是 \cref{exa:lec07-hopping} 的跃迁矩阵，其块
+编码为 $U_T\in\mathrm{BE}_{2,1}(T)$（$\alpha_T=\norm{c}_1=2$）；势项满足
+$\norm{V}_{\max}=1$，由 \cref{exa:lec06-diag} 的一致受控旋转给出块编码
+$U_V\in\mathrm{BE}_{1,1}(V)$（$\alpha_V=1$）。两者都只用一个标志比特，$a=1$。
+
+对 $M=2$（一个控制比特，$m=1$）应用 \cref{prop:lec07-sum}，并取
+$\gamma=\alpha_T+\alpha_V=3$。制备谕示装入\emph{加权}振幅 $\sqrt{\alpha_j/\gamma}$，
+\[
+  \mathrm{PREP}\ket0=\sqrt{\tfrac23}\,\ket0+\sqrt{\tfrac13}\,\ket1=R_y(\theta)\ket0,
+  \qquad \theta=2\arccos\sqrt{\tfrac23}\approx1.23,
+\]
+由于两个次归一化不相等，它不再是 \cref{exa:lec07-twopauli,exa:lec07-hopping} 中的
+Hadamard 门。选择谕示在 $\ell{=}0$ 分支上作用动能编码、在 $\ell{=}1$ 分支上作用势能
+编码，并共用同一个标志比特，
+\[
+  \mathrm{SEL}=\proj0\otimes U_T+\proj1\otimes U_V,
+\]
+于是由 \eqref{eq:lec07-summBE}，$W=(\mathrm{PREP}\dg\otimes\id)\,\mathrm{SEL}\,
+(\mathrm{PREP}\otimes\id)$ 是 $H$ 的精确块编码 $W\in\mathrm{BE}_{3,2}(H)$：
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize($\ell$)}   & \gate{\mathrm{PREP}} & \octrl{1}     & \ctrl{1}      & \gate{\mathrm{PREP}\dg} & \qw \\
+  \lstick{$\ket0$ \,\scriptsize(标志 $a$)} & \qw                  & \gate[2]{U_T} & \gate[2]{U_V} & \qw                     & \qw \\
+  \lstick{$\ket j$ \,\scriptsize(系统)}    & \qwbundle{2}         &               &               & \qw                     & \qw
+\end{quantikz}
+\end{center}
+有三个特征是 \cref{prop:lec07-sum} 所共有、而在 \cref{sec:lec07-1} 的等权 LCU 中所没有
+的。其一，控制寄存器与内层标志比特是\emph{分开}的：联合标志为 $\ket0_\ell\ket0_a$，故
+总共 $a+m=2$ 个辅助比特，把二者同时驱回 $\ket0$ 才能提取出这个和。其二，由于
+$\alpha_T\neq\alpha_V$，制备是一个真正的（非 Hadamard）旋转，按 $\sqrt{\alpha_j}$ 为
+每个分支加权。其三，次归一化是各项之\emph{和} $\gamma=\alpha_T+\alpha_V=3\ge\norm{H}$
+——这是 \cref{sec:lec07-5} 的那种可加 $\ell^1$ 开销，而非单一的最优因子。同样的
+动能加势能的分解（其中 $T$ 为有限差分拉普拉斯算子）正是 \cref{ch:lec13} 的微分方程
+算法所依赖的块编码。
+\end{example}
+
 \subsection*{向量加法}
 
 当所选取的算符是态制备谕示而非块编码时，同样的构造便实现\emph{向量}的加法。对一般
@@ -298,6 +418,29 @@ $(\bra{0^a}\otimes\id)U_BU_A(\ket{0^a}\otimes\id)$ 会从 $\ket{\perp_A}$ 中带
 从而\emph{不}等于 $\frac{1}{\alpha\beta}BA$。补救之道是让两个标志寄存器\emph{分离}，
 使得回到联合标志 $\ket{0^{a}}\ket{0^{b}}$ 时，强迫\emph{两个}块编码都已经作用在各自的
 带标志子空间上。
+
+一个单比特的例子可以把这种泄漏讲得很具体。将收缩算符 $A=\tfrac12 X$ 与 $B=\tfrac12 Z$
+（二者皆取 $\alpha=\beta=1$）按厄米反射形式
+$U=\bigl(\begin{smallmatrix}M & \sqrt{\id-M^2}\\ \sqrt{\id-M^2} & -M\end{smallmatrix}\bigr)$
+块编码在\emph{同一个}共享标志比特上，于是（利用 $\sqrt{\id-\tfrac14\id}=\tfrac{\sqrt3}{2}\id$）
+\[
+  U_A=\begin{pmatrix}\tfrac12 X & \tfrac{\sqrt3}{2}\id\\[2pt] \tfrac{\sqrt3}{2}\id & -\tfrac12 X\end{pmatrix},
+  \qquad
+  U_B=\begin{pmatrix}\tfrac12 Z & \tfrac{\sqrt3}{2}\id\\[2pt] \tfrac{\sqrt3}{2}\id & -\tfrac12 Z\end{pmatrix}.
+\]
+对中间标志取值 $k\in\{0,1\}$ 求和，朴素堆叠 $U_AU_B$ 的 $\ket0$ 块为
+\[
+  (\bra0\otimes\id)\,U_AU_B\,(\ket0\otimes\id)
+  =\underbrace{(\tfrac12 X)(\tfrac12 Z)}_{k=0}
+  +\underbrace{(\tfrac{\sqrt3}{2}\id)(\tfrac{\sqrt3}{2}\id)}_{k=1}
+  =\tfrac14 XZ+\tfrac34\id,
+\]
+而目标是 $AB/(\alpha\beta)=\tfrac14 XZ$。其中 $k=1$ 的那一项正是泄漏：$U_B$ 的拒绝分支
+（送入标志 $1$ 的 $\tfrac{\sqrt3}{2}\id$）被 $U_A$ 的非对角块原封不动地送回标志 $0$，而这个
+多出来的 $\tfrac34\id$ 事实上\emph{占了主导}——结果甚至不与 $AB$ 成比例。给 $U_B$ 配上
+它自己的标志比特 $b$ 并构造 \cref{prop:lec07-prod} 中的
+$U_{AB}=(U_A\otimes\id_b)(\id_a\otimes U_B)$，即可消除该交叉项：当两个标志都回到 $0$ 时，
+两个非对角分支再也无法相遇，从而留下干净的块 $\tfrac12 X\cdot\tfrac12 Z=\tfrac14 XZ$。
 \end{remark}
 
 \begin{proposition}[两个块编码矩阵之积]
@@ -384,7 +527,17 @@ $U_B\in\mathrm{BE}_{1,1}(B)$ 块编码。使用\emph{两个}标志比特（寄�
 $\ket0\ket0$ 上它返回 $AB\ket\psi$，并使两个标志比特回到 $\ket0$。如果我们转而试图复用
 单个标志比特（在同一辅助比特上作 $U_AU_B$），则 $U_B$ 产生的 $\ket1$ 分支会被送入
 $U_A$ 并重新进入 $\ket0$ 块，从而破坏答案——这就是 \cref{rem:lec07-naive} 所述的失败。
-那个额外的辅助比特恰恰就是使两个编码互不干扰的记账。
+那个额外的辅助比特恰恰就是使两个编码互不干扰的记账。这正是 \cref{fig:lec07-prod} 在
+$a=b=1$ 时的实例：
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(标志 $a$)} & \qw           & \gate[2]{U_A} & \qw \\
+  \lstick{$\ket\psi$ \,\scriptsize(系统)}  & \gate[2]{U_B} &               & \qw \\
+  \lstick{$\ket0$ \,\scriptsize(标志 $b$)} &               & \qw           & \qw
+\end{quantikz}
+\end{center}
+$U_B$ 先作用于标志 $b$ 与系统，随后 $U_A$ 作用于标志 $a$ 与系统；两个标志都读为 $\ket0$
+时即返回 $AB\ket\psi$。
 \end{example}
 
 \begin{example}[对 $\tfrac12(X+Z)$ 求平方]
@@ -397,7 +550,44 @@ $W_{M^2}=(W\otimes\id)(\id\otimes W)\in\mathrm{BE}_{1,2}(M^2)$。由于 $X$ 与 
   M^2=\frac{(X+Z)^2}{4}=\frac{X^2+XZ+ZX+Z^2}{4}=\frac{\id+0+\id}{4}=\frac{\id}{2},
 \]
 因此 $W_{M^2}$ 是 $\tfrac12\id$ 的一个 $(1,2)$-块编码（次归一化 $1\cdot1=1$，辅助比特数
-$1+1=2$）。更长的乘积 $A_k\cdots A_1$ 只需迭代该规则，把次归一化相乘为 $\prod_j\alpha_j$
+$1+1=2$）。这个标量结果并非一般情形：此处 $M=\tfrac1{\sqrt2}H$ 正比于一个酉算符
+（Hadamard 门，$H=\tfrac1{\sqrt2}(X+Z)$），故 $M^2=\tfrac12 H^2=\tfrac12\id$ 是必然的。
+因此本例是一个干净的\emph{一致性检验}——两标志线路确实在做乘法，只是这里的乘积恰好坍缩成
+$\tfrac12\id$。该线路把 \cref{exa:lec07-twopauli} 的块
+$W=(\Hgate\otimes\id)\,\mathrm{SEL}\,(\Hgate\otimes\id)$ 的两份副本堆叠在不相交的标志
+比特上，并共用系统：
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(标志 $a$)} & \qw          & \gate[2]{W} & \qw \\
+  \lstick{$\ket\psi$ \,\scriptsize(系统)}  & \gate[2]{W}  &             & \qw \\
+  \lstick{$\ket0$ \,\scriptsize(标志 $b$)} &              & \qw         & \qw
+\end{quantikz}
+\end{center}
+代入 \cref{exa:lec07-twopauli} 的两-Pauli 块
+$W=(\Hgate\otimes\id)\,\mathrm{SEL}\,(\Hgate\otimes\id)$（开控制 $\to\Xgate$，实心
+控制 $\to\Zgate$），即可把每个方块展开到门级：
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(标志 $a$)} & \qw           & \qw           & \qw           & \qw           & \gate{\Hgate} & \octrl{1}     & \ctrl{1}      & \gate{\Hgate} & \qw \\
+  \lstick{$\ket\psi$ \,\scriptsize(系统)}  & \qw           & \gate{\Xgate} & \gate{\Zgate} & \qw           & \qw           & \gate{\Xgate} & \gate{\Zgate} & \qw           & \qw \\
+  \lstick{$\ket0$ \,\scriptsize(标志 $b$)} & \gate{\Hgate} & \octrl{-1}    & \ctrl{-1}     & \gate{\Hgate} & \qw           & \qw           & \qw           & \qw           & \qw
+\end{quantikz}
+\end{center}
+左半部分是 $\id\otimes W$（作用于系统与标志 $b$），右半部分是 $W\otimes\id$（标志 $a$
+与系统）；共用的系统比特贯穿二者。
+
+为了看到同样的机器返回一个真正非标量的矩阵，就去对一个\emph{不}正比于酉算符的收缩算符
+求平方。取投影算符 $P=\tfrac12(\id+X)=\proj+$，用同样的两-Pauli LCU 块编码，只是取
+$U_0=\id,\,U_1=X$（等权重，$\norm{c}_1=1$，$\norm{P}=1$，故
+$W_P\in\mathrm{BE}_{1,1}(P)$；相对上面的门级线路，唯一的改动是每个开控制的 $\Xgate$
+变成恒等）。此时 $X$ 与 $\id$ \emph{对易}，故交叉项得以保留而非抵消：
+\[
+  P^2=\frac{(\id+X)^2}{4}=\frac{\id+2X+\id}{4}=\frac{\id+X}{2}=P.
+\]
+于是两标志乘积 $W_{P^2}=(W_P\otimes\id)(\id\otimes W_P)\in\mathrm{BE}_{1,2}(P)$ 在标志
+$\ket0\ket0$ 上返回这个秩一投影算符本身——一个非平凡的矩阵——这证实求平方线路确实在
+做实质性的工作，而不仅仅是把恒等算符重新缩放。
+更长的乘积 $A_k\cdots A_1$ 只需迭代该规则，把次归一化相乘为 $\prod_j\alpha_j$
 并把辅助比特相加——这就是压缩小工具（\cref{rem:lec07-compress}）所驯服的那种指数级辅助
 比特增长。
 \end{example}
@@ -422,6 +612,17 @@ $u=T\ket{u_0}=\sum_j c_j U_j\ket{u_0}$ 中的某个\emph{期望值} $u\dg O u$�
 对于单个酉算符 $O$，施加受控的 $U_{j'}$ 与 $U_j$），然后读取辅助比特。此处无需对 $j$
 作叠加——每次运行只出现两个 $U$——因此线路与单项一样浅，代价是要估计一个含
 $\bigo(K^2)$ 项的求和。
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(辅助)} & \gate{\Hgate} & \ctrl{1}                 & \gate{\Hgate} & \meter{} \\
+  \lstick{$\ket{u_0}$}                 & \qwbundle{n}  & \gate{U_j\dg\,O\,U_{j'}} & \qw           & \qw
+\end{quantikz}
+\end{center}
+辅助比特的期望为 $\langle Z\rangle=\mathrm{Re}\,h_{jj'}$；在末尾 Hadamard 之前于辅助
+比特上插入一个相位门 $\mathsf{S}\dg$，则改为得到 $\mathrm{Im}\,h_{jj'}$。整条线路只出现
+两个酉算符 $U_{j'}$ 与 $U_j\dg$（其间夹着可观测量 $O$）——既\emph{没有}多路复用的
+$\mathrm{SEL}$，也没有对项指标 $j$ 的控制寄存器——因此每次运行都与单个 LCU 项一样浅；
+代价被移到了下面对数对求和的 $\bigo(K^2)$ 经典开销中。
 
 \begin{proposition}[$u\dg Ou$ 的重要性采样估计量]
 \label{prop:lec07-is}
@@ -502,15 +703,20 @@ $R=\bigo(\norm{c}_1^4\norm{O}^2/\varepsilon^2)$。
 \begin{remark}[算术的量子优势——及其代价]
 \label{rem:lec07-advantage}
 与经典代价相比，其胜出之处和单个块编码（\cref{sec:lec06-advantage}）一样，仍是维数
-指数级的那套故事，只不过现在是针对\emph{组合}。经典地看，对 $K$ 个结构化的
-$N\times N$ 项构造 $\sum_{j} c_j A_j\ket{b}$ 耗费 $\bigo(K\,sN)$，而乘积
-$A_L\cdots A_1\ket{b}$ 耗费 $\bigo(L\,sN)$——随指数大的维数 $N=2^n$ 线性增长。LCU 线路
-则改为在仅 $\lceil\log_2 K\rceil$ 个控制比特上对各项块编码作 $\bigo(K)$ 次调用，
-对结构化项每次调用为 $\polylog(N)$，而乘法规则以 $\bigo(\log L)$ 个辅助比特串接 $L$
-个编码（压缩小工具，\cref{rem:lec07-compress}）。于是该算术在维数上以 $\polylog(N)$
-时间运行——一种指数优势——而组合的\emph{代价}则体现在次归一化上：和为 $\norm{c}_1$，
-积为 $\prod_j\alpha_j$，各自使成功概率平方地缩小，并成倍放大下游查询次数（对和为线性，
-对积为随因子数指数）。\cref{sec:lec06-advantage} 中关于输入与输出的告诫原封不动地适用：
+指数级的那套故事，只不过现在是针对\emph{组合}。
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{经典代价。} 对 $K$ 个结构化的 $N\times N$ 项构造
+        $\sum_{j} c_j A_j\ket{b}$ 耗费 $\bigo(K\,sN)$，而乘积 $A_L\cdots A_1\ket{b}$
+        耗费 $\bigo(L\,sN)$——随指数大的维数 $N=2^n$ 线性增长。
+  \item \emph{量子代价。} LCU 线路在仅 $\lceil\log_2 K\rceil$ 个控制比特上对各项块
+        编码作 $\bigo(K)$ 次调用，对结构化项每次调用为 $\polylog(N)$；乘法规则以
+        $\bigo(\log L)$ 个辅助比特串接 $L$ 个编码（压缩小工具，\cref{rem:lec07-compress}）。
+        于是该算术在维数上以 $\polylog(N)$ 时间运行——一种指数优势。
+  \item \emph{代价所在。} 组合的代价体现在次归一化上：和为 $\norm{c}_1$，积为
+        $\prod_j\alpha_j$，各自使成功概率平方地缩小，并成倍放大下游查询次数——对和为
+        线性，对积为随因子数指数。
+\end{itemize}
+\cref{sec:lec06-advantage} 中关于输入与输出的告诫原封不动地适用：
 只有当各项可被高效编码且最终读出为简洁摘要时，优势才是真实的。这正是量子线性系统求解器
 （\cref{ch:lec10}）和哈密顿量模拟（\cref{ch:lec11}）所处的情形，其中 LCU 提供算术，而答案
 是一个期望值或一个采样比特，而非完整的解向量。
