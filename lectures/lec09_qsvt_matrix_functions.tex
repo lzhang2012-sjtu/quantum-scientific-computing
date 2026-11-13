@@ -241,23 +241,46 @@ the phase factors $\Phi$ exist by \cref{cor:lec08-real}. Query count and ancilla
 are read off the circuit.
 \end{proof}
 
+\begin{remark}[No singular value decomposition is needed in advance]
+\label{rem:lec09-nodecomp}
+The phase sequence $\Phi$ depends only on the target polynomial $P$, never on $A$. The
+same fixed circuit $U_\Phi$ therefore applies $P$ to \emph{every} singular value
+$\sigma_i$ at once---the cosine--sine decomposition in the proof is an analysis device,
+not a step the algorithm performs. Nothing about the spectrum or the singular vectors is
+computed, estimated, or supplied: the only prior knowledge used in choosing $P$ (and hence
+$\Phi$) is a \emph{bound} on the support, e.g.\ $\sigma_i\in[1/\kappa,1]$ for inversion,
+$\abs{\lambda_i}\le1$ for simulation, or a gap $\Delta$ for filtering. This is the
+decisive practical difference from a classical matrix function, which would first
+diagonalize $A$: QSVT (and the Hermitian QET of \cref{prop:lec08-qet}) transforms the
+spectrum \emph{implicitly}, through $\bigo(d)$ coherent calls to the block encoding.
+\end{remark}
+
 \begin{figure}[t]
 \centering
-\begin{minipage}{0.92\textwidth}
-\centering
-\footnotesize
-\setlength{\fboxsep}{8pt}
-\fbox{\parbox{0.9\textwidth}{\centering
-control (Hadamard-sandwiched): \quad
-$\ket0\to H\to \mathrm{CR}(\phi_d)\to\cdots\to\mathrm{CR}(\phi_0)\to H\to\ket0$\\[2pt]
-flag ($m$ qubits) with $U_A,U_A\dg$ alternating; system register carries $\ket\psi$.\\[2pt]
-Output flagged block: $P^{(\mathrm{SV})}(A)$ ($d$ odd, last gate $U_A$) or
-$P^{\triangleleft}(A)$ ($d$ even, last gate $U_A\dg$).}}
-\end{minipage}
-\caption{Schematic of the real-polynomial QSVT circuit $U_\Phi$ of
-\cref{thm:lec09-qsvt}. It is the general-encoding qubitization of \cref{sec:lec08-3}
-with interleaved flag rotations $\mathrm{CR}(\phi_j)\equiv\ee^{\ii\phi_j Z_\Pi}$ (in the
-$C$-convention) and one extra control ancilla to extract $\operatorname{Re}P$.}
+\begin{quantikz}[column sep=8pt,row sep=14pt]
+  \lstick{control $\ket0$}
+    & \gate{\Hgate} & \ctrl{1} & \qw & \ctrl{1} & \qw
+    & \ \cdots\ & \ctrl{1} & \gate{\Hgate} & \meter{} \rstick{$\ket0$} \\
+  \lstick{flag $\ket{0^m}$}
+    & \qwbundle{m} & \gate{\mathrm{CR}(\phi_d)} & \gate[2]{U_A}
+    & \gate{\mathrm{CR}(\phi_{d-1})} & \gate[2]{U_A\dg}
+    & \ \cdots\ & \gate{\mathrm{CR}(\phi_0)} & \qw & \qw \rstick{$\ket{0^m}$} \\
+  \lstick{system $\ket\psi$}
+    & \qwbundle{n} & \qw & & \qw &
+    & \ \cdots\ & \qw & \qw & \qw \rstick{$\propto P_{\mathrm{Re}}(A)\ket\psi$}
+\end{quantikz}
+\caption{The real-polynomial QSVT circuit $U_\Phi$ of \cref{thm:lec09-qsvt}, drawn
+explicitly for a general (non-Hermitian) block encoding. It is the general-encoding
+qubitization of \cref{sec:lec08-3}: $d$ alternating signal calls $U_A,U_A\dg$ interleaved
+with $d{+}1$ controlled flag rotations $\mathrm{CR}(\phi_j)\equiv\ee^{\ii\phi_j Z_\Pi}$
+(the reflections $Z_\Pi$ absorbed into the phases, the ``$C$-convention''). Time runs
+left to right, so the first gate applied is $\mathrm{CR}(\phi_d)$ and the last is
+$\mathrm{CR}(\phi_0)$. The Hadamard-sandwiched control ancilla negates every phase in its
+$\ket1$ branch---running $U_{-\Phi}$, which block-encodes $P^*$---so postselecting $\ket0$
+on the control and $\ket{0^m}$ on the flag leaves
+$\tfrac12(P+P^*)=\operatorname{Re}P$ applied to the system. The flagged block is
+$P^{(\mathrm{SV})}(A)$ when $d$ is odd (last signal $U_A$) and $P^{\triangleleft}(A)$ when
+$d$ is even (last signal $U_A\dg$).}
 \label{fig:lec09-qsvt}
 \end{figure}
 
@@ -394,7 +417,8 @@ exists with degree $d=\bigo\!\bigl(\Delta^{-1}\log(1/\epsilon)\bigr)$, where
 $2\Delta$ is the width of the ``dead zone'' around $0$ that we decline to resolve
 (equivalently the spectral gap we assume). Such $P_{\mathrm{sgn}}$ is built from a
 rescaled error function $\operatorname{erf}(kx)$ with $k\sim\Delta^{-1}
-\sqrt{\log(1/\epsilon)}$, itself expanded in Chebyshev polynomials. From the sign we
+\sqrt{\log(1/\epsilon)}$, itself expanded in Chebyshev polynomials
+(\cref{fig:lec09-sign}). From the sign we
 assemble:
 \begin{itemize}[leftmargin=1.4em,nosep]
   \item an \emph{approximate rectangle} on $[a,b]$ via
@@ -408,6 +432,57 @@ assemble:
     amplification} primitive, obtained by choosing $P_{\mathrm{sgn}}$ to send a small
     known overlap $a\ge\delta$ to $\approx1$.
 \end{itemize}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  name=sgn, width=0.46\textwidth, height=0.38\textwidth,
+  xlabel={$x$}, ylabel={value},
+  xmin=-1.02, xmax=1.02, ymin=-1.25, ymax=1.25,
+  legend pos=south east, grid=both, grid style={gray!20},
+  tick label style={font=\small}, label style={font=\small},
+  legend style={font=\small},
+]
+\addplot[gray!25,fill=gray!15,draw=none,forget plot] coordinates {
+  (-0.15,-1.25)(0.15,-1.25)(0.15,1.25)(-0.15,1.25)
+} \closedcycle;
+\addplot[black,dotted,thick,forget plot] coordinates {(-1,-1)(-0.15,-1)};
+\addplot[black,dotted,thick,forget plot] coordinates {(0.15,1)(1,1)};
+\addplot[blue,thick] coordinates {
+  (-1,-1)(-0.5,-1)(-0.2,-1)(-0.15,-0.99998)(-0.125,-0.99965)(-0.1,-0.99578)(-0.075,-0.96812)(-0.05,-0.84747)(-0.025,-0.52559)(0,0)(0.025,0.52559)(0.05,0.84747)(0.075,0.96812)(0.1,0.99578)(0.125,0.99965)(0.15,0.99998)(0.2,1)(0.5,1)(1,1)
+};
+\addlegendentry{$P_{\mathrm{sgn}}\approx\operatorname{erf}(kx)$}
+\end{axis}
+\begin{axis}[
+  at={(sgn.south east)}, anchor=south west, xshift=34pt,
+  width=0.46\textwidth, height=0.38\textwidth,
+  xlabel={$x$}, ylabel={$R(x)$},
+  xmin=-0.02, xmax=1.02, ymin=-0.15, ymax=1.2,
+  grid=both, grid style={gray!20},
+  tick label style={font=\small}, label style={font=\small},
+]
+\addplot[gray!25,fill=gray!15,draw=none,forget plot] coordinates {
+  (0.3,-0.15)(0.7,-0.15)(0.7,1.2)(0.3,1.2)
+} \closedcycle;
+\addplot[red,thick] coordinates {
+  (0,0)(0.2,0)(0.225,0.00001)(0.25,0.00234)(0.275,0.07865)(0.3,0.5)(0.325,0.92135)(0.35,0.99766)(0.375,0.99999)(0.4,1)(0.5,1)(0.6,1)(0.625,0.99999)(0.65,0.99766)(0.675,0.92135)(0.7,0.5)(0.725,0.07865)(0.75,0.00234)(0.775,0.00001)(0.8,0)(1,0)
+};
+\end{axis}
+\end{tikzpicture}
+\caption{Spectral filters from the sign polynomial \eqref{eq:lec09-sign}.
+\emph{Left:} an odd polynomial approximation $P_{\mathrm{sgn}}(x)\approx\operatorname{sgn}
+(x)=\operatorname{erf}(kx)$ with $k\sim\Delta^{-1}\sqrt{\log(1/\epsilon)}$; it matches
+$\pm1$ (dotted) outside the shaded ``dead zone'' $\abs x<\Delta$ ($\Delta=0.15$ here) and
+interpolates smoothly across it. The degree is $\bigo(\Delta^{-1}\log(1/\epsilon))$---the
+narrower the gap we must resolve, the higher the degree, exactly the mechanism behind the
+$\bigo(\kappa)$ cost of inversion (resolving a feature of width $1/\kappa$).
+\emph{Right:} the rectangle $R(x)=\tfrac12[P_{\mathrm{sgn}}(x-a)-P_{\mathrm{sgn}}(x-b)]$
+on $[a,b]=[0.3,0.7]$, an approximate band-pass filter $\approx1$ on the shaded window and
+$\approx0$ outside; applied as $R(H)$ it projects onto the eigenspace with energies in
+$[a,b]$.}
+\label{fig:lec09-sign}
+\end{figure}
 
 \begin{proposition}[Fixed-point amplitude amplification via QSVT]
 \label{prop:lec09-fpaa}
@@ -439,6 +514,98 @@ with $A$ a general block encoding \emph{amplifies its singular values uniformly}
 toward $\norm A$ (uniform singular value amplification), a subroutine we reuse when
 converting a loosely subnormalized block encoding to a tight one.
 
+\begin{example}[Estimating the ground-state energy of the Ising model by spectral filtering]
+\label{exa:lec09-ising}
+Take the $n$-spin transverse-field Ising Hamiltonian of
+\cref{exa:lec06-ising,exa:lec07-tfim},
+\[
+  H=-J\sum_{i=1}^{n-1}Z_iZ_{i+1}-h\sum_{i=1}^{n}X_i,
+\]
+and suppose we want its ground-state energy $E_0$. Normalize $\hat H=H/\alpha$ with
+$\alpha=\norm c_1=(n{-}1)J+nh$ (the LCU subnormalization of \cref{exa:lec07-tfim}), so
+$\hat H$ has spectrum in $[-1,1]$ and $E_0=\alpha\hat\lambda_0$ with
+$\hat\lambda_0$ the smallest eigenvalue of $\hat H$. The filtering primitive turns the
+\emph{threshold question} ``is there an eigenvalue below $\mu$?'' into a measurement:
+for a trial threshold $\mu$, the shifted rectangle
+$R_\mu(x)=\tfrac12\bigl[1-P_{\mathrm{sgn}}(x-\mu)\bigr]$ of \eqref{eq:lec09-sign} is
+$\approx1$ on eigenvalues below $\mu$ and $\approx0$ above. Applying $R_\mu(\hat H)$ to a
+trial state $\ket\psi$ with nonzero ground-state overlap
+$\gamma=\abs{\braket{u_0}{\psi}}$ and measuring the flag returns ``yes'' with
+probability $\approx\gamma^2$ once $\mu>\hat\lambda_0$, and $\approx0$ once
+$\mu<\hat\lambda_0$. A binary search on $\mu$ to resolution $\delta$ then brackets
+$\hat\lambda_0$---the QSVT realization of the Lin--Tong eigenstate-filtering ground-state
+energy estimator, an alternative to the QPE-based estimator of \cref{thm:lec05-gsee}.
+
+Concretely, for $n=3$, $J=1$, $h=\tfrac12$ the spectrum (computed directly) has
+$E_0=-2.4032$ and first excited $E_1=-2.2093$, a spectral gap
+$\Delta_{\mathrm{phys}}=0.194$; the subnormalization is $\alpha=(n{-}1)J+nh=2+1.5=3.5$,
+so the \emph{normalized} ground energy is $\hat\lambda_0=E_0/\alpha=-0.687$ and the
+normalized gap is $\Delta=\Delta_{\mathrm{phys}}/\alpha\approx0.055$. The sign
+polynomial \eqref{eq:lec09-sign} that resolves this gap has degree
+\[
+  d=\bigo\!\bigl(\Delta^{-1}\log(1/\epsilon)\bigr)\approx\bigo\!\bigl(18\log(1/\epsilon)\bigr),
+\]
+and the whole estimate uses $\bigo(\Delta^{-1}\log(1/\epsilon)\cdot\log(1/\delta))$ queries
+to the block encoding of $\hat H$ (the inner filtering cost times the
+$\log(1/\delta)$ binary-search steps). The $\gamma^{-2}$ repetitions needed to see the
+``yes'' outcome are the quantum analogue of the overlap requirement in any
+ground-state method; a good variational $\ket\psi$ keeps $\gamma=\bigo(1)$. Combined
+with \cref{prop:lec09-fpaa}, the same rectangle \emph{prepares} the filtered ground
+state (not merely its energy) by amplifying the ``yes'' branch, the QSVT route to
+ground-state preparation of \cref{thm:lec05-gsp}.
+
+\emph{Convergence of the energy estimate.} A degree-$\sim k$ sign/rectangle filter
+resolves the spectrum to a window $\sim1/k$, so the (physical) energy error falls like
+$\alpha/k$---linearly in $1/(\text{degree})$. The companion notebook sweeps the filter
+sharpness $k$ (the proxy for degree) at $n=3,J=1,h=\tfrac12$ ($\alpha=3.5$):
+\begin{center}
+\begin{tabular}{r l l}
+\toprule
+filter sharpness $k$ & energy error $\abs{E_0^{\mathrm{est}}-E_0}$ & $\alpha/k$\\
+\midrule
+$20$  & $6.4\times10^{-2}$ & $1.8\times10^{-1}$\\
+$40$  & $3.4\times10^{-2}$ & $8.8\times10^{-2}$\\
+$80$  & $1.7\times10^{-2}$ & $4.4\times10^{-2}$\\
+$160$ & $8.4\times10^{-3}$ & $2.2\times10^{-2}$\\
+$320$ & $4.2\times10^{-3}$ & $1.1\times10^{-2}$\\
+\bottomrule
+\end{tabular}
+\end{center}
+The error halves each time $k$ doubles---the $1/(\text{degree})$ law, in contrast to the
+exponential precision dependence of the inversion polynomial above: resolving a sharp
+spectral edge to additive accuracy $\delta$ needs degree $\sim1/\delta$, which is why
+filtering reaches moderate precision cheaply but high precision only slowly, and why for
+tight energy estimates one combines the filter with amplitude estimation
+(\cref{thm:lec05-ae}) rather than sharpening $k$ alone.
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}
+\begin{loglogaxis}[
+  width=0.72\textwidth, height=0.42\textwidth,
+  xlabel={filter sharpness $k$ (${}\sim{}$degree)}, ylabel={ground-energy error},
+  xmin=8, xmax=400, ymin=3e-3, ymax=4e-1,
+  legend pos=south west, grid=both, grid style={gray!20},
+  tick label style={font=\small}, label style={font=\small},
+]
+\addplot[blue,mark=*,thick] coordinates {
+  (10,0.099325)(20,0.064307)(40,0.033716)(80,0.016859)(160,0.0084293)(320,0.0042146)
+};
+\addlegendentry{measured $\abs{E_0^{\mathrm{est}}-E_0}$}
+\addplot[black,dashed,thick] coordinates {
+  (10,0.35)(20,0.175)(40,0.0875)(80,0.04375)(160,0.021875)(320,0.010937)
+};
+\addlegendentry{$\alpha/k$ reference}
+\end{loglogaxis}
+\end{tikzpicture}
+\caption{Convergence of the ground-energy estimate (\cref{exa:lec09-ising}) for the
+$n=3$ transverse-field Ising model as the filter sharpens. The error tracks the
+$\alpha/k$ reference (both lines have slope $-1$ on log--log axes): a degree-$\sim k$
+filter resolves the spectral edge to a window $\sim1/k$, so the energy error decays
+linearly in $1/(\text{degree})$---polynomially, not exponentially.}
+\label{fig:lec09-ising-conv}
+\end{figure}
+\end{example}
+
 \begin{example}[{Approximating $1/x$ on $[1/\kappa,1]$}]
 \label{exa:lec09-inv}
 We make \eqref{eq:lec09-inv-target} concrete. A standard construction starts from the
@@ -459,8 +626,207 @@ $\eta\kappa$ (with $\eta=4/3$) so that $\abs{P}\le1$ on all of $[-1,1]$. The res
 odd $P$ satisfies \eqref{eq:lec09-inv-target}, and by \cref{thm:lec09-qsvt} the QSVT
 circuit block-encodes $P^{(\mathrm{SV})}(A\dg)=V P(\Sigma)V\dg\approx\tfrac1{\eta\kappa}
 A^{-1}$ using $\bigo(\kappa\log(1/\epsilon))$ queries. This is precisely the polynomial
-whose phase factors one obtains from a QSP solver (\cref{sec:lec09-5}); the companion
-notebook plots $P$ against $1/(\eta\kappa x)$ and checks the error on $[1/\kappa,1]$.
+whose phase factors one obtains from a QSP solver (\cref{sec:lec09-5}).
+
+\emph{A concrete odd polynomial.} Fix $\kappa=4$, $\eta=\tfrac43$, and $b=40$. Then
+\begin{equation}
+  P(x)=\frac{1}{\eta\kappa}\,\frac{1-(1-x^2)^{b}}{x}
+      =\frac{3}{16}\,\frac{1-(1-x^2)^{40}}{x}
+  \label{eq:lec09-Pconcrete}
+\end{equation}
+is an \emph{odd} polynomial of degree $2b-1=79$ (only odd powers $x,x^3,\dots,x^{79}$
+survive, since $\tfrac{1-(1-x^2)^b}{x}$ is odd). It is genuinely bounded on $[-1,1]$:
+its maximum $\max_{[-1,1]}\abs{P}=P(1/\kappa)\approx0.693<1$ is attained at the edge
+$x=1/\kappa=\tfrac14$ of the spectral support, so no further rescaling is needed and the
+QSVT hypothesis $\abs P\le1$ holds. On the support $[1/\kappa,1]$ it tracks the target
+$1/(\eta\kappa x)=\tfrac{3}{16x}$ to absolute error at most $0.057$, taken at the left
+edge $x=1/\kappa$; this equals the \emph{relative} error $(1-\kappa^{-2})^b=(1-\tfrac1{16})^{40}
+\approx0.076$ against the value $1/(\eta\kappa)\cdot\kappa=0.75$ there, and the error
+decays to below $10^{-4}$ already at $x=\tfrac12$ (\cref{fig:lec09-inv}). Lowering the
+error on the whole support requires increasing $b$ (and hence the degree); the next
+example tracks exactly that dependence.
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  name=lhs, width=0.46\textwidth, height=0.40\textwidth,
+  xlabel={$x$}, ylabel={value},
+  xmin=0.2, xmax=1.02, ymin=0.15, ymax=0.8,
+  legend pos=north east, grid=both, grid style={gray!20},
+  tick label style={font=\small}, label style={font=\small},
+  legend style={font=\small},
+]
+\addplot[blue,thick] coordinates {
+  (0.25000,0.69326)(0.28333,0.63849)(0.31667,0.58346)(0.35000,0.53284)(0.38333,0.48828)(0.41667,0.44978)(0.45000,0.41662)(0.48333,0.38792)(0.51667,0.36290)(0.55000,0.34091)(0.58333,0.32143)(0.61667,0.30405)(0.65000,0.28846)(0.68333,0.27439)(0.71667,0.26163)(0.75000,0.25000)(0.80000,0.23438)(0.85000,0.22059)(0.90000,0.20833)(0.95000,0.19737)(1.00000,0.18750)
+};
+\addlegendentry{$P(x)$}
+\addplot[red,dashed,thick] coordinates {
+  (0.25000,0.75000)(0.28333,0.66176)(0.31667,0.59211)(0.35000,0.53571)(0.38333,0.48913)(0.41667,0.45000)(0.45000,0.41667)(0.48333,0.38793)(0.51667,0.36290)(0.55000,0.34091)(0.58333,0.32143)(0.61667,0.30405)(0.65000,0.28846)(0.68333,0.27439)(0.71667,0.26163)(0.75000,0.25000)(0.80000,0.23438)(0.85000,0.22059)(0.90000,0.20833)(0.95000,0.19737)(1.00000,0.18750)
+};
+\addlegendentry{$1/(\eta\kappa x)$}
+\end{axis}
+\begin{semilogyaxis}[
+  at={(lhs.south east)}, anchor=south west, xshift=34pt,
+  width=0.46\textwidth, height=0.40\textwidth,
+  xlabel={$x$}, ylabel={$\abs{P(x)-1/(\eta\kappa x)}$},
+  xmin=0.2, xmax=1.02, ymin=1e-6, ymax=0.1,
+  grid=both, grid style={gray!20},
+  tick label style={font=\small}, label style={font=\small},
+]
+\addplot[black,mark=*,mark size=1pt,thick] coordinates {
+  (0.25000,5.674e-2)(0.26667,3.678e-2)(0.28333,2.328e-2)(0.30000,1.437e-2)(0.31667,8.64e-3)(0.33333,5.06e-3)(0.35000,2.88e-3)(0.36667,1.59e-3)(0.38333,8.5e-4)(0.40000,4.4e-4)(0.41667,2.2e-4)(0.43333,1.1e-4)(0.45000,5.2e-5)(0.46667,2.4e-5)(0.48333,1.1e-5)(0.50000,4.8e-6)(0.51667,2.0e-6)
+};
+\end{semilogyaxis}
+\end{tikzpicture}
+\caption{The concrete odd inversion polynomial \eqref{eq:lec09-Pconcrete}
+($\kappa=4$, $\eta=\tfrac43$, $b=40$, degree $79$). \emph{Left:} $P(x)$ (solid) against
+the target $1/(\eta\kappa x)$ (dashed) on the spectral support $[1/\kappa,1]=[\tfrac14,1]$;
+the curves are visually indistinguishable except near the left edge. \emph{Right:} the
+pointwise error $\abs{P(x)-1/(\eta\kappa x)}$ on a log scale, concentrated at
+$x=1/\kappa$ (where it equals the relative bound $(1-\kappa^{-2})^b\cdot\tfrac1{\eta\kappa^2}$)
+and falling below $10^{-5}$ by $x=\tfrac12$.}
+\label{fig:lec09-inv}
+\end{figure}
+\end{example}
+
+\begin{example}[Solving the $3$D Poisson equation by QSVT inversion]
+\label{exa:lec09-poisson}
+We make the inversion recipe fully concrete on a genuinely high-dimensional problem:
+the Poisson equation $-\Delta u=f$ on the unit cube $[0,1]^3$ with Dirichlet boundary
+conditions. Discretize each axis with $N=2^n$ interior points and spacing
+$h=1/(N{+}1)$. The one-dimensional second-difference operator
+\[
+  L_1=\frac{1}{h^2}\,\mathrm{tridiag}(-1,\,2,\,-1)\in\R^{N\times N}
+\]
+has the known eigenpairs $\mu_k=\tfrac{4}{h^2}\sin^2\!\tfrac{k\pi}{2(N+1)}$,
+$k=1,\dots,N$. The $3$D discrete Laplacian is the Kronecker sum
+\[
+  L_3=L_1\otimes\id\otimes\id+\id\otimes L_1\otimes\id+\id\otimes\id\otimes L_1
+  \in\R^{N^3\times N^3},
+\]
+a $(3n)$-qubit operator ($N^3=2^{3n}$ unknowns) that is a $3$-term LCU of the
+block-encoded $L_1$ (\cref{exa:lec08-poisson}). Its eigenvalues are the sums
+$\mu_{k_1}+\mu_{k_2}+\mu_{k_3}$, so
+\[
+  \lambda_{\max}(L_3)=3\mu_N\approx \frac{12}{h^2},\qquad
+  \lambda_{\min}(L_3)=3\mu_1\approx \frac{3\pi^2}{h^2}\cdot\frac{1}{(N+1)^2}\cdot(N+1)^2
+   =3\pi^2,
+\]
+and the condition number is
+\[
+  \kappa(L_3)=\frac{\lambda_{\max}}{\lambda_{\min}}
+  =\frac{\sin^2\!\frac{N\pi}{2(N+1)}}{\sin^2\!\frac{\pi}{2(N+1)}}
+  \approx\Bigl(\frac{2(N+1)}{\pi}\Bigr)^2.
+\]
+The crucial feature is that the three directions share the \emph{same} spectrum, so
+the factor $3$ cancels in the ratio: $\kappa$ is \emph{independent of the dimension}
+$d$. The same cancellation holds for the general $d$-dimensional Laplacian
+$L_d=\sum_{i=1}^{d}\id^{\otimes(i-1)}\otimes L_1\otimes\id^{\otimes(d-i)}$: its extreme
+eigenvalues are $d\mu_N$ and $d\mu_1$, and the factor $d$ cancels, so
+\emph{every} dimension has the same $\kappa=\mu_N/\mu_1\approx(2(N{+}1)/\pi)^2$.
+Numerically, at $N=4$ the companion notebook finds $\kappa=9.4721$ identical for
+$d=1,2,3,4,5,6$ (and, computed from the $1$D spectrum alone, for every $d$ up to
+$20$ and beyond---no $2^d$ matrix is needed, since $\kappa$ depends only on the shared
+one-dimensional ratio). QSVT solves $L_d u=f$ (with $N=2$ per axis, so dimension
+$2^d$) to direction fidelity $>1-10^{-4}$ for every $d$ up to $6$, and a sparse
+reference solve extends the explicit check to $d=10$ ($N^d=1024$ unknowns) at the
+\emph{same} $\kappa$---the accuracy and conditioning do not degrade as the ambient
+dimension $2^d$ grows exponentially.
+\begin{center}
+\begin{tabular}{r r r l}
+\toprule
+$d$ & dimension $2^d$ & $\kappa(L_d)$ & solve check\\
+\midrule
+$3$  & $8$    & $3.0$ & QSVT fidelity $1.000000$\\
+$4$  & $16$   & $3.0$ & QSVT fidelity $1.000000$\\
+$5$  & $32$   & $3.0$ & QSVT fidelity $1.000000$\\
+$6$  & $64$   & $3.0$ & QSVT fidelity $1.000000$\\
+$8$  & $256$  & $3.0$ & sparse residual $1.3\times10^{-16}$\\
+$10$ & $1024$ & $3.0$ & sparse residual $2.6\times10^{-16}$\\
+\bottomrule
+\end{tabular}
+\end{center}
+(Columns $d\le6$ use the dense QSVT solver; $d=8,10$ use a sparse classical reference,
+since the dense solver densifies the $2^d\times2^d$ operator. The constant $\kappa=3$
+at $N=2$ is the whole point: the query count $\bigo(\kappa\log(1/\epsilon))$ is flat in
+$d$.)
+Concretely, for $n=3$ ($N=8$) the operator $L_3$ is $512\times512$, with
+$\lambda_{\max}\approx11.64$, $\lambda_{\min}\approx0.362$, and $\kappa\approx32$ (the
+estimate $(2(N{+}1)/\pi)^2\approx32.8$ is accurate to a percent); $n=4$ gives
+$\kappa\approx117$ and $n=5$ gives $\kappa\approx441$, the expected $\bigo(N^2)$ growth
+(independent of $d$).
+
+To solve $L_3 u=f$: normalize $A=L_3/\lambda_{\max}$ so $\norm A\le1$ and its spectrum
+lies in $[1/\kappa,1]$; prepare $\ket f\propto\sum_x f(x)\ket x$ with a state-preparation
+oracle; apply the odd polynomial $P\approx 1/(\eta\kappa x)$ of \cref{exa:lec09-inv},
+degree $d=\bigo(\kappa\log(1/\epsilon))$, through the QSVT circuit of
+\cref{thm:lec09-qsvt}; and amplitude-amplify the flagged block. Because $L_3$ is
+\emph{Hermitian and positive definite}, its singular values equal its eigenvalues, so
+plain eigenvalue QSVT (equivalently qubitization, \cref{ch:lec08}) suffices---no general
+singular-value machinery is needed. The query cost is
+\[
+  \bigo\!\bigl(\kappa\log(1/\epsilon)\bigr)=\bigo\!\bigl(N^2\log(1/\epsilon)\bigr),
+\]
+using $\bigo(dn)=\bigo(n)$ qubits for the $N^3$-dimensional state---an
+\emph{exponential} saving in memory over the $N^3$ classical unknowns, and a cost that
+is independent of the spatial dimension $d$ apart from the $\bigo(d)$ gates per block
+encoding of $L_d$. Two caveats inherited from all QLSP solvers (\cref{ch:lec10}): the
+right-hand side must be preparable as $\ket f$, and the output is the quantum state
+$\ket u\propto L_3^{-1}f$, from which one extracts summary statistics (overlaps, moments)
+rather than all $N^3$ entries.
+
+\emph{Convergence of the inversion polynomial.} The query cost is driven entirely by
+how fast a bounded polynomial approximates $1/x$ on $[1/\kappa,1]$. For the transparent
+Childs--Kothari--Somma polynomial $p_b(x)=\tfrac{1-(1-x^2)^b}{x}$ of
+\cref{exa:lec09-inv} (degree $2b-1$), the \emph{relative} sup-error on $[1/\kappa,1]$ is
+exactly $(1-\kappa^{-2})^b$, geometric in $b$. The companion notebook measures this at
+$\kappa=8$:
+\begin{center}
+\begin{tabular}{r r l}
+\toprule
+degree $2b-1$ & rel.\ sup-error & bound $(1-\kappa^{-2})^b$\\
+\midrule
+$19$   & $8.5\times10^{-1}$ & $8.5\times10^{-1}$\\
+$99$   & $4.6\times10^{-1}$ & $4.6\times10^{-1}$\\
+$399$  & $4.3\times10^{-2}$ & $4.3\times10^{-2}$\\
+$799$  & $1.8\times10^{-3}$ & $1.8\times10^{-3}$\\
+$1599$ & $3.4\times10^{-6}$ & $3.4\times10^{-6}$\\
+\bottomrule
+\end{tabular}
+\end{center}
+The measured error matches the bound to all digits, and once the degree clears the
+$\kappa$-dominated onset it falls \emph{exponentially}---the $\log(1/\epsilon)$ factor in
+$d=\bigo(\kappa\log(1/\epsilon))$. (The raw $p_b$ has degree $2b-1=\bigo(\kappa^2\log
+(1/\epsilon))$; truncating its Chebyshev expansion recovers the optimal
+$\bigo(\kappa\log(1/\epsilon))$ quoted above.)
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}
+\begin{semilogyaxis}[
+  width=0.72\textwidth, height=0.42\textwidth,
+  xlabel={polynomial degree $2b-1$}, ylabel={relative sup-error on $[1/\kappa,1]$},
+  xmin=0, xmax=1650, ymin=1e-6, ymax=2,
+  legend pos=south west, grid=both, grid style={gray!20},
+  tick label style={font=\small}, label style={font=\small},
+]
+\addplot[blue,mark=*,thick] coordinates {
+  (19,0.8543)(49,0.6746)(99,0.4550)(199,0.2070)(399,0.04287)(799,0.001838)(1599,3.376e-6)
+};
+\addlegendentry{measured ($\kappa=8$)}
+\addplot[black,dashed,thick] coordinates {
+  (19,0.8543)(49,0.6746)(99,0.4550)(199,0.2070)(399,0.04287)(799,0.001838)(1599,3.376e-6)
+};
+\addlegendentry{bound $(1-\kappa^{-2})^b$}
+\end{semilogyaxis}
+\end{tikzpicture}
+\caption{Convergence of the $1/x$ approximation (\cref{exa:lec09-poisson}) on the
+spectral support $[1/\kappa,1]$ at $\kappa=8$. The relative sup-error of the
+Childs--Kothari--Somma polynomial $p_b(x)=\tfrac{1-(1-x^2)^b}{x}$ equals the bound
+$(1-\kappa^{-2})^b$ exactly (the two curves coincide), decaying geometrically in the
+degree $2b-1$---the $\log(1/\epsilon)$ precision factor in
+$d=\bigo(\kappa\log(1/\epsilon))$.}
+\label{fig:lec09-poisson-conv}
+\end{figure}
 \end{example}
 
 \section{QSVT versus LCU}

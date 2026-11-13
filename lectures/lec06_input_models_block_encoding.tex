@@ -229,36 +229,51 @@ speedup the loaded state was meant to deliver---so the method pays off only for
 genuinely integrable densities (log-concave, Gaussian, and the like).
 \end{remark}
 
-\begin{example}[Efficiently integrable: Grover--Rudolph on four points]
+\begin{example}[Efficiently integrable: Grover--Rudolph on four and eight points]
 \label{exa:lec06-grex}
-Load $p=(3,1,1,3)/8$ on $n=2$ qubits, i.e.\
-$\ket{u}=\tfrac1{\sqrt8}\bigl(\sqrt3\,\ket{00}+\ket{01}+\ket{10}+\sqrt3\,\ket{11}\bigr)$.
-With $q_1$ the most significant bit, the two halves $\{00,01\}$ and $\{10,11\}$ carry
-equal mass $\tfrac12$, so the level-1 angle obeys $\cos^2(\theta_1/2)=\tfrac12$, i.e.\
-$R_y(\pi/2)=\Hgate$ on $q_1$. Conditioned on $q_1$ the level-2 angle splits each half:
-$q_1{=}0$ gives $\cos^2(\theta/2)=p_{00}/(p_{00}{+}p_{01})=\tfrac34$, so $R_y(\pi/3)$;
-$q_1{=}1$ gives $p_{10}/(p_{10}{+}p_{11})=\tfrac14$, so $R_y(2\pi/3)$. Level~2 is a
-\emph{uniformly controlled} rotation---one angle per value of $q_1$:
+\emph{Two qubits, completely.} Load $p=(3,1,1,3)/8$ on $n=2$ qubits,
+\[
+  \ket{u}=\tfrac1{\sqrt8}\bigl(\sqrt3\,\ket{00}+\ket{01}+\ket{10}+\sqrt3\,\ket{11}\bigr),
+\]
+with $q_1$ the most significant bit. Grover--Rudolph (\cref{rem:lec06-gr}) fixes the
+qubits one at a time. \emph{Level~1} splits the total mass between the halves
+$\{00,01\}$ and $\{10,11\}$, each carrying $\tfrac12$, so $\cos^2(\theta_1/2)=\tfrac12$,
+$\theta_1=\pi/2$: an $R_y(\pi/2)=\Hgate$ on $q_1$. \emph{Level~2} rotates $q_2$ by an
+angle that depends on $q_1$---a \emph{uniformly controlled} rotation: $q_1{=}0$ gives
+$\cos^2(\theta/2)=p_{00}/(p_{00}{+}p_{01})=\tfrac34$, so $\theta=\pi/3$, while $q_1{=}1$
+gives $\tfrac14$, so $\theta=2\pi/3$. The complete two-qubit circuit is
 \begin{center}
 \begin{quantikz}
-  \lstick{$q_1:\ket0$} & \gate{\Hgate} & \octrl{1}          & \ctrl{1}            & \qw \\
-  \lstick{$q_2:\ket0$} & \qw           & \gate{R_y(\pi/3)}  & \gate{R_y(2\pi/3)}  & \qw
+  \lstick{$q_1:\ket0$} & \gate{\Hgate} & \octrl{1}         & \ctrl{1}            & \qw \\
+  \lstick{$q_2:\ket0$} & \qw           & \gate{R_y(\pi/3)} & \gate{R_y(2\pi/3)}  & \qw
 \end{quantikz}
 \end{center}
-The amplitude on $\ket{00}$ is $\cos\tfrac\pi4\cos\tfrac\pi6
-=\tfrac1{\sqrt2}\cdot\tfrac{\sqrt3}2=\sqrt3/\sqrt8=\sqrt{p_{00}}$, as it must be.
+the open control ($q_1{=}0$) applying $R_y(\pi/3)$ and the filled control ($q_1{=}1$)
+applying $R_y(2\pi/3)$. Since the level-2 angle is \emph{affine} in the control bit,
+$\theta_2(q_1)=\tfrac\pi3+\tfrac\pi3\,q_1$, and same-axis rotations add,
+$R_y(\alpha)R_y(\beta)=R_y(\alpha+\beta)$, this multiplexer is just three elementary
+gates---$\Hgate$ on $q_1$, an unconditional $R_y(\pi/3)$ on $q_2$, and one
+singly-controlled $R_y(\pi/3)$ that bumps the angle to $2\pi/3$ when $q_1{=}1$:
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_1:\ket0$} & \gate{\Hgate} & \qw               & \ctrl{1}          & \qw \\
+  \lstick{$q_2:\ket0$} & \qw           & \gate{R_y(\pi/3)} & \gate{R_y(\pi/3)} & \qw
+\end{quantikz}
+\end{center}
+Either form gives amplitude $\cos\tfrac\pi4\cos\tfrac\pi6
+=\tfrac1{\sqrt2}\cdot\tfrac{\sqrt3}2=\sqrt{3/8}=\sqrt{p_{00}}$ on $\ket{00}$, as required.
 
 \emph{Three qubits.} The same bisection extends to $n=3$ ($8$ points). Load
-$p=(6,6,1,3,3,1,6,6)/32$, i.e.\
+$p=(6,6,1,3,3,1,6,6)/32$,
 \[
   \ket u=\tfrac1{\sqrt{32}}\bigl(\sqrt6\,\ket{000}+\sqrt6\,\ket{001}+\ket{010}
   +\sqrt3\,\ket{011}+\sqrt3\,\ket{100}+\ket{101}+\sqrt6\,\ket{110}+\sqrt6\,\ket{111}\bigr).
 \]
-Level~1 has $P(q_1{=}0)=(6{+}6{+}1{+}3)/32=\tfrac12$, so $\Hgate$ on $q_1$. Level~2 is
-as before---$R_y(\pi/3)$ if $q_1{=}0$ (mass ratio $\tfrac{12}{16}=\tfrac34$) and
-$R_y(2\pi/3)$ if $q_1{=}1$ (ratio $\tfrac{4}{16}=\tfrac14$). Level~3 is now a
-\emph{four-way} uniformly controlled rotation whose angle depends on \emph{both}
-$q_1$ and $q_2$,
+Level~1 has $P(q_1{=}0)=(6{+}6{+}1{+}3)/32=\tfrac12$, so $\Hgate$ on $q_1$; level~2 is
+exactly as in the two-qubit case---$R_y(\pi/3)$ if $q_1{=}0$ (ratio
+$\tfrac{12}{16}=\tfrac34$), $R_y(2\pi/3)$ if $q_1{=}1$ (ratio $\tfrac{4}{16}=\tfrac14$);
+and level~3 is a \emph{four-way} uniformly controlled rotation whose angle depends on
+\emph{both} $q_1$ and $q_2$,
 \[
   \cos^2\tfrac{\theta_{q_1q_2}}{2}
   =\frac{p_{q_1q_2 0}}{p_{q_1q_2 0}+p_{q_1q_2 1}}
@@ -289,6 +304,48 @@ cumulative distribution, rotates by that register-held value, and uncomputes---o
 $\poly(n)$ block per level, $n$ levels in all. The $2^{k-1}$ never materializes because
 the angles come from a formula, not a lookup table; for a \emph{generic} $p$ no such
 formula exists and the cost reverts to the $2^{n}$ of \cref{prop:lec06-sp}.
+
+\emph{The efficient block.} Concretely, level $k$ is the
+\emph{compute--rotate--uncompute} block
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket{i_1\cdots i_{k-1}}$} & \gate[2]{A_{\mathrm{cdf}}} & \qw           & \gate[2]{A_{\mathrm{cdf}}^{\dagger}} & \qw \\
+  \lstick{$\ket{0^{w}}$}             &                           & \gate[2]{R_y} &                                      & \qw \\
+  \lstick{$q_k:\ket0$}               & \qw                       &               & \qw                                  & \qw
+\end{quantikz}
+\end{center}
+where $A_{\mathrm{cdf}}$ reads the already-set bits $i_1\cdots i_{k-1}$ and \emph{writes}
+the one angle $\theta(i_1\cdots i_{k-1})=2\arccos\sqrt{\int_{I_{\mathrm{left}}}p/\int_{I}p}$
+into a $w$-qubit work register (a $\poly(n)$-gate arithmetic circuit evaluating the
+cumulative distribution), the controlled $R_y$ rotates the fresh target $q_k$ by that
+register-held value, and $A_{\mathrm{cdf}}^{\dagger}$ uncomputes the work register back to
+$\ket{0^{w}}$. The full Grover--Rudolph circuit is $n$ such blocks in sequence, block $k$
+taking $q_1\cdots q_{k-1}$ as the angle input and producing $q_k$; the total cost is
+$n\cdot\poly(n)=\poly(n)$, with no $2^{k-1}$ anywhere.
+
+\emph{The oracles made explicit.} For the tiny $p$'s above the angle oracles need no work
+register at all, because both angle tables are \emph{affine} in the set bits,
+\[
+  \theta_2(q_1)=\tfrac\pi3+\tfrac\pi3\,q_1,\qquad
+  \theta_3(q_1q_2)=\tfrac\pi2-\tfrac\pi6\,q_1+\tfrac\pi6\,q_2
+\]
+(check: $\theta_3$ gives $\tfrac\pi2,\tfrac{2\pi}3,\tfrac\pi3,\tfrac\pi2$ at
+$q_1q_2=00,01,10,11$). By the same adding-angles argument as for $n=2$, an affine angle
+factors into a constant $R_y$ plus \emph{one singly-controlled} $R_y$ per input bit. Thus
+block~1 is $\Hgate$ on $q_1$; block~2 is exactly the elementary two-qubit circuit drawn at
+the start of this example; and block~3 is
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_1$}       & \qw                & \ctrl{2}            & \qw                & \qw \\
+  \lstick{$q_2$}       & \qw                & \qw                 & \ctrl{1}           & \qw \\
+  \lstick{$q_3:\ket0$} & \gate{R_y(\pi/2)}  & \gate{R_y(-\pi/6)}  & \gate{R_y(\pi/6)}  & \qw
+\end{quantikz}
+\end{center}
+the two controlled rotations adding $\mp\pi/6$ to $\theta_3$ as $q_1,q_2$ switch on.
+This affine collapse is special to these angles; a \emph{generic} uniformly controlled
+rotation needs the full Walsh expansion---all $2^{k-1}$ multi-controlled terms, or the
+arithmetic $A_{\mathrm{cdf}}$ of the general block above---which is exactly why only an
+efficiently integrable $p$ stays $\poly(n)$.
 \end{example}
 
 \begin{example}[Sparse vector]
@@ -313,9 +370,21 @@ total.
 \begin{example}[Matrix product state: GHZ]
 \label{exa:lec06-mps}
 The GHZ state $\ket{u}=\tfrac1{\sqrt2}(\ket{000}+\ket{111})$ is the simplest nontrivial
-matrix product state, of bond dimension $\chi=2$. Its sequential MPS preparation is the
-textbook circuit---a Hadamard on the first qubit, then a $\CNOT$ chain carrying the bond
-index along the register:
+\emph{matrix product state} (MPS). Recall that an MPS writes the amplitudes as a product
+of matrices,
+\[
+  \ket{u}=\sum_{s_1\cdots s_n}\bra{L}A^{s_1}_1 A^{s_2}_2\cdots A^{s_n}_n\ket{R}\,
+          \ket{s_1\cdots s_n},
+\]
+where each $A^{s_k}_k$ is a $\chi_{k-1}\times\chi_k$ matrix labeled by the physical bit
+$s_k$ (and $\bra L,\ket R$ are boundary vectors). The \emph{bond dimension} is
+$\chi=\max_k\chi_k$, the size of the virtual ``bond'' index threaded between neighboring
+sites. Equivalently---by the Schmidt decomposition---$\chi$ is the largest Schmidt rank
+of $\ket u$ across any cut into a left and a right block, so it measures how much
+entanglement the state carries (a product state has $\chi=1$). GHZ has $\chi=2$: a
+single bond bit records the ``all-$0$ or all-$1$'' branch. Its sequential MPS
+preparation is the textbook circuit---a Hadamard on the first qubit, then a $\CNOT$
+chain carrying the bond index along the register:
 \begin{center}
 \begin{quantikz}
   \lstick{$q_0:\ket0$} & \gate{\Hgate} & \ctrl{1} & \qw      & \qw \\
@@ -323,15 +392,26 @@ index along the register:
   \lstick{$q_2:\ket0$} & \qw           & \qw      & \targ{}  & \qw
 \end{quantikz}
 \end{center}
-Each gate acts on $\lceil\log_2\chi\rceil+1=2$ qubits and there are $n-1$ of them,
-matching the $\bigo(n\,\poly(\chi))$ count; for larger $\chi$ the $\CNOT$s become the
+The bond dimension is \emph{visible} in this circuit as the information carried forward
+along the $\CNOT$ chain. After the Hadamard, $q_0$ holds a single bit recording which
+branch---all-$0$ or all-$1$---the register has committed to, and each $\CNOT$ copies that
+one bit to the next site. That propagating carrier bit \emph{is} the bond index of the
+matrix-product form: it takes $\lceil\log_2\chi\rceil=1$ qubit to carry because $\chi=2$,
+so reading left to right you watch the single bond thread site by site. Each gate acts on
+$\lceil\log_2\chi\rceil+1=2$ qubits and there are $n-1$ of them,
+matching the $\bigo(n\,\poly(\chi))$ count; for larger $\chi$ one would need
+$\lceil\log_2\chi\rceil$ carrier wires and the $\CNOT$s become the
 bond unitaries of \cref{ch:lec15}.
 \end{example}
 
 \begin{remark}[Bond dimension for general $n$: GHZ ($\chi=2$) and Dicke ($\chi=3$)]
 \label{rem:lec06-mpschi}
 Both families extend to any number of qubits, the bond index carrying exactly the
-information the left block must pass to the right across a cut.
+information the left block must pass to the right across a cut. Concretely, the
+\emph{bond dimension} $\chi$ is the dimension of that bond index in the matrix-product
+form of \cref{exa:lec06-mps}---equivalently, by the Schmidt decomposition, the maximum
+number of nonzero Schmidt coefficients of the state over all bipartitions into a left
+and a right block.
 
 \emph{Bond dimension $2$ (GHZ).} The $n$-qubit GHZ state
 $\tfrac1{\sqrt2}(\ket0^{\otimes n}+\ket1^{\otimes n})$ is the MPS with the diagonal
@@ -463,8 +543,14 @@ $\sin\theta=(\ee^{\ii\theta}-\ee^{-\ii\theta})/2\ii$,
 \]
 a two-term combination extracted with one flag qubit exactly as in the Hadamard test
 (\cref{sec:lec04-1}): make the uniform superposition on the data and $\ket+$ on the
-flag, apply the \emph{flag-controlled} phase gradient $\Phi^{\pm}$ (the phases $+2^b$
-if the flag is $\ket0$, $-2^b$ if $\ket1$), then $\Hgate$ on the flag and measure it.
+flag, apply the \emph{flag-controlled} phase gradient $\Phi^{\pm}$, then $\Hgate$ on the
+flag and measure it. Here $\Phi^{+}$ is the \emph{forward} phase gradient---the layer of
+single-qubit phases $P(2^b)=\diag(1,\ee^{\ii 2^b})$ that turns the uniform data register
+into $\ket g$---and $\Phi^{-}=(\Phi^{+})\dg$ is its conjugate (the phases $\ee^{-\ii 2^b}$,
+producing $\ket{g^{*}}$). The flag selects between them,
+$\Phi^{\pm}=\proj0\otimes\Phi^{+}+\proj1\otimes\Phi^{-}$, so with the flag in $\ket+$ the
+pair evolves to $\tfrac1{\sqrt2}(\ket0\ket g+\ket1\ket{g^{*}})$ and the closing $\Hgate$
+interferes the two branches.
 \begin{center}
 \begin{quantikz}
   \lstick{$\ket0$ \,\scriptsize(flag)}  & \gate{\Hgate}              & \gate[2]{\Phi^{\pm}} & \gate{\Hgate} & \meter{} \\
@@ -914,6 +1000,37 @@ Three features make this the template for all of Part~II.
         to be tracked classically in \cref{sec:lec06-1}.
 \end{itemize}
 
+\begin{remark}[Reading off the norm $\norm{A\ket b}$ to $t$ digits]
+\label{rem:lec06-normcost}
+Because $\norm{A\ket b}=\alpha\sqrt p$ with $p=\norm{A\ket b}^2/\alpha^2$ the probability
+of flagging $\ket{0^a}$, learning the norm is \emph{amplitude estimation}: we estimate the
+amplitude $a=\sqrt p=\norm{A\ket b}/\alpha\in[0,1]$ of the good subspace. ``$t$ digits''
+means additive error $\epsilon=10^{-t}$ on $\norm{A\ket b}$, i.e.\ error
+$\epsilon_a=\epsilon/\alpha$ on $a$.
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{Plain sampling.} Prepare, measure the flag, take the empirical frequency of
+        $\ket{0^a}$. The $1/\sqrt N$ shot noise forces
+        $N=\bigo(\alpha^2/\epsilon^2)=\bigo(\alpha^2\,10^{2t})$ uses of $U_A$ and $O_b$.
+  \item \emph{Amplitude estimation} (\cref{thm:lec05-aecost}; phase estimation of the
+        Grover iterate $G=R_{\mathrm{flag}}R_{\psi}$ built from
+        $U_A,U_A\dg,O_b,O_b\dg$). It reaches additive $\epsilon_a$ with $\bigo(1/\epsilon_a)$
+        uses of $G$, hence
+        \[
+          \bigo\!\Bigl(\tfrac{\alpha}{\epsilon}\Bigr)=\bigo(\alpha\,10^{t})
+          \quad\text{queries},
+        \]
+        the quadratic improvement over sampling---and the same $\alpha/\norm{A\ket b}$
+        saving as amplitude amplification (\cref{thm:lec03-aa}). The counting register
+        needs about $\log_2(\alpha/\epsilon)\approx(\log_2 10)\,t+\log_2\alpha\approx
+        3.32\,t+\log_2\alpha$ qubits to resolve $t$ decimal digits, plus $\bigo(1)$ median
+        repetitions for high confidence.
+\end{itemize}
+Either way the subnormalization $\alpha$ sets the cost---linearly with amplitude
+estimation, quadratically without---one more reason \cref{sec:lec06-2} insists on a small
+$\alpha$. (For $t$ \emph{significant} digits, relative error $\eta=10^{-t}$, set
+$\epsilon=\eta\norm{A\ket b}$: the query count becomes $\bigo(10^{t}/\sqrt p)$.)
+\end{remark}
+
 \begin{example}[Matrix--vector product with the $2\times2$ encoding]
 \label{exa:lec06-matvec}
 Take $A=\left(\begin{smallmatrix}1&1\\0&1\end{smallmatrix}\right)$ with the
@@ -1004,6 +1121,20 @@ $i=c(j)$ and $0$ otherwise). By \cref{rem:lec06-verify},
 $U_A\in\mathrm{BE}_{1,1}(A)$.
 \end{proof}
 
+Explicitly, $U_A$ is just two boxes acting on a flag qubit and the $n$-qubit data
+register:
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(flag)}        & \gate[2]{O_A} & \qw        & \qw \\
+  \lstick{$\ket j$ \,\scriptsize($n$ qubits)} &               & \gate{O_c} & \qw
+\end{quantikz}
+\end{center}
+The entry oracle $O_A$ rotates the flag by $\theta_j=2\arccos\abs{A_{c(j),j}}$,
+conditioned on the column value $\ket j$ and leaving the data register untouched; the
+location oracle $O_c$ then relabels $\ket j\mapsto\ket{c(j)}$. The output is
+$\bigl(A_{c(j),j}\ket0+\sqrt{1-\abs{A_{c(j),j}}^2}\,\ket1\bigr)\ket{c(j)}$, whose
+flag-$\ket0$ part sits in row $c(j)$ with amplitude exactly $A_{c(j),j}$.
+
 \begin{example}[A $1$-sparse worked encoding: the cyclic shift]
 \label{exa:lec06-shift}
 Let $N=4$ and let $A=S$ be the cyclic shift $S\ket{j}=\ket{(j+1)\bmod4}$, a
@@ -1015,7 +1146,19 @@ Then $U_A=(\id\otimes O_c)O_A$ acts as $\ket{0}\ket{j}\mapsto\ket{0}\ket{(j+1)
 \bmod4}$, and $\bra{0,i}U_A\ket{0,j}=\delta_{i,(j+1)\bmod4}=S_{ij}$. Since $S$ is
 already unitary, $U_A$ block-encodes it with $\alpha=1$ and the flag qubit is
 inert---a reassuring sanity check that a unitary is its own $(1,0)$-block-encoding
-(here padded to one idle ancilla).
+(here padded to one idle ancilla). Explicitly, with $O_A=\id$ the whole encoding is
+the increment-by-one permutation $O_c=S$ on the two data qubits $\ket{q_1q_0}$
+($j=2q_1+q_0$, so $q_1$ is the most significant bit), the flag left idle:
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(flag)} & \qw       & \qw       & \qw \\
+  \lstick{$q_1$ \,\scriptsize(MSB)}    & \targ{}   & \qw       & \qw \\
+  \lstick{$q_0$ \,\scriptsize(LSB)}    & \ctrl{-1} & \gate{X}  & \qw
+\end{quantikz}
+\end{center}
+This is the textbook $2$-bit ripple-carry increment: $\CNOT_{q_0\to q_1}$ propagates
+the carry (the high bit flips only when $q_0=1$), then $X$ on $q_0$ toggles the low
+bit, realizing $00\to01\to10\to11\to00$, i.e.\ $\ket j\mapsto\ket{(j+1)\bmod4}$.
 \end{example}
 
 \begin{example}[Block encoding of a diagonal matrix]
@@ -1025,7 +1168,26 @@ $c(j)=j$, so $O_c=\id$ and the entry oracle collapses to
 $O_A\ket{0}\ket{i}=(A_{ii}\ket{0}+\sqrt{1-\abs{A_{ii}}^2}\ket{1})\ket{i}$. Taking
 $U_A=O_A$ gives $\bra{0,i}U_A\ket{0,j}=A_{ii}\delta_{ij}$, so
 $U_A\in\mathrm{BE}_{1,1}(A)$: a diagonal matrix is block-encoded by a single
-multiply-controlled rotation.
+multiply-controlled rotation. Explicitly $U_A=O_A$ is a \emph{uniformly controlled}
+$R_y$ on the flag---the index register $\ket j$ selects the angle
+$\theta_j=2\arccos\abs{A_{jj}}$ (for $A_{jj}\in[0,1]$; a complex entry needs one extra
+index-controlled phase on the flag). For a single system qubit ($N=2$),
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(flag)} & \gate{R_y(\theta_0)} & \gate{R_y(\theta_1)} & \qw \\
+  \lstick{$\ket j$ \,\scriptsize(sys)} & \octrl{-1}           & \ctrl{-1}            & \qw
+\end{quantikz}
+\end{center}
+and e.g.\ $A=\diag(1,\tfrac12)$ gives $\theta_0=0$, $\theta_1=2\pi/3$, so only the
+$\ket1$-controlled rotation survives:
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(flag)} & \gate{R_y(2\pi/3)} & \qw \\
+  \lstick{$\ket j$ \,\scriptsize(sys)} & \ctrl{-1}          & \qw
+\end{quantikz}
+\end{center}
+with $O_A\ket0\ket1=(\tfrac12\ket0+\tfrac{\sqrt3}2\ket1)\ket1$, i.e.\ flag-$\ket0$
+amplitude $\tfrac12=A_{11}$ (and $\ket0\ket0$ is untouched, amplitude $1=A_{00}$).
 \end{example}
 
 \subsection*{The general $s$-sparse case}
@@ -1099,8 +1261,8 @@ counts scale linearly in $\alpha$.
 
 \begin{example}[A worked $2$-sparse encoding: nearest-neighbor hopping]
 \label{exa:lec06-hopping}
-Take the $N=4$ periodic hopping matrix $A=S+S\dg$ with $S\ket j=\ket{(j{+}1)\bmod4}$,
-the adjacency matrix of the $4$-cycle,
+\emph{The matrix and its oracles.} Take the $N=4$ periodic hopping matrix $A=S+S\dg$
+with $S\ket j=\ket{(j{+}1)\bmod4}$, the adjacency matrix of the $4$-cycle,
 \[
   A=\begin{pmatrix}0&1&0&1\\1&0&1&0\\0&1&0&1\\1&0&1&0\end{pmatrix},
 \]
@@ -1117,9 +1279,48 @@ here). The $\ket{0}$-flagged block is
 \]
 since the two Hadamards average the $\ell{=}0$ and $\ell{=}1$ branches with weight
 $\tfrac12$ each, depositing $\tfrac12 S$ and $\tfrac12 S\dg$. Thus
-$U_A\in\mathrm{BE}_{2,1}(A)$ with $\alpha=s=2$, exactly \cref{thm:lec06-ssparse}. Being
+$U_A\in\mathrm{BE}_{2,1}(A)$ with $\alpha=s=2$, exactly \cref{thm:lec06-ssparse}. (Being
 a circulant, $A$ is diagonalized by the QFT with eigenvalues
-$2\cos(2\pi k/4)\in\{2,0,-2,0\}$.
+$2\cos(2\pi k/4)\in\{2,0,-2,0\}$.)
+
+\emph{The explicit circuit.} With the $\ell$-qubit as the single flag,
+$U_A=\Hgate\,O_c\,\Hgate$, where $O_c$ is the $\ell$-controlled shift: the increment of
+\cref{exa:lec06-shift} when $\ell{=}0$, and its inverse, the decrement, when $\ell{=}1$.
+Writing $j=2q_1+q_0$, the two branches fuse into just three gates---$\CNOT_{q_0\to q_1}$,
+then $\CNOT_{\ell\to q_1}$, then $X$ on $q_0$:
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize($\ell$, flag)} & \gate{\Hgate} & \qw       & \ctrl{1} & \qw      & \gate{\Hgate} & \qw \\
+  \lstick{$q_1$ \,\scriptsize(MSB)}            & \qw           & \targ{}   & \targ{}  & \qw      & \qw           & \qw \\
+  \lstick{$q_0$ \,\scriptsize(LSB)}            & \qw           & \ctrl{-1} & \qw      & \gate{X} & \qw           & \qw
+\end{quantikz}
+\end{center}
+For $\ell{=}0$ the circuit between the Hadamards is the increment $S$ of
+\cref{exa:lec06-shift}; the lone $\CNOT_{\ell\to q_1}$, active only when $\ell{=}1$,
+converts it into the decrement $S\dg$. Why a $\pm1$ shift collapses to a single,
+unconditional $X$ on $q_0$ plus one controlled flip of $q_1$ is the subject of the next
+paragraph.
+
+\emph{Why only one $X$?} Split the $\pm1$ shift into its action on the two bits. The low
+bit $q_0$ \emph{always} flips, for both signs: $\pm1$ is odd, so it changes parity on
+every step---under $+1$ the sequence $00\to01\to10\to11$ has LSB pattern $0,1,0,1$, and
+under $-1$ the sequence $00\to11\to10\to01$ has the \emph{same} pattern $0,1,0,1$. Because
+the low-bit rule is identical in both branches it needs no control on $\ell$---hence the
+single, unconditional $X$ on $q_0$. The two signs differ only in the high bit $q_1$, which
+flips on a \emph{carry} for $+1$ (when $q_0{=}1$) and on a \emph{borrow} for $-1$ (when
+$q_0{=}0$): that is $q_1\mathrel{\oplus}=q_0$ when $\ell{=}0$ and
+$q_1\mathrel{\oplus}=q_0\oplus1$ when $\ell{=}1$, i.e.\ $q_1\mathrel{\oplus}=q_0\oplus\ell$,
+realized by $\CNOT_{q_0\to q_1}$ followed by $\CNOT_{\ell\to q_1}$. Both CNOTs act
+\emph{before} the $X$, so the carry/borrow is read from the original $q_0$; flipping $q_0$
+first would compute it from the wrong value. (More generally an $n$-bit $\pm1$ shift always
+toggles the LSB and ripples a carry/borrow up the higher bits through a cascade of
+multi-controlled gates; here $n=2$ leaves only the one controlled flip of $q_1$.)
+
+\emph{An LCU in disguise.} Because $A=S+S\dg$ is literally a sum of two unitaries, this very
+circuit is also a two-term \emph{linear combination of unitaries}: the opening $\Hgate$ is the
+$\mathrm{PREP}$, $O_c$ is the $\mathrm{SELECT}$ applying $S$ on $\ell{=}0$ and $S\dg$ on
+$\ell{=}1$, and the closing $\Hgate$ is $\mathrm{PREP}\dg$. We develop this reading in full,
+and compare it with the sparse one, in \cref{exa:lec07-hopping}.
 \end{example}
 
 \begin{remark}[More general location oracles]
@@ -1194,26 +1395,46 @@ subnormalization is $\alpha=2d{+}1$.
 
 \begin{example}[Transverse-field Ising model]
 \label{exa:lec06-ising}
-The $n$-spin TFIM $H=-J\sum_i Z_iZ_{i+1}-h\sum_i X_i$ is $(n{+}1)$-sparse in the
-computational basis:
+The $n$-spin transverse-field Ising Hamiltonian
+\[
+  H=-J\sum_{i=1}^{n-1} Z_iZ_{i+1}-h\sum_{i=1}^{n} X_i
+\]
+(an open chain with coupling $J$ and field $h$) is the canonical test case for
+sparse access, so it is worth tracing the construction in full. Act with $H$ on a
+computational basis state $\ket{\mathbf x}=\ket{x_1\cdots x_n}$: the Ising term is
+diagonal---$Z_iZ_{i+1}$ multiplies $\ket{\mathbf x}$ by $(-1)^{x_i\oplus x_{i+1}}$---while
+each field term $X_i$ flips the $i$-th spin,
 \[
   H\ket{\mathbf x}=E(\mathbf x)\,\ket{\mathbf x}-h\sum_{i=1}^{n}\ket{\mathbf x\oplus\mathbf e_i},
-  \qquad E(\mathbf x)=-J\sum_i(-1)^{x_i\oplus x_{i+1}},
+  \qquad E(\mathbf x)=-J\sum_{i=1}^{n-1}(-1)^{x_i\oplus x_{i+1}}.
 \]
-one diagonal entry plus $n$ single-spin-flip neighbors of amplitude $-h$. So
-$\norm{H}_{\max}=\max\{(n{-}1)J,\,h\}$; write $\hat H=H/\norm{H}_{\max}$. Index the
-nonzeros by $\ell\in\{0,1,\dots,n\}$. The \emph{location oracle} is the
-$\ell$-multiplexed bit flip
+So every column of $H$ has exactly $n{+}1$ nonzeros---one on the diagonal, carrying the
+Ising energy $E(\mathbf x)$, and $n$ off the diagonal, each equal to $-h$ and sitting at the
+single-spin-flip neighbors $\mathbf x\oplus\mathbf e_i$. The matrix is thus $(n{+}1)$-sparse,
+with $\norm{H}_{\max}=\max\{(n{-}1)J,\,h\}$ (the diagonal energy is at most $(n{-}1)J$, all
+bonds aligned, and the off-diagonal entries have magnitude $h$); write
+$\hat H=H/\norm{H}_{\max}$ for the rescaled matrix the construction encodes.
+
+\emph{The oracles.} Index the $n{+}1$ nonzeros of each column by $\ell\in\{0,1,\dots,n\}$,
+with $\ell=0$ the diagonal and $\ell=i$ the flip of spin $i$. The \emph{location oracle} is
+the $\ell$-multiplexed bit flip
 \[
   O_c\ket{\ell}\ket{\mathbf x}=\ket{\ell}\ket{\mathbf x\oplus\mathbf e_\ell}\ (\ell\ge1),
-  \qquad O_c\ket{0}\ket{\mathbf x}=\ket{0}\ket{\mathbf x},
+  \qquad O_c\ket{0}\ket{\mathbf x}=\ket{0}\ket{\mathbf x}:
 \]
-a \textsc{select} of single-qubit $X$ gates. The \emph{entry oracle} loads the
-diagonal energy $E(\mathbf x)/\norm{H}_{\max}$ on the $\ell=0$ branch (a rotation whose
-angle is computed from the nearest-neighbor parities $x_i\oplus x_{i+1}$---say by
-$n{-}1$ \textsc{cnot}s accumulating the parity count) and the constant
-$-h/\norm{H}_{\max}$ on each $\ell\ge1$ branch. \cref{thm:lec06-ssparse} gives
-$U_{\hat H}\in\mathrm{BE}_{n+1,\,s'+1}(\hat H)$ with $s'=\lceil\log_2(n{+}1)\rceil$:
+a \textsc{select} of single-qubit $X$ gates that applies $X_\ell$ to the spin register when
+$\ell\ge1$ and does nothing on the $\ell=0$ (diagonal) branch. The \emph{entry oracle} loads
+the matching matrix element onto the signal qubit---the constant $-h/\norm{H}_{\max}$ on each
+$\ell\ge1$ branch (an $\mathbf x$-independent rotation) and the energy
+$E(\mathbf x)/\norm{H}_{\max}$ on the $\ell=0$ branch. The diagonal branch is the only
+data-dependent step: $E(\mathbf x)$ is fixed by the $n{-}1$ nearest-neighbor parities
+$x_i\oplus x_{i+1}$, so $n{-}1$ \textsc{cnot}s accumulate the aligned-bond count into an
+ancilla, a single rotation turns that count into the angle $\arccos$ of
+$E(\mathbf x)/\norm{H}_{\max}$, and the \textsc{cnot}s are then uncomputed.
+
+\emph{The circuit.} Pad the flag to $s'=\lceil\log_2(n{+}1)\rceil$ qubits and take the
+diffusion $D=\Hgate^{\otimes s'}$. \cref{thm:lec06-ssparse} assembles the pieces into
+$U_{\hat H}\in\mathrm{BE}_{n+1,\,s'+1}(\hat H)$:
 \begin{center}
 \begin{quantikz}
   \lstick{$\ket0$ \,\scriptsize(signal)}        & \qw         & \gate[3]{O_{\hat H}} & \qw           & \qw \\
@@ -1221,13 +1442,65 @@ $U_{\hat H}\in\mathrm{BE}_{n+1,\,s'+1}(\hat H)$ with $s'=\lceil\log_2(n{+}1)\rce
   \lstick{$\ket{\mathbf x}$ \,\scriptsize($n$ spins)} & \qwbundle{n} &                 &               & \qw
 \end{quantikz}
 \end{center}
-Here $O_{\hat H}$ reads the spin register (for the $\ell=0$ diagonal), whereas
-$O_c$ only flips the spin addressed by $\ell$. Because $H$ is \emph{also} a sum of just
-$2n{-}1$ Pauli strings, the LCU route of \cref{ch:lec07} block-encodes it with
-subnormalization $\norm{c}_1=(n{-}1)J+nh$ rather than the sparsity bound
-$\alpha=n{+}1$, and avoids the $\mathbf x$-dependent entry rotation; see
-\cref{exa:lec07-tfim}. Which is cheaper depends on $J,h$, but for local Hamiltonians
-the LCU encoding is usually preferred.
+Read left to right: $D$ spreads the flag over all $n{+}1$ branches with equal weight; the
+entry oracle $O_{\hat H}$ reads the spin register to load the entries ($E(\mathbf x)$ on the
+diagonal branch, $-h$ on each flip branch); $O_c$ performs the addressed spin flip; and the
+closing $D$ interferes the branches, leaving $\hat H/(n{+}1)$ in the $\ket{0^{s'}}\ket0$-flagged
+block---that is, $U_{\hat H}\in\mathrm{BE}_{n+1}(\hat H)$ with subnormalization $\alpha=s=n{+}1$.
+Note the division of labor: $O_{\hat H}$ touches the whole spin register (for the $\ell=0$
+diagonal), whereas $O_c$ flips only the one spin addressed by $\ell$.
+
+\emph{A concrete instance: $n=3$.} Take the three-spin open chain
+\[
+  H=-J\,(Z_1Z_2+Z_2Z_3)-h\,(X_1+X_2+X_3),
+\]
+an $8\times8$ matrix. Each column has $n{+}1=4$ nonzeros, so $H$ is $4$-sparse, and
+$\norm{H}_{\max}=\max\{(n{-}1)J,h\}=\max\{2J,h\}$. Taking the basis state
+$\ket{\mathbf x}=\ket{000}$ as a representative column: both bonds are aligned
+($x_1\oplus x_2=x_2\oplus x_3=0$), so the diagonal entry is
+$E(000)=-J[(-1)^0+(-1)^0]=-2J$, and the three field terms connect $\ket{000}$ to its
+single-spin-flip neighbors $\ket{100},\ket{010},\ket{001}$, each with entry $-h$:
+\[
+  H\ket{000}=-2J\,\ket{000}-h\,\ket{100}-h\,\ket{010}-h\,\ket{001}.
+\]
+In the computational basis ordered $\ket{000},\ket{001},\dots,\ket{111}$, the full
+$8\times8$ matrix is
+\[
+  H=\begin{pmatrix}
+    -2J & -h  & -h  & 0   & -h  & 0   & 0   & 0  \\
+    -h  & 0   & 0   & -h  & 0   & -h  & 0   & 0  \\
+    -h  & 0   & 2J  & -h  & 0   & 0   & -h  & 0  \\
+    0   & -h  & -h  & 0   & 0   & 0   & 0   & -h \\
+    -h  & 0   & 0   & 0   & 0   & -h  & -h  & 0  \\
+    0   & -h  & 0   & 0   & -h  & 2J  & 0   & -h \\
+    0   & 0   & -h  & 0   & -h  & 0   & 0   & -h \\
+    0   & 0   & 0   & -h  & 0   & -h  & -h  & -2J
+  \end{pmatrix},
+\]
+diagonal $J\cdot(-2,0,2,0,0,2,0,-2)$ (the Ising energies $E(\mathbf x)$) with a $-h$ in
+every single-spin-flip off-diagonal position---four nonzeros per row, as claimed.
+Indexing the four nonzeros by $\ell\in\{0,1,2,3\}$ ($\ell=0$ diagonal, $\ell=i$ the flip
+of spin $i$), the location oracle sends $O_c\ket\ell\ket{000}$ to $\ket\ell\ket{000}$
+($\ell=0$) or $\ket\ell\ket{\mathbf e_\ell}$ ($\ell\ge1$), and the entry oracle loads
+$E(000)/\norm{H}_{\max}$ on the $\ell=0$ branch and $-h/\norm{H}_{\max}$ on each of
+$\ell=1,2,3$. A different column changes only the diagonal: e.g.\ $\ket{010}$ has both
+bonds anti-aligned, $E(010)=-J[(-1)^1+(-1)^1]=+2J$, with the same three off-diagonal
+$-h$'s at $\ket{110},\ket{000},\ket{011}$. The flag is padded to
+$s'=\lceil\log_2 4\rceil=2$ qubits (the fourth address $\ell=3$ uses the full
+$2$-bit register; no padding branch is wasted here since $n{+}1=4$ is a power of two),
+the diagonal rotation reads the $n{-}1=2$ bond parities $x_1\oplus x_2,\,x_2\oplus x_3$
+with two \textsc{cnot}s, and the construction yields
+$U_{\hat H}\in\mathrm{BE}_{4,\,3}(\hat H)$ (subnormalization $\alpha=n{+}1=4$, three flag
+qubits $s'{+}1=3$).
+
+\emph{Sparsity versus LCU.} Because $H$ is \emph{also} a sum of just $2n{-}1$ Pauli
+strings---the $(n{-}1)$ two-local $Z_iZ_{i+1}$ and the $n$ one-local $X_i$, each already
+unitary---the LCU route of \cref{ch:lec07} block-encodes it directly, with no entry oracle
+and subnormalization $\norm{c}_1=(n{-}1)J+nh$. Measured against the same $H$, the sparse route
+carries $\alpha_{\text{sparse}}=(n{+}1)\norm{H}_{\max}=(n{+}1)\max\{(n{-}1)J,h\}=\bigo(n^2)$,
+while the LCU norm is only $(n{-}1)J+nh=\bigo(n)$---a factor of $n$ smaller, and without the
+$\mathbf x$-dependent rotation. For local Hamiltonians the LCU encoding is therefore usually
+preferred; see \cref{exa:lec07-tfim}.
 \end{example}
 
 \section{Hermitian block encoding}

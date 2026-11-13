@@ -13,6 +13,8 @@
 \usepackage{enumitem}
 \usepackage{xcolor}
 \usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
 \usepackage{quantikz}
 \usepackage[most]{tcolorbox}
 \usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
@@ -74,17 +76,23 @@
 % ---------------------------------------------------------------------------
 % Theorem environments
 % ---------------------------------------------------------------------------
+% thmtools' \declaretheorem registers each environment with cleveref under its
+% own name even when the environments share a counter (sibling=theorem). With a
+% plain \newtheorem{...}[theorem]{...}, cleveref keys the reference name off the
+% shared `theorem` counter, so \cref to a lemma/proposition/example all print
+% "Theorem"; the declarations below give each its correct name.
+\usepackage{thmtools}
 \theoremstyle{plain}
 \newtheorem{theorem}{Theorem}[chapter]
-\newtheorem{lemma}[theorem]{Lemma}
-\newtheorem{proposition}[theorem]{Proposition}
-\newtheorem{corollary}[theorem]{Corollary}
+\declaretheorem[sibling=theorem,name=Lemma,refname={lemma,lemmas},Refname={Lemma,Lemmas}]{lemma}
+\declaretheorem[sibling=theorem,name=Proposition,refname={proposition,propositions},Refname={Proposition,Propositions}]{proposition}
+\declaretheorem[sibling=theorem,name=Corollary,refname={corollary,corollaries},Refname={Corollary,Corollaries}]{corollary}
 \theoremstyle{definition}
-\newtheorem{definition}[theorem]{Definition}
-\newtheorem{example}[theorem]{Example}
+\declaretheorem[sibling=theorem,name=Definition,refname={definition,definitions},Refname={Definition,Definitions}]{definition}
+\declaretheorem[sibling=theorem,name=Example,refname={example,examples},Refname={Example,Examples}]{example}
 \newtheorem{exercise}{Exercise}[chapter]
 \theoremstyle{remark}
-\newtheorem{remark}[theorem]{Remark}
+\declaretheorem[sibling=theorem,name=Remark,refname={remark,remarks},Refname={Remark,Remarks}]{remark}
 
 % Solution environment (unnumbered, italic "Solution." lead-in) — used only in solutions.tex.
 \newenvironment{solution}{\begin{proof}[\normalfont\itshape Solution.]}{\end{proof}}

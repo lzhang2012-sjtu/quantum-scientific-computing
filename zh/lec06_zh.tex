@@ -186,34 +186,45 @@ $\poly(n)$ 门块，而共有 $n$ 层。一个告诫 (Herbert, 2021)：若积分
 （对数凹、高斯及类似者）才有收益。
 \end{remark}
 
-\begin{example}[高效可积：四点上的 Grover--Rudolph]
+\begin{example}[高效可积：四点与八点上的 Grover--Rudolph]
 \label{exa:lec06-grex}
-在 $n=2$ 个量子比特上加载 $p=(3,1,1,3)/8$，即
-$\ket{u}=\tfrac1{\sqrt8}\bigl(\sqrt3\,\ket{00}+\ket{01}+\ket{10}+\sqrt3\,\ket{11}\bigr)$。
-以 $q_1$ 为最高有效位，两个半区 $\{00,01\}$ 与 $\{10,11\}$ 各携带相等的质量
-$\tfrac12$，故第一层的角度满足 $\cos^2(\theta_1/2)=\tfrac12$，即对 $q_1$ 施加
-$R_y(\pi/2)=\Hgate$。在 $q_1$ 的条件下，第二层的角度再把每一半区细分：
-$q_1{=}0$ 给出 $\cos^2(\theta/2)=p_{00}/(p_{00}{+}p_{01})=\tfrac34$，故为 $R_y(\pi/3)$；
-$q_1{=}1$ 给出 $p_{10}/(p_{10}{+}p_{11})=\tfrac14$，故为 $R_y(2\pi/3)$。于是第二层是一个
-\emph{一致受控}（uniformly controlled）旋转——$q_1$ 的每个取值对应一个角度：
+\emph{两个量子比特，完整地。} 在 $n=2$ 个量子比特上加载 $p=(3,1,1,3)/8$，即
+\[
+  \ket{u}=\tfrac1{\sqrt8}\bigl(\sqrt3\,\ket{00}+\ket{01}+\ket{10}+\sqrt3\,\ket{11}\bigr),
+\]
+以 $q_1$ 为最高有效位。Grover--Rudolph（\cref{rem:lec06-gr}）逐个比特地固定。\emph{第一层}把总质量
+在两个半区 $\{00,01\}$ 与 $\{10,11\}$ 之间分配，各携带 $\tfrac12$，故 $\cos^2(\theta_1/2)=\tfrac12$，
+$\theta_1=\pi/2$：对 $q_1$ 施加 $R_y(\pi/2)=\Hgate$。\emph{第二层}按 $q_1$ 的取值旋转 $q_2$——一个
+\emph{一致受控}（uniformly controlled）旋转：$q_1{=}0$ 给出
+$\cos^2(\theta/2)=p_{00}/(p_{00}{+}p_{01})=\tfrac34$，故 $\theta=\pi/3$；$q_1{=}1$ 给出 $\tfrac14$，故
+$\theta=2\pi/3$。于是完整的两比特线路为
 \begin{center}
 \begin{quantikz}
   \lstick{$q_1:\ket0$} & \gate{\Hgate} & \octrl{1}          & \ctrl{1}            & \qw \\
   \lstick{$q_2:\ket0$} & \qw           & \gate{R_y(\pi/3)}  & \gate{R_y(2\pi/3)}  & \qw
 \end{quantikz}
 \end{center}
-$\ket{00}$ 上的振幅为 $\cos\tfrac\pi4\cos\tfrac\pi6
-=\tfrac1{\sqrt2}\cdot\tfrac{\sqrt3}2=\sqrt3/\sqrt8=\sqrt{p_{00}}$，正如所应。
+空心控制（$q_1{=}0$）施加 $R_y(\pi/3)$，实心控制（$q_1{=}1$）施加 $R_y(2\pi/3)$。由于第二层角度是控制
+比特的\emph{仿射}函数，$\theta_2(q_1)=\tfrac\pi3+\tfrac\pi3\,q_1$，且绕同一轴的旋转相加，
+$R_y(\alpha)R_y(\beta)=R_y(\alpha+\beta)$，这个多路复用器就是三个初等门——$q_1$ 上的 $\Hgate$、$q_2$ 上
+一个无条件的 $R_y(\pi/3)$，以及一个在 $q_1{=}1$ 时把角度加到 $2\pi/3$ 的单受控 $R_y(\pi/3)$：
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_1:\ket0$} & \gate{\Hgate} & \qw               & \ctrl{1}          & \qw \\
+  \lstick{$q_2:\ket0$} & \qw           & \gate{R_y(\pi/3)} & \gate{R_y(\pi/3)} & \qw
+\end{quantikz}
+\end{center}
+两种形式都在 $\ket{00}$ 上给出振幅 $\cos\tfrac\pi4\cos\tfrac\pi6
+=\tfrac1{\sqrt2}\cdot\tfrac{\sqrt3}2=\sqrt{3/8}=\sqrt{p_{00}}$，正如所应。
 
-\emph{三个量子比特。} 同样的二分法推广到 $n=3$（$8$ 个点）。加载
-$p=(6,6,1,3,3,1,6,6)/32$，即
+\emph{三个量子比特。} 同样的二分法推广到 $n=3$（$8$ 个点）。加载 $p=(6,6,1,3,3,1,6,6)/32$，
 \[
   \ket u=\tfrac1{\sqrt{32}}\bigl(\sqrt6\,\ket{000}+\sqrt6\,\ket{001}+\ket{010}
   +\sqrt3\,\ket{011}+\sqrt3\,\ket{100}+\ket{101}+\sqrt6\,\ket{110}+\sqrt6\,\ket{111}\bigr).
 \]
-第一层有 $P(q_1{=}0)=(6{+}6{+}1{+}3)/32=\tfrac12$，故对 $q_1$ 施加 $\Hgate$。第二层一如既往——
-$q_1{=}0$ 时为 $R_y(\pi/3)$（质量比 $\tfrac{12}{16}=\tfrac34$），$q_1{=}1$ 时为 $R_y(2\pi/3)$
-（比 $\tfrac{4}{16}=\tfrac14$）。第三层如今是一个\emph{四路}一致受控旋转，其角度\emph{同时}依赖于
+第一层有 $P(q_1{=}0)=(6{+}6{+}1{+}3)/32=\tfrac12$，故对 $q_1$ 施加 $\Hgate$；第二层与两比特情形完全
+相同——$q_1{=}0$ 时为 $R_y(\pi/3)$（比 $\tfrac{12}{16}=\tfrac34$），$q_1{=}1$ 时为 $R_y(2\pi/3)$
+（比 $\tfrac{4}{16}=\tfrac14$）；第三层是一个\emph{四路}一致受控旋转，其角度\emph{同时}依赖于
 $q_1$ 与 $q_2$，
 \[
   \cos^2\tfrac{\theta_{q_1q_2}}{2}
@@ -241,6 +252,41 @@ $\ket{000}$ 上的振幅为 $\cos\tfrac\pi4\cos\tfrac\pi6\cos\tfrac\pi4
 $\theta=2\arccos\sqrt{\int_{I_{\mathrm{left}}}p\big/\int_{I}p}$，按该寄存器所持之值旋转，再反计算——每层
 一个 $\poly(n)$ 块，共 $n$ 层。$2^{k-1}$ 从不显现，因为角度来自一个公式而非查找表；对\emph{一般}的 $p$
 不存在这样的公式，代价便退回 \cref{prop:lec06-sp} 的 $2^{n}$。
+
+\emph{高效的块。} 具体地，第 $k$ 层就是\emph{计算--旋转--反计算}块
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket{i_1\cdots i_{k-1}}$} & \gate[2]{A_{\mathrm{cdf}}} & \qw           & \gate[2]{A_{\mathrm{cdf}}^{\dagger}} & \qw \\
+  \lstick{$\ket{0^{w}}$}             &                           & \gate[2]{R_y} &                                      & \qw \\
+  \lstick{$q_k:\ket0$}               & \qw                       &               & \qw                                  & \qw
+\end{quantikz}
+\end{center}
+其中 $A_{\mathrm{cdf}}$ 读取已设定的比特 $i_1\cdots i_{k-1}$，并把单个角度
+$\theta(i_1\cdots i_{k-1})=2\arccos\sqrt{\int_{I_{\mathrm{left}}}p/\int_{I}p}$
+\emph{写入}一个 $w$ 比特的工作寄存器（一个评估累积分布的 $\poly(n)$ 门算术线路），受控 $R_y$
+按该寄存器所持之值旋转新的目标比特 $q_k$，而 $A_{\mathrm{cdf}}^{\dagger}$ 把工作寄存器反计算回
+$\ket{0^{w}}$。整个 Grover--Rudolph 线路是 $n$ 个这样的块串联，第 $k$ 块以 $q_1\cdots q_{k-1}$
+为角度输入并产出 $q_k$；总代价为 $n\cdot\poly(n)=\poly(n)$，处处不含 $2^{k-1}$。
+
+\emph{把谕示写明。} 对上面这些微小的 $p$，角度谕示根本不需要工作寄存器，因为两张角度表都是已设定比特的
+\emph{仿射}函数，
+\[
+  \theta_2(q_1)=\tfrac\pi3+\tfrac\pi3\,q_1,\qquad
+  \theta_3(q_1q_2)=\tfrac\pi2-\tfrac\pi6\,q_1+\tfrac\pi6\,q_2
+\]
+（验证：$\theta_3$ 在 $q_1q_2=00,01,10,11$ 处给出 $\tfrac\pi2,\tfrac{2\pi}3,\tfrac\pi3,\tfrac\pi2$）。
+由与 $n=2$ 相同的角度相加论证，仿射角分解为一个常数 $R_y$ 加上\emph{每个输入比特一个的单受控} $R_y$。
+于是块~1 是 $q_1$ 上的 $\Hgate$；块~2 恰是本例开头画出的那条初等两比特线路；而块~3 为
+\begin{center}
+\begin{quantikz}
+  \lstick{$q_1$}       & \qw                & \ctrl{2}            & \qw                & \qw \\
+  \lstick{$q_2$}       & \qw                & \qw                 & \ctrl{1}           & \qw \\
+  \lstick{$q_3:\ket0$} & \gate{R_y(\pi/2)}  & \gate{R_y(-\pi/6)}  & \gate{R_y(\pi/6)}  & \qw
+\end{quantikz}
+\end{center}
+两个受控旋转随 $q_1,q_2$ 开启分别给 $\theta_3$ 加上 $\mp\pi/6$。这种仿射坍缩是这些角度特有的；一个
+\emph{一般}的一致受控旋转需要完整的沃尔什展开——全部 $2^{k-1}$ 个多受控项，或上面一般块中的算术
+$A_{\mathrm{cdf}}$——这正是为何只有高效可积的 $p$ 才保持 $\poly(n)$。
 \end{example}
 
 \begin{example}[稀疏向量]
@@ -262,8 +308,17 @@ $\tfrac1{\sqrt2}(\ket{000}+\ket{100})$，再用 $\CNOT_{q_0\to q_2}$ 翻转 $\ke
 
 \begin{example}[矩阵乘积态：GHZ]
 \label{exa:lec06-mps}
-GHZ 态 $\ket{u}=\tfrac1{\sqrt2}(\ket{000}+\ket{111})$ 是最简单的非平凡矩阵乘积态，键维数
-$\chi=2$。它的顺序式 MPS 制备就是教科书上的线路——对第一个量子比特施加 Hadamard，再接
+GHZ 态 $\ket{u}=\tfrac1{\sqrt2}(\ket{000}+\ket{111})$ 是最简单的非平凡\emph{矩阵乘积态} (MPS)。
+回忆：MPS 把振幅写成矩阵之积，
+\[
+  \ket{u}=\sum_{s_1\cdots s_n}\bra{L}A^{s_1}_1 A^{s_2}_2\cdots A^{s_n}_n\ket{R}\,
+          \ket{s_1\cdots s_n},
+\]
+其中每个 $A^{s_k}_k$ 是一个由物理比特 $s_k$ 标记的 $\chi_{k-1}\times\chi_k$ 矩阵（$\bra L,\ket R$ 为
+边界向量）。\emph{键维数}是 $\chi=\max_k\chi_k$，即穿行于相邻格点之间的虚拟``键''指标的大小。等价地
+——由施密特分解——$\chi$ 是 $\ket u$ 在任一（左块/右块）割缝下的最大施密特秩，因而度量该态携带的纠缠量
+（乘积态的 $\chi=1$）。GHZ 的 $\chi=2$：单个键比特记录``全 $0$ 还是全 $1$''这一分支。它的顺序式 MPS
+制备就是教科书上的线路——对第一个量子比特施加 Hadamard，再接
 一条沿寄存器传递键指标的 $\CNOT$ 链：
 \begin{center}
 \begin{quantikz}
@@ -272,15 +327,20 @@ $\chi=2$。它的顺序式 MPS 制备就是教科书上的线路——对第一�
   \lstick{$q_2:\ket0$} & \qw           & \qw      & \targ{}  & \qw
 \end{quantikz}
 \end{center}
-每个门作用在 $\lceil\log_2\chi\rceil+1=2$ 个量子比特上，共有 $n-1$ 个，与
-$\bigo(n\,\poly(\chi))$ 的计数相符；对更大的 $\chi$，这些 $\CNOT$ 换成 \cref{ch:lec15}
-中的键酉算符。
+键维数在这条线路中是\emph{可见}的——它就是沿 $\CNOT$ 链向前传递的信息。Hadamard 之后，$q_0$ 持有一个
+比特，记录寄存器已选定的分支（全 $0$ 还是全 $1$），而每个 $\CNOT$ 把这一个比特复制到下一格点。这个
+传播的载体比特\emph{就是}矩阵乘积形式的键指标：它只需 $\lceil\log_2\chi\rceil=1$ 个量子比特来携带，
+因为 $\chi=2$，于是自左向右读，你看到这单一的键逐格点穿行。每个门作用在
+$\lceil\log_2\chi\rceil+1=2$ 个量子比特上，共有 $n-1$ 个，与
+$\bigo(n\,\poly(\chi))$ 的计数相符；对更大的 $\chi$，需要 $\lceil\log_2\chi\rceil$ 条载体线，
+这些 $\CNOT$ 换成 \cref{ch:lec15} 中的键酉算符。
 \end{example}
 
 \begin{remark}[一般 $n$ 的键维数：GHZ（$\chi=2$）与 Dicke（$\chi=3$）]
 \label{rem:lec06-mpschi}
 这两族都可推广到任意数目的量子比特，键指标恰好携带左块跨过某一割缝时必须传给右块的
-那部分信息。
+那部分信息。具体地，\emph{键维数} $\chi$ 是 \cref{exa:lec06-mps} 矩阵乘积形式中该键指标的维数——
+等价地，由施密特分解，即该态在所有（左块/右块）二分下的最大非零施密特系数个数。
 
 \emph{键维数 $2$（GHZ）。} $n$ 量子比特 GHZ 态
 $\tfrac1{\sqrt2}(\ket0^{\otimes n}+\ket1^{\otimes n})$ 是具有对角 $2\times2$ 张量
@@ -397,8 +457,12 @@ $\sin\theta=(\ee^{\ii\theta}-\ee^{-\ii\theta})/2\ii$，
   \ket{g^{*}}=\bigotimes_{k,b}\bigl(\ket0+\ee^{-\ii2^b}\ket1\bigr),
 \]
 这是一个两项组合，可用一个标志比特像 Hadamard 检验（\cref{sec:lec04-1}）那样提取：在数据上
-制备均匀叠加、在标志上制备 $\ket+$，施加\emph{受标志控制}的相位梯度 $\Phi^{\pm}$（标志为
-$\ket0$ 时相位取 $+2^b$，为 $\ket1$ 时取 $-2^b$），再对标志作 $\Hgate$ 并测量。
+制备均匀叠加、在标志上制备 $\ket+$，施加\emph{受标志控制}的相位梯度 $\Phi^{\pm}$，再对标志作
+$\Hgate$ 并测量。这里 $\Phi^{+}$ 是\emph{正向}相位梯度——那层把均匀数据寄存器变成 $\ket g$ 的
+单比特相位 $P(2^b)=\diag(1,\ee^{\ii 2^b})$——而 $\Phi^{-}=(\Phi^{+})\dg$ 是它的共轭（相位
+$\ee^{-\ii 2^b}$，产生 $\ket{g^{*}}$）。标志在二者之间选择，
+$\Phi^{\pm}=\proj0\otimes\Phi^{+}+\proj1\otimes\Phi^{-}$，于是当标志处于 $\ket+$ 时这一对演化到
+$\tfrac1{\sqrt2}(\ket0\ket g+\ket1\ket{g^{*}})$，收尾的 $\Hgate$ 便让两分支互相干涉。
 \begin{center}
 \begin{quantikz}
   \lstick{$\ket0$ \,\scriptsize(标志)}  & \gate{\Hgate}              & \gate[2]{\Phi^{\pm}} & \gate{\Hgate} & \meter{} \\
@@ -793,6 +857,31 @@ $(\bra{0^a}\otimes\id)U_A(\ket{0^a}\otimes\id)=A/\alpha$（\cref{def:lec06-be}�
         \cref{sec:lec06-1} 中必须在经典一侧被追踪那样。
 \end{itemize}
 
+\begin{remark}[把范数 $\norm{A\ket b}$ 读到 $t$ 位]
+\label{rem:lec06-normcost}
+由于 $\norm{A\ket b}=\alpha\sqrt p$，其中 $p=\norm{A\ket b}^2/\alpha^2$ 是标志为
+$\ket{0^a}$ 的概率，读取范数就是\emph{振幅估计}：我们估计好子空间的振幅
+$a=\sqrt p=\norm{A\ket b}/\alpha\in[0,1]$。``$t$ 位''意味着对 $\norm{A\ket b}$ 的加性误差
+$\epsilon=10^{-t}$，即对 $a$ 的误差 $\epsilon_a=\epsilon/\alpha$。
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{朴素采样。} 制备、测量标志、取 $\ket{0^a}$ 的经验频率。$1/\sqrt N$ 的散粒噪声迫使
+        $N=\bigo(\alpha^2/\epsilon^2)=\bigo(\alpha^2\,10^{2t})$ 次调用 $U_A$ 与 $O_b$。
+  \item \emph{振幅估计}（\cref{thm:lec05-aecost}；对由 $U_A,U_A\dg,O_b,O_b\dg$ 构造的 Grover
+        迭代 $G=R_{\mathrm{flag}}R_{\psi}$ 作相位估计）。它用 $\bigo(1/\epsilon_a)$ 次 $G$ 达到
+        加性 $\epsilon_a$，故
+        \[
+          \bigo\!\Bigl(\tfrac{\alpha}{\epsilon}\Bigr)=\bigo(\alpha\,10^{t})
+          \quad\text{次查询},
+        \]
+        相对采样有二次改进——与振幅放大（\cref{thm:lec03-aa}）相同的 $\alpha/\norm{A\ket b}$
+        节省。计数寄存器约需 $\log_2(\alpha/\epsilon)\approx(\log_2 10)\,t+\log_2\alpha\approx
+        3.32\,t+\log_2\alpha$ 个量子比特以分辨 $t$ 位十进制数字，另加 $\bigo(1)$ 次中位数重复以保高置信。
+\end{itemize}
+无论哪种方式，次归一化因子 $\alpha$ 都决定代价——用振幅估计时为线性，不用时为二次——这是
+\cref{sec:lec06-2} 坚持取小 $\alpha$ 的又一理由。（若要 $t$ 个\emph{有效}数字，即相对误差
+$\eta=10^{-t}$，取 $\epsilon=\eta\norm{A\ket b}$：查询数变为 $\bigo(10^{t}/\sqrt p)$。）
+\end{remark}
+
 \begin{example}[用 $2\times2$ 编码做矩阵–向量乘积]
 \label{exa:lec06-matvec}
 取 $A=\left(\begin{smallmatrix}1&1\\0&1\end{smallmatrix}\right)$，并用
@@ -868,6 +957,18 @@ $A_{ij}$（当 $i=c(j)$ 时为 $A_{c(j),j}$，否则为 $0$）。由 \cref{rem:l
 $U_A\in\mathrm{BE}_{1,1}(A)$。
 \end{proof}
 
+明确地说，$U_A$ 只是作用在一个标志比特与 $n$ 比特数据寄存器上的两个方框：
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(标志)}        & \gate[2]{O_A} & \qw        & \qw \\
+  \lstick{$\ket j$ \,\scriptsize($n$ 比特)} &               & \gate{O_c} & \qw
+\end{quantikz}
+\end{center}
+条目谕示 $O_A$ 以列值 $\ket j$ 为条件、把标志旋转 $\theta_j=2\arccos\abs{A_{c(j),j}}$，并保持数据寄存器
+不变；位置谕示 $O_c$ 随后把 $\ket j\mapsto\ket{c(j)}$ 重新标号。输出为
+$\bigl(A_{c(j),j}\ket0+\sqrt{1-\abs{A_{c(j),j}}^2}\,\ket1\bigr)\ket{c(j)}$，其标志为 $\ket0$ 的部分
+落在第 $c(j)$ 行，振幅恰为 $A_{c(j),j}$。
+
 \begin{example}[一个 $1$-稀疏的具体编码：循环移位]
 \label{exa:lec06-shift}
 设 $N=4$，令 $A=S$ 为循环移位（cyclic shift）$S\ket{j}=\ket{(j+1)\bmod4}$，它是一个置换矩阵；它是 $1$-稀疏的且所有非零条目都等于 $1$，故
@@ -875,7 +976,16 @@ $c(j)=(j+1)\bmod4$，$A_{c(j),j}=1$。此处的条目谕示 \eqref{eq:lec06-OA} 
 $O_A\ket{0}\ket{i}\ket{j}=\ket{0}\ket{i}\ket{j}$（所有幅值都是
 $1$，故无需旋转到 $\ket{1}$），且 $O_c\ket{j}=\ket{(j+1)\bmod4}=S\ket{j}$。
 于是 $U_A=(\id\otimes O_c)O_A$ 作用为 $\ket{0}\ket{j}\mapsto\ket{0}\ket{(j+1)
-\bmod4}$，且 $\bra{0,i}U_A\ket{0,j}=\delta_{i,(j+1)\bmod4}=S_{ij}$。由于 $S$ 本身已是酉的，$U_A$ 以 $\alpha=1$ 将其块编码，且标志量子比特是惰性的——这是一个令人安心的合理性检验：一个酉算符就是它自身的 $(1,0)$-块编码（此处补足为一个闲置辅助比特）。
+\bmod4}$，且 $\bra{0,i}U_A\ket{0,j}=\delta_{i,(j+1)\bmod4}=S_{ij}$。由于 $S$ 本身已是酉的，$U_A$ 以 $\alpha=1$ 将其块编码，且标志量子比特是惰性的——这是一个令人安心的合理性检验：一个酉算符就是它自身的 $(1,0)$-块编码（此处补足为一个闲置辅助比特）。明确地说，由于 $O_A=\id$，整个编码就是作用在两个数据比特 $\ket{q_1q_0}$ 上的加一置换 $O_c=S$（$j=2q_1+q_0$，故 $q_1$ 为最高位），标志保持闲置：
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(标志)} & \qw       & \qw       & \qw \\
+  \lstick{$q_1$ \,\scriptsize(最高位)}    & \targ{}   & \qw       & \qw \\
+  \lstick{$q_0$ \,\scriptsize(最低位)}    & \ctrl{-1} & \gate{X}  & \qw
+\end{quantikz}
+\end{center}
+这就是教科书上的 $2$ 比特行波进位加一：$\CNOT_{q_0\to q_1}$ 传播进位（高位仅在 $q_0=1$ 时翻转），
+再用作用于 $q_0$ 的 $X$ 翻转低位，实现 $00\to01\to10\to11\to00$，即 $\ket j\mapsto\ket{(j+1)\bmod4}$。
 \end{example}
 
 \begin{example}[对角矩阵的块编码]
@@ -884,7 +994,24 @@ $1$，故无需旋转到 $\ket{1}$），且 $O_c\ket{j}=\ket{(j+1)\bmod4}=S\ket{
 $c(j)=j$，故 $O_c=\id$，条目谕示退化为
 $O_A\ket{0}\ket{i}=(A_{ii}\ket{0}+\sqrt{1-\abs{A_{ii}}^2}\ket{1})\ket{i}$。取
 $U_A=O_A$ 即得 $\bra{0,i}U_A\ket{0,j}=A_{ii}\delta_{ij}$，故
-$U_A\in\mathrm{BE}_{1,1}(A)$：一个对角矩阵由单个多重受控旋转即可块编码。
+$U_A\in\mathrm{BE}_{1,1}(A)$：一个对角矩阵由单个多重受控旋转即可块编码。明确地说，$U_A=O_A$ 是作用在
+旗标上的一个\emph{一致受控} $R_y$——指标寄存器 $\ket j$ 选出角度 $\theta_j=2\arccos\abs{A_{jj}}$
+（当 $A_{jj}\in[0,1]$；复数条目需在旗标上再加一个受指标控制的相位）。对单个系统比特（$N=2$），
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(旗标)} & \gate{R_y(\theta_0)} & \gate{R_y(\theta_1)} & \qw \\
+  \lstick{$\ket j$ \,\scriptsize(系统)} & \octrl{-1}           & \ctrl{-1}            & \qw
+\end{quantikz}
+\end{center}
+例如 $A=\diag(1,\tfrac12)$ 给出 $\theta_0=0$、$\theta_1=2\pi/3$，于是只剩下受 $\ket1$ 控制的旋转：
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize(旗标)} & \gate{R_y(2\pi/3)} & \qw \\
+  \lstick{$\ket j$ \,\scriptsize(系统)} & \ctrl{-1}          & \qw
+\end{quantikz}
+\end{center}
+其中 $O_A\ket0\ket1=(\tfrac12\ket0+\tfrac{\sqrt3}2\ket1)\ket1$，即旗标为 $\ket0$ 的振幅为
+$\tfrac12=A_{11}$（而 $\ket0\ket0$ 不变，振幅 $1=A_{00}$）。
 \end{example}
 
 \subsection*{一般 $s$-稀疏情形}
@@ -951,7 +1078,7 @@ $1/s$。这正是为何稀疏性在 QNLA 中决定代价：一个 $s$-稀疏矩�
 
 \begin{example}[一个具体的 $2$-稀疏编码：最近邻跃迁]
 \label{exa:lec06-hopping}
-取 $N=4$ 的周期跃迁矩阵 $A=S+S\dg$，其中 $S\ket j=\ket{(j{+}1)\bmod4}$，即 $4$-圈的邻接矩阵，
+\emph{矩阵及其谕示。} 取 $N=4$ 的周期跃迁矩阵 $A=S+S\dg$，其中 $S\ket j=\ket{(j{+}1)\bmod4}$，即 $4$-圈的邻接矩阵，
 \[
   A=\begin{pmatrix}0&1&0&1\\1&0&1&0\\0&1&0&1\\1&0&1&0\end{pmatrix},
 \]
@@ -964,8 +1091,37 @@ $\ket{0}$ 所标志的块为
   \bigl(\bra0\otimes\id\bigr)U_A\bigl(\ket0\otimes\id\bigr)=\tfrac12\bigl(S+S\dg\bigr)=\tfrac{A}{2},
 \]
 因为两个 Hadamard 以各 $\tfrac12$ 的权重平均 $\ell{=}0$ 与 $\ell{=}1$ 两个分支，分别沉积 $\tfrac12 S$ 与
-$\tfrac12 S\dg$。于是 $U_A\in\mathrm{BE}_{2,1}(A)$，$\alpha=s=2$，恰为 \cref{thm:lec06-ssparse}。作为循环
-矩阵，$A$ 由 QFT 对角化，本征值为 $2\cos(2\pi k/4)\in\{2,0,-2,0\}$。
+$\tfrac12 S\dg$。于是 $U_A\in\mathrm{BE}_{2,1}(A)$，$\alpha=s=2$，恰为 \cref{thm:lec06-ssparse}。（作为循环
+矩阵，$A$ 由 QFT 对角化，本征值为 $2\cos(2\pi k/4)\in\{2,0,-2,0\}$。）
+
+\emph{显式线路。} 以 $\ell$ 比特作为唯一标志，$U_A=\Hgate\,O_c\,\Hgate$，其中 $O_c$ 是受 $\ell$ 控制的移位——
+$\ell{=}0$ 时为 \cref{exa:lec06-shift} 的加一，$\ell{=}1$ 时为其逆（减一）。记 $j=2q_1+q_0$，两个分支合并为三个门：
+先 $\CNOT_{q_0\to q_1}$，再 $\CNOT_{\ell\to q_1}$，再对 $q_0$ 作 $X$：
+\begin{center}
+\begin{quantikz}
+  \lstick{$\ket0$ \,\scriptsize($\ell$, 标志)} & \gate{\Hgate} & \qw       & \ctrl{1} & \qw      & \gate{\Hgate} & \qw \\
+  \lstick{$q_1$ \,\scriptsize(最高位)}            & \qw           & \targ{}   & \targ{}  & \qw      & \qw           & \qw \\
+  \lstick{$q_0$ \,\scriptsize(最低位)}            & \qw           & \ctrl{-1} & \qw      & \gate{X} & \qw           & \qw
+\end{quantikz}
+\end{center}
+$\ell{=}0$ 时两个 Hadamard 之间的线路就是 \cref{exa:lec06-shift} 的加一 $S$；唯一的 $\CNOT_{\ell\to q_1}$（仅在
+$\ell{=}1$ 时激活）把它变成减一 $S\dg$。$\pm1$ 移位为何会收缩成对 $q_0$ 的一个无条件 $X$ 外加对 $q_1$ 的一个受控
+翻转，是下一段的主题。
+
+\emph{为何只有一个 $X$？} 把 $\pm1$ 移位按两个比特的作用拆开。低位 $q_0$ 对两种符号都\emph{总是}翻转：
+$\pm1$ 是奇数，故每一步都改变奇偶性——在 $+1$ 下序列 $00\to01\to10\to11$ 的最低位为 $0,1,0,1$，而在
+$-1$ 下序列 $00\to11\to10\to01$ 的最低位为\emph{相同}的 $0,1,0,1$。由于两分支的低位规则一致，它无需受
+$\ell$ 控制——于是只需对 $q_0$ 作一个无条件的 $X$。两种符号的差别只在高位 $q_1$：$+1$ 时它在\emph{进位}
+处翻转（$q_0{=}1$），$-1$ 时在\emph{借位}处翻转（$q_0{=}0$）；即 $\ell{=}0$ 时 $q_1\mathrel{\oplus}=q_0$，
+$\ell{=}1$ 时 $q_1\mathrel{\oplus}=q_0\oplus1$，合起来就是 $q_1\mathrel{\oplus}=q_0\oplus\ell$，由
+$\CNOT_{q_0\to q_1}$ 接 $\CNOT_{\ell\to q_1}$ 实现。两个 CNOT 都在 $X$ \emph{之前}作用，使进位/借位读取的是
+原始的 $q_0$；若先翻转 $q_0$，便会用错误的值去算。（更一般地，$n$ 比特的 $\pm1$ 移位总是翻转最低位，并通过
+一串多受控门把进位/借位沿高位逐级传播；此处 $n=2$ 只留下对 $q_1$ 的这一个受控翻转。）
+
+\emph{伪装的 LCU。} 由于 $A=S+S\dg$ 本就是两个酉算符之和，这条线路也是一个两项\emph{酉算符线性组合}
+(LCU)：开头的 $\Hgate$ 是 $\mathrm{PREP}$，$O_c$ 是在 $\ell{=}0$ 时施加 $S$、$\ell{=}1$ 时施加 $S\dg$ 的
+$\mathrm{SELECT}$，收尾的 $\Hgate$ 是 $\mathrm{PREP}\dg$。我们将在 \cref{exa:lec07-hopping} 中完整展开这一
+读法，并与稀疏读法作比较。
 \end{example}
 
 \begin{remark}[更一般的位置谕示]
@@ -1028,23 +1184,37 @@ $R_y\!\bigl(2\arccos\tfrac12\bigr)=R_y(2\pi/3)$（带一个符号）。代价是
 
 \begin{example}[横场伊辛模型]
 \label{exa:lec06-ising}
-$n$ 自旋的横场伊辛模型 $H=-J\sum_i Z_iZ_{i+1}-h\sum_i X_i$ 在计算基下是 $(n{+}1)$-稀疏的：
+$n$ 自旋的横场伊辛哈密顿量
+\[
+  H=-J\sum_{i=1}^{n-1} Z_iZ_{i+1}-h\sum_{i=1}^{n} X_i
+\]
+（耦合 $J$、横场 $h$ 的开链）是稀疏访问模型的典型样例，值得完整地走一遍构造。把 $H$ 作用在计算基态
+$\ket{\mathbf x}=\ket{x_1\cdots x_n}$ 上：伊辛项是对角的——$Z_iZ_{i+1}$ 把 $\ket{\mathbf x}$ 乘以
+$(-1)^{x_i\oplus x_{i+1}}$——而每个横场项 $X_i$ 翻转第 $i$ 个自旋，
 \[
   H\ket{\mathbf x}=E(\mathbf x)\,\ket{\mathbf x}-h\sum_{i=1}^{n}\ket{\mathbf x\oplus\mathbf e_i},
-  \qquad E(\mathbf x)=-J\sum_i(-1)^{x_i\oplus x_{i+1}},
+  \qquad E(\mathbf x)=-J\sum_{i=1}^{n-1}(-1)^{x_i\oplus x_{i+1}}.
 \]
-一个对角元加上 $n$ 个振幅为 $-h$ 的单自旋翻转近邻。故
-$\norm{H}_{\max}=\max\{(n{-}1)J,\,h\}$；记 $\hat H=H/\norm{H}_{\max}$。把非零元用
-$\ell\in\{0,1,\dots,n\}$ 编号。\emph{位置谕示}是受 $\ell$ 多路选择的比特翻转
+于是 $H$ 的每一列恰有 $n{+}1$ 个非零元——一个在对角线上，携带伊辛能量 $E(\mathbf x)$，另有 $n$ 个在对角线外，
+各等于 $-h$，位于单自旋翻转近邻 $\mathbf x\oplus\mathbf e_i$ 处。故该矩阵 $(n{+}1)$-稀疏，且
+$\norm{H}_{\max}=\max\{(n{-}1)J,\,h\}$（对角能量至多 $(n{-}1)J$，当所有键一致时取到，对角外条目的模为 $h$）；
+记 $\hat H=H/\norm{H}_{\max}$ 为构造所编码的归一化矩阵。
+
+\emph{谕示。} 把每列的 $n{+}1$ 个非零元用 $\ell\in\{0,1,\dots,n\}$ 编号，$\ell=0$ 为对角元、$\ell=i$ 为第 $i$ 个
+自旋的翻转。\emph{位置谕示}是受 $\ell$ 多路选择的比特翻转
 \[
   O_c\ket{\ell}\ket{\mathbf x}=\ket{\ell}\ket{\mathbf x\oplus\mathbf e_\ell}\ (\ell\ge1),
-  \qquad O_c\ket{0}\ket{\mathbf x}=\ket{0}\ket{\mathbf x},
+  \qquad O_c\ket{0}\ket{\mathbf x}=\ket{0}\ket{\mathbf x}:
 \]
-即对单量子比特 $X$ 门的一次 \textsc{select}。\emph{条目谕示}在 $\ell=0$ 分支加载对角能量
-$E(\mathbf x)/\norm{H}_{\max}$（其旋转角由近邻奇偶 $x_i\oplus x_{i+1}$ 算出——例如用
-$n{-}1$ 个 \textsc{cnot} 累加奇偶计数），并在每个 $\ell\ge1$ 分支加载常数
-$-h/\norm{H}_{\max}$。\cref{thm:lec06-ssparse} 给出
-$U_{\hat H}\in\mathrm{BE}_{n+1,\,s'+1}(\hat H)$，其中 $s'=\lceil\log_2(n{+}1)\rceil$：
+即对单量子比特 $X$ 门的一次 \textsc{select}——$\ell\ge1$ 时对自旋寄存器施加 $X_\ell$，在 $\ell=0$（对角）分支
+上什么也不做。\emph{条目谕示}把对应的矩阵元加载到信号比特上——每个 $\ell\ge1$ 分支上是常数
+$-h/\norm{H}_{\max}$（与 $\mathbf x$ 无关的旋转），$\ell=0$ 分支上是能量 $E(\mathbf x)/\norm{H}_{\max}$。
+对角分支是唯一依赖数据的步骤：$E(\mathbf x)$ 由 $n{-}1$ 个近邻奇偶 $x_i\oplus x_{i+1}$ 确定，故用 $n{-}1$ 个
+\textsc{cnot} 把一致键的计数累加到一个辅助寄存器，再由一次旋转把该计数转成角度
+$\arccos$（$E(\mathbf x)/\norm{H}_{\max}$），随后把这些 \textsc{cnot} 反计算掉。
+
+\emph{线路。} 把标志寄存器补足到 $s'=\lceil\log_2(n{+}1)\rceil$ 个比特，取扩散 $D=\Hgate^{\otimes s'}$。
+\cref{thm:lec06-ssparse} 把各部件装配为 $U_{\hat H}\in\mathrm{BE}_{n+1,\,s'+1}(\hat H)$：
 \begin{center}
 \begin{quantikz}
   \lstick{$\ket0$ \,\scriptsize(信号)}         & \qw         & \gate[3]{O_{\hat H}} & \qw           & \qw \\
@@ -1052,11 +1222,57 @@ $U_{\hat H}\in\mathrm{BE}_{n+1,\,s'+1}(\hat H)$，其中 $s'=\lceil\log_2(n{+}1)
   \lstick{$\ket{\mathbf x}$ \,\scriptsize($n$ 自旋)} & \qwbundle{n} &                 &               & \qw
 \end{quantikz}
 \end{center}
-这里 $O_{\hat H}$ 读取自旋寄存器（用于 $\ell=0$ 的对角元），而 $O_c$ 只翻转由 $\ell$ 寻址
-的那个自旋。由于 $H$ \emph{也}只是 $2n{-}1$ 个泡利串之和，\cref{ch:lec07} 的 LCU 路线以
-次归一化 $\norm{c}_1=(n{-}1)J+nh$ 对其做块编码，而非稀疏界 $\alpha=n{+}1$，且避免了依赖
-$\mathbf x$ 的条目旋转；参见 \cref{exa:lec07-tfim}。孰优取决于 $J,h$，但对局域哈密顿量通常
-更偏好 LCU 编码。
+从左到右看：$D$ 以等权把标志铺展到全部 $n{+}1$ 个分支；条目谕示 $O_{\hat H}$ 读取自旋寄存器以加载条目（对角分支上
+是 $E(\mathbf x)$，翻转分支上是 $-h$）；$O_c$ 执行被寻址的自旋翻转；收尾的 $D$ 让各分支干涉，使
+$\ket{0^{s'}}\ket0$ 标志块中留下 $\hat H/(n{+}1)$——即 $U_{\hat H}\in\mathrm{BE}_{n+1}(\hat H)$，次归一化
+$\alpha=s=n{+}1$。注意分工：$O_{\hat H}$ 触及整个自旋寄存器（为 $\ell=0$ 的对角元），而 $O_c$ 只翻转由 $\ell$
+寻址的那一个自旋。
+
+\emph{一个具体实例：$n=3$。} 取三自旋开链
+\[
+  H=-J\,(Z_1Z_2+Z_2Z_3)-h\,(X_1+X_2+X_3),
+\]
+这是一个 $8\times8$ 矩阵。每一列有 $n{+}1=4$ 个非零元，故 $H$ 是 $4$-稀疏的，且
+$\norm{H}_{\max}=\max\{(n{-}1)J,h\}=\max\{2J,h\}$。取基态
+$\ket{\mathbf x}=\ket{000}$ 作为代表列：两条键都对齐（$x_1\oplus x_2=x_2\oplus x_3=0$），
+故对角元为 $E(000)=-J[(-1)^0+(-1)^0]=-2J$，而三个横场项将 $\ket{000}$ 连到它的单自旋翻转
+近邻 $\ket{100},\ket{010},\ket{001}$，每个条目为 $-h$：
+\[
+  H\ket{000}=-2J\,\ket{000}-h\,\ket{100}-h\,\ket{010}-h\,\ket{001}.
+\]
+在按 $\ket{000},\ket{001},\dots,\ket{111}$ 排序的计算基下，完整的 $8\times8$ 矩阵为
+\[
+  H=\begin{pmatrix}
+    -2J & -h  & -h  & 0   & -h  & 0   & 0   & 0  \\
+    -h  & 0   & 0   & -h  & 0   & -h  & 0   & 0  \\
+    -h  & 0   & 2J  & -h  & 0   & 0   & -h  & 0  \\
+    0   & -h  & -h  & 0   & 0   & 0   & 0   & -h \\
+    -h  & 0   & 0   & 0   & 0   & -h  & -h  & 0  \\
+    0   & -h  & 0   & 0   & -h  & 2J  & 0   & -h \\
+    0   & 0   & -h  & 0   & -h  & 0   & 0   & -h \\
+    0   & 0   & 0   & -h  & 0   & -h  & -h  & -2J
+  \end{pmatrix},
+\]
+对角线为 $J\cdot(-2,0,2,0,0,2,0,-2)$（即伊辛能量 $E(\mathbf x)$），而每个单自旋翻转的非对角
+位置上都是 $-h$——正如所述，每行四个非零元。
+用 $\ell\in\{0,1,2,3\}$ 标注这四个非零元（$\ell=0$ 为对角，$\ell=i$ 为翻转自旋 $i$），
+位置谕示把 $O_c\ket\ell\ket{000}$ 送到 $\ket\ell\ket{000}$（$\ell=0$）或
+$\ket\ell\ket{\mathbf e_\ell}$（$\ell\ge1$），而条目谕示在 $\ell=0$ 分支加载
+$E(000)/\norm{H}_{\max}$，在 $\ell=1,2,3$ 的每个分支加载 $-h/\norm{H}_{\max}$。换一列只改变
+对角元：例如 $\ket{010}$ 两条键都反对齐，$E(010)=-J[(-1)^1+(-1)^1]=+2J$，而三个非对角的
+$-h$ 仍位于 $\ket{110},\ket{000},\ket{011}$。标志被填充到
+$s'=\lceil\log_2 4\rceil=2$ 个比特（第四个地址 $\ell=3$ 用满整个 $2$ 比特寄存器；此处
+$n{+}1=4$ 恰为 $2$ 的幂，没有浪费的填充分支），对角旋转用两个 \textsc{cnot} 读取 $n{-}1=2$
+个键的宇称 $x_1\oplus x_2,\,x_2\oplus x_3$，最终构造给出
+$U_{\hat H}\in\mathrm{BE}_{4,\,3}(\hat H)$（次归一化 $\alpha=n{+}1=4$，三个标志比特
+$s'{+}1=3$）。
+
+\emph{稀疏对比 LCU。} 由于 $H$ \emph{也}只是 $2n{-}1$ 个泡利串之和——$(n{-}1)$ 个两体 $Z_iZ_{i+1}$ 与 $n$ 个
+单体 $X_i$，每个本就是酉的——\cref{ch:lec07} 的 LCU 路线直接对其做块编码，无需条目谕示，次归一化为
+$\norm{c}_1=(n{-}1)J+nh$。对同一个 $H$ 衡量，稀疏路线携带
+$\alpha_{\text{稀疏}}=(n{+}1)\norm{H}_{\max}=(n{+}1)\max\{(n{-}1)J,h\}=\bigo(n^2)$，而 LCU 范数仅为
+$(n{-}1)J+nh=\bigo(n)$——小了一个 $n$ 因子，且无需依赖 $\mathbf x$ 的旋转。因此对局域哈密顿量通常更偏好 LCU
+编码；参见 \cref{exa:lec07-tfim}。
 \end{example}
 
 \section{厄米块编码 (Hermitian block encoding)}

@@ -173,24 +173,140 @@ the point of \cref{rem:lec10-mult}).
     the target solution up to the global factor $C$.
 \end{enumerate}
 
+\paragraph{How one gate supplies a different angle for each $\lambda_j$.}
+Step~2 deserves a closer look, because the rotation angle
+$\theta_{\lambda_j}=2\arcsin(C/\lambda_j)$ is \emph{different for every eigenvalue}---it
+must be, since each eigencomponent $\ket{v_j}$ has to be rescaled by its own factor
+$1/\lambda_j$ to assemble $A^{-1}=\sum_j\lambda_j^{-1}\proj{v_j}$. One might therefore
+picture a separate, individually tuned rotation for each $j$; but that would require
+knowing the spectrum ahead of time and would need as many gates as there are eigenvalues.
+That is \emph{not} what the circuit does.
+
+Instead $U_{\mathrm{CR}}$ is a single, $A$-independent unitary: the reversible
+implementation of the one fixed function $\lambda\mapsto2\arcsin(C/\lambda)$,
+\emph{controlled by the clock register}. Concretely it (i)~computes the angle
+$\theta=2\arcsin(C/\lambda)$ from the bits of $\lambda$ into an auxiliary register by
+coherent arithmetic, (ii)~applies the register-controlled $R_y(\theta)$ to the ancilla,
+and (iii)~uncomputes the angle register. What makes one such gate do the right thing for
+all $j$ at once is \emph{entanglement}: after phase estimation the clock does not hold a
+single number but the superposition $\sum_j c_j\ket{\lambda_j}\ket{v_j}$, each eigenphase
+$\lambda_j$ correlated with its own eigenvector $\ket{v_j}$. By linearity the one gate
+acts branch by branch,
+\begin{equation}
+  U_{\mathrm{CR}}\colon\ \ket0\sum_j c_j\ket{\lambda_j}\ket{v_j}
+  \ \longmapsto\
+  \sum_j c_j\Bigl(\sqrt{1-\tfrac{C^2}{\lambda_j^2}}\,\ket0+\tfrac{C}{\lambda_j}\ket1\Bigr)
+    \ket{\lambda_j}\ket{v_j},
+  \label{eq:lec10-cr-super}
+\end{equation}
+rotating the ancilla by $\theta_{\lambda_j}$ in the branch whose clock reads $\lambda_j$
+and by $\theta_{\lambda_{j'}}$ in the branch reading $\lambda_{j'}$---simultaneously, in a
+single pass. The per-$j$ dependence therefore lives entirely in the \emph{quantum state of
+the clock register}, which QPE fills in at runtime, and not in the choice of gates: the
+circuit is literally the same no matter what $A$ and $\ket b$ are, and its size is the
+$\poly(d)$ cost of the arithmetic---independent of the dimension $N$ and of how many
+distinct eigenvalues $A$ has. This is the concrete mechanism behind
+\cref{rem:lec10-nodecomp}. The uncomputation of step~3 then returns the clock from
+$\ket{\lambda_j}$ to $\ket{0^d}$, disentangling it so that the surviving ancilla amplitude
+$C/\lambda_j$ attaches cleanly to $\ket{v_j}$ and \eqref{eq:lec10-cr-super} collapses to
+\eqref{eq:lec10-hhl}.
+
 \begin{figure}[t]
 \centering
-\begin{minipage}{0.92\textwidth}
-\centering
-\footnotesize
-\setlength{\fboxsep}{8pt}
-\fbox{\parbox{0.9\textwidth}{\centering
-ancilla: \quad$\ket0\to$ \hfill $U_{\mathrm{CR}}$ \hfill $\to$ measure ($1=$ success)\\[2pt]
-clock ($d$ qubits): \quad$\ket{0^d}\to U_{\mathrm{QPE}}\to\ \ket{\lambda_j}\ \to
-   U_{\mathrm{QPE}}\dg\to\ket{0^d}$\\[2pt]
-system: \quad$\ket b=\sum_j c_j\ket{v_j}$ carried through; output
-   $\propto\sum_j (c_j/\lambda_j)\ket{v_j}$.}}
-\end{minipage}
-\caption{The HHL circuit: QPE writes the eigenphases into the clock register, a
-controlled rotation attaches amplitude $C/\lambda_j$ to $\ket1$, uncomputation clears
-the clock, and postselecting $\ket1$ leaves $C\,A^{-1}\ket b$ in the system register.}
+\begin{quantikz}[column sep=10pt,row sep=14pt]
+  \lstick{ancilla $\ket0$} & \qw & \qw & \qw & \gate{R_y(\theta_\lambda)}\gategroup[1,steps=1]{\scriptsize $U_{\mathrm{CR}}$} & \qw & \qw & \qw & \meter{} \\
+  \lstick{clock $\ket0$} & \gate{\Hgate} & \ctrl{2} & \gate[2]{\mathrm{QFT}\dg} & \ctrl{-1} & \gate[2]{\mathrm{QFT}} & \octrl{2} & \gate{\Hgate} & \qw \rstick{$\ket0$} \\
+  \lstick{clock $\ket0$} & \gate{\Hgate} & \qw & & \ctrl{-2} & & \qw & \gate{\Hgate} & \qw \rstick{$\ket0$} \\
+  \lstick{$\ket b$} & \qwbundle{n} & \gate{U^{2^0}} & \gate{U^{2^1}} & \qw & \gate{U^{-2^1}} & \gate{U^{-2^0}} & \qw & \qw \rstick{$\propto A^{-1}\ket b$}
+\end{quantikz}
+\caption{The HHL circuit with a $d=2$-qubit clock, drawn explicitly. \emph{Phase
+estimation} (Hadamards, the controlled powers $U^{2^j}=\ee^{\ii2\pi A\,2^j}$, and
+$\mathrm{QFT}\dg$) writes each eigenphase $\lambda_j$ into the clock. The
+clock-controlled rotation $U_{\mathrm{CR}}$ turns the ancilla by
+$\theta_\lambda=2\arcsin(C/\lambda_j)$, attaching amplitude $C/\lambda_j$ to $\ket1$.
+The mirror-image gates ($\mathrm{QFT}$ and the inverse controlled powers) are
+\emph{inverse} QPE, uncomputing the clock back to $\ket{0^d}$. Measuring the ancilla and
+postselecting $\ket1$ leaves $C\,A^{-1}\ket b$ in the system register. For $d$ clock
+qubits the controlled-$U$ ladder has $d$ rungs with powers $U^{2^0},\dots,U^{2^{d-1}}$;
+the single clock-controlled $R_y$ shown stands for the coherent arithmetic
+$\lambda\mapsto 2\arcsin(C/\lambda)$ acting on the whole clock register.}
 \label{fig:lec10-hhl}
 \end{figure}
+
+\begin{remark}[HHL needs no eigendecomposition in advance]
+\label{rem:lec10-nodecomp}
+Although the analysis is written in the eigenbasis $\{\ket{v_j}\}$, the circuit never
+receives it. Phase estimation \eqref{eq:lec10-qpe} \emph{discovers} each eigenphase
+$\lambda_j$ at runtime and writes it---coherently, in superposition over all $j$ at
+once---into the clock register; the controlled rotation \eqref{eq:lec10-cr} then reads
+that register to form $C/\lambda_j$ by reversible arithmetic, and uncomputation erases it
+again. The only input is the evolution oracle $U=\ee^{\ii2\pi A}$ (a black box for $A$),
+the state-preparation oracle for $\ket b$, and \emph{one scalar bound}, the condition
+number $\kappa$: it fixes the admissible constant $C\le1/\kappa$ in the rotation and the
+clock precision $d=\bigo(\log\kappa+\log(1/\epsilon))$ needed to resolve
+$\lambda_{\min}\approx1/\kappa$. In this the HHL shares the spectrum-agnostic character of
+QSVT (\cref{rem:lec09-nodecomp}); the two differ only in \emph{how} $1/\lambda$ is formed
+(QPE arithmetic versus a bounded polynomial), which is exactly the source of their
+differing $1/\epsilon$ versus $\log(1/\epsilon)$ precision scaling.
+\end{remark}
+
+\begin{remark}[Implementing the rotation $\lambda\mapsto2\arcsin(C/\lambda)$]
+\label{rem:lec10-cr-impl}
+The ``coherent arithmetic'' invoked in step~2 is not a primitive gate; it decomposes into
+two standard pieces. The goal is the register-controlled rotation
+\begin{equation}
+  \ket\lambda\ket0_{\mathrm{anc}}\ \longmapsto\
+  \ket\lambda\Bigl(\cos\tfrac{\theta_\lambda}{2}\ket0+\sin\tfrac{\theta_\lambda}{2}\ket1\Bigr),
+  \qquad \theta_\lambda=2\arcsin(C/\lambda)\in[0,\pi],
+  \label{eq:lec10-cr-goal}
+\end{equation}
+with the eigenvalue $\lambda$ held as a $d$-bit fixed-point number in the clock register.
+
+\emph{(i) A register-controlled rotation from an angle register.} Suppose first that the
+angle is already stored in an $m$-qubit register as the binary fraction
+$\theta=2\pi\sum_{k=1}^m b_k 2^{-k}$. Because $Y$-rotations add,
+$R_y(\alpha)R_y(\beta)=R_y(\alpha+\beta)$, the rotation factors \emph{exactly} into $m$
+fixed-angle rotations, each controlled by a single register qubit:
+\begin{equation}
+  R_y(\theta)=\prod_{k=1}^m\bigl[\,b_k\text{-controlled }R_y(2\pi\,2^{-k})\,\bigr].
+  \label{eq:lec10-bitrot}
+\end{equation}
+So once $\theta_\lambda$ sits in a register, the rotation itself is just $m$ controlled
+$R_y$ gates with \emph{classically precomputed} angles $2\pi\,2^{-k}$---there is no
+$\lambda$-dependence in the gate set, only in the control register.
+
+\emph{(ii) Computing the angle.} The real work is filling that register with
+$\theta_\lambda=2\arcsin(C/\lambda)$ from the clock, and there are two standard routes:
+\begin{itemize}[leftmargin=1.4em,nosep]
+  \item \emph{Reversible arithmetic} (scalable / fault-tolerant). Form the reciprocal
+    $C/\lambda$ by Newton--Raphson iteration $y_{n+1}=y_n(2-\lambda y_n)$ (quadratic
+    convergence, each step a reversible multiply--add) or by a restoring-division circuit;
+    then evaluate $2\arcsin(\cdot)$ with a \textsc{cordic} rotation sequence or a short
+    polynomial approximation, again as reversible fixed-point arithmetic, writing the
+    result into the angle register. All of this is $\poly(d)$ Toffoli and adder gates, and
+    every scratch register is uncomputed so that only $\ket{\theta_\lambda}$ survives.
+  \item \emph{Table lookup} (simplest for a modest clock). Since the clock is only
+    $d=\bigo(\log\kappa+\log(1/\epsilon))$ qubits, one may instead precompute
+    $\theta(\lambda)$ \emph{classically} for all $2^d$ clock values and load it with a
+    read-only-memory (QROM) oracle
+    $\ket\lambda\ket0\mapsto\ket\lambda\ket{\theta(\lambda)}$.
+\end{itemize}
+After either route one applies \eqref{eq:lec10-bitrot} and then uncomputes the angle
+register, leaving the ancilla rotated by $\theta_\lambda$ and the clock restored to
+$\ket\lambda$ (ready for the inverse QPE of step~3).
+
+\emph{A useful simplification.} On the admissible range $C/\lambda\le C\kappa\le1$ the
+arcsine is nearly linear, $\arcsin(C/\lambda)=C/\lambda+\bigo\bigl((C/\lambda)^3\bigr)$, so
+one may drop it altogether and take $\theta_\lambda\approx2C/\lambda$---which needs only
+the reciprocal, not \textsc{cordic}. The induced amplitude error is $\bigo(\kappa^{-3})$,
+usually negligible beside the QPE discretization error.
+
+\emph{The ill-conditioned branch.} The reciprocal and arcsine are meaningful only for
+$\lambda\gtrsim\lambda_{\min}=1/\kappa$. The branch in which the clock reads a near-zero
+eigenphase is detected by a dedicated \emph{ill-conditioned flag} qubit and its rotation
+set to zero, so eigencomponents below the resolution floor are excluded rather than
+amplified spuriously---the standard HHL filtering bookkeeping.
+\end{remark}
 
 \paragraph{Success probability and cost.}
 With $\norm A=1$ so that $\lambda_{\min}=1/\kappa$, the largest admissible constant is
@@ -328,6 +444,61 @@ in $d$---provided the evolution oracle and state preparation are efficient and o
 only a scalar functional of the solution. This dimensional scaling $\kappa\sim N^{2/d}$
 (here $N_{\mathrm{tot}}=N^d$, so $\kappa\sim N_{\mathrm{tot}}^{2/d}$) is the standard
 lens through which PDE-derived QLSP instances are judged.
+\end{example}
+
+\begin{example}[HHL versus QSVT for the high-dimensional Poisson equation]
+\label{exa:lec10-hhlvsqsvt}
+Put the two solvers head to head on the $d$-dimensional Poisson system $A_d u=b$ of
+\cref{exa:lec10-poisson}. Both see the \emph{same} operator, so they share the same
+problem parameters: with $N=2^n$ points per axis the condition number is
+$\kappa\approx(2(N{+}1)/\pi)^2=\bigo(N^2)$, \emph{independent of the dimension $d$}, and
+both solvers run on $\bigo(dn)=\bigo(d\log N)$ qubits for the $N^d$-dimensional state. A
+single sparse-access or LCU block encoding of $A_d$ (a $d$-term sum, \cref{ch:lec07})
+feeds either algorithm. What differs is how each inverts the eigenvalues, and the gap is
+entirely in the \emph{precision} dependence:
+\begin{center}
+\begin{tabular}{l l l}
+\toprule
+ & HHL (\eqref{eq:lec10-hhl-cost}) & QSVT (\cref{thm:lec10-qsvt})\\
+\midrule
+how $1/\lambda$ is formed & QPE $+$ controlled rotation & bounded polynomial $P\approx1/x$\\
+precision dependence      & $1/\epsilon$ (from QPE resolution) & $\log(1/\epsilon)$\\
+queries, best case ($\xi\sim\kappa$) & $\bigo(\kappa/\epsilon)$ & $\bigo(\kappa\log(\kappa/\epsilon))$\\
+queries, worst case ($\xi\sim1$)     & $\bigo(\kappa^2/\epsilon)$\footnotemark & $\bigo(\kappa^2\log(\kappa/\epsilon))$\\
+dependence on $d$ & none (through $\kappa$) & none (through $\kappa$)\\
+\bottomrule
+\end{tabular}
+\end{center}
+\footnotetext{With amplitude amplification; $\bigo(\kappa^3/\epsilon)$ without, and
+$\bigo(\kappa/\epsilon)$ with variable-time amplitude amplification.}
+Both are dimension-independent in the only place it matters---$\kappa$---so the quantum
+advantage over a classical sparse solver (whose work is $\bigo(N^d)$ per solve, or
+$\widetilde\bigo(N^d)$ with multigrid) is the same \emph{exponential-in-$d$} memory and
+runtime saving for either, provided one wants a scalar functional $\braket{u}{M u}$ of
+the solution rather than all $N^d$ entries. The practical separator is $\epsilon$. To
+illustrate at the fixed grid $N=32$ ($\kappa\approx441$, the same for every $d$), the
+query counts scale as
+\begin{center}
+\begin{tabular}{r l l l}
+\toprule
+$\epsilon$ & HHL best $\sim\kappa/\epsilon$ & QSVT $\sim\kappa\log(\kappa/\epsilon)$ & ratio\\
+\midrule
+$10^{-2}$ & $4.4\times10^{4}$ & $4.7\times10^{3}$ & $9$\\
+$10^{-4}$ & $4.4\times10^{6}$ & $6.8\times10^{3}$ & $650$\\
+$10^{-6}$ & $4.4\times10^{8}$ & $8.8\times10^{3}$ & $5.0\times10^{4}$\\
+$10^{-8}$ & $4.4\times10^{10}$ & $1.1\times10^{4}$ & $4.1\times10^{6}$\\
+\bottomrule
+\end{tabular}
+\end{center}
+The $\kappa$-dependence is identical and $d$-independent for both; the $1/\epsilon$
+versus $\log(1/\epsilon)$ precision scaling is the whole story, and it is why QSVT is the
+default once a block encoding of $A_d$ is in hand. HHL retains pedagogical and
+historical value---and remains natural when the only oracle one has is the Hamiltonian
+evolution $\ee^{\ii2\pi A_d}$ rather than a block encoding---but for a demanding PDE
+tolerance ($\epsilon\lesssim10^{-4}$) the exponential precision gap dominates every other
+consideration. The companion notebook of \cref{ch:lec09} verifies the shared,
+$d$-independent $\kappa$ out to $d=10$ and the $\bigo(\kappa\log(1/\epsilon))$ QSVT
+degree directly.
 \end{example}
 
 \section{Adiabatic and quantum Zeno solvers}
